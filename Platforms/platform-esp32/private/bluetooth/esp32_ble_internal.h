@@ -33,6 +33,13 @@
 struct BleCtx {
     // Mutexes
     SemaphoreHandle_t radio_mutex;  // guards radio state transitions
+    // Guards GAP/GATT advertising & profile-switch calls (on_sync()'s advertising decision vs.
+    // hid/spp/midi's _start()/_stop()). Deliberately separate from radio_mutex: radio_mutex can
+    // be held for the duration of nimble_port_stop(), which blocks waiting for the NimBLE host
+    // task to exit its run loop - taking that same mutex from code that can run ON the host task
+    // (on_sync()) would deadlock disable against it. Nothing held under gap_mutex ever waits on
+    // host-task progress, so it's safe to take from the host task itself.
+    SemaphoreHandle_t gap_mutex;
 
     // Radio / scan state (atomic — read from multiple tasks)
     std::atomic<BtRadioState> radio_state;

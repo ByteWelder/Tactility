@@ -542,10 +542,12 @@ error_t api_event_subscribe(Device* device, WifiEventSubscription* sub, TaskEven
     mutex_lock(&ctx->subscriptionsMutex);
 
     // Avoid cyclic subscription list that would loop forever
-    if (ctx->subscriptions == sub) {
-        mutex_unlock(&ctx->subscriptionsMutex);
-        task_event_group_release_bit(event_group, bit);
-        return ERROR_INVALID_STATE;
+    for (WifiEventSubscription* existing = ctx->subscriptions; existing != nullptr; existing = existing->internal.next) {
+        if (existing == sub) {
+            mutex_unlock(&ctx->subscriptionsMutex);
+            task_event_group_release_bit(event_group, bit);
+            return ERROR_INVALID_STATE;
+        }
     }
 
     sub->internal.event_group = event_group;
@@ -639,12 +641,16 @@ error_t stop_device(Device* device) {
 
     // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
     // using this device, so a later wifi_event_unsubscribe() would find no ctx and skip releasing
-    // the bit and destructing sub->internal.ring_mutex.
+    // the bit.
     mutex_lock(&ctx->subscriptionsMutex);
     for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr;) {
         WifiEventSubscription* next = sub->internal.next;
+        // Force-close, don't destruct: a concurrent wifi_event_poll() may hold/await this same
+        // lock (see WifiEventSubscription::internal::closed).
+        mutex_lock(&sub->internal.ring_mutex);
+        sub->internal.closed = true;
+        mutex_unlock(&sub->internal.ring_mutex);
         task_event_group_release_bit(sub->internal.event_group, sub->bit);
-        mutex_destruct(&sub->internal.ring_mutex);
         sub = next;
     }
     ctx->subscriptions = nullptr;

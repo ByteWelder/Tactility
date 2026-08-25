@@ -82,7 +82,12 @@ error_t bluetooth_event_subscribe(struct Device* device, struct BtEventSubscript
 
 error_t bluetooth_event_unsubscribe(struct Device* device, struct BtEventSubscription* sub) {
     error_t result = BT_API(device)->event_unsubscribe(device, sub);
-    if (result == ERROR_NONE) {
+    mutex_lock(&sub->internal.ring_mutex);
+    bool was_closed = sub->internal.closed;
+    mutex_unlock(&sub->internal.ring_mutex);
+    // Destruct on success or force-close; skip on a genuine caller error (never subscribed, so
+    // ring_mutex was never constructed).
+    if (result == ERROR_NONE || was_closed) {
         mutex_destruct(&sub->internal.ring_mutex);
     }
     return result;
@@ -90,6 +95,10 @@ error_t bluetooth_event_unsubscribe(struct Device* device, struct BtEventSubscri
 
 error_t bluetooth_event_poll(struct BtEventSubscription* sub, struct BtEvent* out_event) {
     mutex_lock(&sub->internal.ring_mutex);
+    if (sub->internal.closed) {
+        mutex_unlock(&sub->internal.ring_mutex);
+        return ERROR_TIMEOUT;
+    }
     bool has_event = sub->internal.count > 0;
     if (has_event) {
         *out_event = sub->internal.queue[sub->internal.head];

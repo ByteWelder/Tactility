@@ -443,16 +443,17 @@ static void on_sync() {
     e.radio_state = BT_RADIO_STATE_ON;
     ble_publish_event(ctx->device, e);
 
-    // radio_mutex serializes this against hid/spp/midi_device_start()/_stop(), which touch the
-    // same GAP/GATT state from another task and race this check on a multi-core ESP32 otherwise.
-    xSemaphoreTake(ctx->radio_mutex, portMAX_DELAY);
+    // gap_mutex (not radio_mutex - this runs on the host task and must never wait on a mutex
+    // disable can hold across nimble_port_stop()) serializes this against hid/spp/midi_device_
+    // start()/_stop(), which touch the same GAP/GATT state from another task.
+    xSemaphoreTake(ctx->gap_mutex, portMAX_DELAY);
     // Only start name-only advertising if no profile has been activated yet;
     // otherwise we would overwrite the correct profile advertising with name-only,
     // causing Windows to connect without seeing the HID/SPP/MIDI service UUID.
     if (!ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load()) {
         ble_start_advertising(ctx->device, nullptr);
     }
-    xSemaphoreGive(ctx->radio_mutex);
+    xSemaphoreGive(ctx->gap_mutex);
 }
 
 static void dispatch_disable_timer_cb(void* arg) {
@@ -1009,10 +1010,12 @@ static error_t api_event_subscribe(struct Device* device, BtEventSubscription* s
     mutex_lock(&ctx->subscriptionsMutex);
 
     // Avoid cyclic subscription list that would loop forever
-    if (ctx->subscriptions == sub) {
-        mutex_unlock(&ctx->subscriptionsMutex);
-        task_event_group_release_bit(event_group, bit);
-        return ERROR_INVALID_STATE;
+    for (BtEventSubscription* existing = ctx->subscriptions; existing != nullptr; existing = existing->internal.next) {
+        if (existing == sub) {
+            mutex_unlock(&ctx->subscriptionsMutex);
+            task_event_group_release_bit(event_group, bit);
+            return ERROR_INVALID_STATE;
+        }
     }
 
     sub->internal.event_group = event_group;
@@ -1131,6 +1134,7 @@ static void destroy_child_device(struct Device*& child) {
 static error_t esp32_ble_start_device(struct Device* device) {
     BleCtx* ctx = new BleCtx();
     ctx->radio_mutex = xSemaphoreCreateMutex();
+    ctx->gap_mutex = xSemaphoreCreateMutex();
     mutex_construct(&ctx->subscriptionsMutex);
     ctx->subscriptions = nullptr;
     ctx->radio_state.store(BT_RADIO_STATE_OFF);
@@ -1223,12 +1227,16 @@ static error_t esp32_ble_stop_device(struct Device* device) {
 
     // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
     // using this device, so a later bluetooth_event_unsubscribe() would find no ctx and skip
-    // releasing the bit and destructing sub->internal.ring_mutex.
+    // releasing the bit.
     mutex_lock(&ctx->subscriptionsMutex);
     for (BtEventSubscription* sub = ctx->subscriptions; sub != nullptr;) {
         BtEventSubscription* next = sub->internal.next;
+        // Force-close, don't destruct: a concurrent bluetooth_event_poll() may hold/await this
+        // same lock (see BtEventSubscription::internal::closed).
+        mutex_lock(&sub->internal.ring_mutex);
+        sub->internal.closed = true;
+        mutex_unlock(&sub->internal.ring_mutex);
         task_event_group_release_bit(sub->internal.event_group, sub->bit);
-        mutex_destruct(&sub->internal.ring_mutex);
         sub = next;
     }
     ctx->subscriptions = nullptr;

@@ -116,13 +116,17 @@ struct WifiEventSubscription {
     struct {
         /** Caller-owned, borrowed; set by wifi_event_subscribe(). */
         struct TaskEventGroup* event_group;
-        /** Guards `queue`/`head`/`count` between wifi_event_emit() (driver thread) and
+        /** Guards `queue`/`head`/`count`/`closed` between wifi_event_emit() (driver thread) and
          * wifi_event_poll() (caller's thread) - the two live in different translation units with
          * no other shared lock. */
         struct Mutex ring_mutex;
         struct WifiEvent queue[WIFI_EVENT_QUEUE_CAPACITY];
         uint8_t head;
         uint8_t count;
+        /** Set under `ring_mutex` when the device is torn down while still subscribed (see
+         * esp32_wifi's stop_device()). `ring_mutex` stays constructed - only the subscription's
+         * own wifi_event_unsubscribe() destructs it, since that can't race its own polling. */
+        bool closed;
 
         struct WifiEventSubscription* next;
     } internal;

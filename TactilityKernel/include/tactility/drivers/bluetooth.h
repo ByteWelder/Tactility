@@ -157,13 +157,17 @@ struct BtEventSubscription {
     struct {
         /** Caller-owned, borrowed; set by bluetooth_event_subscribe(). */
         struct TaskEventGroup* event_group;
-        /** Guards `queue`/`head`/`count` between bluetooth_fire_event() (driver thread) and
-         * bluetooth_event_poll() (caller's thread) - the two live in different translation units
-         * with no other shared lock. */
+        /** Guards `queue`/`head`/`count`/`closed` between bluetooth_fire_event() (driver thread)
+         * and bluetooth_event_poll() (caller's thread) - the two live in different translation
+         * units with no other shared lock. */
         struct Mutex ring_mutex;
         struct BtEvent queue[BT_EVENT_QUEUE_CAPACITY];
         uint8_t head;
         uint8_t count;
+        /** Set under `ring_mutex` when the device is torn down while still subscribed (see
+         * esp32_ble_stop_device()). `ring_mutex` stays constructed - only the subscription's own
+         * bluetooth_event_unsubscribe() destructs it, since that can't race its own polling. */
+        bool closed;
 
         struct BtEventSubscription* next;
     } internal;

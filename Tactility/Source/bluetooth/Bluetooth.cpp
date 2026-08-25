@@ -278,6 +278,10 @@ int32_t btEventThreadMain() {
 }
 
 bool startBtEventThread(Device* dev) {
+    if (btEventThread != nullptr) {
+        return true; // already running
+    }
+
     task_event_group_construct(&btEventGroup);
     if (bluetooth_event_subscribe(dev, &btEventSub, &btEventGroup) != ERROR_NONE) {
         task_event_group_destruct(&btEventGroup);

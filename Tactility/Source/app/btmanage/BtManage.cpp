@@ -221,8 +221,11 @@ int32_t appMain(int argc, char* argv[]) {
 
     if (ctx.btDevice) {
         bluetooth_event_unsubscribe(ctx.btDevice, &ctx.btEventSub);
-        device_put(ctx.btDevice);
         ctx.btDevice = nullptr;
+    }
+
+    if (dev != nullptr) {
+        device_put(dev);
     }
 
     window_manager_remove(window);
