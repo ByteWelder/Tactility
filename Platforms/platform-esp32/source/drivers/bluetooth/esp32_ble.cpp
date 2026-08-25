@@ -1225,6 +1225,11 @@ static error_t esp32_ble_stop_device(struct Device* device) {
         ctx->disable_timer = nullptr;
     }
 
+    if (ctx->gap_mutex != nullptr) {
+        vSemaphoreDelete(ctx->gap_mutex);
+        ctx->gap_mutex = nullptr;
+    }
+
     // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
     // using this device, so a later bluetooth_event_unsubscribe() would find no ctx and skip
     // releasing the bit.

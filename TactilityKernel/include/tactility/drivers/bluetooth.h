@@ -168,6 +168,9 @@ struct BtEventSubscription {
          * esp32_ble_stop_device()). `ring_mutex` stays constructed - only the subscription's own
          * bluetooth_event_unsubscribe() destructs it, since that can't race its own polling. */
         bool closed;
+        /** True while `ring_mutex` is constructed. Read without locking `ring_mutex`: it's what
+         * decides whether locking it is safe. */
+        bool constructed;
 
         struct BtEventSubscription* next;
     } internal;
