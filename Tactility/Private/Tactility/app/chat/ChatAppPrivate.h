@@ -24,7 +24,6 @@ struct Context {
     uint32_t appInstanceId;
     ChatState state;
     ChatView view = ChatView(this, &state);
-    service::espnow::ReceiverSubscription receiveSubscription = -1;
     ChatSettingsData settings;
     bool isFirstLaunch = false;
 };

@@ -181,13 +181,6 @@ int32_t appMain(int argc, char* argv[]) {
     }
     enableEspNow(&ctx);
 
-    ctx.receiveSubscription = service::espnow::subscribeReceiver(
-        [&ctx](const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
-            onReceive(&ctx, receiveInfo, data, length);
-        }
-    );
-
-
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
@@ -195,6 +188,12 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+
+    auto espnow_subscription = service::espnow::subscribeReceiver(
+        [&ctx](const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
+            onReceive(&ctx, receiveInfo, data, length);
+        }
+    );
 
     bool shouldClose = false;
     while (!shouldClose) {
@@ -213,12 +212,12 @@ int32_t appMain(int argc, char* argv[]) {
         }
     }
 
+    service::espnow::unsubscribeReceiver(espnow_subscription);
+    disableEspNow(&ctx);
+
     window_manager_remove(window);
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
-
-    service::espnow::unsubscribeReceiver(ctx.receiveSubscription);
-    disableEspNow(&ctx);
 
     return 0;
 }
