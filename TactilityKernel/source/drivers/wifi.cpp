@@ -63,9 +63,12 @@ error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription
     mutex_construct(&sub->internal.ring_mutex);
     sub->internal.head = 0;
     sub->internal.count = 0;
+    sub->internal.closed = false;
+    sub->internal.constructed = true;
 
     error_t result = WIFI_API(device)->event_subscribe(device, sub, event_group);
     if (result != ERROR_NONE) {
+        sub->internal.constructed = false;
         mutex_destruct(&sub->internal.ring_mutex);
     }
     return result;
@@ -73,7 +76,17 @@ error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription
 
 error_t wifi_event_unsubscribe(struct Device* device, struct WifiEventSubscription* sub) {
     error_t result = WIFI_API(device)->event_unsubscribe(device, sub);
-    if (result == ERROR_NONE) {
+    // sub was never subscribed, or was already unsubscribed. ring_mutex was never constructed,
+    // unsafe to lock or destruct.
+    if (!sub->internal.constructed) {
+        return result;
+    }
+    mutex_lock(&sub->internal.ring_mutex);
+    bool was_closed = sub->internal.closed;
+    mutex_unlock(&sub->internal.ring_mutex);
+    // Destruct on success or force-close.
+    if (result == ERROR_NONE || was_closed) {
+        sub->internal.constructed = false;
         mutex_destruct(&sub->internal.ring_mutex);
     }
     return result;
@@ -81,6 +94,10 @@ error_t wifi_event_unsubscribe(struct Device* device, struct WifiEventSubscripti
 
 error_t wifi_event_poll(struct WifiEventSubscription* sub, struct WifiEvent* out_event) {
     mutex_lock(&sub->internal.ring_mutex);
+    if (sub->internal.closed) {
+        mutex_unlock(&sub->internal.ring_mutex);
+        return ERROR_TIMEOUT;
+    }
     bool has_event = sub->internal.count > 0;
     if (has_event) {
         *out_event = sub->internal.queue[sub->internal.head];

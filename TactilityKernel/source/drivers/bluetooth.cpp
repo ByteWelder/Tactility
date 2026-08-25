@@ -66,14 +66,55 @@ error_t bluetooth_disconnect(struct Device* device, const BtAddr addr, enum BtPr
     return BT_API(device)->disconnect(device, addr, profile);
 }
 
-// ---- Event callbacks ----
+// ---- Event subscription ----
 
-error_t bluetooth_add_event_callback(struct Device* device, void* context, BtEventCallback callback) {
-    return BT_API(device)->add_event_callback(device, context, callback);
+error_t bluetooth_event_subscribe(struct Device* device, struct BtEventSubscription* sub, struct TaskEventGroup* event_group) {
+    mutex_construct(&sub->internal.ring_mutex);
+    sub->internal.head = 0;
+    sub->internal.count = 0;
+    sub->internal.closed = false;
+    sub->internal.constructed = true;
+
+    error_t result = BT_API(device)->event_subscribe(device, sub, event_group);
+    if (result != ERROR_NONE) {
+        sub->internal.constructed = false;
+        mutex_destruct(&sub->internal.ring_mutex);
+    }
+    return result;
 }
 
-error_t bluetooth_remove_event_callback(struct Device* device, BtEventCallback callback) {
-    return BT_API(device)->remove_event_callback(device, callback);
+error_t bluetooth_event_unsubscribe(struct Device* device, struct BtEventSubscription* sub) {
+    error_t result = BT_API(device)->event_unsubscribe(device, sub);
+    // sub was never subscribed, or was already unsubscribed. ring_mutex was never constructed,
+    // unsafe to lock or destruct.
+    if (!sub->internal.constructed) {
+        return result;
+    }
+    mutex_lock(&sub->internal.ring_mutex);
+    bool was_closed = sub->internal.closed;
+    mutex_unlock(&sub->internal.ring_mutex);
+    // Destruct on success or force-close.
+    if (result == ERROR_NONE || was_closed) {
+        sub->internal.constructed = false;
+        mutex_destruct(&sub->internal.ring_mutex);
+    }
+    return result;
+}
+
+error_t bluetooth_event_poll(struct BtEventSubscription* sub, struct BtEvent* out_event) {
+    mutex_lock(&sub->internal.ring_mutex);
+    if (sub->internal.closed) {
+        mutex_unlock(&sub->internal.ring_mutex);
+        return ERROR_TIMEOUT;
+    }
+    bool has_event = sub->internal.count > 0;
+    if (has_event) {
+        *out_event = sub->internal.queue[sub->internal.head];
+        sub->internal.head = (sub->internal.head + 1) % BT_EVENT_QUEUE_CAPACITY;
+        sub->internal.count--;
+    }
+    mutex_unlock(&sub->internal.ring_mutex);
+    return has_event ? ERROR_NONE : ERROR_TIMEOUT;
 }
 
 error_t bluetooth_set_device_name(struct Device* device, const char* name) {

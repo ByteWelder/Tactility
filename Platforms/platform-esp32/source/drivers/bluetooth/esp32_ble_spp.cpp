@@ -126,8 +126,13 @@ void ble_spp_set_conn_handle(struct Device* device, uint16_t h) {
 // All functions receive the serial child Device*.
 
 static error_t spp_start(struct Device* device) {
+    // gap_mutex (not radio_mutex - see BleCtx::gap_mutex's comment) serializes this GAP sequence
+    // against on_sync()'s own advertising decision and hid/midi's start/stop.
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->gap_mutex, portMAX_DELAY);
     ble_spp_set_active(device, true);
     ble_start_advertising(device, &NUS_SVC_UUID);
+    xSemaphoreGive(root_ctx->gap_mutex);
     return ERROR_NONE;
 }
 
@@ -136,6 +141,8 @@ error_t ble_spp_start_internal(struct Device* serial_child) {
 }
 
 static error_t spp_stop(struct Device* device) {
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->gap_mutex, portMAX_DELAY);
     ble_spp_set_active(device, false);
     uint16_t conn = ble_spp_get_conn_handle(device);
     if (conn != BLE_HS_CONN_HANDLE_NONE) {
@@ -147,6 +154,7 @@ static error_t spp_stop(struct Device* device) {
     if (!ble_midi_get_active(device) && !ble_hid_get_active(device)) {
         ble_gap_adv_stop();
     }
+    xSemaphoreGive(root_ctx->gap_mutex);
     return ERROR_NONE;
 }
 

@@ -30,17 +30,16 @@
 #include <bluetooth/esp32_ble_midi.h>
 #include <bluetooth/esp32_ble_hid.h>
 
-#define BLE_MAX_CALLBACKS 8
-
-struct BleCallbackEntry {
-    BtEventCallback fn;
-    void*           ctx;
-};
-
 struct BleCtx {
     // Mutexes
     SemaphoreHandle_t radio_mutex;  // guards radio state transitions
-    SemaphoreHandle_t cb_mutex;     // guards callbacks array
+    // Guards GAP/GATT advertising & profile-switch calls (on_sync()'s advertising decision vs.
+    // hid/spp/midi's _start()/_stop()). Deliberately separate from radio_mutex: radio_mutex can
+    // be held for the duration of nimble_port_stop(), which blocks waiting for the NimBLE host
+    // task to exit its run loop - taking that same mutex from code that can run ON the host task
+    // (on_sync()) would deadlock disable against it. Nothing held under gap_mutex ever waits on
+    // host-task progress, so it's safe to take from the host task itself.
+    SemaphoreHandle_t gap_mutex;
 
     // Radio / scan state (atomic — read from multiple tasks)
     std::atomic<BtRadioState> radio_state;
@@ -48,9 +47,9 @@ struct BleCtx {
     // Set by Tactility HID host to prevent simultaneous central connection during name resolution
     std::atomic<bool>         hid_host_active;
 
-    // Event callbacks (guarded by cb_mutex)
-    BleCallbackEntry callbacks[BLE_MAX_CALLBACKS];
-    size_t           callback_count;
+    // Event subscriptions (guarded by subscriptionsMutex)
+    Mutex subscriptionsMutex;
+    BtEventSubscription* subscriptions;
 
     // Connection handles + active flags (atomic — accessed from multiple tasks)
     std::atomic<uint16_t> spp_conn_handle;
@@ -98,7 +97,7 @@ struct BleCtx {
     ble_addr_t        scan_addrs[64];
     size_t            scan_count;
 
-    // Device reference (passed to BtEventCallback)
+    // Device reference (passed to subscribers via BtEvent delivery)
     struct Device* device;
 
     // Child devices (created by esp32_ble_start_device, destroyed by stop_device)

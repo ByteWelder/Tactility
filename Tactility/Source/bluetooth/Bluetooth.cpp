@@ -11,6 +11,7 @@
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
+#include <Tactility/Thread.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/bluetooth.h>
@@ -20,6 +21,7 @@
 #include <tactility/log.h>
 
 #include <array>
+#include <atomic>
 #include <cstring>
 #include <vector>
 
@@ -103,12 +105,17 @@ static void cachePeerRecord(const BtPeerRecord& krecord) {
     scan_results_cache.push_back(std::move(rec));
 }
 
-// ---- Bridge callback (registered with kernel driver) ----
-// This callback listens to platform driver events to perform auto-start logic
-// and settings management. Consumers should register their own callbacks via
-// bluetooth_add_event_callback() to receive events directly.
+// ---- Bridge thread (subscribed to the kernel driver) ----
+// This thread listens to platform driver events to perform auto-start logic and settings
+// management. Consumers should subscribe directly via bluetooth_event_subscribe() to receive
+// events themselves.
 
-static void bt_event_bridge(Device*, void* /*context*/, BtEvent event) {
+TaskEventGroup btEventGroup {};
+BtEventSubscription btEventSub {};
+Thread* btEventThread = nullptr;
+std::atomic<bool> btEventThreadRunning {false};
+
+static void bt_event_bridge(BtEvent event) {
     switch (event.type) {
         case BT_EVENT_RADIO_STATE_CHANGED:
             switch (event.radio_state) {
@@ -250,6 +257,57 @@ static void bt_event_bridge(Device*, void* /*context*/, BtEvent event) {
     }
 }
 
+// ---- Bridge thread lifecycle ----
+// Runs bt_event_bridge() on its own stack instead of whichever thread published the event, by
+// blocking in task_event_group_wait_any() rather than being called back directly.
+
+constexpr configSTACK_DEPTH_TYPE BT_EVENT_THREAD_STACK_SIZE = 4096;
+
+Device* btEventDevice = nullptr;
+
+int32_t btEventThreadMain() {
+    while (btEventThreadRunning.load()) {
+        task_event_group_wait_any(&btEventGroup, nullptr, pdMS_TO_TICKS(250));
+
+        BtEvent event {};
+        while (bluetooth_event_poll(&btEventSub, &event) == ERROR_NONE) {
+            bt_event_bridge(event);
+        }
+    }
+    return 0;
+}
+
+bool startBtEventThread(Device* dev) {
+    if (btEventThread != nullptr) {
+        return true; // already running
+    }
+
+    task_event_group_construct(&btEventGroup);
+    if (bluetooth_event_subscribe(dev, &btEventSub, &btEventGroup) != ERROR_NONE) {
+        task_event_group_destruct(&btEventGroup);
+        return false;
+    }
+
+    btEventDevice = dev;
+    btEventThreadRunning = true;
+    btEventThread = new Thread("bt-events", BT_EVENT_THREAD_STACK_SIZE, [] { return btEventThreadMain(); });
+    btEventThread->start();
+    return true;
+}
+
+void stopBtEventThread() {
+    if (btEventThread == nullptr) return;
+
+    btEventThreadRunning = false;
+    btEventThread->join();
+    delete btEventThread;
+    btEventThread = nullptr;
+
+    bluetooth_event_unsubscribe(btEventDevice, &btEventSub);
+    task_event_group_destruct(&btEventGroup);
+    btEventDevice = nullptr;
+}
+
 // ---- systemStart ----
 
 void systemStart() {
@@ -271,26 +329,20 @@ bool isRadioOnOrPending(Device* dev) {
     return state == BT_RADIO_STATE_ON || state == BT_RADIO_STATE_ON_PENDING;
 }
 
+// dev is started (device_start()) once, at kernel_init (see ble0's devicetree status) and never
+// stopped for the process lifetime - this only toggles the radio itself, so callers subscribed
+// directly to the driver (e.g. BtManage) stay subscribed across on/off toggles instead of
+// having to resubscribe.
 bool start(Device* dev) {
-    LOG_I(TAG, "Auto-enabling BLE on boot");
-    if (!device_is_ready(dev)) {
-        LOG_I(TAG, "Starting BLE device");
-        if (device_start(dev) != ERROR_NONE) {
-            LOG_E(TAG, "Failed to start BLE device");
-            return false;
-        }
-    }
-
-    // TODO: Fix bug where repeatedly calling start would add this callback multiple times
-    if (bluetooth_add_event_callback(dev, nullptr, bt_event_bridge) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to set BLE callback");
+    // TODO: Fix bug where repeatedly calling start would try to subscribe the bridge thread twice
+    if (!startBtEventThread(dev)) {
+        LOG_E(TAG, "Failed to subscribe to BLE events");
     }
 
     LOG_I(TAG, "Enabling BT radio");
     if (bluetooth_set_radio_enabled(dev, true) != ERROR_NONE) {
         LOG_E(TAG, "Failed to enable BLE radio");
-        // Add bridge again
-        bluetooth_remove_event_callback(dev, bt_event_bridge);
+        stopBtEventThread();
         return false;
     }
 
@@ -308,19 +360,12 @@ bool stop(Device* dev) {
         return true;
     }
 
-    if (bluetooth_remove_event_callback(dev, bt_event_bridge) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to remove BLE callback");
-    }
+    stopBtEventThread();
 
     if (bluetooth_set_radio_enabled(dev, false) != ERROR_NONE) {
         LOG_E(TAG, "Failed to disable BT radio");
-        // Re-register bridge
-        bluetooth_add_event_callback(dev, nullptr, bt_event_bridge);
-        return false;
-    }
-
-    if (device_stop(dev) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to stop BT device");
+        // Re-subscribe bridge
+        startBtEventThread(dev);
         return false;
     }
 
