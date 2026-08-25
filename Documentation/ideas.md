@@ -28,7 +28,7 @@
 - Improve Setup: Show "Step done" screen
 - Improve Setup: Add keyboard/keypad navigation explanation
 - display.h API: get_backlight does not change ref counting, but it should
-- bluetooth: various getters for child devices do not change ref counting, but they should
+- bluetooth: various getters for child devices do not change ref counting, but they should (e.g. bluetooth_hid_device_get_device())
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
