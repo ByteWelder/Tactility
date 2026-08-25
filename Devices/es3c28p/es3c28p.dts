@@ -24,7 +24,6 @@
 
 	wifi0 {
 		compatible = "espressif,esp32-wifi-pinned";
-		status = "disabled";
 	};
 
 	ble0 {

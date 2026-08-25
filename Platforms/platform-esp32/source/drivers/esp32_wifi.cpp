@@ -18,6 +18,8 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
+#include <TactilityCpp/Allocator.h>
+
 #if defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 #include <tactility/drivers/esp32_esp_hosted_ota.h>
 #endif
@@ -33,13 +35,7 @@
 
 namespace {
 
-constexpr size_t WIFI_MAX_CALLBACKS = 4;
 constexpr uint16_t WIFI_SCAN_RECORD_LIMIT = 32;
-
-struct WifiCallbackEntry {
-    WifiEventCallback fn = nullptr;
-    void* ctx = nullptr;
-};
 
 struct Esp32WifiCtx {
     Device* device = nullptr;
@@ -66,9 +62,8 @@ struct Esp32WifiCtx {
     int32_t lastEventId = -1;
     TickType_t lastEventTick = 0;
 
-    Mutex callbackMutex{};
-    WifiCallbackEntry callbacks[WIFI_MAX_CALLBACKS] = {};
-    size_t callbackCount = 0;
+    Mutex subscriptionsMutex{};
+    WifiEventSubscription* subscriptions = nullptr;
 };
 
 #define GET_CTX(device) (static_cast<Esp32WifiCtx*>(device_get_driver_data(device)))
@@ -93,16 +88,18 @@ WifiAuthenticationType to_wifi_authentication_type(wifi_auth_mode_t mode) {
 }
 
 void fire_event(Esp32WifiCtx* ctx, WifiEvent event) {
-    WifiCallbackEntry local[WIFI_MAX_CALLBACKS];
-    size_t count;
-    mutex_lock(&ctx->callbackMutex);
-    count = ctx->callbackCount;
-    memcpy(local, ctx->callbacks, count * sizeof(WifiCallbackEntry));
-    mutex_unlock(&ctx->callbackMutex);
-
-    for (size_t i = 0; i < count; i++) {
-        local[i].fn(ctx->device, local[i].ctx, event);
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr; sub = sub->internal.next) {
+        mutex_lock(&sub->internal.ring_mutex);
+        if (sub->internal.count < WIFI_EVENT_QUEUE_CAPACITY) {
+            uint8_t tail = (sub->internal.head + sub->internal.count) % WIFI_EVENT_QUEUE_CAPACITY;
+            sub->internal.queue[tail] = event;
+            sub->internal.count++;
+        }
+        mutex_unlock(&sub->internal.ring_mutex);
+        task_event_group_signal(sub->internal.event_group, sub->bit);
     }
+    mutex_unlock(&ctx->subscriptionsMutex);
 }
 
 // ---- ESP-IDF event handling (runs on the esp_event task) ----
@@ -257,6 +254,11 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
     ctx->radioState = WIFI_RADIO_STATE_ON;
     mutex_unlock(&ctx->mutex);
 
+    WifiEvent radio_event = {};
+    radio_event.type = WIFI_EVENT_TYPE_RADIO_STATE_CHANGED;
+    radio_event.radio_state = WIFI_RADIO_STATE_ON;
+    fire_event(ctx, radio_event);
+
     LOG_I(TAG, "WiFi radio on");
     return ERROR_NONE;
 }
@@ -305,6 +307,11 @@ void bring_down_wifi(Esp32WifiCtx* ctx) {
     mutex_lock(&ctx->mutex);
     ctx->radioState = WIFI_RADIO_STATE_OFF;
     mutex_unlock(&ctx->mutex);
+
+    WifiEvent radio_event = {};
+    radio_event.type = WIFI_EVENT_TYPE_RADIO_STATE_CHANGED;
+    radio_event.radio_state = WIFI_RADIO_STATE_OFF;
+    fire_event(ctx, radio_event);
 
     LOG_I(TAG, "WiFi radio off");
 }
@@ -497,38 +504,77 @@ error_t api_station_get_rssi(Device* device, int32_t* rssi) {
     return ERROR_NONE;
 }
 
-error_t api_add_event_callback(Device* device, void* callback_context, WifiEventCallback callback) {
+error_t api_set_radio_on(Device* device) {
     auto* ctx = GET_CTX(device);
-    if (ctx == nullptr || callback == nullptr) return ERROR_INVALID_ARGUMENT;
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
 
-    mutex_lock(&ctx->callbackMutex);
-    if (ctx->callbackCount >= WIFI_MAX_CALLBACKS) {
-        mutex_unlock(&ctx->callbackMutex);
-        return ERROR_OUT_OF_MEMORY;
-    }
-    ctx->callbacks[ctx->callbackCount] = { .fn = callback, .ctx = callback_context };
-    ctx->callbackCount++;
-    mutex_unlock(&ctx->callbackMutex);
+    mutex_lock(&ctx->mutex);
+    bool already_on = ctx->radioState == WIFI_RADIO_STATE_ON;
+    mutex_unlock(&ctx->mutex);
+    if (already_on) return ERROR_NONE;
+
+    return bring_up_wifi(ctx);
+}
+
+error_t api_set_radio_off(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
+
+    mutex_lock(&ctx->mutex);
+    bool already_off = ctx->radioState == WIFI_RADIO_STATE_OFF;
+    mutex_unlock(&ctx->mutex);
+    if (already_off) return ERROR_NONE;
+
+    bring_down_wifi(ctx);
     return ERROR_NONE;
 }
 
-error_t api_remove_event_callback(Device* device, WifiEventCallback callback) {
+error_t api_event_subscribe(Device* device, WifiEventSubscription* sub, TaskEventGroup* event_group) {
     auto* ctx = GET_CTX(device);
-    if (ctx == nullptr || callback == nullptr) return ERROR_INVALID_ARGUMENT;
+    if (ctx == nullptr || sub == nullptr || event_group == nullptr) return ERROR_INVALID_ARGUMENT;
 
-    mutex_lock(&ctx->callbackMutex);
-    for (size_t i = 0; i < ctx->callbackCount; i++) {
-        if (ctx->callbacks[i].fn == callback) {
-            for (size_t j = i; j + 1 < ctx->callbackCount; j++) {
-                ctx->callbacks[j] = ctx->callbacks[j + 1];
-            }
-            ctx->callbackCount--;
-            mutex_unlock(&ctx->callbackMutex);
-            return ERROR_NONE;
+    uint32_t bit;
+    error_t claim_result = task_event_group_claim_bit(event_group, &bit);
+    if (claim_result != ERROR_NONE) {
+        return claim_result;
+    }
+
+    mutex_lock(&ctx->subscriptionsMutex);
+
+    // Avoid cyclic subscription list that would loop forever
+    if (ctx->subscriptions == sub) {
+        mutex_unlock(&ctx->subscriptionsMutex);
+        task_event_group_release_bit(event_group, bit);
+        return ERROR_INVALID_STATE;
+    }
+
+    sub->internal.event_group = event_group;
+    sub->bit = bit;
+    sub->internal.next = ctx->subscriptions;
+    ctx->subscriptions = sub;
+    mutex_unlock(&ctx->subscriptionsMutex);
+    return ERROR_NONE;
+}
+
+error_t api_event_unsubscribe(Device* device, WifiEventSubscription* sub) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || sub == nullptr) return ERROR_INVALID_ARGUMENT;
+
+    error_t result = ERROR_NOT_FOUND;
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (WifiEventSubscription** link = &ctx->subscriptions; *link != nullptr; link = &(*link)->internal.next) {
+        if (*link == sub) {
+            *link = sub->internal.next;
+            result = ERROR_NONE;
+            break;
         }
     }
-    mutex_unlock(&ctx->callbackMutex);
-    return ERROR_NOT_FOUND;
+    mutex_unlock(&ctx->subscriptionsMutex);
+
+    if (result == ERROR_NONE) {
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
+    }
+    return result;
 }
 
 error_t api_get_firmware_ops(Device* /*device*/, const FirmwareOps** ops, void** ctx) {
@@ -550,6 +596,8 @@ error_t api_get_firmware_ops(Device* /*device*/, const FirmwareOps** ops, void**
 }
 
 const WifiApi esp32_wifi_api = {
+    .set_radio_on = api_set_radio_on,
+    .set_radio_off = api_set_radio_off,
     .get_radio_state = api_get_radio_state,
     .get_station_state = api_get_station_state,
     .get_access_point_state = api_get_access_point_state,
@@ -561,33 +609,22 @@ const WifiApi esp32_wifi_api = {
     .station_connect = api_station_connect,
     .station_disconnect = api_station_disconnect,
     .station_get_rssi = api_station_get_rssi,
-    .add_event_callback = api_add_event_callback,
-    .remove_event_callback = api_remove_event_callback,
+    .event_subscribe = api_event_subscribe,
+    .event_unsubscribe = api_event_unsubscribe,
     .get_firmware_ops = api_get_firmware_ops
 };
 
-// ---- Driver lifecycle ----
-// The ESP-IDF WiFi stack isn't touched until the device is actually started:
-// registering this driver (module start()) only makes it available for
-// binding, it doesn't spin up any resources.
-
 error_t start_device(Device* device) {
-    auto* ctx = new(std::nothrow) Esp32WifiCtx();
-    if (ctx == nullptr) return ERROR_OUT_OF_MEMORY;
+    // Prefers PSRAM/SPIRAM, falling back to internal RAM when unavailable - aborts on true OOM
+    // (see OptExternalAllocator's own doc), so no null check here.
+    tt::OptExternalAllocator<Esp32WifiCtx> allocator;
+    auto* ctx = allocator.allocate(1);
+    new (ctx) Esp32WifiCtx();
 
     ctx->device = device;
     mutex_construct(&ctx->mutex);
-    mutex_construct(&ctx->callbackMutex);
+    mutex_construct(&ctx->subscriptionsMutex);
     device_set_driver_data(device, ctx);
-
-    error_t result = bring_up_wifi(ctx);
-    if (result != ERROR_NONE) {
-        device_set_driver_data(device, nullptr);
-        mutex_destruct(&ctx->callbackMutex);
-        mutex_destruct(&ctx->mutex);
-        delete ctx;
-        return result;
-    }
 
     return ERROR_NONE;
 }
@@ -596,12 +633,28 @@ error_t stop_device(Device* device) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr) return ERROR_NONE;
 
-    bring_down_wifi(ctx);
+    if (ctx->radioState == WIFI_RADIO_STATE_ON) {
+        bring_down_wifi(ctx);
+    }
+
+    // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
+    // using this device, so a later wifi_event_unsubscribe() would find no ctx and skip releasing
+    // the bit and destructing sub->internal.ring_mutex.
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr;) {
+        WifiEventSubscription* next = sub->internal.next;
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
+        mutex_destruct(&sub->internal.ring_mutex);
+        sub = next;
+    }
+    ctx->subscriptions = nullptr;
+    mutex_unlock(&ctx->subscriptionsMutex);
 
     device_set_driver_data(device, nullptr);
-    mutex_destruct(&ctx->callbackMutex);
+    mutex_destruct(&ctx->subscriptionsMutex);
     mutex_destruct(&ctx->mutex);
-    delete ctx;
+    ctx->~Esp32WifiCtx();
+    tt::OptExternalAllocator<Esp32WifiCtx>().deallocate(ctx, 1);
 
     return ERROR_NONE;
 }

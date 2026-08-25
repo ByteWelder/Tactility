@@ -10,9 +10,11 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
+#include <tactility/check.h>
 #include <tactility/log.h>
 
 #include <lvgl/lvgl.h>
@@ -167,7 +169,8 @@ void switchChannel(Context* ctx, const std::string& chatChannel) {
 
 namespace {
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
     ctx.isFirstLaunch = !settingsFileExists();
@@ -178,39 +181,43 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     }
     enableEspNow(&ctx);
 
-    ctx.receiveSubscription = service::espnow::subscribeReceiver(
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
+    AppEventSubscription sub {};
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+
+    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+
+    auto espnow_subscription = service::espnow::subscribeReceiver(
         [&ctx](const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
             onReceive(&ctx, receiveInfo, data, length);
         }
     );
 
-
-    AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
-
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
-
     bool shouldClose = false;
     while (!shouldClose) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                shouldClose = true;
-                break;
-            default:
-                break;
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    shouldClose = true;
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
         }
     }
 
-    window_manager_remove(window);
-    app_event_unsubscribe(&sub);
-
-    service::espnow::unsubscribeReceiver(ctx.receiveSubscription);
+    service::espnow::unsubscribeReceiver(espnow_subscription);
     disableEspNow(&ctx);
+
+    window_manager_remove(window);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

@@ -1,5 +1,6 @@
 #include "tactility/system_event.h"
 
+#include <tactility/check.h>
 #include <tactility/delay.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/display.h>
@@ -9,6 +10,7 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -284,7 +286,8 @@ void runBootSequence(TickType_t startTime) {
     system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
 }
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
     bootAppInstanceId = appInstanceId;
     const auto start_time = get_ticks();
 
@@ -292,9 +295,11 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     isUsbBootSplash = hal::usb::isUsbBootMode();
     sdCardMissing = false;
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     bootWindowId = window_manager_create(appInstanceId, createSplashWidgets, nullptr);
 
@@ -304,19 +309,24 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     // startNextApp() above is what triggers that, via app-module's "save the previously active
     // app" policy, unless sdCardMissing halted before it.
     while (true) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
+        bool shouldClose = false;
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            if (event.type == APP_EVENT_CLOSE) {
+                shouldClose = true;
+                break;
+            }
         }
-        if (event.type == APP_EVENT_CLOSE) {
-            break;
-        }
+        if (shouldClose) break;
     }
 
     if (bootWindowId != 0) {
         window_manager_remove(bootWindowId);
     }
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

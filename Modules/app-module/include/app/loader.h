@@ -21,13 +21,13 @@ extern "C" {
 /**
  * Entry point signature for an APP_LOCATION_MEMORY app: a function linked directly into this
  * firmware binary. Called on the dedicated task app-module's scheduler spawns for this instance,
- * blocking for the app's whole lifetime - same contract as an external app's main(), plus
- * @a app_instance_id identifying this running instance (use it with
+ * blocking for the app's whole lifetime - same contract as an external app's main(). Use
+ * app_scheduler_current_app_id() to identify this running instance (e.g. with
  * app_event_subscribe()/window_manager_create()/etc.). The instance closes when this function
  * returns - no separate call is needed.
  * AppManifest::location.location holds this cast to void*.
  */
-typedef int32_t (*AppMainFn)(uint32_t app_instance_id, int argc, char* argv[]);
+typedef int32_t (*AppMainFn)(int argc, char* argv[]);
 
 typedef void* AppRuntime;
 

@@ -1,6 +1,8 @@
 #include <tactility/bundle.h>
+#include <tactility/check.h>
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/concurrent/event_group.h>
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/concurrent/thread.h>
 #include <tactility/concurrent/timer.h>
 #include <tactility/device.h>
@@ -379,7 +381,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(camera_capture_jpeg),
     DEFINE_MODULE_SYMBOL(CAMERA_TYPE),
     // drivers/wifi
-    DEFINE_MODULE_SYMBOL(wifi_find_first_registered_device),
+    DEFINE_MODULE_SYMBOL(wifi_set_radio_on),
+    DEFINE_MODULE_SYMBOL(wifi_set_radio_off),
     DEFINE_MODULE_SYMBOL(wifi_get_radio_state),
     DEFINE_MODULE_SYMBOL(wifi_get_station_state),
     DEFINE_MODULE_SYMBOL(wifi_get_access_point_state),
@@ -391,8 +394,9 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(wifi_station_connect),
     DEFINE_MODULE_SYMBOL(wifi_station_disconnect),
     DEFINE_MODULE_SYMBOL(wifi_station_get_rssi),
-    DEFINE_MODULE_SYMBOL(wifi_add_event_callback),
-    DEFINE_MODULE_SYMBOL(wifi_remove_event_callback),
+    DEFINE_MODULE_SYMBOL(wifi_event_subscribe),
+    DEFINE_MODULE_SYMBOL(wifi_event_unsubscribe),
+    DEFINE_MODULE_SYMBOL(wifi_event_poll),
     DEFINE_MODULE_SYMBOL(wifi_get_firmware_ops),
     DEFINE_MODULE_SYMBOL(WIFI_TYPE),
     // wifi_auto_scan
@@ -471,6 +475,14 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(event_group_clear),
     DEFINE_MODULE_SYMBOL(event_group_get),
     DEFINE_MODULE_SYMBOL(event_group_wait),
+    // concurrent/task_event_group
+    DEFINE_MODULE_SYMBOL(task_event_group_construct),
+    DEFINE_MODULE_SYMBOL(task_event_group_destruct),
+    DEFINE_MODULE_SYMBOL(task_event_group_claim_bit),
+    DEFINE_MODULE_SYMBOL(task_event_group_release_bit),
+    DEFINE_MODULE_SYMBOL(task_event_group_signal),
+    DEFINE_MODULE_SYMBOL(task_event_group_wait),
+    DEFINE_MODULE_SYMBOL(task_event_group_wait_any),
     // concurrent/thread
     DEFINE_MODULE_SYMBOL(thread_alloc),
     DEFINE_MODULE_SYMBOL(thread_alloc_full),
@@ -501,6 +513,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(timer_set_callback_priority),
     // error
     DEFINE_MODULE_SYMBOL(error_to_string),
+    // check
+    DEFINE_MODULE_SYMBOL(__crash),
     // log
 #ifndef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(log_generic),

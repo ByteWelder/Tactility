@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <tactility/concurrent/mutex.h>
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
 #include <tactility/firmware/firmware.h>
 
@@ -90,9 +92,59 @@ struct WifiEvent {
     };
 };
 
-typedef void (*WifiEventCallback)(struct Device* device, void* callback_context, struct WifiEvent event);
+/** Number of events a WifiEventSubscription can hold before wifi_event_emit() starts dropping
+ * the newest event for it (still delivered to any other matching subscription). Generous: a
+ * device fires these serially, one at a time, not in genuinely concurrent bursts. */
+#define WIFI_EVENT_QUEUE_CAPACITY 4
+
+/**
+ * Caller-owned subscription node, registered with wifi_event_subscribe() and polled with
+ * wifi_event_poll(). Like app_event, this queues events by value (FIFO) rather than
+ * coalescing to the latest one: a burst of distinct WifiEventTypes (e.g.
+ * WIFI_EVENT_TYPE_STATION_STATE_CHANGED immediately followed by
+ * WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT) must each be delivered, not just "something
+ * changed."
+ * @warning Fields other than `bit` are for internal use only; do not read or write them
+ * directly.
+ */
+struct WifiEventSubscription {
+    /** Set by wifi_event_subscribe(). Read-only for the caller: OR it into a
+     * task_event_group_wait() mask (alongside other subscriptions sharing the same
+     * `event_group`) to block on this subscription and other event sources with one call. */
+    uint32_t bit;
+
+    struct {
+        /** Caller-owned, borrowed; set by wifi_event_subscribe(). */
+        struct TaskEventGroup* event_group;
+        /** Guards `queue`/`head`/`count` between wifi_event_emit() (driver thread) and
+         * wifi_event_poll() (caller's thread) - the two live in different translation units with
+         * no other shared lock. */
+        struct Mutex ring_mutex;
+        struct WifiEvent queue[WIFI_EVENT_QUEUE_CAPACITY];
+        uint8_t head;
+        uint8_t count;
+
+        struct WifiEventSubscription* next;
+    } internal;
+};
 
 struct WifiApi {
+    /**
+     * Turn the radio on. Unlike start_device()/stop_device() (which only allocate/free the
+     * driver's bookkeeping, so event subscribers can stay subscribed across radio toggles),
+     * this is what actually brings the hardware up.
+     * @param[in] device the wifi device
+     * @return ERROR_NONE on success, or if the radio is already on
+     */
+    error_t (*set_radio_on)(struct Device* device);
+
+    /**
+     * Turn the radio off. See set_radio_on().
+     * @param[in] device the wifi device
+     * @return ERROR_NONE on success, or if the radio is already off
+     */
+    error_t (*set_radio_off)(struct Device* device);
+
     /**
      * Get the radio state of the device.
      * @param[in] device the wifi device
@@ -182,21 +234,30 @@ struct WifiApi {
     error_t (*station_get_rssi)(struct Device* device, int32_t* rssi);
 
     /**
-     * Add a WifiEvent callback.
+     * Register a subscription for this device's WifiEvents.
+     * @warning Does not work in ISR context.
      * @param[in] device the wifi device
-     * @param[in] callback_context the context to pass to the callback
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
+     * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+     * stationary) until unsubscribed
+     * @param[in] event_group caller-owned group to wait on; must outlive @a sub (i.e. be
+     * destructed only after event_unsubscribe()). To block for an event, call
+     * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the
+     * mask, or use _wait_any() to include every subscription sharing it), then drain with
+     * wifi_event_poll().
+     * @retval ERROR_NONE on success
+     * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+     * @retval ERROR_INVALID_STATE @a sub is already registered
      */
-    error_t (*add_event_callback)(struct Device* device, void* callback_context, WifiEventCallback callback);
+    error_t (*event_subscribe)(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group);
 
     /**
-     * Remove a WifiEvent callback.
+     * Remove a previously registered subscription.
+     * @warning Does not work in ISR context.
      * @param[in] device the wifi device
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
+     * @param[in] sub subscription to remove, as passed to event_subscribe()
+     * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
      */
-    error_t (*remove_event_callback)(struct Device* device, WifiEventCallback callback);
+    error_t (*event_unsubscribe)(struct Device* device, struct WifiEventSubscription* sub);
 
     /**
      * Get this device's co-processor firmware update interface, if it has one.
@@ -210,8 +271,10 @@ struct WifiApi {
 
 extern const struct DeviceType WIFI_TYPE;
 
-/** @return the first registered WiFi device, regardless of started state, or NULL if none exists */
-struct Device* wifi_find_first_registered_device(void);
+/** Turn the radio on. See WifiApi::set_radio_on(). Requires the device to be started (device_start()). */
+error_t wifi_set_radio_on(struct Device* device);
+/** Turn the radio off. See WifiApi::set_radio_off(). Requires the device to be started (device_start()). */
+error_t wifi_set_radio_off(struct Device* device);
 
 error_t wifi_get_radio_state(struct Device* device, enum WifiRadioState* state);
 error_t wifi_get_station_state(struct Device* device, enum WifiStationState* state);
@@ -224,8 +287,40 @@ error_t wifi_station_get_target_ssid(struct Device* device, char* ssid);
 error_t wifi_station_connect(struct Device* device, const char* ssid, const char* password, int32_t channel);
 error_t wifi_station_disconnect(struct Device* device);
 error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi);
-error_t wifi_add_event_callback(struct Device* device, void* callback_context, WifiEventCallback callback);
-error_t wifi_remove_event_callback(struct Device* device, WifiEventCallback callback);
+
+/**
+ * Register a subscription for @a device's WifiEvents.
+ * @warning Does not work in ISR context.
+ * @param[in] device the wifi device
+ * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+ * stationary) until unsubscribed
+ * @param[in] event_group caller-owned group to wait on; must outlive @a sub. To block for an
+ * event, call task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit
+ * into the mask, or use _wait_any() to include every subscription sharing it), then drain with
+ * wifi_event_poll().
+ * @retval ERROR_NONE on success
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
+ */
+error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group);
+
+/**
+ * Remove a previously registered subscription.
+ * @warning Does not work in ISR context.
+ * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
+ */
+error_t wifi_event_unsubscribe(struct Device* device, struct WifiEventSubscription* sub);
+
+/**
+ * Non-blocking: pop the next event for @a sub if one is already queued.
+ * @warning Never blocks. To wait for an event, block in task_event_group_wait()/
+ * task_event_group_wait_any() on @a sub's event group first (see wifi_event_subscribe()), then
+ * drain with this in a loop.
+ * @retval ERROR_NONE @a out_event was filled
+ * @retval ERROR_TIMEOUT nothing queued right now
+ */
+error_t wifi_event_poll(struct WifiEventSubscription* sub, struct WifiEvent* out_event);
+
 error_t wifi_get_firmware_ops(struct Device* device, const struct FirmwareOps** ops, void** ctx);
 
 #ifdef __cplusplus

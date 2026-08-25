@@ -5,6 +5,7 @@
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <tactility/check.h>
 #include <tactility/drivers/trackball.h>
 
 #include <Tactility/Assets.h>
@@ -14,6 +15,7 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -268,34 +270,40 @@ void persistIfUpdated(Context& ctx) {
     }
 }
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                persistIfUpdated(ctx);
-                shouldClose = true;
-                break;
-            default:
-                break;
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    persistIfUpdated(ctx);
+                    shouldClose = true;
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
         }
     }
 
     window_manager_remove(window);
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

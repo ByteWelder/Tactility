@@ -7,13 +7,12 @@
 
 extern "C" {
 
-struct Device* wifi_find_first_registered_device() {
-    struct Device* found = nullptr;
-    device_for_each_of_type(&WIFI_TYPE, &found, [](struct Device* dev, void* ctx) -> bool {
-        *static_cast<struct Device**>(ctx) = dev;
-        return false;
-    });
-    return found;
+error_t wifi_set_radio_on(struct Device* device) {
+    return WIFI_API(device)->set_radio_on(device);
+}
+
+error_t wifi_set_radio_off(struct Device* device) {
+    return WIFI_API(device)->set_radio_off(device);
 }
 
 error_t wifi_get_radio_state(struct Device* device, enum WifiRadioState* state) {
@@ -60,12 +59,36 @@ error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi) {
     return WIFI_API(device)->station_get_rssi(device, rssi);
 }
 
-error_t wifi_add_event_callback(struct Device* device, void* callback_context, WifiEventCallback callback) {
-    return WIFI_API(device)->add_event_callback(device, callback_context, callback);
+error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group) {
+    mutex_construct(&sub->internal.ring_mutex);
+    sub->internal.head = 0;
+    sub->internal.count = 0;
+
+    error_t result = WIFI_API(device)->event_subscribe(device, sub, event_group);
+    if (result != ERROR_NONE) {
+        mutex_destruct(&sub->internal.ring_mutex);
+    }
+    return result;
 }
 
-error_t wifi_remove_event_callback(struct Device* device, WifiEventCallback callback) {
-    return WIFI_API(device)->remove_event_callback(device, callback);
+error_t wifi_event_unsubscribe(struct Device* device, struct WifiEventSubscription* sub) {
+    error_t result = WIFI_API(device)->event_unsubscribe(device, sub);
+    if (result == ERROR_NONE) {
+        mutex_destruct(&sub->internal.ring_mutex);
+    }
+    return result;
+}
+
+error_t wifi_event_poll(struct WifiEventSubscription* sub, struct WifiEvent* out_event) {
+    mutex_lock(&sub->internal.ring_mutex);
+    bool has_event = sub->internal.count > 0;
+    if (has_event) {
+        *out_event = sub->internal.queue[sub->internal.head];
+        sub->internal.head = (sub->internal.head + 1) % WIFI_EVENT_QUEUE_CAPACITY;
+        sub->internal.count--;
+    }
+    mutex_unlock(&sub->internal.ring_mutex);
+    return has_event ? ERROR_NONE : ERROR_TIMEOUT;
 }
 
 error_t wifi_get_firmware_ops(struct Device* device, const struct FirmwareOps** ops, void** ctx) {

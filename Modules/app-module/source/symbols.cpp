@@ -8,6 +8,7 @@
 
 #include <service/manager.h>
 
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
 #include <tactility/module.h>
 
@@ -18,9 +19,10 @@ extern ServiceManifest app_internal_loader_service_manifest;
 const ModuleSymbol app_module_symbols[] = {
     // app/event
     DEFINE_MODULE_SYMBOL(app_event_subscribe),
+    DEFINE_MODULE_SYMBOL(app_event_subscribe_with_app_id),
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_emit),
-    DEFINE_MODULE_SYMBOL(app_event_await),
+    DEFINE_MODULE_SYMBOL(app_event_poll),
     // app/install
     DEFINE_MODULE_SYMBOL(app_get_install_path),
     DEFINE_MODULE_SYMBOL(app_install),

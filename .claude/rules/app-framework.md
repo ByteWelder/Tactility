@@ -1,10 +1,10 @@
 # Architecture: App Framework
 
-Apps are event-driven, C API (`app-module`, `<app/*.h>`), not a C++ class. Each app has an `AppManifest` (`id`, `name`, `category`, `location`, `flags`) and a `main(app_instance_id, argc, argv)` entry point (`AppMainFn`), modelled on a C program's `main()`. Every app instance gets its own dedicated task for its whole lifetime, and blocks in that task until it returns.
+Apps are event-driven, C API (`app-module`, `<app/*.h>`), not a C++ class. Each app has an `AppManifest` (`id`, `name`, `category`, `location`, `flags`) and a `main(argc, argv)` entry point (`AppMainFn`), modelled on a C program's `main()`. Every app instance gets its own dedicated task for its whole lifetime, and blocks in that task until it returns. Use `app_scheduler_current_app_id()` (`app/scheduler.h`) to identify the running instance - it's not passed as a parameter.
 
 Lifecycle and inter-app communication go through `app_manager_*()` (`app/manager.h`) and `app_event_*()` (`app/event.h`):
 - `app_manager_start()`/`app_manager_start_with_parameters()` launch a plain instance; `app_manager_start_for_result()` launches a modal child that reports back to a parent instance.
-- An app subscribes with `app_event_subscribe()`/`app_event_await()` and reacts to `APP_EVENT_CLOSE` (terminate now) and `APP_EVENT_RESULT` (a child it started reported back).
+- An app subscribes with `app_event_subscribe()` (registers for its own instance's events, no id argument needed), blocks via `task_event_group_wait()`/`task_event_group_wait_any()`, and drains with `app_event_poll()`, reacting to `APP_EVENT_CLOSE` (terminate now) and `APP_EVENT_RESULT` (a child it started reported back).
 - An app closes itself by calling `app_manager_finish()` right before returning from `main()`; another instance is closed via `app_manager_stop()`.
 
 Apps are registered at startup via `app_manager_add()`. External apps can be loaded from SD card via `manifest.properties` files, or side-loaded as ELF binaries on ESP32 (see `app/loader.h`'s `AppLoaderApi`).

@@ -7,6 +7,7 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -14,6 +15,8 @@
 #include <lvgl/widgets/spinner.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <tactility/check.h>
+#include <tactility/device.h>
 #include <tactility/log.h>
 
 #include <lvgl.h>
@@ -33,10 +36,6 @@ struct Context {
     std::string initialSsid;
     std::string initialPassword;
 
-    // Touched only from the LVGL task: directly by onConnectPressed() (an LVGL event callback,
-    // which already runs with the LVGL lock held), and by onWifiEvent() (a wifi-pubsub
-    // callback running on some other thread) which explicitly wraps its touches in
-    // lvgl_lock()/lvgl_unlock() - see WifiApSettings.cpp for the same convention.
     bool connecting = false;
     bool connectionError = false;
 
@@ -49,7 +48,9 @@ struct Context {
     lv_obj_t* connecting_spinner = nullptr;
     lv_obj_t* connection_error = nullptr;
 
-    PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription = nullptr;
+    // Set once in appMain() before subscribing, left null if this device has no WiFi driver
+    Device* wifiDevice = nullptr;
+    WifiEventSubscription wifiEventSub {};
 };
 
 
@@ -61,14 +62,12 @@ void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
     // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
+    //  but this callback runs ON the LVGL task, which would deadlock against itself.
     AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
     app_event_emit(ctx->appInstanceId, &closeEvent);
 }
 
-// Runs on the wifi service's pubsub thread, not the LVGL task or this app's own thread.
-void onWifiEvent(Context* ctx, service::wifi::WifiEvent event) {
+void onWifiEvent(Context* ctx, WifiEvent event) {
     bool shouldClose = false;
 
     lvgl_lock();
@@ -90,8 +89,6 @@ void onWifiEvent(Context* ctx, service::wifi::WifiEvent event) {
     lvgl_unlock();
 
     if (shouldClose) {
-        // Async, non-blocking - same reasoning as onBackPressed() (must not call
-        // app_manager_stop() on ourselves); safe to call from any thread.
         AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
         app_event_emit(ctx->appInstanceId, &closeEvent);
     }
@@ -121,8 +118,7 @@ void setLoading(Context* ctx, bool loading) {
 
 void updateView(Context* ctx) {
     if (ctx->connect_button == nullptr) {
-        // Buried (e.g. this window's own connecting state closed it, or a future dialog opens
-        // on top) - see destroyWidgets().
+        // Buried (e.g. this window's own connecting state closed it, or a future dialog opens on top)
         return;
     }
     if (ctx->connectionError) {
@@ -306,46 +302,77 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
 }
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
 
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
     ctx.initialSsid = (argc > 0) ? argv[0] : std::string();
     ctx.initialPassword = (argc > 1) ? argv[1] : std::string();
 
-    AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
 
-    // Subscribed once here, not in createWidgets(): that callback re-runs on every
-    // burial/resurface rebuild, and re-subscribing there would leak the previous subscription
-    // (and its captured ctx pointer) every time, only the last of which shutdown ever cleans up.
-    ctx.wifiSubscription = service::wifi::getPubsub()->subscribe([&ctx](auto event) {
-        onWifiEvent(&ctx, event);
-    });
+    AppEventSubscription sub {};
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+
+    Device* wifi_device = nullptr;
+    if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
+        if (wifi_event_subscribe(wifi_device, &ctx.wifiEventSub, &event_group) == ERROR_NONE) {
+            ctx.wifiDevice = wifi_device;
+        } else {
+            LOG_W(TAG, "Failed to subscribe to WiFi events");
+            device_put(wifi_device);
+        }
+    } else {
+        LOG_W(TAG, "No WiFi device found");
+    }
 
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
-        AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
+        TickType_t wait_timeout = (ctx.wifiDevice == nullptr) ? pdMS_TO_TICKS(500) : portMAX_DELAY;
+        task_event_group_wait_any(&event_group, nullptr, wait_timeout);
+
+        if (ctx.wifiDevice == nullptr) {
+            Device* retry_device = nullptr;
+            if (device_get_first_by_type(&WIFI_TYPE, &retry_device) == ERROR_NONE) {
+                if (wifi_event_subscribe(retry_device, &ctx.wifiEventSub, &event_group) == ERROR_NONE) {
+                    ctx.wifiDevice = retry_device;
+                } else {
+                    device_put(retry_device);
+                }
+            }
         }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                shouldClose = true;
-                break;
-            default:
-                break;
+
+        AppEvent event {};
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    shouldClose = true;
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
+        }
+
+        if (ctx.wifiDevice != nullptr) {
+            WifiEvent wifi_event {};
+            while (wifi_event_poll(&ctx.wifiEventSub, &wifi_event) == ERROR_NONE) {
+                onWifiEvent(&ctx, wifi_event);
+            }
         }
     }
 
-    if (ctx.wifiSubscription != nullptr) {
-        service::wifi::getPubsub()->unsubscribe(ctx.wifiSubscription);
+    if (ctx.wifiDevice != nullptr) {
+        wifi_event_unsubscribe(ctx.wifiDevice, &ctx.wifiEventSub);
+        device_put(ctx.wifiDevice);
     }
     window_manager_remove(window);
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }
