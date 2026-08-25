@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- lvgl file lock won't work with display vs sdcard when lvgl is stopped (external app bug risk)
 - Apps should be able to specify stack size in their manifest
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
   Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
