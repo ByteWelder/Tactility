@@ -387,9 +387,6 @@ static error_t gdeq031t10_draw_bitmap(Device* device, int32_t x_start, int32_t y
 
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
 
-    // Work-around until partial updates are working
-    internal->force_full_refresh = true;
-
     if (!internal->display_on) {
         // Display is off (deep sleep). Drop the frame without touching the shadow: the
         // mismatch it leaves behind makes the frame redraw after the next power-on.
@@ -418,6 +415,11 @@ static error_t gdeq031t10_draw_bitmap(Device* device, int32_t x_start, int32_t y
         xSemaphoreGive(internal->panel_mutex);
         return ERROR_NONE; // panel already shows this frame; don't refresh needlessly
     }
+
+    // Work-around until partial updates are working. It has to stay below the unchanged-frame
+    // check: a repaint that renders identical pixels must cost nothing, or a periodically
+    // repainting app pins the panel in a ~1.2s full-refresh loop.
+    internal->force_full_refresh = true;
 
     if (internal->force_full_refresh) {
         LOG_I(TAG, "draw_bitmap: refresh_full");
