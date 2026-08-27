@@ -73,9 +73,6 @@ constexpr auto* TAG = "Tactility";
 
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
 
-void initFileMutexForLvgl();
-void deinitFileMutexForLvgl();
-
 namespace {
 
 void mainDispatcherTrampoline(void* context) {
@@ -419,8 +416,6 @@ static void applySavedTouchCalibration() {
 #endif // CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 
 static void onLvglStarted() {
-    initFileMutexForLvgl();
-
     window_manager_configure(windowManagerScreenInit);
     check(module_ensure_started(&lvgl_window_manager_module) == ERROR_NONE);
 
@@ -451,17 +446,14 @@ static void onLvglStarted() {
 }
 
 static void onLvglStopped() {
-    deinitFileMutexForLvgl();
-
-    if (softwareKeyboard.object != nullptr) {
-        lvgl_software_keyboard_destruct(&softwareKeyboard);
-    }
-
-    module_stop(&lvgl_window_manager_module);
-
     lvgl::stopKeyboardDeviceListener();
     lvgl::stopUsbHidInput();
 
+    // Stop services before tearing down the widget tree below: StatusbarService's updateTimer
+    // (and similar) runs on its own task independent of this one, touching LVGL widgets under
+    // window-manager's tree. lvgl_is_running() only goes false once this whole function returns
+    // (see lvgl_arch_stop()), so a service left running here can still fire mid-teardown and
+    // touch an object window_manager_stop() is concurrently deleting.
 #if TT_FEATURE_SCREENSHOT_ENABLED
     check(service::removeService(service::screenshot::manifest.id));
 #endif
@@ -473,6 +465,12 @@ static void onLvglStopped() {
 #endif
     check(service::removeService(service::memorychecker::manifest.id));
     check(service::removeService(service::statusbar::manifest.id));
+
+    if (softwareKeyboard.object != nullptr) {
+        lvgl_software_keyboard_destruct(&softwareKeyboard);
+    }
+
+    module_stop(&lvgl_window_manager_module);
 
     memory_print_stats();
 }

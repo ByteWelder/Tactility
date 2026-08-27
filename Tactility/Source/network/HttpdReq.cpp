@@ -187,9 +187,8 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     size_t bytes_received = 0;
 
     // Locked only around each actual disk I/O call below, not across the httpd_req_recv() waits
-    // in between - this file's mutex may resolve to lvgl_lock() (see FileMutexLvgl.cpp), and
-    // holding that for the whole (potentially multi-second) network transfer starves LVGL's own
-    // task for the entire upload instead of just for each brief write.
+    // in between, so a registered file_mutex never gets held for the whole (potentially
+    // multi-second) network transfer, only for each brief write.
     FileMutex mutex {};
     file_mutex_get(&mutex, filePath.c_str());
 

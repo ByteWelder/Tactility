@@ -34,6 +34,7 @@
 static const uint8_t GAMMA_CURVE_VALUES[4] = { 0x01, 0x04, 0x02, 0x08 };
 
 struct Ili9341Internal {
+    Device* spi_controller;
     esp_lcd_panel_io_handle_t io_handle;
     esp_lcd_panel_handle_t panel_handle;
     // Given from ISR context by on_color_trans_done() once a queued SPI transfer physically
@@ -108,6 +109,7 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->spi_controller = parent;
     internal->draw_done_semaphore = xSemaphoreCreateBinary();
     if (internal->draw_done_semaphore == nullptr) {
         free(internal);
@@ -187,8 +189,10 @@ static error_t start(Device* device) {
     // Bring-up sequence, order matches EspLcdDisplayV2::applyConfiguration (proven correct on real ILI9341 panels).
     // Every failure path below must clean up fully: unlike stop_device, this is never retried by the kernel
     // if start_device fails (see device_start() in TactilityKernel), so a partial failure here would leak.
-    bool ok =
-        pulse_reset(internal->reset_descriptor) == ERROR_NONE &&
+    bool ok = pulse_reset(internal->reset_descriptor) == ERROR_NONE;
+
+    spi_controller_lock(internal->spi_controller);
+    ok = ok &&
         esp_lcd_panel_reset(internal->panel_handle) == ESP_OK &&
         esp_lcd_panel_init(internal->panel_handle) == ESP_OK &&
         (!config->invert_color || esp_lcd_panel_invert_color(internal->panel_handle, true) == ESP_OK);
@@ -203,6 +207,7 @@ static error_t start(Device* device) {
     ok = ok && (!config->invert_color || esp_lcd_panel_invert_color(internal->panel_handle, true) == ESP_OK);
     ok = ok && (config->gamma_curve >= 4 || esp_lcd_panel_io_tx_param(internal->io_handle, LCD_CMD_GAMSET, &GAMMA_CURVE_VALUES[config->gamma_curve], 1) == ESP_OK);
     ok = ok && esp_lcd_panel_disp_on_off(internal->panel_handle, true) == ESP_OK;
+    spi_controller_unlock(internal->spi_controller);
 
     if (!ok) {
         LOG_E(TAG, "Failed to bring up panel");
@@ -223,9 +228,11 @@ static error_t start(Device* device) {
 static error_t stop(Device* device) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
 
+    spi_controller_lock(internal->spi_controller);
     if (internal->panel_handle != nullptr) {
         if (esp_lcd_panel_del(internal->panel_handle) != ESP_OK) {
             LOG_E(TAG, "Failed to delete panel");
+            spi_controller_unlock(internal->spi_controller);
             return ERROR_RESOURCE;
         }
         internal->panel_handle = nullptr;
@@ -234,10 +241,12 @@ static error_t stop(Device* device) {
     if (internal->io_handle != nullptr) {
         if (esp_lcd_panel_io_del(internal->io_handle) != ESP_OK) {
             LOG_E(TAG, "Failed to delete panel IO");
+            spi_controller_unlock(internal->spi_controller);
             return ERROR_RESOURCE;
         }
         internal->io_handle = nullptr;
     }
+    spi_controller_unlock(internal->spi_controller);
 
     if (internal->reset_descriptor != nullptr) {
         gpio_descriptor_release(internal->reset_descriptor);
@@ -260,12 +269,18 @@ static error_t ili9341_reset(Device* device) {
     if (error != ERROR_NONE) {
         return error;
     }
-    return esp_lcd_panel_reset(internal->panel_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_reset(internal->panel_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t ili9341_init(Device* device) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_init(internal->panel_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_init(internal->panel_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t ili9341_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
@@ -276,26 +291,39 @@ static error_t ili9341_draw_bitmap(Device* device, int32_t x_start, int32_t y_st
     // satisfied by this draw's own transfer completing.
     xSemaphoreTake(internal->draw_done_semaphore, 0);
 
-    if (esp_lcd_panel_draw_bitmap(internal->panel_handle, x_start, y_start, x_end, y_end, color_data) != ESP_OK) {
+    spi_controller_lock(internal->spi_controller);
+    esp_err_t ret = esp_lcd_panel_draw_bitmap(internal->panel_handle, x_start, y_start, x_end, y_end, color_data);
+    if (ret != ESP_OK) {
+        spi_controller_unlock(internal->spi_controller);
         return ERROR_RESOURCE;
     }
 
     // Block until the SPI transfer physically completes: DisplayApi's draw_bitmap is a synchronous
     // contract (see lvgl_display.c), so the caller must be able to safely reuse/overwrite
     // color_data as soon as this call returns. esp_lcd_panel_draw_bitmap() only queues the
-    // transfer and returns once it's handed to the SPI peripheral, not once it's finished.
+    // transfer and returns once it's handed to the SPI peripheral, not once it's finished. Hold the
+    // bus lock across the wait too, not just the queueing call: the command/data phases aren't
+    // wrapped in their own acquire_bus by esp_lcd_panel_io_spi, so another bus user could otherwise
+    // interleave with this transfer while it's still in flight.
     xSemaphoreTake(internal->draw_done_semaphore, portMAX_DELAY);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 
 static error_t ili9341_mirror(Device* device, bool x_axis, bool y_axis) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_mirror(internal->panel_handle, x_axis, y_axis) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_mirror(internal->panel_handle, x_axis, y_axis) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t ili9341_swap_xy(Device* device, bool swap_axes) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_swap_xy(internal->panel_handle, swap_axes) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_swap_xy(internal->panel_handle, swap_axes) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 // Reads the devicetree-configured baseline, not live hardware state: swap_xy()/mirror() calls made after
@@ -314,7 +342,10 @@ static bool ili9341_get_mirror_y(Device* device) {
 
 static error_t ili9341_set_gap(Device* device, int32_t x_gap, int32_t y_gap) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_set_gap(internal->panel_handle, x_gap, y_gap) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_set_gap(internal->panel_handle, x_gap, y_gap) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 // Reads the devicetree-configured baseline, not live hardware state - see DisplayApi::get_gap_x().
@@ -334,17 +365,26 @@ static int32_t ili9341_get_gap_y(Device* device) {
 
 static error_t ili9341_invert_color(Device* device, bool invert_color_data) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_invert_color(internal->panel_handle, invert_color_data) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_invert_color(internal->panel_handle, invert_color_data) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t ili9341_disp_on_off(Device* device, bool on_off) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_disp_on_off(internal->panel_handle, on_off) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_disp_on_off(internal->panel_handle, on_off) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t ili9341_disp_sleep(Device* device, bool sleep) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
-    return esp_lcd_panel_disp_sleep(internal->panel_handle, sleep) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_panel_disp_sleep(internal->panel_handle, sleep) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 // bgr_order only selects the panel controller's rgb_ele_order (applied in start(), below) so the

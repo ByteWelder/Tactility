@@ -65,6 +65,19 @@ error_t spi_controller_try_lock(struct Device* device, TickType_t timeout);
  */
 error_t spi_controller_unlock(struct Device* device);
 
+/**
+ * @brief Locks device's parent bus when the parent is a SPI controller.
+ * @param[in] device the device whose parent may be a SPI controller
+ * @retval ERROR_NONE when the operation was successful, or the parent is not a SPI controller
+ */
+error_t spi_controller_lock_bus_of(struct Device* device);
+
+/**
+ * @brief Unlocks a device's parent bus.
+ * @param[in] device the device whose parent may be a SPI controller
+ */
+void spi_controller_unlock_bus_of(struct Device* device);
+
 extern const struct DeviceType SPI_CONTROLLER_TYPE;
 
 #ifdef __cplusplus

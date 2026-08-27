@@ -28,6 +28,7 @@
 #define POWER_SUPPLY_MIN_MV 3200
 
 struct Xpt2046Internal {
+    Device* spi_controller;
     esp_lcd_panel_io_handle_t io_handle;
     esp_lcd_touch_handle_t touch_handle;
     Device* power_supply_device;
@@ -74,7 +75,9 @@ static error_t ps_get_property(Device* device, PowerSupplyProperty property, Pow
     auto* parent_internal = static_cast<Xpt2046Internal*>(device_get_driver_data(parent));
 
     int battery_mv;
+    spi_controller_lock(parent_internal->spi_controller);
     error_t error = read_battery_mv(parent_internal->touch_handle, &battery_mv);
+    spi_controller_unlock(parent_internal->spi_controller);
     if (error != ERROR_NONE) {
         return error;
     }
@@ -181,8 +184,12 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->spi_controller = parent;
+
     const esp_lcd_panel_io_spi_config_t io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(cs_pin.pin);
+    spi_controller_lock(internal->spi_controller);
     esp_err_t ret = esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)spi_config->host, &io_config, &internal->io_handle);
+    spi_controller_unlock(internal->spi_controller);
     if (ret != ESP_OK) {
         LOG_E(TAG, "Failed to create panel IO: %s", esp_err_to_name(ret));
         free(internal);
@@ -209,10 +216,14 @@ static error_t start(Device* device) {
         .driver_data = nullptr,
     };
 
+    spi_controller_lock(internal->spi_controller);
     ret = esp_lcd_touch_new_spi_xpt2046(internal->io_handle, &touch_config, &internal->touch_handle);
+    spi_controller_unlock(internal->spi_controller);
     if (ret != ESP_OK) {
         LOG_E(TAG, "Failed to create touch handle: %s", esp_err_to_name(ret));
+        spi_controller_lock(internal->spi_controller);
         esp_lcd_panel_io_del(internal->io_handle);
+        spi_controller_unlock(internal->spi_controller);
         free(internal);
         return ERROR_RESOURCE;
     }
@@ -224,8 +235,10 @@ static error_t start(Device* device) {
         error_t error = create_power_supply_child(device, internal->power_supply_device);
         if (error != ERROR_NONE) {
             LOG_E(TAG, "Failed to create power-supply device");
+            spi_controller_lock(internal->spi_controller);
             esp_lcd_touch_del(internal->touch_handle);
             esp_lcd_panel_io_del(internal->io_handle);
+            spi_controller_unlock(internal->spi_controller);
             free(internal);
             return error;
         }
@@ -244,9 +257,11 @@ static error_t stop(Device* device) {
 
     // esp_lcd_touch_del() only releases the touch-side resources; the panel IO handle is owned
     // separately and needs its own deletion.
+    spi_controller_lock(internal->spi_controller);
     if (internal->touch_handle != nullptr) {
         if (esp_lcd_touch_del(internal->touch_handle) != ESP_OK) {
             LOG_E(TAG, "Failed to delete touch handle");
+            spi_controller_unlock(internal->spi_controller);
             return ERROR_RESOURCE;
         }
         internal->touch_handle = nullptr;
@@ -255,10 +270,12 @@ static error_t stop(Device* device) {
     if (internal->io_handle != nullptr) {
         if (esp_lcd_panel_io_del(internal->io_handle) != ESP_OK) {
             LOG_E(TAG, "Failed to delete panel IO handle");
+            spi_controller_unlock(internal->spi_controller);
             return ERROR_RESOURCE;
         }
         internal->io_handle = nullptr;
     }
+    spi_controller_unlock(internal->spi_controller);
 
     free(internal);
     device_set_driver_data(device, nullptr);
@@ -271,18 +288,27 @@ static error_t stop(Device* device) {
 
 static error_t xpt2046_enter_sleep(Device* device) {
     auto* internal = static_cast<Xpt2046Internal*>(device_get_driver_data(device));
-    return esp_lcd_touch_enter_sleep(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_touch_enter_sleep(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t xpt2046_exit_sleep(Device* device) {
     auto* internal = static_cast<Xpt2046Internal*>(device_get_driver_data(device));
-    return esp_lcd_touch_exit_sleep(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_touch_exit_sleep(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static error_t xpt2046_read_data(Device* device, TickType_t timeout) {
     (void)timeout; // esp_lcd_touch_read_data() has no timeout parameter
     auto* internal = static_cast<Xpt2046Internal*>(device_get_driver_data(device));
-    return esp_lcd_touch_read_data(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_lock(internal->spi_controller);
+    error_t result = esp_lcd_touch_read_data(internal->touch_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
+    spi_controller_unlock(internal->spi_controller);
+    return result;
 }
 
 static bool xpt2046_get_touched_points(Device* device, uint16_t* x, uint16_t* y, uint16_t* strength, uint8_t* point_count, uint8_t max_point_count) {

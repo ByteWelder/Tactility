@@ -5,6 +5,7 @@
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/esp32_gpio_helpers.h>
+#include <tactility/drivers/esp32_sdcard.h>
 #include <tactility/drivers/esp32_sdspi.h>
 #include <tactility/drivers/esp32_sdspi_fs.h>
 #include <tactility/drivers/esp32_spi.h>
@@ -92,6 +93,12 @@ static error_t start(Device* device) {
 
     auto* spi_config = static_cast<const Esp32SpiConfig*>(parent->config);
 
+    // Card init below runs through the SD host driver's own do_transaction, which is not yet
+    // patched to take the bus lock (that only happens once esp32_sdcard_install_bus_lock() runs,
+    // after a successful mount) - so this whole window, from CS bit-banging through mount, needs
+    // the coarse controller lock instead.
+    spi_controller_lock(parent);
+
     // Lower all CS pins
     esp32_spi_deselect_all_cs(parent);
     // Manually set the CS pin fo
@@ -100,6 +107,7 @@ static error_t start(Device* device) {
 
     data->fs_handle = esp32_sdspi_fs_alloc(config, spi_config->host, cs_pin_spec.pin, "/sdcard");
     if (!data->fs_handle) {
+        spi_controller_unlock(parent);
         data->cleanup_pins();
         device_set_driver_data(device, nullptr);
         data->unlock();
@@ -111,8 +119,18 @@ static error_t start(Device* device) {
     file_system_set_owner(data->file_system, device);
     if (file_system_mount(data->file_system) != ERROR_NONE) {
         LOG_E(TAG, "Failed to mount SD card filesystem");
+    } else {
+        // Pass the card straight from the just-succeeded mount, not via esp32_sdcard_get_card():
+        // that getter gates on device_is_ready(), which is still false here -- device_start()
+        // only flips it after this start_device callback returns. Going through the gated getter
+        // silently no-ops the lock install here every time, leaving the card's do_transaction
+        // unwrapped and racing the display for the device's entire lifetime.
+        if (esp32_sdcard_install_bus_lock(device, esp32_sdspi_fs_get_card(data->fs_handle)) != ERROR_NONE) {
+            LOG_E(TAG, "Failed to install SD card bus lock");
+        }
     }
 
+    spi_controller_unlock(parent);
     data->unlock();
     return ERROR_NONE;
 }
@@ -130,6 +148,7 @@ static error_t stop(Device* device) {
             data->unlock();
             return ERROR_RESOURCE;
         }
+        esp32_sdcard_remove_bus_lock(device);
     }
 
     file_system_remove(data->file_system);

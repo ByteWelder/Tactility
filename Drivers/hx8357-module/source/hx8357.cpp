@@ -111,6 +111,7 @@ constexpr uint8_t INIT_CMDS[] = {
 } // namespace
 
 struct Hx8357Internal {
+    Device* spi_controller;
     spi_device_handle_t spi_handle;
     gpio_num_t dc_pin;
     size_t max_transfer_size;
@@ -210,6 +211,7 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->spi_controller = parent;
     internal->dc_pin = static_cast<gpio_num_t>(pin_or_unused(config->pin_dc));
     // Clamped below the bus's configured max_transfer_size: that value only bounds the DMA
     // buffer/descriptor allocation, not the SPI peripheral's own per-transaction bit-length
@@ -275,9 +277,11 @@ static error_t start(Device* device) {
     internal->mirror_x = config->mirror_x;
     internal->mirror_y = config->mirror_y;
 
+    spi_controller_lock(internal->spi_controller);
     run_init_cmds(internal);
     send_madctl(internal);
     send_cmd(internal, config->invert_color ? HX8357_INVON : HX8357_INVOFF);
+    spi_controller_unlock(internal->spi_controller);
 
     device_set_driver_data(device, internal);
     return ERROR_NONE;
@@ -329,6 +333,7 @@ static error_t hx8357_draw_bitmap(Device* device, int32_t x_start, int32_t y_sta
         static_cast<uint8_t>((y2 >> 8) & 0xFF), static_cast<uint8_t>(y2 & 0xFF),
     };
 
+    spi_controller_lock(internal->spi_controller);
     send_cmd(internal, HX8357_CASET);
     send_data(internal, xb, 4);
     send_cmd(internal, HX8357_PASET);
@@ -337,6 +342,7 @@ static error_t hx8357_draw_bitmap(Device* device, int32_t x_start, int32_t y_sta
 
     const size_t pixel_count = static_cast<size_t>(x_end - x_start) * static_cast<size_t>(y_end - y_start);
     send_data(internal, static_cast<const uint8_t*>(color_data), pixel_count * 3); // RGB888 = 3 bytes/pixel
+    spi_controller_unlock(internal->spi_controller);
 
     return ERROR_NONE;
 }
@@ -345,14 +351,18 @@ static error_t hx8357_mirror(Device* device, bool x_axis, bool y_axis) {
     auto* internal = static_cast<Hx8357Internal*>(device_get_driver_data(device));
     internal->mirror_x = x_axis;
     internal->mirror_y = y_axis;
+    spi_controller_lock(internal->spi_controller);
     send_madctl(internal);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 
 static error_t hx8357_swap_xy(Device* device, bool swap_axes) {
     auto* internal = static_cast<Hx8357Internal*>(device_get_driver_data(device));
     internal->swap_xy = swap_axes;
+    spi_controller_lock(internal->spi_controller);
     send_madctl(internal);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 
@@ -373,19 +383,25 @@ static bool hx8357_get_mirror_y(Device* device) {
 
 static error_t hx8357_invert_color(Device* device, bool invert_color_data) {
     auto* internal = static_cast<Hx8357Internal*>(device_get_driver_data(device));
+    spi_controller_lock(internal->spi_controller);
     send_cmd(internal, invert_color_data ? HX8357_INVON : HX8357_INVOFF);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 
 static error_t hx8357_disp_on_off(Device* device, bool on_off) {
     auto* internal = static_cast<Hx8357Internal*>(device_get_driver_data(device));
+    spi_controller_lock(internal->spi_controller);
     send_cmd(internal, on_off ? HX8357_DISPON : 0x28 /* HX8357_DISPOFF */);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 
 static error_t hx8357_disp_sleep(Device* device, bool sleep) {
     auto* internal = static_cast<Hx8357Internal*>(device_get_driver_data(device));
+    spi_controller_lock(internal->spi_controller);
     send_cmd(internal, sleep ? 0x10 /* HX8357_SLPIN */ : HX8357_SLPOUT);
+    spi_controller_unlock(internal->spi_controller);
     return ERROR_NONE;
 }
 

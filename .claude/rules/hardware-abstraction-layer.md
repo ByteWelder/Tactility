@@ -10,6 +10,13 @@ A driver generally consists of:
 
 Drivers are part of a kernel module.
 
+A driver whose device sits on a shared SPI controller (parent device type `SPI_CONTROLLER_TYPE`)
+must bracket its own bus access with `spi_controller_lock()`/`spi_controller_unlock()`
+(`spi_controller_lock_bus_of()`/`spi_controller_unlock_bus_of()` for the common case of a direct
+child), at the logical-operation level rather than per primitive. This is not done for you by the
+kernel's generic device-type wrappers (`display.cpp`, `pointer.cpp`, etc.) - only the driver knows
+for certain which of its calls touch the bus.
+
 Modules with drivers can be stored in:
 - TactilityKernel
 - A subproject in `Platforms` folder

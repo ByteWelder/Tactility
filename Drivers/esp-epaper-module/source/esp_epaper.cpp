@@ -27,6 +27,7 @@ constexpr auto* TAG = "esp_epaper";
 constexpr uint16_t MAX_PANEL_DIMENSION = 2048;
 
 struct EspEpaperInternal {
+    Device* spi_controller;
     /** Opaque esp_epaper device, owns the panel's pins and SPI device. */
     epd_handle_t epd;
     epd_panel_info_t info;
@@ -77,7 +78,9 @@ static error_t esp_epaper_reset(Device* device) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
     // epd_wake() toggles the reset pin and re-runs the full init sequence.
+    spi_controller_lock(internal->spi_controller);
     const esp_err_t ret = epd_wake(internal->epd);
+    spi_controller_unlock(internal->spi_controller);
     // epd_wake() re-inits the panel, so it is awake (and drawable) again.
     if (ret == ESP_OK) {
         internal->display_on = true;
@@ -89,7 +92,9 @@ static error_t esp_epaper_reset(Device* device) {
 static error_t esp_epaper_init(Device* device) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
+    spi_controller_lock(internal->spi_controller);
     const esp_err_t ret = epd_wake(internal->epd);
+    spi_controller_unlock(internal->spi_controller);
     if (ret == ESP_OK) {
         internal->display_on = true;
     }
@@ -133,7 +138,9 @@ static error_t esp_epaper_draw_bitmap(Device* device, int32_t x_start, int32_t y
         source = internal->rotate_buffer;
     }
 
+    spi_controller_lock(internal->spi_controller);
     const esp_err_t ret = epd_update(internal->epd, source, config->update_mode);
+    spi_controller_unlock(internal->spi_controller);
     xSemaphoreGive(internal->panel_mutex);
     if (ret != ESP_OK) {
         LOG_E(TAG, "epd_update failed: %s", esp_err_to_name(ret));
@@ -152,6 +159,7 @@ static error_t esp_epaper_disp_on_off(Device* device, bool on_off) {
     }
 
     bool ok = true;
+    spi_controller_lock(internal->spi_controller);
     if (on_off) {
         if (epd_wake(internal->epd) != ESP_OK) {
             LOG_E(TAG, "epd_wake failed");
@@ -163,6 +171,7 @@ static error_t esp_epaper_disp_on_off(Device* device, bool on_off) {
             ok = false;
         }
     }
+    spi_controller_unlock(internal->spi_controller);
 
     if (ok) {
         internal->display_on = on_off;
@@ -220,7 +229,9 @@ static const DisplayApi esp_epaper_display_api = {
 
 static void free_internal(EspEpaperInternal* internal) {
     if (internal->epd != nullptr) {
+        spi_controller_lock(internal->spi_controller);
         epd_deinit(internal->epd);
+        spi_controller_unlock(internal->spi_controller);
     }
     if (internal->rotate_buffer != nullptr) {
         free(internal->rotate_buffer);
@@ -284,6 +295,7 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->spi_controller = parent;
     internal->epd = epd;
     internal->panel_mutex = xSemaphoreCreateMutex();
     if (internal->panel_mutex == nullptr) {
@@ -331,7 +343,9 @@ static error_t stop(Device* device) {
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
     if (internal->display_on) {
         // Leave the panel in deep sleep.
+        spi_controller_lock(internal->spi_controller);
         epd_sleep(internal->epd);
+        spi_controller_unlock(internal->spi_controller);
         internal->display_on = false;
     }
     xSemaphoreGive(internal->panel_mutex);

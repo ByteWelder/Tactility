@@ -306,6 +306,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(spi_controller_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_try_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_unlock),
+    DEFINE_MODULE_SYMBOL(spi_controller_lock_bus_of),
+    DEFINE_MODULE_SYMBOL(spi_controller_unlock_bus_of),
     DEFINE_MODULE_SYMBOL(SPI_CONTROLLER_TYPE),
     // drivers/trackball
     DEFINE_MODULE_SYMBOL(trackball_read_delta),
