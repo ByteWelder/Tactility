@@ -265,11 +265,12 @@ static error_t stop(Device* device) {
 
 static error_t ili9341_reset(Device* device) {
     auto* internal = static_cast<Ili9341Internal*>(device_get_driver_data(device));
+    spi_controller_lock(internal->spi_controller);
     error_t error = pulse_reset(internal->reset_descriptor);
     if (error != ERROR_NONE) {
+        spi_controller_unlock(internal->spi_controller);
         return error;
     }
-    spi_controller_lock(internal->spi_controller);
     error_t result = esp_lcd_panel_reset(internal->panel_handle) == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
     spi_controller_unlock(internal->spi_controller);
     return result;
