@@ -135,6 +135,66 @@ bool untar(const std::string& tar_path, const std::string& destination_path) {
 
 // endregion
 
+// region Staging-path lock: at most one caller may clean up/populate a given staging_path at a
+// time, keyed by source basename. The HTTP server and app tasks can call app_install()
+// concurrently, e.g. two uploads sharing a source basename - without this, one call's cleanup
+// can delete or overwrite the staging directory another call is still extracting into.
+
+struct StagingLock {
+    Mutex mutex {};
+    int refcount = 0;
+};
+
+struct StagingLockTable {
+    std::unordered_map<std::string, std::unique_ptr<StagingLock>> locks;
+    Mutex table_mutex {};
+
+    StagingLockTable() { mutex_construct(&table_mutex); }
+};
+
+StagingLockTable& staging_lock_table() {
+    static StagingLockTable table;
+    return table;
+}
+
+// Blocks until any other caller staging @a path has released it, then locks it for this caller.
+// Must be paired with exactly one release_staging_lock(path) call.
+void acquire_staging_lock(const std::string& path) {
+    auto& table = staging_lock_table();
+    mutex_lock(&table.table_mutex);
+    auto iterator = table.locks.find(path);
+    if (iterator == table.locks.end()) {
+        auto lock = std::make_unique<StagingLock>();
+        mutex_construct(&lock->mutex);
+        iterator = table.locks.emplace(path, std::move(lock)).first;
+    }
+    StagingLock* lock = iterator->second.get();
+    lock->refcount++;
+    mutex_unlock(&table.table_mutex);
+
+    mutex_lock(&lock->mutex);
+}
+
+// Erases the table entry once nothing references it anymore, so the table doesn't grow forever
+// across installs with distinct basenames (e.g. unique upload temp names).
+void release_staging_lock(const std::string& path) {
+    auto& table = staging_lock_table();
+    mutex_lock(&table.table_mutex);
+    auto iterator = table.locks.find(path);
+    if (iterator == table.locks.end()) {
+        mutex_unlock(&table.table_mutex);
+        return;
+    }
+    StagingLock* lock = iterator->second.get();
+    mutex_unlock(&lock->mutex);
+    if (--lock->refcount == 0) {
+        table.locks.erase(iterator);
+    }
+    mutex_unlock(&table.table_mutex);
+}
+
+// endregion
+
 // region Installed-app registry: owns the AppManifest (and its id/name/path strings) that
 // app_manager's ledger only keeps a non-owning pointer to (see app_manager_add()'s contract).
 
@@ -277,11 +337,14 @@ error_t app_install(const char* source_path) {
     }
 
     auto staging_path = app_parent_path + "/" + last_path_segment(source_path);
+    acquire_staging_lock(staging_path);
+
     delete_recursively(staging_path);
 
     if (!untar(source_path, staging_path)) {
         LOG_E(TAG, "Failed to extract %s", source_path);
         delete_recursively(staging_path);
+        release_staging_lock(staging_path);
         return ERROR_NOT_FOUND;
     }
 
@@ -289,6 +352,7 @@ error_t app_install(const char* source_path) {
     if (!app_fs_is_file(manifest_path)) {
         LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
         delete_recursively(staging_path);
+        release_staging_lock(staging_path);
         return ERROR_INVALID_ARGUMENT;
     }
 
@@ -296,6 +360,7 @@ error_t app_install(const char* source_path) {
     if (app_metadata_parse(manifest_path.c_str(), &metadata) != ERROR_NONE) {
         LOG_E(TAG, "Install failed: invalid manifest");
         delete_recursively(staging_path);
+        release_staging_lock(staging_path);
         return ERROR_INVALID_ARGUMENT;
     }
 
@@ -315,6 +380,7 @@ error_t app_install(const char* source_path) {
         LOG_E(TAG, "Install failed: failed to remove existing installation");
         mutex_unlock(&registry.mutex);
         delete_recursively(staging_path);
+        release_staging_lock(staging_path);
         return ERROR_RESOURCE;
     }
 
@@ -324,9 +390,11 @@ error_t app_install(const char* source_path) {
     if (rename(staging_path.c_str(), final_path.c_str()) != 0) {
         LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", staging_path.c_str(), final_path.c_str());
         delete_recursively(staging_path);
+        release_staging_lock(staging_path);
         mutex_unlock(&registry.mutex);
         return ERROR_NOT_FOUND;
     }
+    release_staging_lock(staging_path);
 
     // Only remaining failure mode is a duplicate id - can't happen, uninstall_locked() above
     // already removed any previous registration for this exact id.
