@@ -449,11 +449,6 @@ static void onLvglStopped() {
     lvgl::stopKeyboardDeviceListener();
     lvgl::stopUsbHidInput();
 
-    // Stop services before tearing down the widget tree below: StatusbarService's updateTimer
-    // (and similar) runs on its own task independent of this one, touching LVGL widgets under
-    // window-manager's tree. lvgl_is_running() only goes false once this whole function returns
-    // (see lvgl_arch_stop()), so a service left running here can still fire mid-teardown and
-    // touch an object window_manager_stop() is concurrently deleting.
 #if TT_FEATURE_SCREENSHOT_ENABLED
     check(service::removeService(service::screenshot::manifest.id));
 #endif
