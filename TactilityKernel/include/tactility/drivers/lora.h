@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
 
 #ifdef __cplusplus
@@ -93,27 +94,8 @@ enum LoraTransmissionState {
     LORA_TRANSMISSION_STATE_ERROR,
 };
 
-struct LoraRxPacket {
-    /** Packet payload. Only valid for the duration of the RX callback. */
-    const uint8_t* data;
-    size_t length;
-    /** Received signal strength in dBm */
-    float rssi;
-    /** Signal-to-noise ratio in dB */
-    float snr;
-};
-
-/**
- * Callbacks are invoked without any driver lock held, either from the driver's radio
- * thread (RX, TX progress, state) or from the thread calling transmit()/set_enabled()
- * (the QUEUED TX event and enable/disable state changes). Taking consumer locks in a
- * callback is therefore safe, but keep callbacks short: RX processing stalls while
- * they run. After remove_*_callback returns, a callback that was already in flight
- * may still complete once — disable the radio before destroying callback context.
- */
-typedef void (*LoraStateCallback)(struct Device* device, void* context, enum LoraRadioState state);
-typedef void (*LoraRxCallback)(struct Device* device, void* context, const struct LoraRxPacket* packet);
-typedef void (*LoraTxCallback)(struct Device* device, void* context, LoraTxId id, enum LoraTransmissionState state);
+/** Largest RX payload any supported modem can hand back in one packet. */
+#define LORA_RX_MAX_PACKET_LENGTH 255
 
 struct LoraApi {
     /**
@@ -198,58 +180,122 @@ struct LoraApi {
      * @return ERROR_NONE on success
      */
     error_t (*transmit)(struct Device* device, const uint8_t* data, size_t length, LoraTxId* id);
-
-    /**
-     * Add a callback for received packets.
-     * @param[in] device the lora device
-     * @param[in] callback_context the context to pass to the callback
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*add_rx_callback)(struct Device* device, void* callback_context, LoraRxCallback callback);
-
-    /**
-     * Remove a callback for received packets.
-     * @param[in] device the lora device
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*remove_rx_callback)(struct Device* device, LoraRxCallback callback);
-
-    /**
-     * Add a callback for radio state changes.
-     * @param[in] device the lora device
-     * @param[in] callback_context the context to pass to the callback
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*add_state_callback)(struct Device* device, void* callback_context, LoraStateCallback callback);
-
-    /**
-     * Remove a callback for radio state changes.
-     * @param[in] device the lora device
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*remove_state_callback)(struct Device* device, LoraStateCallback callback);
-
-    /**
-     * Add a callback for transmission progress.
-     * @param[in] device the lora device
-     * @param[in] callback_context the context to pass to the callback
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*add_tx_callback)(struct Device* device, void* callback_context, LoraTxCallback callback);
-
-    /**
-     * Remove a callback for transmission progress.
-     * @param[in] device the lora device
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
-     */
-    error_t (*remove_tx_callback)(struct Device* device, LoraTxCallback callback);
 };
+
+/** Identifies the kind of lora event delivered through lora_event_poll(). */
+enum LoraEventType {
+    LORA_EVENT_STATE, // struct LoraStateEventData
+    LORA_EVENT_RX,    // struct LoraRxEventData
+    LORA_EVENT_TX,    // struct LoraTxEventData
+};
+
+/** Data for LORA_EVENT_STATE. */
+struct LoraStateEventData {
+    enum LoraRadioState state;
+};
+
+/** Data for LORA_EVENT_RX. */
+struct LoraRxEventData {
+    uint8_t data[LORA_RX_MAX_PACKET_LENGTH];
+    size_t length;
+    /** Received signal strength in dBm */
+    float rssi;
+    /** Signal-to-noise ratio in dB */
+    float snr;
+};
+
+/** Data for LORA_EVENT_TX. */
+struct LoraTxEventData {
+    LoraTxId id;
+    enum LoraTransmissionState state;
+};
+
+struct LoraEvent {
+    enum LoraEventType type;
+    /** Stamped by lora_event_emit(); any value passed in by the caller is ignored. */
+    uint64_t timestamp;
+    union {
+        struct LoraStateEventData state;
+        struct LoraRxEventData rx;
+        struct LoraTxEventData tx;
+    } data;
+};
+
+/**
+ * Number of events that can be queued per subscription before lora_event_emit() starts
+ * returning ERROR_RESOURCE (dropping the newest event, preserving FIFO order of what's
+ * already queued).
+ */
+#define LORA_EVENT_QUEUE_CAPACITY 8
+
+/**
+ * Caller-owned subscription node, registered with lora_event_subscribe() and drained with
+ * lora_event_poll(). Events queue by value (FIFO): a poll subscription that falls behind loses
+ * the oldest un-popped RX packet's data only once the queue is full, not on every new event.
+ * @warning Fields other than `bit` are for internal use only; do not read or write them directly.
+ */
+struct LoraEventSubscription {
+    /** Set by lora_event_subscribe(). Read-only for the caller: OR it into a
+     * task_event_group_wait() mask (alongside other subscriptions sharing the same
+     * `event_group`) to block on this subscription and other event sources with one call. */
+    uint32_t bit;
+
+    struct {
+        /** The lora device this subscription receives events for; set by lora_event_subscribe(). */
+        struct Device* device;
+
+        /** Caller-owned, borrowed; set by lora_event_subscribe(). */
+        struct TaskEventGroup* event_group;
+
+        struct LoraEvent queue[LORA_EVENT_QUEUE_CAPACITY];
+        uint8_t head;
+        uint8_t count;
+
+        struct LoraEventSubscription* next;
+    } internal;
+};
+
+/**
+ * Register a subscription for events emitted by @a device.
+ * @warning Does not work in ISR context.
+ * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+ * stationary) until unsubscribed
+ * @param[in] event_group caller-owned group to wait on; must outlive @a sub (i.e. be
+ * destructed only after lora_event_unsubscribe()). To block for an event, call
+ * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the mask,
+ * or use _wait_any() to include every subscription sharing it), then drain with lora_event_poll().
+ * @param[in] device the lora device this subscription receives events for
+ * @retval ERROR_NONE on success
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
+ */
+error_t lora_event_subscribe(struct LoraEventSubscription* sub, struct TaskEventGroup* event_group, struct Device* device);
+
+/**
+ * Remove a previously registered subscription.
+ * @warning Does not work in ISR context.
+ * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
+ */
+error_t lora_event_unsubscribe(struct LoraEventSubscription* sub);
+
+/**
+ * Non-blocking: pop the next event for @a sub if one is already queued.
+ * @warning Never blocks. To wait for an event, block in task_event_group_wait()/
+ * task_event_group_wait_any() on @a sub's event group first (see lora_event_subscribe()), then
+ * drain with this in a loop.
+ * @retval ERROR_NONE @a out_event was filled
+ * @retval ERROR_TIMEOUT nothing queued right now
+ */
+error_t lora_event_poll(struct LoraEventSubscription* sub, struct LoraEvent* out_event);
+
+/**
+ * Emit a lora event to every subscriber of @a device. Called by LoraApi driver
+ * implementations; not intended for consumers of the API.
+ * @param[in] device the lora device the event originates from
+ * @param[in] event the event to emit; @a event->timestamp is overwritten
+ * @return ERROR_NONE on success, ERROR_NOT_FOUND if @a device has no subscribers
+ */
+error_t lora_event_emit(struct Device* device, const struct LoraEvent* event);
 
 extern const struct DeviceType LORA_TYPE;
 
@@ -265,12 +311,6 @@ bool lora_can_receive(struct Device* device, enum LoraModulation modulation);
 error_t lora_set_parameter(struct Device* device, enum LoraParameter parameter, int32_t value);
 error_t lora_get_parameter(struct Device* device, enum LoraParameter parameter, int32_t* value);
 error_t lora_transmit(struct Device* device, const uint8_t* data, size_t length, LoraTxId* id);
-error_t lora_add_rx_callback(struct Device* device, void* callback_context, LoraRxCallback callback);
-error_t lora_remove_rx_callback(struct Device* device, LoraRxCallback callback);
-error_t lora_add_state_callback(struct Device* device, void* callback_context, LoraStateCallback callback);
-error_t lora_remove_state_callback(struct Device* device, LoraStateCallback callback);
-error_t lora_add_tx_callback(struct Device* device, void* callback_context, LoraTxCallback callback);
-error_t lora_remove_tx_callback(struct Device* device, LoraTxCallback callback);
 
 #ifdef __cplusplus
 }

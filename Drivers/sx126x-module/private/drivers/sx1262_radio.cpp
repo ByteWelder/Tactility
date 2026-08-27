@@ -9,6 +9,7 @@
 #include <tactility/log.h>
 
 #include <algorithm>
+#include <cstring>
 #include <initializer_list>
 
 #include <RadioLib.h>
@@ -345,12 +346,11 @@ void Sx1262Radio::setState(enum LoraRadioState newState) {
     }
     LOG_I(TAG, "State: %s -> %s", toString(state), toString(newState));
     state = newState;
-    auto callbacks = stateCallbacks;
     unlock();
 
-    for (const auto& entry : callbacks) {
-        entry.callback(settings.device, entry.context, newState);
-    }
+    LoraEvent event { .type = LORA_EVENT_STATE, .timestamp = 0, .data = {} };
+    event.data.state = { .state = newState };
+    lora_event_emit(settings.device, &event);
 }
 
 error_t Sx1262Radio::setModulation(enum LoraModulation newModulation) {
@@ -377,76 +377,21 @@ enum LoraModulation Sx1262Radio::getModulation() const {
     return result;
 }
 
-// Callbacks are invoked on a snapshot of the list, with the radio mutex released:
-// consumers take their own locks in callbacks and also call into this API while
-// holding those locks, so invoking under the radio mutex would set up an AB-BA
-// deadlock between the radio thread and any consumer thread.
-void Sx1262Radio::publishRx(const struct LoraRxPacket& packet) {
-    lock();
-    auto callbacks = rxCallbacks;
-    unlock();
-
-    for (const auto& entry : callbacks) {
-        entry.callback(settings.device, entry.context, &packet);
-    }
+void Sx1262Radio::publishRx(const uint8_t* data, size_t length, float rssi, float snr) {
+    LoraEvent event { .type = LORA_EVENT_RX, .timestamp = 0, .data = {} };
+    LoraRxEventData& rx = event.data.rx;
+    const size_t copied_length = std::min(length, sizeof(rx.data));
+    std::memcpy(rx.data, data, copied_length);
+    rx.length = copied_length;
+    rx.rssi = rssi;
+    rx.snr = snr;
+    lora_event_emit(settings.device, &event);
 }
 
 void Sx1262Radio::publishTx(LoraTxId id, enum LoraTransmissionState txState) {
-    lock();
-    auto callbacks = txCallbacks;
-    unlock();
-
-    for (const auto& entry : callbacks) {
-        entry.callback(settings.device, entry.context, id, txState);
-    }
-}
-
-error_t Sx1262Radio::addRxCallback(void* context, LoraRxCallback callback) {
-    lock();
-    rxCallbacks.push_back({context, callback});
-    unlock();
-    return ERROR_NONE;
-}
-
-error_t Sx1262Radio::removeRxCallback(LoraRxCallback callback) {
-    lock();
-    const auto old_size = rxCallbacks.size();
-    std::erase_if(rxCallbacks, [callback](const auto& entry) { return entry.callback == callback; });
-    const auto result = (rxCallbacks.size() == old_size) ? ERROR_NOT_FOUND : ERROR_NONE;
-    unlock();
-    return result;
-}
-
-error_t Sx1262Radio::addStateCallback(void* context, LoraStateCallback callback) {
-    lock();
-    stateCallbacks.push_back({context, callback});
-    unlock();
-    return ERROR_NONE;
-}
-
-error_t Sx1262Radio::removeStateCallback(LoraStateCallback callback) {
-    lock();
-    const auto old_size = stateCallbacks.size();
-    std::erase_if(stateCallbacks, [callback](const auto& entry) { return entry.callback == callback; });
-    const auto result = (stateCallbacks.size() == old_size) ? ERROR_NOT_FOUND : ERROR_NONE;
-    unlock();
-    return result;
-}
-
-error_t Sx1262Radio::addTxCallback(void* context, LoraTxCallback callback) {
-    lock();
-    txCallbacks.push_back({context, callback});
-    unlock();
-    return ERROR_NONE;
-}
-
-error_t Sx1262Radio::removeTxCallback(LoraTxCallback callback) {
-    lock();
-    const auto old_size = txCallbacks.size();
-    std::erase_if(txCallbacks, [callback](const auto& entry) { return entry.callback == callback; });
-    const auto result = (txCallbacks.size() == old_size) ? ERROR_NOT_FOUND : ERROR_NONE;
-    unlock();
-    return result;
+    LoraEvent event { .type = LORA_EVENT_TX, .timestamp = 0, .data = {} };
+    event.data.tx = { .id = id, .state = txState };
+    lora_event_emit(settings.device, &event);
 }
 
 // endregion
@@ -952,15 +897,10 @@ void Sx1262Radio::doReceive() {
     } else if (rxSize == 0) {
         // Empty read: skip silently to avoid log flooding on spurious IRQs.
     } else {
-        const struct LoraRxPacket packet = {
-            .data = data.data(),
-            .length = data.size(),
-            .rssi = radio.getRSSI(),
-            .snr = radio.getSNR(),
-        };
-
-        LOG_I(TAG, "RX: %u bytes, RSSI %.1f dBm, SNR %.1f dB", (unsigned)packet.length, packet.rssi, packet.snr);
-        publishRx(packet);
+        const float rssi = radio.getRSSI();
+        const float snr = radio.getSNR();
+        LOG_I(TAG, "RX: %u bytes, RSSI %.1f dBm, SNR %.1f dB", (unsigned)data.size(), rssi, snr);
+        publishRx(data.data(), data.size(), rssi, snr);
         radio.finishReceive();
     }
 }
