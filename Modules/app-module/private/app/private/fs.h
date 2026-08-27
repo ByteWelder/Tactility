@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-// Minimal filesystem helpers shared by app-module internals that need to look at on-disk app
-// directories (app_install.cpp, manager.cpp's install-path scan) - app-module may not depend
-// upward on Tactility::file, so this is a small local re-implementation (see
-// app_metadata_parsing.cpp for the same constraint applied to properties-file loading).
+// Minimal filesystem helpers shared by app-module internals.
 
 #include <cstring>
 #include <dirent.h>
@@ -54,18 +51,11 @@ inline bool app_fs_delete_recursively(const std::string& path) {
 #ifndef ESP_PLATFORM
     if (S_ISLNK(st.st_mode)) {
         // Symlink — remove as a leaf regardless of its target.
-        file_mutex_lock(&file_mutex);
-        bool result = unlink(path.c_str()) == 0;
-        file_mutex_unlock(&file_mutex);
-        return result;
+        return unlink(path.c_str()) == 0;
     }
 #endif
 
     if (S_ISDIR(st.st_mode)) {
-        // Collect child names while locked, then release before recursing —
-        // child paths can resolve to the same mount mutex (see
-        // app_fs_list_direct_subdirectories comment), so holding the parent
-        // lock across the recursive call would self-deadlock.
         std::vector<std::string> children;
 
         DIR* dir = opendir(path.c_str());
@@ -90,13 +80,11 @@ inline bool app_fs_delete_recursively(const std::string& path) {
             }
         }
 
-        bool result = rmdir(path.c_str()) == 0;
-        return result;
+        return rmdir(path.c_str()) == 0;
     }
 
     // Regular file or other — unlink.
-    bool result = unlink(path.c_str()) == 0;
-    return result;
+    return unlink(path.c_str()) == 0;
 }
 
 inline void app_fs_list_direct_subdirectories(const std::string& path, std::vector<std::string>& out) {
