@@ -16,7 +16,7 @@ bool app_metadata_is_valid_format_version(const std::string& version);
 bool app_metadata_is_valid_name(const std::string& name);
 bool app_metadata_is_valid_version_name(const std::string& version);
 bool app_metadata_is_valid_version_code(const std::string& version);
-bool app_metadata_is_valid_stack_depth(const std::string& value);
+bool app_metadata_is_valid_stack_size(const std::string& value);
 
 /** Validates a comma-separated list of device ids (alphanumeric + '-' items, matching Devices/<id> folder names). */
 bool app_metadata_is_valid_device_id_list(const std::string& value);

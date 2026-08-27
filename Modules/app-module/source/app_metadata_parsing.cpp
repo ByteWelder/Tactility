@@ -144,7 +144,7 @@ bool app_metadata_is_valid_version_code(const std::string& version) {
     });
 }
 
-bool app_metadata_is_valid_stack_depth(const std::string& value) {
+bool app_metadata_is_valid_stack_size(const std::string& value) {
     // 10 digits is the maximum decimal width of uint32_t.
     return !value.empty() && value.size() <= 10 && validate_string(value, [](char c) {
         return std::isdigit(static_cast<unsigned char>(c)) != 0;

@@ -278,6 +278,17 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         return ERROR_OUT_OF_MEMORY;
     }
 
+    // Same bound app_metadata_parse() enforces on manifest.properties-declared depths - a
+    // manifest built directly in C++ (not parsed from a file) must be held to it too.
+    if (stack.depth > APP_STACK_SIZE_MAX) {
+        LOG_E(TAG, "[instance %lu] stack depth %u exceeds APP_STACK_SIZE_MAX(%u)", app_instance_id, stack.depth, APP_STACK_SIZE_MAX);
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
+        loader->unload(runtime);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_INVALID_ARGUMENT;
+    }
+
     if (stack.depth == 0) {
         LOG_W(TAG, "[instance %lu] using default stack depth", app_instance_id);
     }

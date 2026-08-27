@@ -50,7 +50,7 @@ Thread* thread_alloc(void);
 /**
  * @brief Creates a new thread instance with specified parameters.
  * @param[in] name The name of the thread.
- * @param[in] stack_depth The depth of the task stack.
+ * @param[in] stack_size The size of the task stack in bytes.
  * @param[in] function The main function to be executed by the thread.
  * @param[in] function_context A pointer to the context to be passed to the main function.
  * @param[in] affinity The CPU core affinity for the thread (e.g., tskNO_AFFINITY).
@@ -58,7 +58,7 @@ Thread* thread_alloc(void);
  */
 Thread* thread_alloc_full(
     const char* name,
-    configSTACK_DEPTH_TYPE stack_depth,
+    size_t stack_size,
     thread_main_fn_t function,
     void* function_context,
     portBASE_TYPE affinity
@@ -78,14 +78,6 @@ void thread_free(Thread* thread);
  * @note Can only be called when the thread is in the STOPPED state.
  */
 void thread_set_name(Thread* thread, const char* name);
-
-/**
- * @brief Sets the stack depth for the thread.
- * @param[in] thread The thread instance.
- * @param[in] stack_depth The stack depth.
- * @note Can only be called when the thread is in the STOPPED state.
- */
-void thread_set_stack_depth(Thread* thread, configSTACK_DEPTH_TYPE stack_depth);
 
 /**
  * @brief Sets the stack size for the thread.

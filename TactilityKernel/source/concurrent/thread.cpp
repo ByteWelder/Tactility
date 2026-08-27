@@ -96,7 +96,7 @@ Thread* thread_alloc(void) {
 
 Thread* thread_alloc_full(
     const char* name,
-    configSTACK_DEPTH_TYPE stack_depth,
+    size_t stack_size,
     thread_main_fn_t function,
     void* function_context,
     portBASE_TYPE affinity
@@ -104,7 +104,7 @@ Thread* thread_alloc_full(
     auto* thread = new(std::nothrow) Thread();
     if (thread != nullptr) {
         thread_set_name(thread, name);
-        thread_set_stack_depth(thread, stack_depth);
+        thread_set_stack_size(thread, stack_size);
         thread_set_main_function(thread, function, function_context);
         thread_set_affinity(thread, affinity);
     }
@@ -123,15 +123,6 @@ void thread_set_name(Thread* thread, const char* name) {
     thread->lock();
     check(thread->state == THREAD_STATE_STOPPED);
     thread->name = name;
-    thread->unlock();
-}
-
-
-void thread_set_stack_depth(Thread* thread, configSTACK_DEPTH_TYPE stack_depth) {
-    thread->lock();
-    check(stack_depth > 0);
-    check(thread->state == THREAD_STATE_STOPPED);
-    thread->stackDepth = stack_depth;
     thread->unlock();
 }
 

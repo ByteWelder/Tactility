@@ -38,9 +38,13 @@ void __wrap_esp_panic_handler(void* info) {
     const auto* panic_info = static_cast<const panic_info_t*>(info);
 
     switch (panic_info->exception) {
-        case PANIC_EXCEPTION_DEBUG: crashData.cause = CrashCause::Debug; break;
+        // Watchdag timer issues are not consider real crashes: they trigger relatively often
+        // and could cause a previous real crash to be overwritten by a watchdog timer warning during reboot.
         case PANIC_EXCEPTION_IWDT: crashData.cause = CrashCause::WatchdogInterrupt; return;
         case PANIC_EXCEPTION_TWDT: crashData.cause = CrashCause::WatchdogTask; return;
+        // We also don't care about debugger errors:
+        case PANIC_EXCEPTION_DEBUG: crashData.cause = CrashCause::Debug; return;
+        // We only care about 'real' crashes:
         case PANIC_EXCEPTION_ABORT: crashData.cause = CrashCause::Abort; break;
         case PANIC_EXCEPTION_FAULT:
         default: crashData.cause = CrashCause::Fault; break;

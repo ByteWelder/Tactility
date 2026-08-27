@@ -81,6 +81,8 @@ std::string formatCrashData(const CrashData& crashData) {
     }
     stream << "\n";
 
+    stream << "Fault address: " << std::hex << std::setw(8) << std::setfill('0') << crashData.faultAddress << std::dec << "\n";
+
     stream << "Callstack" << (crashData.callstackCorrupted ? " (corrupted)" : "") << ":";
     if (crashData.callstackLength > 0) {
         stream << "\n";
