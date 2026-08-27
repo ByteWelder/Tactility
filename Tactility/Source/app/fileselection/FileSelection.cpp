@@ -62,8 +62,7 @@ int32_t appMain(int argc, char* argv[]) {
         // app_manager_stop() after it receives the APP_EVENT_RESULT instead.
         lastPath = path;
         ctx.result = 0;
-        AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-        app_event_emit(appInstanceId, &closeEvent);
+        app_event_emit_close(appInstanceId);
     });
 
     TaskEventGroup event_group {};

@@ -174,12 +174,7 @@ void onPress(lv_event_t* event) {
         return;
     }
 
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: this callback runs
-    // ON the LVGL task, and app-lifecycle transitions must happen on this app's own thread
-    // (woken up via app_event_poll() below), which closes by returning. The result (Ok/Error)
-    // is reported by appMain() itself when it returns, based on ctx.calibrationApplied.
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(ctx->appInstanceId, &closeEvent);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {

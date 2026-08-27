@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "app/manifest.h"
+
+
 #include <app/metadata.h>
-#include <app/private/app_metadata_parsing_internal.h>
+#include <app/private/metadata_parsing_internal.h>
 
 #include <charconv>
 
@@ -28,7 +31,7 @@ bool app_metadata_parse_v1(const std::map<std::string, std::string>& properties,
         return false;
     }
 
-    if (!app_metadata_is_valid_id(id)) {
+    if (!app_id_is_valid(id.c_str())) {
         LOG_E(TAG, "Invalid app id");
         return false;
     }
@@ -96,6 +99,8 @@ bool app_metadata_parse_v1(const std::map<std::string, std::string>& properties,
         LOG_E(TAG, "Target sdk too long");
         return false;
     }
+
+    out_metadata.stack_depth = 0;
 
     return true;
 }

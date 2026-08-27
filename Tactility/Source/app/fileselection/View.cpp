@@ -41,12 +41,7 @@ static void onNavigateUpPressedCallback(lv_event_t* event) {
 
 void View::onBackPressedCallback(lv_event_t* event) {
     auto* view = static_cast<View*>(lv_event_get_user_data(event));
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(view->appInstanceId, &closeEvent);
+    app_event_emit_close(view->appInstanceId);
 }
 
 void View::onTapFile(const std::string& path, const std::string& filename) {

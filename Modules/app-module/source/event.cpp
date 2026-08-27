@@ -120,4 +120,9 @@ error_t app_event_poll(AppEventSubscription* sub, AppEvent* out_event) {
     return try_pop(sub, out_event) ? ERROR_NONE : ERROR_TIMEOUT;
 }
 
+error_t app_event_emit_close(AppInstanceId instance_id) {
+    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
+    return app_event_emit(instance_id, &event);
+}
+
 } // extern "C"

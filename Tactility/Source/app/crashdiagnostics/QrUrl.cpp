@@ -1,7 +1,6 @@
 #ifdef ESP_PLATFORM
 
 #include <Tactility/app/crashdiagnostics/QrUrl.h>
-#include <Tactility/PanicHandler.h>
 
 #include <sstream>
 #include <vector>
@@ -14,8 +13,7 @@
 
 #include <sdkconfig.h>
 
-std::string getUrlFromCrashData() {
-    auto crash_data = getRtcCrashData();
+std::string getUrlFromCrashData(const CrashData& crash_data) {
     std::vector<uint32_t> stack_buffer(crash_data.callstackLength * 2);
     for (int i = 0; i < crash_data.callstackLength; ++i) {
         const CallstackFrame&frame = crash_data.callstack[i];

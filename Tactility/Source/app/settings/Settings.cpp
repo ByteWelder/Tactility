@@ -20,7 +20,9 @@ namespace tt::app::settings {
 
 namespace {
 
-uint32_t settingsInstanceId = 0;
+struct Context {
+    uint32_t appInstanceId;
+};
 
 void onAppPressed(lv_event_t* e) {
     // Fire-and-forget top-level navigation, same as AppList's own app-launch buttons.
@@ -29,13 +31,9 @@ void onAppPressed(lv_event_t* e) {
     app_manager_start(manifest->id, &instanceId);
 }
 
-void onBackPressed(lv_event_t*) {
-    // The global toolbar nav callback only knows how to stop old-model apps, so this
-    // new-model app overrides its own toolbar's nav action to close itself instead. Async,
-    // non-blocking - see AppList.cpp's onBackPressed() for why this must not call
-    // app_manager_stop() directly (would deadlock against the LVGL lock).
-    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(settingsInstanceId, &event);
+void onBackPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void createWidget(const ::AppManifest* manifest, lv_obj_t* list) {
@@ -53,12 +51,14 @@ void collectManifest(const ::AppManifest* manifest, void* context) {
     manifests->push_back(manifest);
 }
 
-void createWidgets(lv_obj_t* parent, void*) {
+void createWidgets(lv_obj_t* parent, void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     auto* toolbar = lvgl_toolbar_create(parent, "Settings");
-    lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, nullptr);
+    lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
 
     auto* list = lv_list_create(parent);
     lv_obj_set_width(list, LV_PCT(100));
@@ -79,7 +79,7 @@ void createWidgets(lv_obj_t* parent, void*) {
 
 int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
-    settingsInstanceId = appInstanceId;
+    Context ctx { appInstanceId };
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
@@ -87,7 +87,7 @@ int32_t appMain(int argc, char* argv[]) {
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, nullptr);
+    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
     while (true) {
         task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
@@ -115,8 +115,9 @@ extern const ::AppManifest manifest = {
     .id = "tactility.settings",
     .name = "Settings",
     .category = APP_CATEGORY_SYSTEM,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
+    .stack = { .depth = 2400, .desired_memory_capability = 0 },
 };
 
 } // namespace

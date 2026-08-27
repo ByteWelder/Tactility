@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "app/manifest.h"
+
+
 #include <app/metadata.h>
-#include <app/private/app_metadata_parsing_internal.h>
+#include <app/private/metadata_parsing_internal.h>
 
 #include <charconv>
 
@@ -28,7 +31,7 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
         return false;
     }
 
-    if (!app_metadata_is_valid_id(id)) {
+    if (!app_id_is_valid(id.c_str())) {
         LOG_E(TAG, "Invalid app id");
         return false;
     }
@@ -112,6 +115,34 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
             LOG_E(TAG, "requires.device.id too long");
             return false;
         }
+    }
+
+    // app.stack.depth (optional; if present, must be a valid unsigned decimal fitting uint32_t)
+
+    auto stack_size_iterator = properties.find("app.stack.depth");
+    if (stack_size_iterator != properties.end()) {
+        const std::string& stack_size_string = stack_size_iterator->second;
+        if (!app_metadata_is_valid_stack_size(stack_size_string)) {
+            LOG_E(TAG, "Invalid app.stack.depth");
+            return false;
+        }
+
+        uint32_t stack_size = 0;
+        const auto* stack_size_first = stack_size_string.data();
+        const auto* stack_size_last = stack_size_first + stack_size_string.size();
+        if (std::from_chars(stack_size_first, stack_size_last, stack_size).ec != std::errc {}) {
+            LOG_E(TAG, "App stack depth out of range");
+            return false;
+        }
+
+        // Reject outright rather than truncating/clamping into AppStackConfig::depth (uint16_t) -
+        // a value like 1073741825 would otherwise silently narrow to 1, handing the app a
+        // catastrophically undersized stack instead of the huge one it declared.
+        if (stack_size > APP_STACK_SIZE_MAX) {
+            LOG_E(TAG, "App stack depth %u exceeds APP_STACK_SIZE_MAX(%u)", stack_size, APP_STACK_SIZE_MAX);
+            return false;
+        }
+        out_metadata.stack_depth = stack_size;
     }
 
     return true;

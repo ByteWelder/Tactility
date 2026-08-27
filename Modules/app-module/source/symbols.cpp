@@ -2,6 +2,7 @@
 #include <app/event.h>
 #include <app/install.h>
 #include <app/manager.h>
+#include <app/manifest.h>
 #include <app/metadata.h>
 #include <app/paths.h>
 #include <app/scheduler.h>
@@ -21,7 +22,6 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_event_subscribe),
     DEFINE_MODULE_SYMBOL(app_event_subscribe_with_app_id),
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
-    DEFINE_MODULE_SYMBOL(app_event_emit),
     DEFINE_MODULE_SYMBOL(app_event_poll),
     // app/install
     DEFINE_MODULE_SYMBOL(app_get_install_path),
@@ -42,6 +42,8 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_uninstall),
+    // app/manifest
+    DEFINE_MODULE_SYMBOL(app_id_is_valid),
     // app/metadata
     DEFINE_MODULE_SYMBOL(app_metadata_parse),
     // app/paths

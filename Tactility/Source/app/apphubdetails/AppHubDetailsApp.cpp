@@ -63,8 +63,7 @@ uint32_t showConfirmDialog(Context* ctx, const char* action) {
 
 void onBackPressed(lv_event_t* e) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(e));
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(ctx->appInstanceId, &closeEvent);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void onInstallPressed(lv_event_t* e) {

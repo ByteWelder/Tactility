@@ -1,3 +1,4 @@
+#include "tactility/memory.h"
 #include "tactility/system_event.h"
 
 #include <tactility/check.h>
@@ -274,16 +275,27 @@ void runBootSequence(TickType_t startTime) {
     }
 #endif
 
-    if (!setupUsbBootMode()) {
-        registerApps();
-        waitForMinimalSplashDuration(startTime);
-        startNextApp();
+    if (setupUsbBootMode()) {
+        // Stay open: the splash's "Return to OS" button is this app's only way to leave mass
+        // storage mode, so it must not self-close here like the normal boot path does below.
+        return;
+    }
+
+    registerApps();
+    waitForMinimalSplashDuration(startTime);
+    startNextApp();
+
+    if (sdCardMissing) {
+        // Stay open: the error screen's "Reboot" button is this app's only way to leave here.
+        return;
     }
 
     // This event will likely block as other systems are initialized
     // e.g. Wi-Fi reads AP configs from SD card
     LOG_I(TAG, "Publish event");
     system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
+
+    app_event_emit_close(app_scheduler_current_app_id());
 }
 
 int32_t appMain(int argc, char* argv[]) {
@@ -337,8 +349,9 @@ extern const ::AppManifest manifest = {
     .id = "tactility.boot",
     .name = "Boot",
     .category = APP_CATEGORY_SYSTEM,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
+    .stack = { .depth = 4096, .desired_memory_capability = MEMORY_CAPABILITY_INTERNAL }
 };
 
 } // namespace

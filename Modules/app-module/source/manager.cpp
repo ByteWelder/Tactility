@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/manager.h>
 #include <app/metadata.h>
-#include <app/private/app_fs.h>
-#include <app/private/app_ledger.h>
-#include <app/private/app_scheduler.h>
+#include <app/private/fs.h>
+#include <app/private/ledger.h>
+#include <app/private/scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/error.h>
@@ -103,17 +103,20 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
     const AppManifest* manifest = manifest_iterator->second;
 
     AppInstanceId target_id = ledger.next_instance_id++;
-    AppInstanceRecord record { target_id, manifest, APP_INSTANCE_STATE_STARTING, nullptr };
+    AppInstanceRecord record { .id = target_id, .manifest = manifest, .state = APP_INSTANCE_STATE_STARTING, .task = nullptr };
     record.parent_id = parent_instance_id;
     ledger.instances[target_id] = record;
     mutex_unlock(&ledger.mutex);
 
-    error_t result = app_scheduler_start(target_id, manifest->location, argc, argv);
-    if (result != ERROR_NONE) {
+    LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest->id, parent_instance_id);
+
+    error_t error = app_scheduler_start(target_id, manifest->location, manifest->stack, argc, argv);
+    if (error != ERROR_NONE) {
         mutex_lock(&ledger.mutex);
         ledger.instances.erase(target_id);
         mutex_unlock(&ledger.mutex);
-        return result;
+        LOG_I(TAG, "[instance %d] Failed to start: %s", target_id, error_to_string(error));
+        return error;
     }
 
     *out_app_instance_id = target_id;
@@ -289,6 +292,7 @@ void app_manager_install_path_scan(void) {
             .category = APP_CATEGORY_USER,
             .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
             .flags = 0,
+            .stack = { .depth = static_cast<uint16_t>(metadata.stack_depth), .desired_memory_capability = 0 },
         };
         new_records.push_back(std::move(record));
     }

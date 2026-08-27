@@ -51,8 +51,7 @@ void refresh(Context* ctx);
 
 void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    AppEvent closeEvent {.type = APP_EVENT_CLOSE, .timestamp = 0, .result = {}};
-    app_event_emit(ctx->appInstanceId, &closeEvent);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void onAppPressed(lv_event_t* e) {

@@ -3,11 +3,15 @@
 
 #include "location.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// Character count, excluding null terminator
+#define APP_ID_LENGTH 32
 
 /** Broad classification of an app, used for grouping/launcher presentation. */
 enum AppCategory {
@@ -24,6 +28,21 @@ enum AppManifestFlags {
     APP_MANIFEST_FLAG_HIDDEN = 1 >> 0,
 };
 
+/** Largest stack depth (in words) an app may request. Keeps `depth * sizeof(StackType_t)` safely
+ * bounded and stops one app from claiming an unreasonable share of available RAM. A depth beyond
+ * this must be rejected outright, not silently truncated or clamped. */
+#define APP_STACK_SIZE_MAX 16384
+
+struct AppStackConfig {
+    /** Stack depth (in words, matching FreeRTOS's configSTACK_DEPTH_TYPE) for this app's task.
+     * 0 uses the scheduler's default. Must not exceed APP_STACK_SIZE_MAX. */
+    uint16_t depth;
+    /** Desired memory capability.
+     * 0 means default.
+     * Combine one or more of \a MemoryCapability from <tactility/memory.h> with a bitwise OR.*/
+    uint16_t desired_memory_capability;
+};
+
 /** Describes a registrable app. One manifest exists per app id. */
 struct AppManifest {
     /** Unique app identifier. Should never be NULL. */
@@ -34,7 +53,11 @@ struct AppManifest {
     struct AppLocation location;
     /** Bitmask of AppManifestFlags. Most apps should leave this 0. */
     uint8_t flags;
+    /** Stack allocation config for this app's task. */
+    struct AppStackConfig stack;
 };
+
+bool app_id_is_valid(const char* id);
 
 #ifdef __cplusplus
 }

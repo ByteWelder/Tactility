@@ -1,8 +1,12 @@
 #ifdef ESP_PLATFORM
 
+#include "Tactility/PanicHandler.h"
+
+
 #include <Tactility/app/crashdiagnostics/QrHelpers.h>
 #include <Tactility/app/crashdiagnostics/QrUrl.h>
 #include <Tactility/app/launcher/Launcher.h>
+#include <Tactility/file/File.h>
 #include <Tactility/lvgl/Statusbar.h>
 
 #include <app/event.h>
@@ -17,8 +21,19 @@
 #include <tactility/check.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/log.h>
+#include <tactility/paths.h>
 
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
+#include <esp_cpu_utils.h>
+#else
+#include <esp_cpu.h>
+#endif
+
+#include <sdkconfig.h>
+
+#include <iomanip>
 #include <memory>
+#include <sstream>
 
 namespace tt::app::crashdiagnostics {
 
@@ -41,16 +56,70 @@ struct Context {
 };
 
 
+const char* crashCauseToString(CrashCause cause) {
+    switch (cause) {
+        case CrashCause::Debug: return "Debug";
+        case CrashCause::WatchdogInterrupt: return "Watchdog (interrupt)";
+        case CrashCause::WatchdogTask: return "Watchdog (task)";
+        case CrashCause::Abort: return "Abort";
+        case CrashCause::Fault: return "Fault";
+        case CrashCause::Unknown:
+        default: return "Unknown";
+    }
+}
+
+std::string formatCrashData(const CrashData& crashData) {
+    std::stringstream stream;
+
+    stream << "Cause: " << crashCauseToString(crashData.cause) << "\n";
+
+    stream << "Reason: ";
+    if (crashData.reason[0] != '\0') {
+         stream << crashData.reason;
+    } else {
+        stream << "unknown";
+    }
+    stream << "\n";
+
+    stream << "Fault address: " << std::hex << std::setw(8) << std::setfill('0') << crashData.faultAddress << std::dec << "\n";
+
+    stream << "Callstack" << (crashData.callstackCorrupted ? " (corrupted)" : "") << ":";
+    if (crashData.callstackLength > 0) {
+        stream << "\n";
+        for (uint8_t i = 0; i < crashData.callstackLength; i++) {
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
+            uint32_t pc = esp_cpu_process_stack_pc(crashData.callstack[i].pc);
+#else
+            uint32_t pc = crashData.callstack[i].pc; // No processing needed on RISC-V
+#endif
+            stream << std::hex << std::setw(8) << std::setfill('0') << pc << std::dec << " ";
+        }
+    } else {
+        stream << " empty" << "\n";
+    }
+
+    return stream.str();
+}
+
+// Best-effort: crash.txt is a convenience for offline inspection, not required for the app to work.
+void writeCrashLogFile(const CrashData& crashData) {
+    char root[128];
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to resolve data path for crash.txt");
+        return;
+    }
+
+    std::string path = std::string(root) + "/crash.txt";
+    file::FileMutexGuard guard(path);
+    if (!file::writeString(path, formatCrashData(crashData))) {
+        LOG_E(TAG, "Failed to write %s", path.c_str());
+    }
+}
+
 void onContinuePressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     ctx->continuePressed = true;
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself. launcher::start() is deferred to appMain(), after this app's
-    // own thread has finished cleaning up.
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(ctx->appInstanceId, &closeEvent);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -72,7 +141,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
     lv_obj_align(bottom_label, LV_ALIGN_BOTTOM_MID, 0, -2);
 
-    std::string url = getUrlFromCrashData();
+    const auto& crash_data = getRtcCrashData();
+
+    std::string url = getUrlFromCrashData(crash_data);
     LOG_I(TAG, "%s", url.c_str());
     size_t url_length = url.length();
 
@@ -156,6 +227,8 @@ int32_t appMain(int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
 
+    writeCrashLogFile(getRtcCrashData());
+
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
@@ -207,7 +280,7 @@ extern const ::AppManifest manifest = {
     .id = "tactility.crashdiagnostics",
     .name = "Crash Diagnostics",
     .category = APP_CATEGORY_SYSTEM,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
 };
 

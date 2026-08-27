@@ -451,6 +451,42 @@ TEST_CASE("app_manager_get_topmost_instance_id returns NOT_FOUND when nothing is
     app_manager_remove("test.app.top_b");
 }
 
+TEST_CASE("app_manager_start honors a custom AppManifest::stack.depth") {
+    ensure_fake_loader_registered();
+
+    AppManifest manifest { "test.app.stack.custom", "Stack Custom", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
+    manifest.stack.depth = 4096;
+    REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
+
+    uint32_t instance_id = 0;
+    REQUIRE_EQ(app_manager_start("test.app.stack.custom", &instance_id), ERROR_NONE);
+    CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
+
+    CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
+    CHECK_EQ(app_manager_get_state(instance_id), APP_INSTANCE_STATE_STOPPED);
+
+    app_manager_remove("test.app.stack.custom");
+}
+
+TEST_CASE("app_manager_start still works when AppManifest::stack is left at its zero-value default") {
+    ensure_fake_loader_registered();
+
+    // stack.depth == 0 - app_scheduler_start() must fall back to its own default stack depth
+    // rather than fail or create a zero-sized stack.
+    AppManifest manifest { "test.app.stack.default", "Stack Default", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
+    REQUIRE_EQ(manifest.stack.depth, 0);
+    REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
+
+    uint32_t instance_id = 0;
+    REQUIRE_EQ(app_manager_start("test.app.stack.default", &instance_id), ERROR_NONE);
+    CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
+
+    CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
+    CHECK_EQ(app_manager_get_state(instance_id), APP_INSTANCE_STATE_STOPPED);
+
+    app_manager_remove("test.app.stack.default");
+}
+
 TEST_CASE("app_manager_get_topmost_app_id returns BUFFER_OVERFLOW for a too-small buffer, NOT_FOUND when nothing is active") {
     ensure_fake_loader_registered();
 

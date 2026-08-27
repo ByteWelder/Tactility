@@ -1,6 +1,6 @@
 #include <Tactility/DeprecatedPaths.h>
 
-#include "../../Modules/app-module/private/app/private/app_metadata_parsing_internal.h"
+#include <app/manifest.h>
 
 #include <Tactility/MountPoints.h>
 
@@ -72,12 +72,12 @@ std::string getUserHomePath() {
 }
 
 std::string getAppInstallPath(const std::string& appId) {
-    assert(app_metadata_is_valid_id(appId.c_str()));
+    assert(app_id_is_valid(appId.c_str()));
     return std::format("{}/{}", getAppInstallPath(), appId);
 }
 
 std::string getAppUserPath(const std::string& appId) {
-    assert(app_metadata_is_valid_id(appId.c_str()));
+    assert(app_id_is_valid(appId.c_str()));
     return std::format("{}/app/{}", getUserHomePath(), appId);
 }
 

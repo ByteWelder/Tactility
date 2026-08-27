@@ -6,7 +6,6 @@
 #include <Tactility/app/wifimanage/View.h>
 #include <Tactility/app/wifimanage/WifiManagePrivate.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/service/wifi/WifiSettings.h>
 #include <Tactility/Tactility.h>
@@ -23,12 +22,7 @@ constexpr auto* TAG = "WifiManageView";
 
 static void onBackPressed(lv_event_t* event) {
     auto* appInstanceId = static_cast<uint32_t*>(lv_event_get_user_data(event));
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(*appInstanceId, &closeEvent);
+    app_event_emit_close(*appInstanceId);
 }
 
 static uint8_t mapRssiToPercentage(int rssi) {
@@ -40,7 +34,7 @@ static uint8_t mapRssiToPercentage(int rssi) {
     }
 
     auto percentage = (float)(90U - abs_rssi) / 60.f * 100.f;
-    return (uint8_t)percentage;
+    return static_cast<uint8_t>(percentage);
 }
 
 static void onEnableSwitchChanged(lv_event_t* event) {

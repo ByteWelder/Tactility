@@ -13,10 +13,10 @@
 bool app_metadata_get_value(const std::map<std::string, std::string>& properties, const std::string& key, std::string& out_value);
 
 bool app_metadata_is_valid_format_version(const std::string& version);
-bool app_metadata_is_valid_id(const std::string& id);
 bool app_metadata_is_valid_name(const std::string& name);
 bool app_metadata_is_valid_version_name(const std::string& version);
 bool app_metadata_is_valid_version_code(const std::string& version);
+bool app_metadata_is_valid_stack_size(const std::string& value);
 
 /** Validates a comma-separated list of device ids (alphanumeric + '-' items, matching Devices/<id> folder names). */
 bool app_metadata_is_valid_device_id_list(const std::string& value);
@@ -31,3 +31,5 @@ bool app_metadata_parse_v1(const std::map<std::string, std::string>& properties,
 
 /** Parses a V2 (flat dot-notation, e.g. "app.version.name=...") manifest map into @a out_metadata. */
 bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties, struct AppMetadata& out_metadata);
+
+bool app_metadata_validate_string(const std::string& value, bool (*is_valid_char)(char));

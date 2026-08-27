@@ -1,13 +1,20 @@
+#if defined(ESP_PLATFORM)
+#include <sdkconfig.h>
+#endif
+
 #if defined(ESP_PLATFORM) && defined(CONFIG_IDF_TARGET_ARCH_XTENSA)
 
-#include "Tactility/kernel/PanicHandler.h"
+#include <Tactility/PanicHandler.h>
 
-#include <esp_debug_helpers.h>
 #include <esp_attr.h>
-#include <esp_memory_utils.h>
 #include <esp_cpu.h>
 #include <esp_cpu_utils.h>
+#include <esp_debug_helpers.h>
+#include <esp_memory_utils.h>
+#include <esp_private/panic_internal.h>
 #include <xtensa/xtruntime.h>
+
+#include <cstring>
 
 extern "C" {
 
@@ -28,7 +35,34 @@ void __wrap_esp_panic_handler(void* info) {
         .exc_frame = nullptr
     };
 
+    const auto* panic_info = static_cast<const panic_info_t*>(info);
+
+    switch (panic_info->exception) {
+        // Watchdag timer issues are not consider real crashes: they trigger relatively often
+        // and could cause a previous real crash to be overwritten by a watchdog timer warning during reboot.
+        case PANIC_EXCEPTION_IWDT: crashData.cause = CrashCause::WatchdogInterrupt; return;
+        case PANIC_EXCEPTION_TWDT: crashData.cause = CrashCause::WatchdogTask; return;
+        // We also don't care about debugger errors:
+        case PANIC_EXCEPTION_DEBUG: crashData.cause = CrashCause::Debug; return;
+        // We only care about 'real' crashes:
+        case PANIC_EXCEPTION_ABORT: crashData.cause = CrashCause::Abort; break;
+        case PANIC_EXCEPTION_FAULT:
+        default: crashData.cause = CrashCause::Fault; break;
+    }
+
     crashData.callstackLength = 0;
+    crashData.faultAddress = reinterpret_cast<uint32_t>(panic_info->addr);
+
+    // g_panic_abort_details carries the actual assert()/abort() message when present; panic_info->reason
+    // is ESP-IDF's generic description otherwise (e.g. "IllegalInstruction").
+    const char* reason = (panic_info->exception == PANIC_EXCEPTION_ABORT && g_panic_abort_details != nullptr)
+        ? g_panic_abort_details
+        : panic_info->reason;
+    crashData.reason[0] = '\0';
+    if (reason != nullptr) {
+        strncpy(crashData.reason, reason, sizeof(crashData.reason) - 1);
+        crashData.reason[sizeof(crashData.reason) - 1] = '\0';
+    }
 
     esp_backtrace_get_start(&frame.pc, &frame.sp, &frame.next_pc);
     crashData.callstack[0].pc = frame.pc;

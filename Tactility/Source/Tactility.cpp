@@ -355,12 +355,8 @@ static void stopAppFromToolbar(lv_event_t*) {
     // every not-yet-converted app's toolbar still relies on).
     AppInstanceId topmost = 0;
     check(app_manager_get_topmost_instance_id(&topmost) == ERROR_NONE);
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that
-    // bound-waits (thread_join) for the app's own thread to finish, which needs the LVGL
-    // lock to clean up - but this callback runs ON the LVGL task, which would deadlock
-    // against itself.
-    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(topmost, &event);
+
+    app_event_emit_close(topmost);
 }
 
 // The on-screen keyboard widget itself, constructed during windowManagerScreenInit
