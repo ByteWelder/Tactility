@@ -58,7 +58,6 @@ bool isCompleted() {
         LOG_E(TAG, "Setup path not found");
         return false;
     }
-    file::FileMutexGuard guard(path);
     return file::isFile(path);
 }
 
@@ -69,7 +68,6 @@ void markCompleted() {
     if (!getCompletedMarkerPath(path)) {
         return;
     }
-    file::FileMutexGuard guard(path);
     file::writeString(path, "");
 }
 

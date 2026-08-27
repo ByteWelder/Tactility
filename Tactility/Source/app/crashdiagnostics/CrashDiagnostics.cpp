@@ -110,7 +110,6 @@ void writeCrashLogFile(const CrashData& crashData) {
     }
 
     std::string path = std::string(root) + "/crash.txt";
-    file::FileMutexGuard guard(path);
     if (!file::writeString(path, formatCrashData(crashData))) {
         LOG_E(TAG, "Failed to write %s", path.c_str());
     }

@@ -46,8 +46,6 @@ void resetFileContent(Context* ctx) {
 }
 
 void openFile(Context* ctx, const std::string& path) {
-    // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-    file::FileMutexGuard guard(path);
     auto data = file::readString(path);
     if (data != nullptr) {
         lvgl_lock();
@@ -60,15 +58,11 @@ void openFile(Context* ctx, const std::string& path) {
 }
 
 bool saveFile(Context* ctx, const std::string& path) {
-    // We might be writing to SD card, which could share a SPI bus with other devices (display)
     bool result = false;
-    {
-        file::FileMutexGuard guard(path);
-        if (file::writeString(path, ctx->saveBuffer.c_str())) {
-            LOG_I(TAG, "Saved to %s", path.c_str());
-            ctx->filePath = path;
-            result = true;
-        }
+    if (file::writeString(path, ctx->saveBuffer.c_str())) {
+        LOG_I(TAG, "Saved to %s", path.c_str());
+        ctx->filePath = path;
+        result = true;
     }
     return result;
 }

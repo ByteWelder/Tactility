@@ -8,7 +8,6 @@
 #include <app/private/ledger.h>
 
 #include <tactility/concurrent/mutex.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 #include <tactility/paths.h>
 
@@ -44,11 +43,7 @@ bool ensure_directory(const std::string& path) {
         return true;
     }
 
-    FileMutex mutex {};
-    file_mutex_get(&mutex, path.c_str());
-    file_mutex_lock(&mutex);
     bool created = mkdir(path.c_str(), 0777) == 0 || errno == EEXIST;
-    file_mutex_unlock(&mutex);
     if (!created) {
         return false;
     }
@@ -284,18 +279,7 @@ error_t app_install(const char* source_path) {
     auto staging_path = app_parent_path + "/" + last_path_segment(source_path);
     delete_recursively(staging_path);
 
-    FileMutex target_mutex {};
-    file_mutex_get(&target_mutex, app_parent_path.c_str());
-    FileMutex source_mutex {};
-    file_mutex_get(&source_mutex, source_path);
-
-    file_mutex_lock(&target_mutex);
-    file_mutex_lock(&source_mutex);
-    bool untar_success = untar(source_path, staging_path);
-    file_mutex_unlock(&source_mutex);
-    file_mutex_unlock(&target_mutex);
-
-    if (!untar_success) {
+    if (!untar(source_path, staging_path)) {
         LOG_E(TAG, "Failed to extract %s", source_path);
         delete_recursively(staging_path);
         return ERROR_NOT_FOUND;
@@ -337,11 +321,7 @@ error_t app_install(const char* source_path) {
     auto final_path = app_parent_path + "/" + metadata.app_id;
     delete_recursively(final_path);
 
-    file_mutex_lock(&target_mutex);
-    bool rename_success = rename(staging_path.c_str(), final_path.c_str()) == 0;
-    file_mutex_unlock(&target_mutex);
-
-    if (!rename_success) {
+    if (rename(staging_path.c_str(), final_path.c_str()) != 0) {
         LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", staging_path.c_str(), final_path.c_str());
         delete_recursively(staging_path);
         mutex_unlock(&registry.mutex);

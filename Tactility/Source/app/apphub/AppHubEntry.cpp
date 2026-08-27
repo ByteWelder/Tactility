@@ -21,8 +21,6 @@ static bool parseEntry(const cJSON* object, AppHubEntry& entry) {
 }
 
 bool parseJson(const std::string& filePath, AppHubEntryList& entries) {
-    file::FileMutexGuard guard(filePath);
-
     auto data = file::readString(filePath);
     if (data == nullptr) {
         LOG_E(TAG, "Failed to read %s", filePath.c_str());

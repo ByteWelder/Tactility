@@ -29,31 +29,27 @@ static bool loadVersionFromFile(const char* path, AssetVersion& version) {
 
     // Read file content
     std::string content;
-    {
-        file::FileMutexGuard guard(path);
-
-        FILE* fp = fopen(path, "r");
-        if (!fp) {
-            LOG_E(TAG, "Failed to open version file: %s", path);
-            return false;
-        }
-
-        char buffer[256];
-        size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, fp);
-        bool readError = ferror(fp) != 0;
-        fclose(fp);
-
-        if (readError) {
-            LOG_E(TAG, "Error reading version file: %s", path);
-            return false;
-        }
-        if (bytesRead == 0) {
-            LOG_E(TAG, "Version file is empty: %s", path);
-            return false;
-        }
-        buffer[bytesRead] = '\0';
-        content = buffer;
+    FILE* fp = fopen(path, "r");
+    if (!fp) {
+        LOG_E(TAG, "Failed to open version file: %s", path);
+        return false;
     }
+
+    char buffer[256];
+    size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, fp);
+    bool readError = ferror(fp) != 0;
+    fclose(fp);
+
+    if (readError) {
+        LOG_E(TAG, "Error reading version file: %s", path);
+        return false;
+    }
+    if (bytesRead == 0) {
+        LOG_E(TAG, "Version file is empty: %s", path);
+        return false;
+    }
+    buffer[bytesRead] = '\0';
+    content = buffer;
 
     // Parse JSON
     cJSON* json = cJSON_Parse(content.c_str());
@@ -113,30 +109,26 @@ static bool saveVersionToFile(const char* path, const AssetVersion& version) {
     
     // Write to file
     bool success = false;
-    {
-        file::FileMutexGuard guard(path);
-
-        FILE* fp = fopen(path, "w");
-        if (fp) {
-            size_t len = strlen(jsonString);
-            size_t written = fwrite(jsonString, 1, len, fp);
-            success = (written == len);
-            if (success) {
-                if (fflush(fp) != 0) {
-                    LOG_E(TAG, "Failed to flush version file: %s", path);
+    FILE* fp = fopen(path, "w");
+    if (fp) {
+        size_t len = strlen(jsonString);
+        size_t written = fwrite(jsonString, 1, len, fp);
+        success = (written == len);
+        if (success) {
+            if (fflush(fp) != 0) {
+                LOG_E(TAG, "Failed to flush version file: %s", path);
+                success = false;
+            } else {
+                int fd = fileno(fp);
+                if (fd >= 0 && fsync(fd) != 0) {
+                    LOG_E(TAG, "Failed to fsync version file: %s", path);
                     success = false;
-                } else {
-                    int fd = fileno(fp);
-                    if (fd >= 0 && fsync(fd) != 0) {
-                        LOG_E(TAG, "Failed to fsync version file: %s", path);
-                        success = false;
-                    }
                 }
             }
-            fclose(fp);
         }
+        fclose(fp);
     }
-    
+
     cJSON_free(jsonString);
     cJSON_Delete(json);
     

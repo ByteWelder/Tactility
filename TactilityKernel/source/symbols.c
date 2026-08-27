@@ -44,7 +44,6 @@
 #include <tactility/drivers/usb_msc_device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/error.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/memory.h>
 #include <tactility/module.h>

@@ -2,7 +2,6 @@
 #include <Tactility/StringUtils.h>
 #include <Tactility/network/HttpdReq.h>
 
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <memory>
@@ -186,15 +185,7 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     char buffer[BUFFER_SIZE];
     size_t bytes_received = 0;
 
-    // Locked only around each actual disk I/O call below, not across the httpd_req_recv() waits
-    // in between, so a registered file_mutex never gets held for the whole (potentially
-    // multi-second) network transfer, only for each brief write.
-    FileMutex mutex {};
-    file_mutex_get(&mutex, filePath.c_str());
-
-    file_mutex_lock(&mutex);
     auto* file = fopen(filePath.c_str(), "wb");
-    file_mutex_unlock(&mutex);
     if (file == nullptr) {
         LOG_E(TAG, "Failed to open file for writing: %s", filePath.c_str());
         return 0;
@@ -225,19 +216,14 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
         timeout_retries = 0;
         size_t receive_chunk_size = (size_t)received;
 
-        file_mutex_lock(&mutex);
-        bool write_ok = fwrite(buffer, 1, receive_chunk_size, file) == receive_chunk_size;
-        file_mutex_unlock(&mutex);
-        if (!write_ok) {
+        if (fwrite(buffer, 1, receive_chunk_size, file) != receive_chunk_size) {
             LOG_E(TAG, "Failed to write all bytes");
             break;
         }
         bytes_received += receive_chunk_size;
     }
 
-    file_mutex_lock(&mutex);
     fclose(file);
-    file_mutex_unlock(&mutex);
     return bytes_received;
 }
 
