@@ -61,7 +61,6 @@
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
@@ -72,9 +71,6 @@ namespace tt {
 constexpr auto* TAG = "Tactility";
 
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
-
-void initFileMutexForLvgl();
-void deinitFileMutexForLvgl();
 
 namespace {
 
@@ -321,19 +317,12 @@ void createTempDirectory() {
     auto data_path = getDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
-        FileMutex mutex;
-        file_mutex_get(&mutex, data_path.c_str());
-        if (file_mutex_try_lock(&mutex, 1000 / portTICK_PERIOD_MS)) {
-            if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
-                LOG_E(TAG, "Failed to create %s", data_path.c_str());
-            } else if (mkdir(temp_path.c_str(), 0777) == 0) {
-                LOG_I(TAG, "Created %s", temp_path.c_str());
-            } else {
-                LOG_E(TAG, "Failed to create %s", temp_path.c_str());
-            }
-            file_mutex_unlock(&mutex);
+        if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
+            LOG_E(TAG, "Failed to create %s", data_path.c_str());
+        } else if (mkdir(temp_path.c_str(), 0777) == 0) {
+            LOG_I(TAG, "Created %s", temp_path.c_str());
         } else {
-            LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, data_path.c_str());
+            LOG_E(TAG, "Failed to create %s", temp_path.c_str());
         }
     } else {
         LOG_I(TAG, "Found existing %s", temp_path.c_str());
@@ -419,8 +408,6 @@ static void applySavedTouchCalibration() {
 #endif // CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 
 static void onLvglStarted() {
-    initFileMutexForLvgl();
-
     window_manager_configure(windowManagerScreenInit);
     check(module_ensure_started(&lvgl_window_manager_module) == ERROR_NONE);
 
@@ -451,14 +438,6 @@ static void onLvglStarted() {
 }
 
 static void onLvglStopped() {
-    deinitFileMutexForLvgl();
-
-    if (softwareKeyboard.object != nullptr) {
-        lvgl_software_keyboard_destruct(&softwareKeyboard);
-    }
-
-    module_stop(&lvgl_window_manager_module);
-
     lvgl::stopKeyboardDeviceListener();
     lvgl::stopUsbHidInput();
 
@@ -473,6 +452,12 @@ static void onLvglStopped() {
 #endif
     check(service::removeService(service::memorychecker::manifest.id));
     check(service::removeService(service::statusbar::manifest.id));
+
+    if (softwareKeyboard.object != nullptr) {
+        lvgl_software_keyboard_destruct(&softwareKeyboard);
+    }
+
+    module_stop(&lvgl_window_manager_module);
 
     memory_print_stats();
 }

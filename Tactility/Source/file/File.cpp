@@ -42,8 +42,6 @@ bool listDirectory(
     const std::string& path,
     std::function<void(const dirent&)> onEntry
 ) {
-    FileMutexGuard guard(path);
-
     LOG_I(TAG, "listDir start %s", path.c_str());
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
@@ -68,8 +66,6 @@ int scandir(
     ScandirFilter filterMethod,
     ScandirSort sortMethod
 ) {
-    FileMutexGuard guard(path);
-
     LOG_I(TAG, "scandir start");
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
@@ -193,8 +189,6 @@ bool writeString(const std::string& filepath, const std::string& content) {
 }
 
 static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
-    FileMutexGuard guard(path);
-
     struct stat dir_stat;
     if (mkdir(path.c_str(), mode) == 0) {
         return true;
@@ -310,29 +304,23 @@ bool deleteRecursively(const std::string& path) {
 }
 
 bool deleteFile(const std::string& path) {
-    FileMutexGuard guard(path);
     return remove(path.c_str()) == 0;
 }
 
 bool deleteDirectory(const std::string& path) {
-    FileMutexGuard guard(path);
     return rmdir(path.c_str()) == 0;
 }
 
 bool isFile(const std::string& path) {
-    FileMutexGuard guard(path);
     return access(path.c_str(), F_OK) == 0;
 }
 
 bool isDirectory(const std::string& path) {
-    FileMutexGuard guard(path);
     struct stat stat_result;
     return stat(path.c_str(), &stat_result) == 0 && S_ISDIR(stat_result.st_mode);
 }
 
 bool readLines(const std::string& filePath, bool stripNewLine, std::function<void(const char* line)> callback) {
-    FileMutexGuard guard(filePath);
-
     auto* file = fopen(filePath.c_str(), "r");
     if (file == nullptr) {
         return false;

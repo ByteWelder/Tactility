@@ -1,12 +1,6 @@
-/**
- * All functions in this file can be safely called without manually applying file locks.
- * For calls to C stdlib APIs such as fopen(), always lock with file::FileMutexGuard(path) first!
- */
 #pragma once
 
 #include <Tactility/TactilityCore.h>
-
-#include <tactility/filesystem/file_mutex.h>
 
 #include <cstdio>
 #include <dirent.h>
@@ -16,10 +10,6 @@
 #include <sys/stat.h>
 #include <vector>
 
-/**
- * @warning SD card access requires a locking mechanism:
- * @warning When using this in the Tactility main project, use `file::FileMutexGuard`
- */
 namespace tt::file {
 
 /** File types for `dirent`'s `d_type`. */
@@ -47,27 +37,6 @@ struct FileCloser {
             fclose(file);
         }
     }
-};
-
-/**
- * RAII lock over TactilityKernel's file_mutex.h for the file system mount that owns `path`.
- * Locks in the constructor, unlocks in the destructor - no heap allocation, no virtual dispatch.
- */
-class FileMutexGuard final {
-    FileMutex mutex {};
-
-public:
-    explicit FileMutexGuard(const std::string& path) {
-        file_mutex_get(&mutex, path.c_str());
-        file_mutex_lock(&mutex);
-    }
-
-    ~FileMutexGuard() {
-        file_mutex_unlock(&mutex);
-    }
-
-    FileMutexGuard(const FileMutexGuard&) = delete;
-    FileMutexGuard& operator=(const FileMutexGuard&) = delete;
 };
 
 long getSize(FILE* file);

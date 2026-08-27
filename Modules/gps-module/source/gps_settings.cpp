@@ -4,7 +4,6 @@
 
 #include <service/paths.h>
 
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <sys/stat.h>
@@ -42,36 +41,11 @@ static bool get_configuration_path(char* out_path, size_t out_path_size) {
     return service_paths_get_user_data_path(GPS_SETTINGS_STORAGE_ID, "config.bin", out_path, out_path_size) == ERROR_NONE;
 }
 
-// Holds the lock (if any) that `path` needs for the lifetime of the guard - see file_find_lock().
-class FileLockGuard {
-    FileMutex mutex;
-    bool locked;
-public:
-    explicit FileLockGuard(const char* path) {
-        file_mutex_get(&mutex, path);
-        file_mutex_lock(&mutex);
-        locked = true;
-    }
-
-    ~FileLockGuard() {
-        unlock();
-    }
-
-    void unlock() {
-        if (locked) {
-            file_mutex_unlock(&mutex);
-            locked = false;
-        }
-    }
-};
-
 void gps_settings_for_each_configuration(void* context, void (*on_configuration)(const GpsConfiguration* configuration, size_t index, void* context)) {
     char path[224];
     if (!get_configuration_path(path, sizeof(path))) {
         return;
     }
-
-    FileLockGuard lock(path);
 
     FILE* file = fopen(path, "rb");
     if (file == nullptr) {
@@ -107,8 +81,6 @@ static error_t write_configurations(const std::vector<GpsConfiguration>& configu
         return ERROR_RESOURCE;
     }
 
-    FileLockGuard lock(path);
-
     ensure_directory_exists(directory);
 
     FILE* file = fopen(path, "wb");
@@ -130,7 +102,6 @@ static error_t write_configurations(const std::vector<GpsConfiguration>& configu
         return ERROR_RESOURCE;
     }
 
-    lock.unlock();
     gps_ledger_sync();
 
     return ERROR_NONE;

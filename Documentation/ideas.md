@@ -12,7 +12,6 @@
 ## Higher Priority
 
 - CrashDiagnostics shouldn't show a QR when there's no callstack
-- lvgl file lock won't work with display vs sdcard when lvgl is stopped (external app bug risk)
 - Apps should be able to specify stack size in their manifest, per architecture.
   Use thread_get_stack_space() to find out the unused bytes
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
@@ -24,7 +23,6 @@
 - Get rid of WiFi service (Wifi.cpp/h) in Tactility.cpp
 - Make it more clear to end-users that an SD card is required to run Tactility
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
-- Wrap file operations like fopen/fclose with file_mutex
 - Add bold fonts for e-ink readability improvement
 - Httpd.cpp: warn if running on same CPU core (or task) as UI/LVGL/window manager.
 - Improve Setup: Show "Step done" screen

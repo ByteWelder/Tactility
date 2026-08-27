@@ -8,7 +8,6 @@
 
 #include <tactility/error.h>
 #include <tactility/check.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <service/manager.h>
@@ -31,14 +30,9 @@ struct Esp32AppRuntime {
 };
 
 error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
-    FileMutex mutex;
-    file_mutex_get(&mutex, path);
-    file_mutex_lock(&mutex);
-
     FILE* file = fopen(path, "rb");
     if (file == nullptr) {
         LOG_E(TAG, "Failed to open %s", path);
-        file_mutex_unlock(&mutex);
         return ERROR_NOT_FOUND;
     }
 
@@ -47,20 +41,17 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
     fseek(file, 0, SEEK_SET);
     if (size <= 0) {
         fclose(file);
-        file_mutex_unlock(&mutex);
         return ERROR_RESOURCE;
     }
 
     auto* data = static_cast<uint8_t*>(malloc(static_cast<size_t>(size)));
     if (data == nullptr) {
         fclose(file);
-        file_mutex_unlock(&mutex);
         return ERROR_OUT_OF_MEMORY;
     }
 
     size_t read = fread(data, 1, static_cast<size_t>(size), file);
     fclose(file);
-    file_mutex_unlock(&mutex);
 
     if (read != static_cast<size_t>(size)) {
         free(data);

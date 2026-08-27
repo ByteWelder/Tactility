@@ -1700,8 +1700,6 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             httpd_resp_set_type(request, "image/png");
             httpd_resp_set_hdr(request, "Cache-Control", "public, max-age=86400");
 
-            file::FileMutexGuard guard(faviconPath);
-
             FILE* fp = fopen(faviconPath, "rb");
             if (fp) {
                 char buffer[512];
@@ -1743,9 +1741,6 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
     // Try to serve from Data partition first
     if (file::isFile(dataPath.c_str())) {
         httpd_resp_set_type(request, getContentType(dataPath));
-        
-        // Read and send file using standard C FILE* operations
-        file::FileMutexGuard guard(dataPath);
 
         FILE* fp = fopen(dataPath.c_str(), "rb");
         if (fp) {
@@ -1769,8 +1764,6 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
     std::string sdPath = std::string("/sdcard/tactility/webserver") + requestedPath;
     if (file::isFile(sdPath.c_str())) {
         httpd_resp_set_type(request, getContentType(sdPath));
-        
-        file::FileMutexGuard guard(sdPath);
 
         FILE* fp = fopen(sdPath.c_str(), "rb");
         if (fp) {

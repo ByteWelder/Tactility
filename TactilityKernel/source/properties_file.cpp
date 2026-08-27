@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <tactility/properties_file.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <cerrno>
@@ -53,14 +52,9 @@ namespace {
 // (fgetc()'s EOF return doesn't by itself distinguish clean end-of-file from a read error -
 // ferror() after the loop does); true otherwise, including for a missing file (ENOENT).
 bool load_from_file(PropertiesFile* file) {
-    FileMutex mutex {};
-    file_mutex_get(&mutex, file->path.c_str());
-    file_mutex_lock(&mutex);
-
     FILE* handle = std::fopen(file->path.c_str(), "r");
     if (handle == nullptr) {
         const int open_error = errno;
-        file_mutex_unlock(&mutex);
         if (open_error == ENOENT) {
             return true;
         }
@@ -105,7 +99,6 @@ bool load_from_file(PropertiesFile* file) {
 
     bool read_ok = std::ferror(handle) == 0;
     std::fclose(handle);
-    file_mutex_unlock(&mutex);
 
     if (!read_ok) {
         LOG_E(TAG, "Failed to read %s", file->path.c_str());
@@ -121,16 +114,11 @@ bool load_from_file(PropertiesFile* file) {
 // @return true if the backing file was fully replaced with the current entries; false (leaving
 // the previous on-disk content untouched) if any step failed.
 bool save_to_file(const PropertiesFile* file) {
-    FileMutex mutex {};
-    file_mutex_get(&mutex, file->path.c_str());
-    file_mutex_lock(&mutex);
-
     std::string temp_path = file->path + ".tmp";
 
     FILE* handle = std::fopen(temp_path.c_str(), "w");
     if (handle == nullptr) {
         LOG_E(TAG, "Failed to open %s", temp_path.c_str());
-        file_mutex_unlock(&mutex);
         return false;
     }
 
@@ -146,7 +134,6 @@ bool save_to_file(const PropertiesFile* file) {
     if (!write_ok || !flush_ok || !close_ok) {
         LOG_E(TAG, "Failed to write %s", temp_path.c_str());
         std::remove(temp_path.c_str());
-        file_mutex_unlock(&mutex);
         return false;
     }
 
@@ -157,11 +144,9 @@ bool save_to_file(const PropertiesFile* file) {
     if (std::rename(temp_path.c_str(), file->path.c_str()) != 0) {
         LOG_E(TAG, "Failed to replace %s", file->path.c_str());
         std::remove(temp_path.c_str());
-        file_mutex_unlock(&mutex);
         return false;
     }
 
-    file_mutex_unlock(&mutex);
     return true;
 }
 

@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/filesystem/file_mutex.h>
-
 #include <app/metadata.h>
 #include <app/private/metadata_parsing_internal.h>
 
@@ -62,13 +60,8 @@ bool validate_csv_list(const std::string& value, bool (*is_valid_item)(const std
  * minimal re-implementation rather than depending on Tactility's file::loadPropertiesFile() -
  * app-module (like every other kernel module) may not depend upward on the Tactility layer. */
 bool load_properties(const std::string& path, std::map<std::string, std::string>& out_properties, std::string& out_first_line) {
-    FileMutex mutex;
-    file_mutex_get(&mutex, path.c_str());
-    file_mutex_lock(&mutex);
-
     std::ifstream file(path);
     if (!file.is_open()) {
-        file_mutex_unlock(&mutex);
         return false;
     }
 
@@ -103,7 +96,6 @@ bool load_properties(const std::string& path, std::map<std::string, std::string>
         out_properties[key] = value;
     }
 
-    file_mutex_unlock(&mutex);
     return true;
 }
 

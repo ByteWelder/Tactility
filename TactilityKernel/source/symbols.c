@@ -44,7 +44,6 @@
 #include <tactility/drivers/usb_msc_device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/error.h>
-#include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/memory.h>
 #include <tactility/module.h>
@@ -170,13 +169,6 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(display_get_frame_buffer_count),
     DEFINE_MODULE_SYMBOL(display_get_backlight),
     DEFINE_MODULE_SYMBOL(DISPLAY_TYPE),
-    // file_mutex
-    DEFINE_MODULE_SYMBOL(file_mutex_add),
-    DEFINE_MODULE_SYMBOL(file_mutex_remove),
-    DEFINE_MODULE_SYMBOL(file_mutex_get),
-    DEFINE_MODULE_SYMBOL(file_mutex_lock),
-    DEFINE_MODULE_SYMBOL(file_mutex_try_lock),
-    DEFINE_MODULE_SYMBOL(file_mutex_unlock),
     // file system
     DEFINE_MODULE_SYMBOL(file_system_mount),
     DEFINE_MODULE_SYMBOL(file_system_unmount),
@@ -306,6 +298,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(spi_controller_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_try_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_unlock),
+    DEFINE_MODULE_SYMBOL(spi_controller_lock_bus_of),
+    DEFINE_MODULE_SYMBOL(spi_controller_unlock_bus_of),
     DEFINE_MODULE_SYMBOL(SPI_CONTROLLER_TYPE),
     // drivers/trackball
     DEFINE_MODULE_SYMBOL(trackball_read_delta),

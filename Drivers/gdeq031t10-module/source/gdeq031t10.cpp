@@ -51,6 +51,7 @@ static constexpr uint8_t DEEP_SLEEP_CHECK_CODE = 0xA5;
 extern "C" {
 
 struct Gdeq031t10Internal {
+    Device* spi_controller;
     spi_device_handle_t spi_device;
     struct GpioDescriptor* dc;
     struct GpioDescriptor* reset; // optional
@@ -123,12 +124,14 @@ static bool wait_while_busy(Gdeq031t10Internal* internal) {
 }
 
 static void hardware_reset(Gdeq031t10Internal* internal) {
+    spi_controller_lock(internal->spi_controller);
     if (internal->reset != nullptr) {
         gpio_descriptor_set_level(internal->reset, false);
         delay_millis(10);
         gpio_descriptor_set_level(internal->reset, true);
         delay_millis(10);
     }
+    spi_controller_unlock(internal->spi_controller);
 }
 
 static bool init_full(Gdeq031t10Internal* internal, bool mirror_180) {
@@ -137,10 +140,12 @@ static bool init_full(Gdeq031t10Internal* internal, bool mirror_180) {
     // mode change needs partial mode's lingering VCOM/data-interval setting cleared, and
     // waking from deep sleep is only possible by toggling RST.
     hardware_reset(internal);
+    spi_controller_lock(internal->spi_controller);
     bool ok = write_command(internal, CMD_PANEL_SETTING);
     ok = ok && write_data_byte(internal, mirror_180 ? 0x13 : 0x1F);
     ok = ok && write_command(internal, CMD_POWER_ON);
     ok = ok && wait_while_busy(internal);
+    spi_controller_unlock(internal->spi_controller);
     if (!ok) {
         LOG_E(TAG, "Full init failed");
         return false;
@@ -164,6 +169,7 @@ static bool init_with_fast_lut(Gdeq031t10Internal* internal, bool mirror_180, en
         case GDEQ031T10_REFRESH_PARTIAL: timing = 0x79; break;
         default: return true; // GDEQ031T10_REFRESH_FULL: init_full() already did everything
     }
+    spi_controller_lock(internal->spi_controller);
     bool ok = write_command(internal, CMD_FAST_MODE_ENABLE);
     ok = ok && write_data_byte(internal, 0x02);
     ok = ok && write_command(internal, CMD_FAST_MODE_TIMING);
@@ -172,6 +178,7 @@ static bool init_with_fast_lut(Gdeq031t10Internal* internal, bool mirror_180, en
         ok = write_command(internal, CMD_VCOM_DATA_INTERVAL);
         ok = ok && write_data_byte(internal, 0xD7);
     }
+    spi_controller_unlock(internal->spi_controller);
     if (!ok) {
         LOG_E(TAG, "Mode init failed");
         return false;
@@ -185,7 +192,10 @@ static bool ensure_panel_ready(Gdeq031t10Internal* internal, bool mirror_180, en
         return init_with_fast_lut(internal, mirror_180, mode);
     } else if (!internal->panel_power_on) {
         // Registers still hold the mode; only the charge pump was idled.
-        if (!write_command(internal, CMD_POWER_ON) || !wait_while_busy(internal)) {
+        spi_controller_lock(internal->spi_controller);
+        bool ok = write_command(internal, CMD_POWER_ON) && wait_while_busy(internal);
+        spi_controller_unlock(internal->spi_controller);
+        if (!ok) {
             LOG_E(TAG, "Panel did not become ready after power-on");
             return false;
         }
@@ -198,11 +208,13 @@ static bool panel_power_off(Gdeq031t10Internal* internal) {
     // Command the panel off regardless of whether BUSY confirms it: retrying
     // forever here would just as likely hang, and a stuck-BUSY panel is
     // already unusable either way.
+    spi_controller_lock(internal->spi_controller);
     bool ok = write_command(internal, CMD_POWER_ON_OFF); // 0x02 standalone = power off
     if (!ok || !wait_while_busy(internal)) {
         LOG_E(TAG, "Panel did not confirm power-off");
         ok = false;
     }
+    spi_controller_unlock(internal->spi_controller);
     internal->panel_power_on = false;
     return ok;
 }
@@ -222,12 +234,18 @@ static void refresh_full(Gdeq031t10Internal* internal, bool mirror_180, enum Gde
         return;
     }
 
+    // Single logical bus operation spanning old/new frame data and the refresh trigger: an SD
+    // transaction slipping in between any of these writes would corrupt the sequence the panel
+    // is mid-way through parsing.
+    spi_controller_lock(internal->spi_controller);
+
     // shadow_framebuffer holds the panel's actual current content (matches the vendor's tracked
     // oldData[] buffer) - send it as "old" data so the controller computes correct per-pixel
     // transitions.
     LOG_I(TAG, "write old data from shadow_buffer");
     if (!write_command(internal, CMD_DATA_START_OLD) || !write_data(internal, internal->shadow_framebuffer, FRAMEBUFFER_SIZE)) {
         LOG_E(TAG, "Failed to send old frame data");
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
 
@@ -235,11 +253,13 @@ static void refresh_full(Gdeq031t10Internal* internal, bool mirror_180, enum Gde
     // is showing right now until this refresh is confirmed below.
     if (!write_command(internal, CMD_DATA_START_NEW) || !write_data(internal, render_bitmap, FRAMEBUFFER_SIZE)) {
         LOG_E(TAG, "Failed to send new frame data");
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
 
     if (!write_command(internal, CMD_DISPLAY_REFRESH)) {
         LOG_E(TAG, "Failed to trigger display refresh");
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
     delay_millis(1); // datasheet requires >=200us settle before polling BUSY
@@ -252,6 +272,7 @@ static void refresh_full(Gdeq031t10Internal* internal, bool mirror_180, enum Gde
         // content the panel never displayed, and hide the difference from the change scan.
         LOG_E(TAG, "Full refresh did not complete");
     }
+    spi_controller_unlock(internal->spi_controller);
 
     // EPD_DeepSleep(): power off, then actually deep-sleep rather than just idling the charge
     // pump. panel_mode_valid=false forces the next refresh_full() call back through a fresh
@@ -277,6 +298,11 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
     const uint16_t y = static_cast<uint16_t>(first_row);
     const uint16_t ye = static_cast<uint16_t>(last_row);
 
+    // Single logical bus operation spanning the window setup, old/new region data and the
+    // refresh trigger: an SD transaction slipping in between any of these writes would corrupt
+    // the sequence the panel is mid-way through parsing.
+    spi_controller_lock(internal->spi_controller);
+
     // Set the partial RAM window (GxEPD2 GDEQ031T10 sequence).
     bool ok = write_command(internal, CMD_PARTIAL_IN);
     ok = ok && write_command(internal, CMD_PARTIAL_WINDOW);
@@ -290,6 +316,7 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
     if (!ok) {
         LOG_E(TAG, "Failed to set partial refresh window");
         write_command(internal, CMD_PARTIAL_OUT); // best-effort: leave partial-window mode
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
 
@@ -303,6 +330,7 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
     if (!write_command(internal, CMD_DATA_START_OLD) || !write_data(internal, internal->region_buffer, n)) {
         LOG_E(TAG, "Failed to send old window data");
         write_command(internal, CMD_PARTIAL_OUT);
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
 
@@ -317,6 +345,7 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
     if (!write_command(internal, CMD_DATA_START_NEW) || !write_data(internal, internal->region_buffer, n)) {
         LOG_E(TAG, "Failed to send new window data");
         write_command(internal, CMD_PARTIAL_OUT);
+        spi_controller_unlock(internal->spi_controller);
         return;
     }
 
@@ -340,6 +369,7 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
         }
     }
     write_command(internal, CMD_PARTIAL_OUT);
+    spi_controller_unlock(internal->spi_controller);
 }
 
 // endregion
@@ -467,8 +497,10 @@ static error_t gdeq031t10_disp_on_off(Device* device, bool on_off) {
             panel_power_off(internal);
         }
         delay_millis(100);
+        spi_controller_lock(internal->spi_controller);
         write_command(internal, CMD_DEEP_SLEEP);
         write_data_byte(internal, DEEP_SLEEP_CHECK_CODE);
+        spi_controller_unlock(internal->spi_controller);
         // Deep sleep needs a reset to wake, which restores register defaults.
         internal->panel_mode_valid = false;
     }
@@ -566,6 +598,7 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->spi_controller = parent;
     internal->dc = gpio_descriptor_acquire(
         config->pin_dc.gpio_controller,
         config->pin_dc.pin,
@@ -651,8 +684,10 @@ static error_t stop(Device* device) {
             panel_power_off(internal);
         }
         delay_millis(100);
+        spi_controller_lock(internal->spi_controller);
         write_command(internal, CMD_DEEP_SLEEP);
         write_data_byte(internal, DEEP_SLEEP_CHECK_CODE);
+        spi_controller_unlock(internal->spi_controller);
         internal->display_on = false;
     }
     xSemaphoreGive(internal->panel_mutex);
