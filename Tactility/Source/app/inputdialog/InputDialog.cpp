@@ -59,10 +59,7 @@ void onButtonPressed(lv_event_t* e) {
         LOG_I(TAG, "Cancel pressed");
         btnCtx->ctx->result = 1;
     }
-    // Async, non-blocking - see AlertDialog.cpp's onButtonPressed() for why this must not
-    // call app_manager_stop() directly (would deadlock against the LVGL lock).
-    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(btnCtx->ctx->appInstanceId, &event);
+    app_event_emit_close(btnCtx->ctx->appInstanceId);
 }
 
 void createButton(Context* ctx, lv_obj_t* parent, const std::string& text, lv_obj_t* textarea) {

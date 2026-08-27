@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <app/private/app_ledger.h>
-#include <app/private/app_scheduler.h>
-#include <app/event.h>
 #include <app/instance.h>
 #include <app/loader.h>
+#include <app/private/event.h>
+#include <app/private/ledger.h>
+#include <app/private/scheduler.h>
 #include <app/scheduler.h>
 
 #include <service/instance.h>
@@ -11,6 +11,7 @@
 
 #include <tactility/error.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -27,6 +28,15 @@ constexpr size_t APP_INSTANCE_ID_THREAD_SLOT_INDEX = 1;
 // Matches TactilityKernel's Thread wrapper's THREAD_PRIORITY_NORMAL.
 constexpr UBaseType_t APP_TASK_PRIORITY = 4;
 
+// Used when an app's manifest doesn't request a specific stack depth (0). 8192 bytes' worth.
+constexpr size_t APP_DEFAULT_STACK_DEPTH = 8192 / sizeof(StackType_t);
+
+// Task control blocks must stay in internal RAM; only the stack itself may live in external memory.
+constexpr MemoryPolicy APP_TASK_TCB_POLICY = { MEMORY_CAPABILITY_INTERNAL, 0, 0 };
+
+constexpr auto* APP_REAPER_TASK_NAME = "app_reaper";
+constexpr size_t APP_REAPER_STACK_DEPTH = 2048 / sizeof(StackType_t);
+
 namespace {
 
 struct TaskContext {
@@ -36,7 +46,41 @@ struct TaskContext {
     int argc;
     char** argv;
     AppCompletionSignal* completion;
+    StackType_t* stackBuffer;
+    StaticTask_t* taskTcb;
 };
+
+struct ReaperContext {
+    TaskHandle_t target;
+    StackType_t* stackBuffer;
+    StaticTask_t* taskTcb;
+};
+
+void reaper_task_main(void* context) {
+    auto* ctx = static_cast<ReaperContext*>(context);
+
+    while (eTaskGetState(ctx->target) == eRunning) {
+        taskYIELD();
+    }
+    vTaskDelete(ctx->target);
+    memory_free(ctx->stackBuffer);
+    memory_free(ctx->taskTcb);
+    delete ctx;
+
+    vTaskDelete(nullptr);
+}
+
+// Hands off this task's own statically-allocated stack/TCB (which it can never safely free
+// itself - a task can't free the stack it's still running on, see UsbHidInput.cpp for the same
+// constraint) to a short-lived helper task, then suspends forever. Never returns.
+void reap_self(StackType_t* stack_buffer, StaticTask_t* task_tcb) {
+    auto* reaper_ctx = new (std::nothrow) ReaperContext { xTaskGetCurrentTaskHandle(), stack_buffer, task_tcb };
+    if (reaper_ctx == nullptr || xTaskCreate(reaper_task_main, APP_REAPER_TASK_NAME, APP_REAPER_STACK_DEPTH, reaper_ctx, tskIDLE_PRIORITY, nullptr) != pdPASS) {
+        LOG_E(TAG, "Failed to create app reaper task; leaking stack buffer");
+        delete reaper_ctx;
+    }
+    vTaskSuspend(nullptr);
+}
 
 void set_state(AppInstanceId app_instance_id, AppInstanceState state) {
     auto& ledger = app_ledger();
@@ -144,7 +188,7 @@ void app_task_main(void* context) {
     check(pvTaskGetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX, reinterpret_cast<void*>(static_cast<uintptr_t>(ctx->app_instance_id)));
 
-    LOG_I(TAG, "Thread for %d started", ctx->app_instance_id);
+    LOG_I(TAG, "[instance %lu] Task started", ctx->app_instance_id);
 
     set_state(ctx->app_instance_id, APP_INSTANCE_STATE_ACTIVE);
 
@@ -165,9 +209,11 @@ void app_task_main(void* context) {
 
     AppInstanceId app_instance_id = ctx->app_instance_id;
     AppCompletionSignal* completion = ctx->completion;
+    StackType_t* stack_buffer = ctx->stackBuffer;
+    StaticTask_t* task_tcb = ctx->taskTcb;
     delete ctx;
 
-    LOG_I(TAG, "Thread for %d finished", app_instance_id);
+    LOG_I(TAG, "[instance %lu] Task finished", app_instance_id);
 
     // Erase the ledger entry before self-deleting - see "Reap self-terminated app tasks":
     // nothing else is guaranteed to ever call app_scheduler_stop() for this instance (the
@@ -187,17 +233,23 @@ void app_task_main(void* context) {
     xSemaphoreGive(completion->semaphore);
     release_completion_signal(completion); // releases app_task_main()'s own reference
 
+    LOG_I(TAG, "[instance %lu] minimum free stack space: %d bytes", app_instance_id, uxTaskGetStackHighWaterMark(nullptr));
+#ifdef ESP_PLATFORM
+    // Statically-allocated stack/TCB (see app_scheduler_start()) - can't self-delete, see reap_self().
+    reap_self(stack_buffer, task_tcb);
+#else
     vTaskDelete(nullptr);
+#endif
 }
 
 } // namespace
 
 extern "C" {
 
-error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location, int argc, char* argv[]) {
+error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location, AppStackConfig stack, int argc, char* argv[]) {
     const AppLoaderApi* loader = find_loader_api(location.type);
     if (loader == nullptr) {
-        LOG_E(TAG, "No app loader is registered (service '%s' not found)", loader_service_id_for(location.type));
+        LOG_E(TAG, "[instance %lu] No app loader is registered (service '%s' not found)", app_instance_id, loader_service_id_for(location.type));
         app_ledger_free_arguments(argc, argv);
         return ERROR_NOT_FOUND;
     }
@@ -205,30 +257,85 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     void* runtime = nullptr;
     error_t load_result = loader->load(location, &runtime);
     if (load_result != ERROR_NONE) {
-        LOG_E(TAG, "Failed to load app: %s", error_to_string(load_result));
+        LOG_E(TAG, "[instance %lu] Failed to load app: %s", app_instance_id, error_to_string(load_result));
         app_ledger_free_arguments(argc, argv);
         return load_result;
     }
 
     auto* completion = new (std::nothrow) AppCompletionSignal();
     if (completion == nullptr) {
-        LOG_E(TAG, "Failed to allocate app");
+        LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
         loader->unload(runtime);
         app_ledger_free_arguments(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
     completion->semaphore = xSemaphoreCreateBinary();
     if (completion->semaphore == nullptr) {
-        LOG_E(TAG, "Failed to allocate app");
+        LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
         delete completion;
         loader->unload(runtime);
         app_ledger_free_arguments(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
 
-    auto* context = new (std::nothrow) TaskContext { loader, runtime, app_instance_id, argc, argv, completion };
+    if (stack.depth == 0) {
+        LOG_W(TAG, "[instance %lu] using default stack depth", app_instance_id);
+    }
+    size_t effective_stack_depth = stack.depth != 0 ? stack.depth : APP_DEFAULT_STACK_DEPTH;
+
+#ifdef ESP_PLATFORM
+    // ESP-IDF's FreeRTOS port has configSUPPORT_STATIC_ALLOCATION, POSIX doesn't
+    // Try the desired capability first (if any). If it fails or isn't specified, use the fallback/default alloc behaviour (use internal memory).
+    StackType_t* stack_buffer = nullptr;
+    if (stack.desired_memory_capability != 0) {
+        MemoryPolicy requested_policy = { .required = stack.desired_memory_capability, .desired = 0, .alignment = 0 };
+        stack_buffer = static_cast<StackType_t*>(memory_alloc_with_policy(effective_stack_depth * sizeof(StackType_t), &requested_policy));
+    }
+    if (stack_buffer == nullptr) {
+        MemoryPolicy internal_policy = { .required = MEMORY_CAPABILITY_INTERNAL, .desired = 0, .alignment = 0 };
+        stack_buffer = static_cast<StackType_t*>(memory_alloc_with_policy(effective_stack_depth * sizeof(StackType_t), &internal_policy));
+    }
+    if (stack_buffer == nullptr) {
+        LOG_E(TAG, "[instance %lu] Failed to allocate app stack", app_instance_id);
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
+        loader->unload(runtime);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    auto* task_tcb = static_cast<StaticTask_t*>(memory_alloc_with_policy(sizeof(StaticTask_t), &APP_TASK_TCB_POLICY));
+    if (task_tcb == nullptr) {
+        LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
+        memory_free(stack_buffer);
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
+        loader->unload(runtime);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_OUT_OF_MEMORY;
+    }
+#else
+    StackType_t* stack_buffer = nullptr;
+    StaticTask_t* task_tcb = nullptr;
+#endif
+
+    auto* context = new (std::nothrow) TaskContext {
+        .loader = loader,
+        .runtime = runtime,
+        .app_instance_id = app_instance_id,
+        .argc = argc,
+        .argv = argv,
+        .completion = completion,
+        .stackBuffer = stack_buffer,
+        .taskTcb = task_tcb
+    };
+
     if (context == nullptr) {
-        LOG_E(TAG, "Failed to allocate app");
+        LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
+#ifdef ESP_PLATFORM
+        memory_free(task_tcb);
+        memory_free(stack_buffer);
+#endif
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
@@ -239,14 +346,23 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     char task_name[16];
     snprintf(task_name, sizeof(task_name), "app_%lu", static_cast<unsigned long>(app_instance_id));
 
-    TaskHandle_t task_handle = nullptr;
-    // 8192 bytes -> stack depth in words, matching what TactilityKernel's Thread wrapper does with the stack size it's given.
     // Created at idle priority so it can't preempt us before vTaskSuspend() below runs, then suspended immediately -
     // the ledger must record the handle (set_task()) before the task can possibly observe or erase its own entry.
     // (see app_scheduler_stop()'s liveness check and app_task_main()'s exit path)
-    BaseType_t create_result = xTaskCreate(app_task_main, task_name, 8192 / sizeof(StackType_t), context, tskIDLE_PRIORITY, &task_handle);
-    if (create_result != pdPASS) {
+#ifdef ESP_PLATFORM
+    TaskHandle_t task_handle = xTaskCreateStatic(app_task_main, task_name, effective_stack_depth, context, tskIDLE_PRIORITY, stack_buffer, task_tcb);
+#else
+    TaskHandle_t task_handle = nullptr;
+    if (xTaskCreate(app_task_main, task_name, effective_stack_depth, context, tskIDLE_PRIORITY, &task_handle) != pdPASS) {
+        task_handle = nullptr;
+    }
+#endif
+    if (task_handle == nullptr) {
         delete context;
+#ifdef ESP_PLATFORM
+        memory_free(task_tcb);
+        memory_free(stack_buffer);
+#endif
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
@@ -260,10 +376,17 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     vTaskPrioritySet(task_handle, APP_TASK_PRIORITY);
     vTaskResume(task_handle);
 
+    memory_print_stats();
+
     return ERROR_NONE;
 }
 
 error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeout) {
+    if (app_scheduler_current_app_id() == app_instance_id) {
+        LOG_E(TAG, "Can't call app_scheduler_stop() from the owning task");
+        return ERROR_NOT_ALLOWED;
+    }
+
     AppCompletionSignal* completion = acquire_completion_signal(app_instance_id);
     if (completion != nullptr) {
         AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };

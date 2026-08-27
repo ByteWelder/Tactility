@@ -159,11 +159,7 @@ void onContinueClicked(lv_event_t* event) {
             break;
         case Phase::Done: {
             markCompleted();
-            // Async, non-blocking - must NOT call app_manager_stop() directly here: this
-            // callback runs ON the LVGL task, and app-lifecycle transitions must happen on this
-            // app's own thread (woken via app_event_poll()), which closes by returning.
-            AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-            app_event_emit(ctx->appInstanceId, &closeEvent);
+            app_event_emit_close(ctx->appInstanceId);
             break;
         }
     }

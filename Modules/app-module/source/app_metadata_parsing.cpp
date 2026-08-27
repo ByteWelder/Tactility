@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "tactility/filesystem/file_mutex.h"
-
+#include <tactility/filesystem/file_mutex.h>
 
 #include <app/metadata.h>
-
-#include <app/private/app_metadata_parsing_internal.h>
+#include <app/private/metadata_parsing_internal.h>
 
 #include <tactility/log.h>
 
@@ -16,7 +14,18 @@
 
 constexpr auto* TAG = "app_metadata";
 
+bool app_metadata_validate_string(const std::string& value, bool (*is_valid_char)(char)) {
+    for (char c: value) {
+        if (!is_valid_char(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 namespace {
+
+#define validate_string app_metadata_validate_string
 
 std::string trim(const std::string& value) {
     constexpr auto* whitespace = " \t\r\n";
@@ -26,15 +35,6 @@ std::string trim(const std::string& value) {
     }
     auto end = value.find_last_not_of(whitespace);
     return value.substr(start, end - start + 1);
-}
-
-bool validate_string(const std::string& value, bool (*is_valid_char)(char)) {
-    for (char c: value) {
-        if (!is_valid_char(c)) {
-            return false;
-        }
-    }
-    return true;
 }
 
 /** Validates a comma-separated list: non-empty, no leading/trailing/double commas (which would
@@ -125,12 +125,6 @@ bool app_metadata_is_valid_format_version(const std::string& version) {
     });
 }
 
-bool app_metadata_is_valid_id(const std::string& id) {
-    return id.size() >= 5 && id.size() <= APP_METADATA_APP_ID_LENGTH && validate_string(id, [](char c) {
-        return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '.';
-    });
-}
-
 bool app_metadata_is_valid_name(const std::string& name) {
     return name.size() >= 2 && name.size() <= APP_METADATA_APP_NAME_LENGTH && validate_string(name, [](char c) {
         return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == ' ' || c == '-';
@@ -146,6 +140,13 @@ bool app_metadata_is_valid_version_name(const std::string& version) {
 bool app_metadata_is_valid_version_code(const std::string& version) {
     // 20 digits is the maximum decimal width of uint64_t.
     return !version.empty() && version.size() <= 20 && validate_string(version, [](char c) {
+        return std::isdigit(static_cast<unsigned char>(c)) != 0;
+    });
+}
+
+bool app_metadata_is_valid_stack_depth(const std::string& value) {
+    // 10 digits is the maximum decimal width of uint32_t.
+    return !value.empty() && value.size() <= 10 && validate_string(value, [](char c) {
         return std::isdigit(static_cast<unsigned char>(c)) != 0;
     });
 }

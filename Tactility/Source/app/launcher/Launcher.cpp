@@ -1,6 +1,3 @@
-#include "tactility/drivers/pointer.h"
-
-
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
@@ -17,8 +14,10 @@
 
 #include <tactility/check.h>
 #include <tactility/device.h>
+#include <tactility/drivers/pointer.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <Tactility/app/setup/Setup.h>
 #include <Tactility/settings/BootSettings.h>
@@ -273,8 +272,10 @@ extern const ::AppManifest manifest = {
     .id = "tactility.launcher",
     .name = "Launcher",
     .category = APP_CATEGORY_SYSTEM,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
+    // No file IO, so callstack can be in external RAM
+    .stack = { .depth = 3072 , .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL }
 };
 
 // Kept for Tactility/Private/Tactility/app/launcher/Launcher.h's existing declaration (still

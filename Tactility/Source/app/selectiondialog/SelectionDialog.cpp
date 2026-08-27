@@ -47,13 +47,7 @@ void onItemSelected(lv_event_t* e) {
     auto* itemCtx = static_cast<ItemContext*>(lv_event_get_user_data(e));
     LOG_I(TAG, "Selected item at index %d", (int)itemCtx->index);
     itemCtx->ctx->result = itemCtx->index;
-    // Async, non-blocking - just wakes this dialog's own thread. Must NOT call
-    // app_manager_stop() here: that bound-waits (thread_join) for the dialog's thread to
-    // finish, which needs the LVGL lock (window_manager_remove()) - but this callback is
-    // running ON the LVGL task, which would deadlock against itself. The caller reaps this
-    // instance via app_manager_stop() after it receives the APP_EVENT_RESULT instead.
-    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(itemCtx->ctx->appInstanceId, &event);
+    app_event_emit_close(itemCtx->ctx->appInstanceId);
 }
 
 void createChoiceItem(Context* ctx, lv_obj_t* list, const std::string& title, int32_t index) {
@@ -67,8 +61,7 @@ void createChoiceItem(Context* ctx, lv_obj_t* list, const std::string& title, in
 // mirrors the original's 0-items (error) and 1-item (auto-select) shortcuts.
 void closeWithResult(Context* ctx, int32_t result) {
     ctx->result = result;
-    AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(ctx->appInstanceId, &event);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {

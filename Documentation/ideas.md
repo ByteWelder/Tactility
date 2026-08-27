@@ -11,8 +11,10 @@
 
 ## Higher Priority
 
+- CrashDiagnostics shouldn't show a QR when there's no callstack
 - lvgl file lock won't work with display vs sdcard when lvgl is stopped (external app bug risk)
-- Apps should be able to specify stack size in their manifest
+- Apps should be able to specify stack size in their manifest, per architecture.
+  Use thread_get_stack_space() to find out the unused bytes
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
   Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
 - stopAppFromToolbar() in Tactility.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.

@@ -6,6 +6,8 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
+#include <tactility/freertos/task.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -23,9 +25,9 @@ struct Thread {
     thread_state_callback_t stateCallback = nullptr;
     void* stateCallbackContext = nullptr;
     std::string name = "unnamed";
-    enum ThreadPriority priority = THREAD_PRIORITY_NORMAL;
-    struct Mutex mutex = { 0 };
-    configSTACK_DEPTH_TYPE stackSize = 4096;
+    ThreadPriority priority = THREAD_PRIORITY_NORMAL;
+    Mutex mutex = { 0 };
+    configSTACK_DEPTH_TYPE stackDepth = 4096;
     portBASE_TYPE affinity = -1;
 
     Thread() {
@@ -94,7 +96,7 @@ Thread* thread_alloc(void) {
 
 Thread* thread_alloc_full(
     const char* name,
-    configSTACK_DEPTH_TYPE stack_size,
+    configSTACK_DEPTH_TYPE stack_depth,
     thread_main_fn_t function,
     void* function_context,
     portBASE_TYPE affinity
@@ -102,7 +104,7 @@ Thread* thread_alloc_full(
     auto* thread = new(std::nothrow) Thread();
     if (thread != nullptr) {
         thread_set_name(thread, name);
-        thread_set_stack_size(thread, stack_size);
+        thread_set_stack_depth(thread, stack_depth);
         thread_set_main_function(thread, function, function_context);
         thread_set_affinity(thread, affinity);
     }
@@ -124,11 +126,21 @@ void thread_set_name(Thread* thread, const char* name) {
     thread->unlock();
 }
 
+
+void thread_set_stack_depth(Thread* thread, configSTACK_DEPTH_TYPE stack_depth) {
+    thread->lock();
+    check(stack_depth > 0);
+    check(thread->state == THREAD_STATE_STOPPED);
+    thread->stackDepth = stack_depth;
+    thread->unlock();
+}
+
 void thread_set_stack_size(Thread* thread, size_t stack_size) {
     thread->lock();
     check(stack_size > 0);
     check(thread->state == THREAD_STATE_STOPPED);
-    thread->stackSize = stack_size;
+
+    thread->stackDepth = stack_size / sizeof(StackType_t);
     thread->unlock();
 }
 
@@ -176,14 +188,13 @@ error_t thread_start(Thread* thread) {
     thread->lock();
     check(thread->mainFunction != nullptr);
     check(thread->state == THREAD_STATE_STOPPED);
-    check(thread->stackSize);
+    check(thread->stackDepth);
     thread->unlock();
 
     thread_set_state_internal(thread, THREAD_STATE_STARTING);
 
     thread->lock();
-    uint32_t stack_depth = thread->stackSize / sizeof(StackType_t);
-    enum ThreadPriority priority = thread->priority;
+    auto priority = static_cast<UBaseType_t>(thread->priority);
     portBASE_TYPE affinity = thread->affinity;
     thread->unlock();
 
@@ -193,9 +204,9 @@ error_t thread_start(Thread* thread) {
         result = xTaskCreatePinnedToCore(
             thread_main_body,
             thread->name.c_str(),
-            stack_depth,
+            thread->stackDepth,
             thread,
-            (UBaseType_t)priority,
+            priority,
             &thread->taskHandle,
             affinity
         );
@@ -203,9 +214,9 @@ error_t thread_start(Thread* thread) {
         result = xTaskCreate(
             thread_main_body,
             thread->name.c_str(),
-            stack_depth,
+            thread->stackDepth,
             thread,
-            (UBaseType_t)priority,
+            priority,
             &thread->taskHandle
         );
 #endif
@@ -213,9 +224,9 @@ error_t thread_start(Thread* thread) {
         result = xTaskCreate(
             thread_main_body,
             thread->name.c_str(),
-            stack_depth,
+            thread->stackDepth,
             thread,
-            (UBaseType_t)priority,
+            priority,
             &thread->taskHandle
         );
     }

@@ -4,8 +4,8 @@
 #include <app/manager.h>
 #include <app/metadata.h>
 
-#include <app/private/app_fs.h>
-#include <app/private/app_ledger.h>
+#include <app/private/fs.h>
+#include <app/private/ledger.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/filesystem/file_mutex.h>
@@ -180,6 +180,7 @@ error_t register_installed_app_locked(const std::string& app_dir_path, const App
         .category = APP_CATEGORY_USER,
         .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
         .flags = 0,
+        .stack = { .depth = static_cast<uint16_t>(metadata.stack_depth), .desired_memory_capability = 0 },
     };
 
     // Belt-and-braces: app_install()'s earlier app_manager_remove() call is meant to have

@@ -50,6 +50,12 @@ struct AppMetadata {
      * Must be NULL-terminated.
      */
     char requires_device_id[APP_METADATA_REQUIRES_DEVICE_ID_LENGTH + 1];
+
+    /**
+     * Stack depth (in words) for the app's task. Optional; 0 means scheduler default.
+     * @warning Avoid default values: the default is conservative, which wastes memory.
+     */
+    uint32_t stack_depth;
 };
 
 /**

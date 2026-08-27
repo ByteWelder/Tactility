@@ -109,8 +109,7 @@ void createListItem(Context* ctx, lv_obj_t* list, const std::string& title, size
         lastCode = entry.code;
 
         ctx->result = 0; // Ok
-        AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-        app_event_emit(ctx->appInstanceId, &closeEvent);
+        app_event_emit_close(ctx->appInstanceId);
     }, LV_EVENT_SHORT_CLICKED, buttonCtx);
 }
 
@@ -186,12 +185,7 @@ void updateList(Context* ctx) {
 
 void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
-    AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
-    app_event_emit(ctx->appInstanceId, &closeEvent);
+    app_event_emit_close(ctx->appInstanceId);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {

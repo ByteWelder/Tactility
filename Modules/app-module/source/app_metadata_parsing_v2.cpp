@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "app/manifest.h"
+
+
 #include <app/metadata.h>
-#include <app/private/app_metadata_parsing_internal.h>
+#include <app/private/metadata_parsing_internal.h>
 
 #include <charconv>
 
@@ -28,7 +31,7 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
         return false;
     }
 
-    if (!app_metadata_is_valid_id(id)) {
+    if (!app_id_is_valid(id.c_str())) {
         LOG_E(TAG, "Invalid app id");
         return false;
     }
@@ -112,6 +115,26 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
             LOG_E(TAG, "requires.device.id too long");
             return false;
         }
+    }
+
+    // app.stack.depth (optional; if present, must be a valid unsigned decimal fitting uint32_t)
+
+    auto stack_depth_iterator = properties.find("app.stack.depth");
+    if (stack_depth_iterator != properties.end()) {
+        const std::string& stack_depth_string = stack_depth_iterator->second;
+        if (!app_metadata_is_valid_stack_depth(stack_depth_string)) {
+            LOG_E(TAG, "Invalid app.stack.depth");
+            return false;
+        }
+
+        uint32_t stack_depth = 0;
+        const auto* stack_depth_first = stack_depth_string.data();
+        const auto* stack_depth_last = stack_depth_first + stack_depth_string.size();
+        if (std::from_chars(stack_depth_first, stack_depth_last, stack_depth).ec != std::errc {}) {
+            LOG_E(TAG, "App stack depth out of range");
+            return false;
+        }
+        out_metadata.stack_depth = stack_depth;
     }
 
     return true;

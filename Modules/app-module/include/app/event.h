@@ -115,16 +115,6 @@ error_t app_event_subscribe_with_app_id(struct AppEventSubscription* sub, struct
 error_t app_event_unsubscribe(struct AppEventSubscription* sub);
 
 /**
- * Deliver @a event to every subscription registered for @a app_instance_id (normally exactly one).
- * @warning Does not work in ISR context.
- * @retval ERROR_NONE delivered to at least one subscription
- * @retval ERROR_NOT_FOUND no subscription is registered for @a app_instance_id
- * @retval ERROR_RESOURCE at least one matching subscription's queue was full; the event was
- * dropped for that subscription (still delivered to any other matching subscription)
- */
-error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* event);
-
-/**
  * Non-blocking: pop the next event for @a sub if one is already queued.
  * @warning Never blocks. To wait for an event, block in task_event_group_wait()/
  * task_event_group_wait_any() on @a sub's event group first (see app_event_subscribe()), then
@@ -133,6 +123,13 @@ error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* eve
  * @retval ERROR_TIMEOUT nothing queued right now
  */
 error_t app_event_poll(struct AppEventSubscription* sub, struct AppEvent* out_event);
+
+/**
+ * Emits a close event to the specified app.
+ * @param[in] instance_id
+ * @return ERROR_NONE when event was successfully emitted
+ */
+error_t app_event_emit_close(AppInstanceId instance_id);
 
 #ifdef __cplusplus
 }
