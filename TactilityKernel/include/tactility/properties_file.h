@@ -2,8 +2,6 @@
 
 /**
  * @brief Generic string key-value ".properties" file.
- * @note Safely acquires/releases the filesystem mutex registered for the file's path (see
- * tactility/filesystem/file_mutex.h) - manual locking isn't needed.
  */
 #pragma once
 
