@@ -20,8 +20,10 @@
 #include <tactility/log.h>
 
 #include <cctype>
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <unistd.h>
 
 namespace tt::app::files {
@@ -614,16 +616,19 @@ void View::onResult(uint32_t launchId, int32_t result) {
             if (!filename.empty()) {
                 std::string new_file_path = file::getChildPath(state->getCurrentPath(), filename);
 
-                struct stat st;
-                if (stat(new_file_path.c_str(), &st) == 0) {
+                // O_CREAT | O_EXCL makes creation+existence-check one atomic operation, unlike a separate stat() before fopen()
+                int fd = open(new_file_path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0644);
+                if (fd >= 0) {
+                    FILE* new_file = fdopen(fd, "w");
+                    if (new_file) {
+                        fclose(new_file);
+                    } else {
+                        close(fd);
+                    }
+                    LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
+                } else if (errno == EEXIST) {
                     LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
                     break;
-                }
-
-                FILE* new_file = fopen(new_file_path.c_str(), "w");
-                if (new_file) {
-                    fclose(new_file);
-                    LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
                 } else {
                     LOG_E(TAG, "Failed to create file \"%s\"", new_file_path.c_str());
                 }
