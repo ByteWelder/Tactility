@@ -6,6 +6,11 @@
 #include <tactility/delay.h>
 #include <tactility/time.h>
 
+// app_event_emit() is declared in app-module's private app/private/event.h (PRIV_INCLUDE_DIRS,
+// not exposed to this test target) - declared directly here, same as app_manager_test.cpp does
+// for app_internal_loader_service_manifest.
+extern "C" error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* event);
+
 TEST_CASE("app_event_subscribe/_poll deliver events in FIFO order") {
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);

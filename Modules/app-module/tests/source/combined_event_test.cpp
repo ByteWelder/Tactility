@@ -4,6 +4,11 @@
 
 #include <tactility/system_event.h>
 
+// app_event_emit() is declared in app-module's private app/private/event.h (PRIV_INCLUDE_DIRS,
+// not exposed to this test target) - declared directly here, same as app_manager_test.cpp does
+// for app_internal_loader_service_manifest.
+extern "C" error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* event);
+
 // Regression coverage for the primary motivation behind TaskEventGroup: a task subscribed to
 // both an app_event and a system_event must be able to block once and wake for either, without
 // losing an event or regressing either subsystem's own delivery semantics (FIFO for app_event,
