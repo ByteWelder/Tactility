@@ -2,6 +2,7 @@
 
 #include <Tactility/TactilityCore.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <dirent.h>
 #include <functional>
