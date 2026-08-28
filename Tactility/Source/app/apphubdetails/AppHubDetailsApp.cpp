@@ -141,7 +141,11 @@ void onDownloadFinished(Context* ctx, const HttpDownloadEvent& event) {
     auto temp_file_path = getTempFilePath(ctx);
 
     if (event.type == HTTP_DOWNLOAD_EVENT_SUCCESS) {
-        app_install(temp_file_path.c_str());
+        error_t install_result = app_install(temp_file_path.c_str());
+        if (install_result != ERROR_NONE) {
+            LOG_E(TAG, "Install of %s failed", temp_file_path.c_str());
+            alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
+        }
 
         if (!file::deleteFile(temp_file_path)) {
             LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());

@@ -45,15 +45,14 @@ struct Context {
 
     // Survives across a bury/resurface cycle (e.g. opening AppHubDetailsApp and returning),
     int32_t scrollY = 0;
-    // Set by createWidgets(), consumed by the first showApps() after resurfacing: the actual
-    // refresh runs async (see requestRefresh() below), so by the time showApps() first populates
-    // the list, scrollY can't be read live off contentWrapper (it's an empty spinner at that
-    // point) - it has to come from here instead.
+    // Set by createWidgets(), consumed by the first showApps() after resurfacing. The refresh
+    // itself runs async (see requestRefresh() below), so when showApps() first populates the
+    // list, contentWrapper is still an empty spinner; scrollY must come from here instead of a
+    // live read off it.
     bool restoreScrollOnNextShow = false;
     // Only the first createWidgets() call triggers a network refresh. The rest uses the cached file.
     bool needsInitialRefresh = true;
 
-    // Event group for LVGL and download
     TaskEventGroup* eventGroup = nullptr;
     uint32_t refreshRequestedBit = 0;
     std::atomic<bool> refreshRequested {false};
@@ -160,7 +159,10 @@ void showApps(Context* ctx) {
 
 // Runs on appMain()'s own task (triggered via requestRefresh()), never directly from the LVGL task.
 void refresh(Context* ctx) {
-    if (ctx->downloadInProgress) {
+    // Buried (e.g. AppHubDetailsApp is open): destroyWidgets() already released these. A refresh
+    // request queued just before burying could still land here, so re-check rather than assume
+    // requestRefresh() and refresh() always run against a live window.
+    if (ctx->downloadInProgress || ctx->contentWrapper == nullptr) {
         return;
     }
 
@@ -210,13 +212,24 @@ void onDownloadFinished(Context* ctx, const HttpDownloadEvent& event) {
     ctx->downloadInProgress = false;
     http_download_unsubscribe(&ctx->downloadSub);
 
-    lvgl_lock();
-    if (event.type == HTTP_DOWNLOAD_EVENT_SUCCESS) {
-        ctx->needsInitialRefresh = false;
+    bool succeeded = event.type == HTTP_DOWNLOAD_EVENT_SUCCESS;
+    ctx->needsInitialRefresh = !succeeded;
+    if (succeeded) {
         LOG_I(TAG, "Request success (status %d)", event.status_code);
-        showApps(ctx);
     } else {
         LOG_E(TAG, "Request failed (status %d): %s", event.status_code, event.error.message);
+    }
+
+    if (ctx->contentWrapper == nullptr) {
+        // Buried (e.g. AppHubDetailsApp is open): destroyWidgets() already released the widgets
+        // above. createWidgets() picks this up via needsInitialRefresh on resurface instead.
+        return;
+    }
+
+    lvgl_lock();
+    if (succeeded) {
+        showApps(ctx);
+    } else {
         showRefreshFailedError(ctx, "Cannot reach server");
     }
     lvgl_unlock();
@@ -244,7 +257,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     if (ctx->needsInitialRefresh) {
         requestRefresh(ctx);
     } else {
-        // Resurfacing (e.g. returning from AppHubDetailsApp) - redisplay the cache already
+        // Resurfacing (e.g. returning from AppHubDetailsApp): redisplay the cache already
         // loaded this session instead of hitting the network again. window_manager calls
         // createWidgets() with the LVGL lock already held, so this can touch widgets directly.
         showApps(ctx);

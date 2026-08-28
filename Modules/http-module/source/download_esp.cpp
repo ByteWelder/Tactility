@@ -46,6 +46,8 @@ public:
     int getContentLength() const { return esp_http_client_get_content_length(client); }
 
     int read(char* buffer, int size) const { return esp_http_client_read(client, buffer, size); }
+
+    bool isComplete() const { return esp_http_client_is_complete_data_received(client); }
 };
 
 // esp_http_client_config_t::cert_pem needs a NUL-terminated buffer.
@@ -92,7 +94,7 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
     config.transport_type = HTTP_TRANSPORT_OVER_SSL;
 
     // Total free can look fine while a fragmented heap still can't satisfy one large-enough
-    // allocation - log both so a future ALLOC_FAILED here is diagnosable from the log alone.
+    // allocation. Logging both makes a future ALLOC_FAILED here diagnosable from the log alone.
     LOG_I(TAG, "Free internal heap before connecting: %u bytes (largest block: %u bytes)",
         static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
         static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)));
@@ -125,21 +127,30 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
         return http_download_make_error_event("Failed to open target file", status_code);
     }
 
-    auto bytes_left = client.getContentLength();
+    // -1 means the length is unknown (e.g. a chunked response). Read until the client reports
+    // the body done instead of counting down a length that was never given.
+    auto content_length = client.getContentLength();
+    bool length_known = content_length >= 0;
+    auto bytes_left = content_length;
     char buffer[512];
-    while (bytes_left > 0) {
+    while (!length_known || bytes_left > 0) {
         if (http_download_is_cancelled(link)) {
             fclose(file);
             remove(tempPath.c_str());
             return http_download_make_cancelled_event(status_code);
         }
         int data_read = client.read(buffer, sizeof(buffer));
-        if (data_read <= 0) {
+        if (data_read < 0) {
             fclose(file);
             remove(tempPath.c_str());
             return http_download_make_error_event("Failed to read response data", status_code);
         }
-        bytes_left -= data_read;
+        if (data_read == 0) {
+            break;
+        }
+        if (length_known) {
+            bytes_left -= data_read;
+        }
         if (fwrite(buffer, 1, static_cast<size_t>(data_read), file) != static_cast<size_t>(data_read)) {
             fclose(file);
             remove(tempPath.c_str());
@@ -147,14 +158,29 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
         }
         taskYIELD();
     }
-    fclose(file);
 
-    // Some embedded filesystems (e.g. FATFS) reject rename() onto an existing path instead of
-    // replacing it like POSIX does. Clear the way first.
-    remove(targetPath.c_str());
-    if (rename(tempPath.c_str(), targetPath.c_str()) != 0) {
+    // Distinguishes a clean end (chunked terminator seen, or a known length fully read) from a
+    // connection that just stopped producing data early.
+    if (!client.isComplete()) {
+        fclose(file);
+        remove(tempPath.c_str());
+        return http_download_make_error_event("Response body was incomplete", status_code);
+    }
+
+    if (fclose(file) != 0) {
         remove(tempPath.c_str());
         return http_download_make_error_event("Failed to finalize downloaded file", status_code);
+    }
+
+    // Some embedded filesystems (e.g. FATFS) reject rename() onto an existing path instead of
+    // replacing it like POSIX does. Only clear the way if the plain rename actually needed it, so
+    // targetPath is never removed unless the new file is confirmed ready to replace it.
+    if (rename(tempPath.c_str(), targetPath.c_str()) != 0) {
+        remove(targetPath.c_str());
+        if (rename(tempPath.c_str(), targetPath.c_str()) != 0) {
+            remove(tempPath.c_str());
+            return http_download_make_error_event("Failed to finalize downloaded file", status_code);
+        }
     }
 
     return http_download_make_success_event(status_code);
