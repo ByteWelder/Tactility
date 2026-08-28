@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <http/private/download.h>
 
+#include <esp_heap_caps.h>
 #include <esp_http_client.h>
 
 #include <tactility/freertos/task.h>
+#include <tactility/log.h>
 
 namespace {
+
+constexpr auto* TAG = "http-download";
 
 // RAII: guarantees esp_http_client_close()/_cleanup() run on every exit path below.
 class EspDownloadClient {
@@ -86,6 +90,12 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
     config.method = HTTP_METHOD_GET;
     config.timeout_ms = 5000;
     config.transport_type = HTTP_TRANSPORT_OVER_SSL;
+
+    // Total free can look fine while a fragmented heap still can't satisfy one large-enough
+    // allocation - log both so a future ALLOC_FAILED here is diagnosable from the log alone.
+    LOG_I(TAG, "Free internal heap before connecting: %u bytes (largest block: %u bytes)",
+        static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+        static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)));
 
     EspDownloadClient client;
     if (!client.init(config)) {
