@@ -14,15 +14,13 @@
 #include <esp_http_client.h>
 #endif
 
-// Shared between a subscription and its download task once http_download_start() spawns one, so
-// http_download_unsubscribe() can sever the link at any time without racing the task's own access
-// to the subscription/event_group it was given. Refcounted (`owners`):
-// Starts at 1 for the subscriber's own share, http_download_start() adds the task's share, and
-// whichever side releases last (unsubscribe(), or the task's finish()) deletes this.
-// `mutex` guards every field below it, plus the subscription's own `internal.event`/`pending` and
-// (while `subscribed`) `internal.event_group`/`bit` - the task only ever touches those under this
-// same lock, so a `subscribed` seen true here is a hard guarantee the subscription/event_group are
-// still live for the duration of the lock.
+// Shared between a subscription and its download task, so http_download_unsubscribe() can sever
+// the link at any time without racing the task's access to the subscription/event_group.
+// Refcounted via `owners`: starts at 1 for the subscriber, gains 1 when http_download_start()
+// spawns the task, and whichever side releases last deletes this.
+// `mutex` also guards the subscription's `internal.event`/`pending`/`event_group`/`bit`. The task
+// only touches those while `subscribed` is true, under this same lock, so that check is a hard
+// guarantee those fields are still live.
 struct HttpDownloadLink {
     Mutex mutex {};
     bool subscribed = true;
@@ -80,9 +78,7 @@ bool is_cancelled(HttpDownloadLink* link) {
 
 #ifdef ESP_PLATFORM
 
-// Minimal RAII wrapper ensuring esp_http_client_close()/_cleanup() run on every exit path.
-// Mirrors Tactility::network::EspHttpClient's shape without pulling in a dependency on the
-// Tactility layer from this kernel module.
+// RAII: guarantees esp_http_client_close()/_cleanup() run on every exit path below.
 class EspDownloadClient {
     esp_http_client_handle_t client = nullptr;
     bool isOpen = false;
@@ -119,8 +115,7 @@ public:
     int read(char* buffer, int size) const { return esp_http_client_read(client, buffer, size); }
 };
 
-// Loads a PEM certificate file into a NUL-terminated string, as esp_http_client_config_t::cert_pem
-// requires.
+// esp_http_client_config_t::cert_pem needs a NUL-terminated buffer.
 bool read_certificate(const std::string& certPath, std::string& outCertificate) {
     auto* file = fopen(certPath.c_str(), "rb");
     if (file == nullptr) {
@@ -214,7 +209,7 @@ HttpDownloadEvent run_download(const std::string& url, const std::string& certPa
     fclose(file);
 
     // Some embedded filesystems (e.g. FATFS) reject rename() onto an existing path instead of
-    // replacing it, unlike POSIX - clear the way first.
+    // replacing it like POSIX does. Clear the way first.
     remove(targetPath.c_str());
     if (rename(tempPath.c_str(), targetPath.c_str()) != 0) {
         remove(tempPath.c_str());
@@ -236,7 +231,7 @@ HttpDownloadEvent run_download(const std::string&, const std::string&, const std
 #endif
 
 // Delivers `event` to `sub` if the subscriber hasn't unsubscribed in the meantime, then releases
-// this task's share of `link` - deleting it if the subscriber already released theirs.
+// this task's share of `link`, deleting it if the subscriber already released theirs.
 void finish(HttpDownloadLink* link, HttpDownloadSubscription* sub, const HttpDownloadEvent& event) {
     mutex_lock(&link->mutex);
     if (link->subscribed) {
@@ -300,15 +295,15 @@ error_t http_download_unsubscribe(HttpDownloadSubscription* sub) {
     if (link == nullptr) {
         return ERROR_NOT_FOUND;
     }
-    // Caller-exclusive field (the task never reads it), safe to clear without the lock.
+    // Caller-exclusive: the task never reads this field, so it's safe to clear without the lock.
     sub->internal.link = nullptr;
 
     TaskEventGroup* event_group;
     uint32_t bit;
 
     mutex_lock(&link->mutex);
-    // Read/clear under the lock: finish() reads these same fields under the same lock while
-    // `subscribed` is still true, so this must not race that read.
+    // Read/clear under the lock: finish() reads these same fields under that lock too,
+    // while `subscribed` is true, so this must not race it.
     event_group = sub->internal.event_group;
     bit = sub->bit;
     sub->internal.event_group = nullptr;
@@ -316,9 +311,8 @@ error_t http_download_unsubscribe(HttpDownloadSubscription* sub) {
     bool last = (--link->owners == 0);
     mutex_unlock(&link->mutex);
 
-    // Safe outside the lock: the section above just proved finish() has either already signalled
-    // this bit (if it won the race) or will never do so (if it didn't) - either way nothing will
-    // touch it again.
+    // Safe outside the lock: the critical section above already decided whether finish() will
+    // ever signal this bit, so nothing will touch it again from here on.
     task_event_group_release_bit(event_group, bit);
 
     if (last) {
