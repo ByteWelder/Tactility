@@ -50,9 +50,6 @@
 			compatible = "xlsemi,xl9555";
 			reg = <0x20>;
 
-			// M_EN (P05) powers the DRV2605. It has to be high before the driver probes, or
-			// the chip will not answer. Nested under the expander so it is driven the moment
-			// the expander starts.
 			motor_power {
 				compatible = "gpio-hog";
 				pin = <&xl9555 5 GPIO_FLAG_NONE>;
