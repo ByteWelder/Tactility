@@ -25,6 +25,9 @@
 constexpr auto* TAG = "GDEQ031T10";
 #define GET_CONFIG(device) (static_cast<const Gdeq031t10Config*>((device)->config))
 
+/** Capabilities every instance has; see gdeq031t10_has_capability() for the per-board ones. */
+#define GDEQ031T10_STATIC_CAPABILITIES (DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_SLOW_REFRESH)
+
 static constexpr int WIDTH = 240;
 static constexpr int HEIGHT = 320;
 static constexpr size_t FRAMEBUFFER_SIZE = (WIDTH * HEIGHT) / 8; // 1 bpp packed
@@ -532,8 +535,27 @@ static uint8_t gdeq031t10_get_frame_buffer_count(Device*) {
 
 // endregion
 
+static error_t gdeq031t10_get_backlight(Device* device, Device** backlight) {
+    auto* configured_backlight = GET_CONFIG(device)->backlight;
+    if (configured_backlight == nullptr) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    *backlight = configured_backlight;
+    return ERROR_NONE;
+}
+
+// Whether this panel has a frontlight is per-board (the T-Deck Max has one, the T-Deck Pro
+// doesn't), so BACKLIGHT can't live in the driver-wide static capability mask.
+static bool gdeq031t10_has_capability(Device* device, uint32_t capability) {
+    uint32_t capabilities = GDEQ031T10_STATIC_CAPABILITIES;
+    if (GET_CONFIG(device)->backlight != nullptr) {
+        capabilities |= DISPLAY_CAPABILITY_BACKLIGHT;
+    }
+    return (capabilities & capability) == capability;
+}
+
 static const DisplayApi gdeq031t10_display_api = {
-    .capabilities = DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_SLOW_REFRESH,
+    .capabilities = GDEQ031T10_STATIC_CAPABILITIES,
     .reset = gdeq031t10_reset,
     .init = gdeq031t10_init,
     .draw_bitmap = gdeq031t10_draw_bitmap,
@@ -553,8 +575,8 @@ static const DisplayApi gdeq031t10_display_api = {
     .get_resolution_y = gdeq031t10_get_resolution_y,
     .get_frame_buffer = gdeq031t10_get_frame_buffer,
     .get_frame_buffer_count = gdeq031t10_get_frame_buffer_count,
-    .get_backlight = nullptr,
-    .has_capability = nullptr,
+    .get_backlight = gdeq031t10_get_backlight,
+    .has_capability = gdeq031t10_has_capability,
 };
 
 // region Driver lifecycle

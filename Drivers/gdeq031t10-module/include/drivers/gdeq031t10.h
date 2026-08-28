@@ -10,6 +10,8 @@ extern "C" {
 
 #include <tactility/drivers/gpio.h>
 
+struct Device;
+
 /** Waveform/refresh mode used for automatic full-screen refreshes. */
 enum Gdeq031t10RefreshMode {
     GDEQ031T10_REFRESH_FULL = 0, // ~3s, best quality
@@ -26,6 +28,8 @@ struct Gdeq031t10Config {
     enum Gdeq031t10RefreshMode refresh_mode;
     /** Panel is mounted upside down relative to the reference orientation */
     bool mirror_180;
+    /** Optional reference to this panel's frontlight/backlight device, NULL if none. */
+    struct Device* backlight;
 };
 
 #ifdef __cplusplus

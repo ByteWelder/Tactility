@@ -36,3 +36,10 @@ properties:
     type: boolean
     default: false
     description: Panel is mounted upside down relative to the reference orientation
+  backlight:
+    type: phandle
+    default: "NULL"
+    description: >
+      Optional reference to this panel's frontlight device. E-paper panels are reflective, so
+      this lights the panel from the front rather than behind it, but it is driven through the
+      same BACKLIGHT_TYPE API and appears as the brightness control in Display settings.
