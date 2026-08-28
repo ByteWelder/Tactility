@@ -12,10 +12,14 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     list(APPEND REQUIRES_LIST
         esp_http_client
     )
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_mock\\.cpp$")
+else ()
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_esp\\.cpp$")
 endif ()
 
 tactility_add_module(http-module
     SRCS ${SOURCE_FILES}
+    PRIV_INCLUDE_DIRS private/
     INCLUDE_DIRS include/
     REQUIRES ${REQUIRES_LIST}
 )

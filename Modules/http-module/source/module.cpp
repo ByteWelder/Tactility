@@ -15,7 +15,11 @@ static const ModuleSymbol http_module_symbols[] = {
 
 Module http_module = {
     .name = "http",
-    .symbols = http_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = http_module_symbols,
+    .internal = nullptr,
 };
 
 }
