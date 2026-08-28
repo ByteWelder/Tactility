@@ -51,9 +51,6 @@
 			compatible = "xlsemi,xl9555";
 			reg = <0x20>;
 
-			// GPS_EN (P02) powers the MIA-M10Q. Nested under the expander so it is driven the
-			// moment it starts. The receiver is started on demand from Settings -> GPS, but
-			// its rail has to be live before that UART is opened.
 			gps_power {
 				compatible = "gpio-hog";
 				pin = <&xl9555 2 GPIO_FLAG_NONE>;
@@ -200,16 +197,12 @@
 		};
 	};
 
-	// Pin names are from the ESP32's point of view; the vendor schematic labels them from the
-	// module's (its GPS_TX/GPIO2 is our RX, its GPS_RX/GPIO16 is our TX).
 	uart_gps {
 		compatible = "espressif,esp32-uart";
 		port = <UART_NUM_2>;
 		pin-tx = <&gpio0 16 GPIO_FLAG_NONE>;
 		pin-rx = <&gpio0 2 GPIO_FLAG_NONE>;
 
-		// u-blox MIA-M10Q. 38400 is the M10 factory default; a module left at 9600 by other
-		// firmware won't probe, and has to be re-added at 9600 through Settings -> GPS.
 		gps {
 			compatible = "tactility,gps-generic";
 			status = "disabled";
