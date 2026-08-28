@@ -8,8 +8,6 @@
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/log.h>
 
-#include <algorithm>
-#include <cstring>
 #include <initializer_list>
 
 #include <RadioLib.h>
@@ -348,9 +346,7 @@ void Sx1262Radio::setState(enum LoraRadioState newState) {
     state = newState;
     unlock();
 
-    LoraEvent event { .type = LORA_EVENT_STATE, .timestamp = 0, .data = {} };
-    event.data.state = { .state = newState };
-    lora_event_emit(settings.device, &event);
+    lora_state_event_emit(settings.device, newState);
 }
 
 error_t Sx1262Radio::setModulation(enum LoraModulation newModulation) {
@@ -378,20 +374,11 @@ enum LoraModulation Sx1262Radio::getModulation() const {
 }
 
 void Sx1262Radio::publishRx(const uint8_t* data, size_t length, float rssi, float snr) {
-    LoraEvent event { .type = LORA_EVENT_RX, .timestamp = 0, .data = {} };
-    LoraRxEventData& rx = event.data.rx;
-    const size_t copied_length = std::min(length, sizeof(rx.data));
-    std::memcpy(rx.data, data, copied_length);
-    rx.length = copied_length;
-    rx.rssi = rssi;
-    rx.snr = snr;
-    lora_event_emit(settings.device, &event);
+    lora_rx_event_emit(settings.device, data, length, rssi, snr);
 }
 
 void Sx1262Radio::publishTx(LoraTxId id, enum LoraTransmissionState txState) {
-    LoraEvent event { .type = LORA_EVENT_TX, .timestamp = 0, .data = {} };
-    event.data.tx = { .id = id, .state = txState };
-    lora_event_emit(settings.device, &event);
+    lora_tx_event_emit(settings.device, id, txState);
 }
 
 // endregion
