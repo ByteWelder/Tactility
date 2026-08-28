@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- Add tests for app stdin/stdout
 - AppHubApp: Prevent download callbacks from accessing a destroyed view. Create a "download task" concept that emits events.
 - CrashDiagnostics shouldn't show a QR when there's no callstack
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
