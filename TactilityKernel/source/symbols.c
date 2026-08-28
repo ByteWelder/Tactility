@@ -397,7 +397,6 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     // wifi_auto_scan
     DEFINE_MODULE_SYMBOL(wifi_auto_scan_set_paused),
     // drivers/lora
-    DEFINE_MODULE_SYMBOL(lora_find_first_registered_device),
     DEFINE_MODULE_SYMBOL(lora_get_radio_state),
     DEFINE_MODULE_SYMBOL(lora_set_enabled),
     DEFINE_MODULE_SYMBOL(lora_set_modulation),
