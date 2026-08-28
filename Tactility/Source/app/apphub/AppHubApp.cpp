@@ -4,13 +4,14 @@
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
-#include <Tactility/network/Http.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+
+#include <http/download.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -22,6 +23,7 @@
 #include <lvgl/widgets/toolbar.h>
 
 #include <algorithm>
+#include <atomic>
 #include <format>
 
 namespace tt::app::apphub {
@@ -43,6 +45,21 @@ struct Context {
 
     // Survives across a bury/resurface cycle (e.g. opening AppHubDetailsApp and returning),
     int32_t scrollY = 0;
+    // Set by createWidgets(), consumed by the first showApps() after resurfacing: the actual
+    // refresh runs async (see requestRefresh() below), so by the time showApps() first populates
+    // the list, scrollY can't be read live off contentWrapper (it's an empty spinner at that
+    // point) - it has to come from here instead.
+    bool restoreScrollOnNextShow = false;
+    // Only the first createWidgets() call triggers a network refresh. The rest uses the cached file.
+    bool needsInitialRefresh = true;
+
+    // Event group for LVGL and download
+    TaskEventGroup* eventGroup = nullptr;
+    uint32_t refreshRequestedBit = 0;
+    std::atomic<bool> refreshRequested {false};
+
+    HttpDownloadSubscription downloadSub {};
+    bool downloadInProgress = false;
 };
 
 
@@ -66,9 +83,14 @@ void onAppPressed(lv_event_t* e) {
     ctx->mutex.unlock();
 }
 
+void requestRefresh(Context* ctx) {
+    ctx->refreshRequested = true;
+    task_event_group_signal(ctx->eventGroup, ctx->refreshRequestedBit);
+}
+
 void onRefreshPressed(lv_event_t* e) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(e));
-    refresh(ctx);
+    requestRefresh(ctx);
 }
 
 void showRefreshFailedError(Context* ctx, const char* message) {
@@ -88,7 +110,13 @@ void showNoInternet(Context* ctx) {
 void showApps(Context* ctx) {
     // Refresh rebuilds the list from scratch (cached copy, then again once the network fetch
     // lands), which would otherwise reset the user's scroll position each time.
-    auto scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
+    int32_t scrollY;
+    if (ctx->restoreScrollOnNextShow) {
+        scrollY = ctx->scrollY;
+        ctx->restoreScrollOnNextShow = false;
+    } else {
+        scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
+    }
     lv_obj_clean(ctx->contentWrapper);
     ctx->mutex.lock();
     if (parseJson(ctx->cachedAppsJsonFile, ctx->entries)) {
@@ -130,42 +158,68 @@ void showApps(Context* ctx) {
     ctx->mutex.unlock();
 }
 
+// Runs on appMain()'s own task (triggered via requestRefresh()), never directly from the LVGL task.
 void refresh(Context* ctx) {
+    if (ctx->downloadInProgress) {
+        return;
+    }
+
+    lvgl_lock();
     lv_obj_clean(ctx->contentWrapper);
     auto* spinner = lvgl_spinner_create(ctx->contentWrapper);
     lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
-
     lv_obj_add_flag(ctx->refreshButton, LV_OBJ_FLAG_HIDDEN);
+    lvgl_unlock();
 
     if (service::wifi::getRadioState() != service::wifi::RadioState::ConnectionActive) {
+        lvgl_lock();
         showNoInternet(ctx);
+        lvgl_unlock();
         return;
     }
 
     if (file::isFile(ctx->cachedAppsJsonFile)) {
+        lvgl_lock();
         showApps(ctx);
+        lvgl_unlock();
     }
 
-    // These callbacks run on a background network thread and reach back into this app's
-    // widgets via the captured ctx pointer - same convention as AppHubDetailsApp.cpp's
-    // download callback for the sibling "install/update" flow.
-    network::http::download(
-        getAppsJsonUrl(),
-        CERTIFICATE_PATH,
-        ctx->cachedAppsJsonFile,
-        [ctx] {
-            LOG_I(TAG, "Request success");
-            lvgl_lock();
-            showApps(ctx);
-            lvgl_unlock();
-        },
-        [ctx](const char* error) {
-            LOG_E(TAG, "Request failed: %s", error);
-            lvgl_lock();
-            showRefreshFailedError(ctx, "Cannot reach server");
-            lvgl_unlock();
-        }
-    );
+    if (http_download_subscribe(&ctx->downloadSub, ctx->eventGroup) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to subscribe to download events");
+        lvgl_lock();
+        showRefreshFailedError(ctx, "Cannot reach server");
+        lvgl_unlock();
+        return;
+    }
+
+    auto url = getAppsJsonUrl();
+    if (http_download_start(url.c_str(), CERTIFICATE_PATH, ctx->cachedAppsJsonFile.c_str(), &ctx->downloadSub) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to start download");
+        http_download_unsubscribe(&ctx->downloadSub);
+        lvgl_lock();
+        showRefreshFailedError(ctx, "Cannot reach server");
+        lvgl_unlock();
+        return;
+    }
+
+    ctx->downloadInProgress = true;
+}
+
+// Called from appMain()'s loop once http_download_poll() reports the download's terminal event.
+void onDownloadFinished(Context* ctx, const HttpDownloadEvent& event) {
+    ctx->downloadInProgress = false;
+    http_download_unsubscribe(&ctx->downloadSub);
+
+    lvgl_lock();
+    if (event.type == HTTP_DOWNLOAD_EVENT_SUCCESS) {
+        ctx->needsInitialRefresh = false;
+        LOG_I(TAG, "Request success (status %d)", event.status_code);
+        showApps(ctx);
+    } else {
+        LOG_E(TAG, "Request failed (status %d): %s", event.status_code, event.error.message);
+        showRefreshFailedError(ctx, "Cannot reach server");
+    }
+    lvgl_unlock();
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -186,9 +240,15 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_pad_all(ctx->contentWrapper, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_pad_ver(ctx->contentWrapper, 0, LV_STATE_DEFAULT);
 
-    refresh(ctx);
-
-    lv_obj_scroll_to_y(ctx->contentWrapper, ctx->scrollY, LV_ANIM_OFF);
+    ctx->restoreScrollOnNextShow = true;
+    if (ctx->needsInitialRefresh) {
+        requestRefresh(ctx);
+    } else {
+        // Resurfacing (e.g. returning from AppHubDetailsApp) - redisplay the cache already
+        // loaded this session instead of hitting the network again. window_manager calls
+        // createWidgets() with the LVGL lock already held, so this can touch widgets directly.
+        showApps(ctx);
+    }
 }
 
 void destroyWidgets(void* userData) {
@@ -205,6 +265,10 @@ int32_t appMain(int argc, char* argv[]) {
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+    ctx.eventGroup = &event_group;
+    if (task_event_group_claim_bit(&event_group, &ctx.refreshRequestedBit) != ERROR_NONE) {
+        LOG_W(TAG, "Failed to claim a refresh-requested bit; refresh button won't work");
+    }
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
@@ -224,8 +288,24 @@ int32_t appMain(int argc, char* argv[]) {
                 default:
                     break;
             }
-            if (shouldClose) break;
         }
+
+        if (ctx.downloadInProgress) {
+            HttpDownloadEvent download_event {};
+            if (http_download_poll(&ctx.downloadSub, &download_event) == ERROR_NONE) {
+                onDownloadFinished(&ctx, download_event);
+            }
+        }
+
+        if (!shouldClose && ctx.refreshRequested.exchange(false)) {
+            refresh(&ctx);
+        }
+    }
+
+    if (ctx.downloadInProgress) {
+        http_download_cancel(&ctx.downloadSub);
+        http_download_unsubscribe(&ctx.downloadSub);
+        ctx.downloadInProgress = false;
     }
 
     window_manager_remove(window);
