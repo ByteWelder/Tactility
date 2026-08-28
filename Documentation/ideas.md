@@ -11,14 +11,13 @@
 
 ## Higher Priority
 
+- Add tests for app stdin/stdout
+- AppHubApp: Prevent download callbacks from accessing a destroyed view. Create a "download task" concept that emits events.
 - CrashDiagnostics shouldn't show a QR when there's no callstack
-- Apps should be able to specify stack size in their manifest, per architecture.
-  Use thread_get_stack_space() to find out the unused bytes
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
   Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
 - stopAppFromToolbar() in Tactility.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.
 - Warn if file operations are done from prohibited tasks (e.g. lvgl task)
-- AppHubApp: Prevent download callbacks from accessing a destroyed view.
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
 - Get rid of WiFi service (Wifi.cpp/h) in Tactility.cpp
 - Make it more clear to end-users that an SD card is required to run Tactility
@@ -51,12 +50,12 @@
 
 ## Medium Priority
 
+- esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Make USB host driver disabled by default, so it doesn't consume memory
-- Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
@@ -64,6 +63,7 @@
 
 ## Lower Priority
 
+- Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - lvgl-module has a keyboard.cpp that creates a `keyboard_group`. This group is set as the default group, so it can also work with trackball(= LVGL "encoder").
   Make a separate group that is the default group. The keyboard can then use it (or use its own).
   The basic idea is to invert the ownership: now the keyboard group is made the default group, but it's probably more logical to have the default group used by the keyboard.
@@ -74,7 +74,6 @@
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
 - Use GPS time to set/update the current time
-- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - Consider using non_null (either via MS GSL, or custom)
 - Fix system time to not be 1980 (use build year as a minimum). Consider keeping track of the last known time.
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
@@ -96,8 +95,6 @@
 - Audio recording app
 - OTA updates
 - If present, use LED to show boot/wifi status
-- On crash, try to save the current log to flash or SD card? (this is risky, though, so ask in Discord first)
-- Support more than 1 hardware keyboard (see lvgl::hardware_keyboard_set_indev()). LVGL init currently calls keyboard init, but that part should probably be done from the KeyboardDevice base class.
 
 # App Ideas
 

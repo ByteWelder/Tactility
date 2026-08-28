@@ -19,10 +19,9 @@ struct Device;
 struct GpioDescriptor;
 
 /**
- * SX1262 radio engine: owns the radio thread, the TX queue and the callback lists.
- * The public methods are thread-safe. Callbacks are invoked on a snapshot of the list with
- * the internal mutex released, either from the radio thread (RX, TX progress, state) or from
- * the caller of transmit() (QUEUED).
+ * SX1262 radio engine: owns the radio thread and the TX queue. The public methods are
+ * thread-safe. State/RX/TX events are published via lora_event_emit(), either from the radio
+ * thread (RX, TX progress, state) or from the caller of transmit() (QUEUED).
  *
  * The RadioLib types live behind the RadioParts indirection: RadioLib declares a global
  * `class Module` that collides with the kernel's `struct Module` when both are visible
@@ -59,12 +58,6 @@ private:
         std::vector<uint8_t> data;
     };
 
-    template<typename Callback>
-    struct CallbackEntry {
-        void* context;
-        Callback callback;
-    };
-
     const Settings settings;
     RadioParts* parts;
     mutable RecursiveMutex mutex = {};
@@ -79,10 +72,6 @@ private:
     std::deque<TxItem> txQueue;
     TxItem currentTx;
     LoraTxId lastTxId = 0;
-
-    std::vector<CallbackEntry<LoraStateCallback>> stateCallbacks;
-    std::vector<CallbackEntry<LoraRxCallback>> rxCallbacks;
-    std::vector<CallbackEntry<LoraTxCallback>> txCallbacks;
 
     // Parameter store, applied on the next doBegin(). Frequencies/rates are held in base SI
     // units (Hz, bit/s) and converted to RadioLib's MHz/kHz/kbps floats in doBegin().
@@ -111,8 +100,8 @@ private:
     int32_t threadMain();
 
     void setState(enum LoraRadioState newState);
-    void publishRx(const struct LoraRxPacket& packet);
-    void publishTx(LoraTxId id, enum LoraTransmissionState txState);
+    error_t publishRx(const uint8_t* data, size_t length, float rssi, float snr);
+    error_t publishTx(LoraTxId id, enum LoraTransmissionState txState);
 
     size_t getTxQueueSize() const;
     TxItem popNextQueuedTx();
@@ -165,11 +154,4 @@ public:
     error_t getParameter(enum LoraParameter parameter, int32_t* value) const;
 
     error_t transmit(const uint8_t* data, size_t length, LoraTxId* id);
-
-    error_t addRxCallback(void* context, LoraRxCallback callback);
-    error_t removeRxCallback(LoraRxCallback callback);
-    error_t addStateCallback(void* context, LoraStateCallback callback);
-    error_t removeStateCallback(LoraStateCallback callback);
-    error_t addTxCallback(void* context, LoraTxCallback callback);
-    error_t removeTxCallback(LoraTxCallback callback);
 };
