@@ -100,8 +100,8 @@ private:
     int32_t threadMain();
 
     void setState(enum LoraRadioState newState);
-    void publishRx(const uint8_t* data, size_t length, float rssi, float snr);
-    void publishTx(LoraTxId id, enum LoraTransmissionState txState);
+    error_t publishRx(const uint8_t* data, size_t length, float rssi, float snr);
+    error_t publishTx(LoraTxId id, enum LoraTransmissionState txState);
 
     size_t getTxQueueSize() const;
     TxItem popNextQueuedTx();

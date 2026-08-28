@@ -290,8 +290,9 @@ struct LoraRxEvent {
 
 /**
  * Caller-owned subscription node, registered with lora_rx_event_subscribe() and drained with
- * lora_rx_event_poll(). Events queue by value (FIFO): a poll subscription that falls behind
- * loses the oldest un-popped packet's data only once the queue is full, not on every new event.
+ * lora_rx_event_poll(). Events queue by value (FIFO): a subscription that falls behind keeps
+ * every queued packet; once the queue is full, newly received packets are dropped instead.
+
  * @warning Fields other than `bit` are for internal use only; do not read or write them directly.
  */
 struct LoraRxEventSubscription {

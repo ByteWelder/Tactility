@@ -373,12 +373,12 @@ enum LoraModulation Sx1262Radio::getModulation() const {
     return result;
 }
 
-void Sx1262Radio::publishRx(const uint8_t* data, size_t length, float rssi, float snr) {
-    lora_rx_event_emit(settings.device, data, length, rssi, snr);
+error_t Sx1262Radio::publishRx(const uint8_t* data, size_t length, float rssi, float snr) {
+    return lora_rx_event_emit(settings.device, data, length, rssi, snr);
 }
 
-void Sx1262Radio::publishTx(LoraTxId id, enum LoraTransmissionState txState) {
-    lora_tx_event_emit(settings.device, id, txState);
+error_t Sx1262Radio::publishTx(LoraTxId id, enum LoraTransmissionState txState) {
+    return lora_tx_event_emit(settings.device, id, txState);
 }
 
 // endregion
