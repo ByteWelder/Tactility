@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Get rid of TactilityC in favour of TactilityKernel and kernel modules
 - Add tests for app stdin/stdout
 - CrashDiagnostics shouldn't show a QR when there's no callstack
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
@@ -16,9 +17,7 @@
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
 - Get rid of WiFi service (Wifi.cpp/h) in Tactility.cpp
 - Make it more clear to end-users that an SD card is required to run Tactility
-- Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
 - Add bold fonts for e-ink readability improvement
-- Httpd.cpp: warn if running on same CPU core (or task) as UI/LVGL/window manager.
 - Improve Setup: Show "Step done" screen
 - Improve Setup: Add keyboard/keypad navigation explanation
 - display.h API: get_backlight does not change ref counting, but it should
@@ -28,10 +27,8 @@
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
 - Core2: support power off via software
 - Create `#define` for empty module (for modules that fully rely on device.properties and don't define drivers or have start/stop logic)
-- Get rid of TactilityC in favour of TactilityKernel and kernel modules
 - Improve SPI kernel driver (implement read, write, transactions)
 - Add font design tokens such as "regular", "title" and "smaller". Perhaps via the LVGL kernel module.
-- Fix glitches when installing app via App Hub with 4.3" Waveshare
 - TCA9534 keyboards should use interrupts
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
@@ -45,6 +42,7 @@
 
 ## Medium Priority
 
+- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
@@ -52,9 +50,9 @@
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Make USB host driver disabled by default, so it doesn't consume memory
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
-- Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
-- Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
 - Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
+- Move HttpServer implementation to http-module
+- Use GPS time to set/update the current time
 
 ## Lower Priority
 
@@ -62,20 +60,14 @@
 - lvgl-module has a keyboard.cpp that creates a `keyboard_group`. This group is set as the default group, so it can also work with trackball(= LVGL "encoder").
   Make a separate group that is the default group. The keyboard can then use it (or use its own).
   The basic idea is to invert the ownership: now the keyboard group is made the default group, but it's probably more logical to have the default group used by the keyboard.
-- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Explore LVGL9's FreeRTOS functionality
-- CrashHandler: use "corrupted" flag
-- CrashHandler: process other types of crashes (WDT?)
-- Use GPS time to set/update the current time
 - Consider using non_null (either via MS GSL, or custom)
 - Fix system time to not be 1980 (use build year as a minimum). Consider keeping track of the last known time.
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
-- Remove flex_flow from app_container in Gui.cpp
-- Bug: CYD 2432S032C screen rotation fails due to touch driver issue
 - Calculator app should show regular text input field on non-touch devices that have a keyboard (Cardputer, T-Lora Pager)
 - Allow for WSAD keys to navigate LVGL (this is extra nice for cardputer, but just handy in general)
 - Create a "How to" app for a device. It could explain things like keyboard navigation on first start.
