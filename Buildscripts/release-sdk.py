@@ -174,6 +174,7 @@ def main():
     add_module(target_path, "app-module")
     add_module(target_path, "crypt-module")
     add_module(target_path, "gps-module")
+    add_module(target_path, "http-module")
     add_module(target_path, "lvgl-module")
     add_module(target_path, "lvgl-window-manager-module")
     add_module(target_path, "service-module")

@@ -41,6 +41,7 @@
 #include <gps/module.h>
 #include <gps_generic/module.h>
 #include <gps_meshtastic/module.h>
+#include <http/module.h>
 
 #include <crypt/module.h>
 #include <lvgl/devices/keyboard.h>
@@ -475,6 +476,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&gps_module) == ERROR_NONE);
     check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
     check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
+    check(module_ensure_started(&http_module) == ERROR_NONE);
     // Registers the APP_LOCATION_MEMORY app loader (boot/launcher need it below).
     check(module_ensure_started(&app_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM

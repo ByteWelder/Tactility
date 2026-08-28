@@ -4,7 +4,6 @@
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/file/File.h>
-#include <Tactility/network/Http.h>
 
 #include <app/event.h>
 #include <app/install.h>
@@ -12,6 +11,8 @@
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+
+#include <http/download.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -51,6 +52,13 @@ struct Context {
     std::atomic<uint32_t> installDialogId = 0;
     std::atomic<uint32_t> uninstallDialogId = 0;
     std::atomic<uint32_t> updateDialogId = 0;
+
+    // doInstall()/onDownloadFinished() and the poll for them both run on appMain()'s own task
+    // (triggered via confirm-dialog APP_EVENT_RESULTs), so HttpDownloadSubscription's
+    // subscribe/start/poll are naturally all on one consistent task already.
+    TaskEventGroup* eventGroup = nullptr;
+    HttpDownloadSubscription downloadSub {};
+    bool downloadInProgress = false;
 };
 
 
@@ -95,36 +103,68 @@ void uninstallApp(Context* ctx) {
     lvgl_unlock();
 }
 
-void doInstall(Context* ctx) {
-    auto url = apphub::getDownloadUrl(ctx->entry.file);
+// Path doInstall() downloads to and onDownloadFinished() installs from - deterministic from ctx->entry,
+// which doesn't change once this app instance is running, so it's recomputed at each use instead of stored.
+std::string getTempFilePath(Context* ctx) {
     auto file_name = file::getLastPathSegment(ctx->entry.file);
-    auto temp_file_path = std::format("{}/{}", getTempPath(), file_name);
-    network::http::download(
-        url,
-        apphub::CERTIFICATE_PATH,
-        temp_file_path,
-        [ctx, temp_file_path] {
-            app_install(temp_file_path.c_str());
+    return std::format("{}/{}", getTempPath(), file_name);
+}
 
-            if (!file::deleteFile(temp_file_path)) {
-                LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
-            } else {
-                LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
-            }
+void doInstall(Context* ctx) {
+    if (ctx->downloadInProgress) {
+        return;
+    }
 
-            lvgl_lock();
-            updateViews(ctx);
-            lvgl_unlock();
-        },
-        [ctx, temp_file_path](const char* errorMessage) {
-            LOG_E(TAG, "Download failed: %s", errorMessage);
+    if (http_download_subscribe(&ctx->downloadSub, ctx->eventGroup) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to subscribe to download events");
+        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
+        return;
+    }
+
+    auto url = apphub::getDownloadUrl(ctx->entry.file);
+    auto temp_file_path = getTempFilePath(ctx);
+    if (http_download_start(url.c_str(), apphub::CERTIFICATE_PATH, temp_file_path.c_str(), &ctx->downloadSub) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to start download");
+        http_download_unsubscribe(&ctx->downloadSub);
+        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
+        return;
+    }
+
+    ctx->downloadInProgress = true;
+}
+
+// Called from appMain()'s loop once http_download_poll() reports the download's terminal event.
+void onDownloadFinished(Context* ctx, const HttpDownloadEvent& event) {
+    ctx->downloadInProgress = false;
+    http_download_unsubscribe(&ctx->downloadSub);
+
+    auto temp_file_path = getTempFilePath(ctx);
+
+    if (event.type == HTTP_DOWNLOAD_EVENT_SUCCESS) {
+        error_t install_result = app_install(temp_file_path.c_str());
+        if (install_result != ERROR_NONE) {
+            LOG_E(TAG, "Install of %s failed", temp_file_path.c_str());
             alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
-
-            if (file::isFile(temp_file_path) && !file::deleteFile(temp_file_path.c_str())) {
-                LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
-            }
         }
-    );
+
+        if (!file::deleteFile(temp_file_path)) {
+            LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
+        } else {
+            LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
+        }
+
+        lvgl_lock();
+        updateViews(ctx);
+        lvgl_unlock();
+    } else {
+        LOG_E(TAG, "Download failed (status %d): %s", event.status_code,
+            event.type == HTTP_DOWNLOAD_EVENT_ERROR ? event.error.message : "Cancelled");
+        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
+
+        if (file::isFile(temp_file_path) && !file::deleteFile(temp_file_path.c_str())) {
+            LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
+        }
+    }
 }
 
 void installApp(Context* ctx) {
@@ -234,6 +274,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+    ctx.eventGroup = &event_group;
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
@@ -267,6 +308,21 @@ int32_t appMain(int argc, char* argv[]) {
             }
             if (shouldClose) break;
         }
+
+        if (ctx.downloadInProgress) {
+            HttpDownloadEvent download_event {};
+            if (http_download_poll(&ctx.downloadSub, &download_event) == ERROR_NONE) {
+                onDownloadFinished(&ctx, download_event);
+            }
+        }
+    }
+
+    if (ctx.downloadInProgress) {
+        // Safe to call immediately, even mid-download - no need to wait for the terminal event
+        // first, so app close doesn't block on the network.
+        http_download_cancel(&ctx.downloadSub);
+        http_download_unsubscribe(&ctx.downloadSub);
+        ctx.downloadInProgress = false;
     }
 
     window_manager_remove(window);

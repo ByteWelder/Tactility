@@ -2,17 +2,12 @@
 
 ## Before release
 
-- Add `// SPDX-License-Identifier: GPL-3.0-only` and `// SPDX-License-Identifier: Apache-2.0` to individual files in the project
-- Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
-- App Hub crashes if you close it while an app is being installed
-- Calculator bugs (see GitHub issue)
 - Try out speed optimizations: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html
   (relates to CONFIG_ESP32S3_DATA_CACHE_LINE_64B that is in use for RGB displays via the `device.properties` fix/workaround)
 
 ## Higher Priority
 
 - Add tests for app stdin/stdout
-- AppHubApp: Prevent download callbacks from accessing a destroyed view. Create a "download task" concept that emits events.
 - CrashDiagnostics shouldn't show a QR when there's no callstack
 - Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
   Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
@@ -80,7 +75,6 @@
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Remove flex_flow from app_container in Gui.cpp
-- ElfAppManifest: change name (remove "manifest" as it's confusing), remove icon and title, publish snapshot SDK on CDN
 - Bug: CYD 2432S032C screen rotation fails due to touch driver issue
 - Calculator app should show regular text input field on non-touch devices that have a keyboard (Cardputer, T-Lora Pager)
 - Allow for WSAD keys to navigate LVGL (this is extra nice for cardputer, but just handy in general)
