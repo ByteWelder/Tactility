@@ -98,10 +98,14 @@ else ()
         lvgl-module
         lvgl-window-manager-module
         app-module
+        c-symbols-module
+        cpp-symbols-module
         crypt-module
+        freertos-module
         gps-module
         http-module
         mbedtls-module
+        posix-symbols-module
         pthread-module
         gps-generic-module
         gps-meshtastic-module

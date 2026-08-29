@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <sdkconfig.h>
+#include <assert.h>
 #include <driver/gpio.h>
 #include <driver/i2s_common.h>
 #include <driver/i2s_std.h>
 #include <driver/ledc.h>
+#include <esp_err.h>
 #include <esp_event.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
+#include <esp_log_level.h>
+#include <esp_log_timestamp.h>
 #include <esp_log_write.h>
 #include <esp_random.h>
 #include <esp_system.h>
@@ -116,6 +121,8 @@ extern "C" {
 extern "C" {
 
 const ModuleSymbol platform_esp32_symbols[] = {
+    // cassert
+    DEFINE_MODULE_SYMBOL(__assert_func),
     // esp_log
     DEFINE_MODULE_SYMBOL(esp_log),
     DEFINE_MODULE_SYMBOL(esp_log_level_set),

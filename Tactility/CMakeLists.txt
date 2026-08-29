@@ -11,10 +11,14 @@ list(APPEND REQUIRES_LIST
     lvgl-module
     lvgl-window-manager-module
     app-module
+    c-symbols-module
+    cpp-symbols-module
     crypt-module
+    freertos-module
     gps-module
     http-module
     mbedtls-module
+    posix-symbols-module
     pthread-module
     gps-generic-module
     gps-meshtastic-module
@@ -27,8 +31,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     list(APPEND REQUIRES_LIST
         app-esp32-module
-        cpp-symbols-module
-        freertos-module
         platform-esp32
         driver
         elf_loader
