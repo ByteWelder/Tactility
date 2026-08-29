@@ -3,6 +3,7 @@
 
 #include <app/instance.h>
 #include <app/manifest.h>
+#include <app/stream.h>
 
 #include <tactility/error.h>
 
@@ -85,6 +86,30 @@ error_t app_manager_start_with_parameters(const char* id, int argc, const char* 
  * @retval ERROR_NONE on success
  */
 error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id);
+
+/** One fd-to-stream binding for app_manager_start_with_streams(). Every field is passed through
+ * to app_stream_subscribe() as-is; see its own doc for the ownership contracts. */
+struct AppStreamBinding {
+    int producer_fd;
+    struct AppStream* stream;
+    void* buffer;
+    size_t buffer_capacity;
+    struct TaskEventGroup* event_group;
+};
+
+/**
+ * Same as app_manager_start(), but installs @a bindings into the new instance's fd table before
+ * its task begins executing (e.g. a child's stdio, piped through parent-owned AppStreams; see
+ * app/stream.h). Writes the new instance's id into each bound stream's producer_id itself, since
+ * the caller cannot know it in advance.
+ * @param[in] bindings @a binding_count entries; each stream and buffer must stay alive (see
+ * app_stream_subscribe()) until unsubscribed or the child exits.
+ * @retval ERROR_NOT_FOUND no manifest with this id is registered, or no AppLoaderApi is registered
+ * @retval ERROR_OUT_OF_RANGE a binding's producer_fd is out of range
+ * @retval ERROR_RESOURCE a binding's event_group has no free bits left to claim
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_with_streams(const char* id, const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
 
 /**
  * Stop an app instance permanently. Emits APP_EVENT_CLOSE and bound-waits for its task to exit

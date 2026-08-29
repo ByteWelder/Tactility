@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
 #include <app/install.h>
+#include <app/io.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/metadata.h>
 #include <app/paths.h>
 #include <app/scheduler.h>
+#include <app/stream.h>
 
 #include <service/manager.h>
 
@@ -27,10 +29,15 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_get_install_path),
     DEFINE_MODULE_SYMBOL(app_install),
     DEFINE_MODULE_SYMBOL(app_uninstall),
+    // app/io
+    DEFINE_MODULE_SYMBOL(app_io_read),
+    DEFINE_MODULE_SYMBOL(app_io_write),
+    DEFINE_MODULE_SYMBOL(app_io_close),
     // app/manager
     DEFINE_MODULE_SYMBOL(app_manager_start),
     DEFINE_MODULE_SYMBOL(app_manager_start_with_parameters),
     DEFINE_MODULE_SYMBOL(app_manager_start_for_result),
+    DEFINE_MODULE_SYMBOL(app_manager_start_with_streams),
     DEFINE_MODULE_SYMBOL(app_manager_stop),
     DEFINE_MODULE_SYMBOL(app_manager_get_state),
     DEFINE_MODULE_SYMBOL(app_manager_find_manifest),
@@ -53,6 +60,13 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_paths_get_assets_path),
     // app/scheduler
     DEFINE_MODULE_SYMBOL(app_scheduler_current_app_id),
+    // app/stream
+    DEFINE_MODULE_SYMBOL(app_stream_subscribe),
+    DEFINE_MODULE_SYMBOL(app_stream_unsubscribe),
+    DEFINE_MODULE_SYMBOL(app_stream_await),
+    DEFINE_MODULE_SYMBOL(app_stream_read),
+    DEFINE_MODULE_SYMBOL(app_stream_write),
+    DEFINE_MODULE_SYMBOL(app_stream_close),
     // terminator
     MODULE_SYMBOL_TERMINATOR,
 };

@@ -1,0 +1,102 @@
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+
+#include <app/file.h>
+#include <app/instance.h>
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include <tactility/concurrent/mutex.h>
+#include <tactility/concurrent/task_event_group.h>
+#include <tactility/error.h>
+#include <tactility/freertos/freertos.h>
+#include <tactility/freertos/task.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct AppStreamBuffer {
+    uint8_t* data;
+    size_t capacity;
+    size_t read_pos;
+    size_t write_pos;
+    size_t count;
+};
+
+/**
+ * Internal state of the stream.
+ * Buffered byte-oriented communication between one producer task and one consumer task. The
+ * consumer owns the AppStream object and its lifetime. See app_stream_subscribe().
+ * @warning `internal` is for internal use only; do not read or write its fields directly.
+ */
+struct AppStream {
+    struct {
+        struct AppStreamBuffer buffer;
+        AppInstanceId producer_id;
+        TaskHandle_t producer_task;
+        /** fd this stream is installed at in producer_id's fd table; set by
+         * app_stream_subscribe()/app_manager_start_with_streams(), used by
+         * app_stream_unsubscribe() to find it again. */
+        int producer_fd;
+
+        struct Mutex mutex;
+        /** Caller-owned group readiness is signalled on; see app_stream_subscribe(). */
+        struct TaskEventGroup* event_group;
+        uint32_t readable_bit;
+        uint32_t writable_bit;
+        bool closed;
+    } internal;
+};
+
+/**
+ * Registers @a stream as the file-like object bound to @a producer_id's fd table at
+ * @a producer_fd, claiming two bits from @a event_group for its readable/writable readiness.
+ * There is at most one subscriber for a given app fd. Subscribing over an existing one
+ * atomically closes it first (any task blocked on it wakes; already-buffered bytes remain
+ * readable until drained) and installs @a stream in its place.
+ * @param[in,out] stream caller-owned. Storage must remain valid until
+ * app_stream_unsubscribe()/app_stream_close() or app-exit teardown.
+ * @param[in] buffer ring buffer storage; caller-owned, same validity requirement as @a stream.
+ * @param[in] buffer_capacity size of @a buffer in bytes.
+ * @param[in] event_group caller-owned; must outlive @a stream (i.e. be destructed only after
+ * app_stream_unsubscribe()). Lets a task wait on this stream's readiness together with other
+ * event sources sharing the same group via task_event_group_wait()/task_event_group_wait_any().
+ * @retval ERROR_NOT_FOUND no instance with this id is running
+ * @retval ERROR_OUT_OF_RANGE @a producer_fd is out of range
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim
+ * @retval ERROR_NONE on success
+ */
+error_t app_stream_subscribe(struct AppStream* stream, void* buffer, size_t buffer_capacity, struct TaskEventGroup* event_group, AppInstanceId producer_id, int producer_fd);
+
+/** Removes @a stream from whatever fd table it was installed in, restoring the null device there,
+ * and releases its two bits back to the event_group given to app_stream_subscribe(). */
+error_t app_stream_unsubscribe(struct AppStream* stream);
+
+/**
+ * Blocks until @a stream becomes readable/writable (per @a wait) or @a timeout elapses. Checks
+ * the current state directly before blocking, so a permanently-true condition (e.g. closed)
+ * keeps returning immediately on every call, even though the underlying event bit itself is
+ * one-shot (task_event_group_wait() clears a matched bit on exit).
+ * @retval ERROR_NONE the condition is true
+ * @retval ERROR_TIMEOUT @a timeout elapsed
+ * @retval ERROR_ISR_STATUS called from an ISR
+ */
+error_t app_stream_await(struct AppStream* stream, AppFileWait wait, TickType_t timeout);
+
+/** Non-blocking: copies up to @a buffer_size currently-available bytes out of @a stream. */
+size_t app_stream_read(struct AppStream* stream, void* buffer, size_t buffer_size);
+
+/** Non-blocking: copies up to @a buffer_size bytes into @a stream, as much as currently fits. */
+size_t app_stream_write(struct AppStream* stream, const void* buffer, size_t buffer_size);
+
+/**
+ * Marks @a stream closed: wakes any task blocked in app_stream_await(), and causes the other side
+ * to observe EOF (reader, once drained) or a write error (writer).
+ */
+error_t app_stream_close(struct AppStream* stream);
+
+#ifdef __cplusplus
+}
+#endif

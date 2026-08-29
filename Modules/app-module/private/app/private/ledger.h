@@ -3,6 +3,7 @@
 
 #include <app/instance.h>
 #include <app/manifest.h>
+#include <app/private/fd_table.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/freertos/freertos.h>
@@ -49,6 +50,10 @@ struct AppInstanceRecord {
     /** This instance's completion signal - see AppCompletionSignal. Set once by
      * app_scheduler_start(), never reassigned. */
     AppCompletionSignal* completion = nullptr;
+
+    /** This instance's fd table. Constructed by start_internal() before insertion into
+     * AppLedger::instances, torn down (every open fd closed) when the instance's task exits. */
+    AppFdTable fd_table {};
 };
 
 struct AppLedger {

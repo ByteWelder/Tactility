@@ -128,12 +128,12 @@ void ensure_fake_loader_registered() {
 
 // app-module's real APP_LOCATION_MEMORY loader (source/app_internal_loader.cpp) - not a fake,
 // since it has no platform dependency and is exactly what a statically-linked app would go
-// through.
+// through. Checks the registry directly rather than a per-translation-unit static bool: other
+// test files (stream_test.cpp, io_test.cpp) register the same manifest the same way, and
+// doctest doesn't guarantee which file's tests run first.
 void ensure_memory_loader_registered() {
-    static bool registered = false;
-    if (!registered) {
-        CHECK_EQ(service_manager_add(&app_internal_loader_service_manifest, /*auto_start=*/true), ERROR_NONE);
-        registered = true;
+    if (service_manager_find_instance(APP_LOADER_MEMORY_SERVICE_ID) == nullptr) {
+        service_manager_add(&app_internal_loader_service_manifest, /*auto_start=*/true);
     }
 }
 
