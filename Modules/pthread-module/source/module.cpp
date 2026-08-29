@@ -4,10 +4,12 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-// pthread_cond_clockwait / pthread_rwlock_clock{rd,wr}lock are GNU extensions (glibc >= 2.30),
-// not POSIX - absent from ESP-IDF's newlib, macOS's libc, musl, and older glibc.
-#if !defined(ESP_PLATFORM) && defined(__GLIBC__) && __GLIBC_PREREQ(2, 30)
+#if !defined(ESP_PLATFORM) && defined(__GLIBC_PREREQ)
+#if __GLIBC_PREREQ(2, 30)
 #define TT_PTHREAD_HAS_CLOCKWAIT 1
+#else
+#define TT_PTHREAD_HAS_CLOCKWAIT 0
+#endif
 #else
 #define TT_PTHREAD_HAS_CLOCKWAIT 0
 #endif

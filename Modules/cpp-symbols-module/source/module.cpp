@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <cpp_symbols/module.h>
 
-#include <bits/functexcept.h>
 #include <cstddef>
 #include <cstdint>
 #include <new>
 #include <string>
 
+#if defined(__GLIBCXX__) || defined(ESP_PLATFORM)
+#define TT_CPP_SYMBOLS_AVAILABLE 1
+#include <bits/functexcept.h>
+#else
+#define TT_CPP_SYMBOLS_AVAILABLE 0
+#endif
+
+#if TT_CPP_SYMBOLS_AVAILABLE
 extern "C" {
     // cplusplus: compiler/runtime ABI support
 #ifdef ESP_PLATFORM
@@ -37,8 +44,10 @@ extern "C" {
     void _ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE15_M_replace_coldEPcjPKcjj(void*, char*, unsigned int, char const*, unsigned int, unsigned int);
 #endif
 }
+#endif
 
 static const ModuleSymbol SYMBOLS[] = {
+#if TT_CPP_SYMBOLS_AVAILABLE
     // cplusplus
 #ifdef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(_Znwj), // operator new(unsigned int)
@@ -68,6 +77,7 @@ static const ModuleSymbol SYMBOLS[] = {
     // string - Note: You have to use the mangled names here
     DEFINE_MODULE_SYMBOL(_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE15_M_replace_coldEPcjPKcjj),
 #endif
+#endif // TT_CPP_SYMBOLS_AVAILABLE
     MODULE_SYMBOL_TERMINATOR
 };
 
