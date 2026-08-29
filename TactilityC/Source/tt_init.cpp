@@ -10,7 +10,6 @@
 #include "symbols/freertos.h"
 #include "symbols/gcc_soft_float.h"
 #include "symbols/mbedtls.h"
-#include "symbols/pthread.h"
 #include "symbols/stl.h"
 #include "symbols/string.h"
 
@@ -428,7 +427,6 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
         gcc_soft_float_symbols,
         stl_symbols,
         cplusplus_symbols,
-        pthread_symbols,
         freertos_symbols,
         string_symbols,
         esp_event_symbols,
