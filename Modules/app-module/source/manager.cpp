@@ -126,6 +126,12 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
         error_t bind_result = app_stream_subscribe(bindings[i].stream, bindings[i].buffer, bindings[i].buffer_capacity, bindings[i].event_group, target_id, bindings[i].producer_fd);
         if (bind_result != ERROR_NONE) {
             LOG_E(TAG, "[instance %d] Failed to bind stream at fd %d: %s", target_id, bindings[i].producer_fd, error_to_string(bind_result));
+            // Undo bindings[0..i): app_fd_table_teardown() below only closes each stream. It
+            // doesn't release the event bits app_stream_subscribe() claimed or destruct
+            // stream->internal.mutex; only app_stream_unsubscribe() does that.
+            for (size_t j = 0; j < i; j++) {
+                app_stream_unsubscribe(bindings[j].stream);
+            }
             mutex_lock(&ledger.mutex);
             app_fd_table_teardown(&ledger.instances[target_id].fd_table);
             ledger.instances.erase(target_id);
@@ -137,6 +143,11 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
 
     error_t error = app_scheduler_start(target_id, manifest->location, manifest->stack, argc, argv);
     if (error != ERROR_NONE) {
+        // Every binding succeeded before app_scheduler_start() failed. Unsubscribe all of them,
+        // same reasoning as the bind-failure path above.
+        for (size_t j = 0; j < binding_count; j++) {
+            app_stream_unsubscribe(bindings[j].stream);
+        }
         mutex_lock(&ledger.mutex);
         app_fd_table_teardown(&ledger.instances[target_id].fd_table);
         ledger.instances.erase(target_id);

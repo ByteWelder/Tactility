@@ -170,3 +170,39 @@ TEST_CASE("a write blocked on a full stream wakes with an error once the consume
     task_event_group_destruct(&event_group);
     app_manager_remove("test.io.blocked");
 }
+
+TEST_CASE("app_stream_unsubscribe is safe to call while a write is actively blocked") {
+    ensure_memory_loader_registered();
+    g_blocked_writer_saw_error.store(false, std::memory_order_relaxed);
+    g_blocked_writer_done.store(false, std::memory_order_relaxed);
+
+    AppManifest manifest { "test.io.unsub_race", "UnsubRace", APP_CATEGORY_USER, { APP_LOCATION_MEMORY, reinterpret_cast<void*>(blocked_writer_app_main) } };
+    REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
+
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
+    uint8_t storage[4]; // smaller than the 10 bytes blocked_writer_app_main sends
+    AppStream child_stdout {};
+
+    AppStreamBinding binding { STDOUT_FILENO, &child_stdout, storage, sizeof(storage), &event_group };
+    AppInstanceId child_id = 0;
+    REQUIRE_EQ(app_manager_start_with_streams("test.io.unsub_race", &binding, 1, &child_id), ERROR_NONE);
+
+    // Give the child time to fill the 4-byte buffer and block inside app_io_write(), already
+    // dispatched through app_fd_table_get_and_retain() and currently waiting in
+    // app_stream_await(). This is the exact state app_stream_unsubscribe() must be safe to run
+    // against, with no prior app_stream_close() or wait for the child to stop first.
+    delay_millis(200);
+    REQUIRE_FALSE(g_blocked_writer_done.load(std::memory_order_acquire));
+
+    // Regression: unsubscribing directly here used to be able to destruct
+    // stream->internal.mutex while the blocked write above was still executing against it.
+    REQUIRE_EQ(app_stream_unsubscribe(&child_stdout), ERROR_NONE);
+
+    REQUIRE(wait_for_state(child_id, APP_INSTANCE_STATE_STOPPED, 1000));
+    CHECK(g_blocked_writer_saw_error.load(std::memory_order_acquire));
+
+    task_event_group_destruct(&event_group);
+    app_manager_remove("test.io.unsub_race");
+}

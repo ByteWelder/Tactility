@@ -12,6 +12,24 @@ bool fd_in_range(int fd) {
     return fd >= 0 && fd < APP_MAX_FDS;
 }
 
+bool get_internal(AppFdTable* table, int fd, AppFile* out_file, bool retain) {
+    if (!fd_in_range(fd)) {
+        return false;
+    }
+
+    mutex_lock(&table->mutex);
+    check(!table->shutting_down);
+    bool in_use = table->fds[fd] != nullptr;
+    if (in_use) {
+        *out_file = table->slots[fd];
+        if (retain && out_file->ops->retain != nullptr) {
+            out_file->ops->retain(out_file->object);
+        }
+    }
+    mutex_unlock(&table->mutex);
+    return in_use;
+}
+
 } // namespace
 
 extern "C" {
@@ -86,18 +104,11 @@ error_t app_fd_table_allocate(AppFdTable* table, const AppFileOps* ops, void* ob
 }
 
 bool app_fd_table_get(AppFdTable* table, int fd, AppFile* out_file) {
-    if (!fd_in_range(fd)) {
-        return false;
-    }
+    return get_internal(table, fd, out_file, /*retain=*/false);
+}
 
-    mutex_lock(&table->mutex);
-    check(!table->shutting_down);
-    bool in_use = table->fds[fd] != nullptr;
-    if (in_use) {
-        *out_file = table->slots[fd];
-    }
-    mutex_unlock(&table->mutex);
-    return in_use;
+bool app_fd_table_get_and_retain(AppFdTable* table, int fd, AppFile* out_file) {
+    return get_internal(table, fd, out_file, /*retain=*/true);
 }
 
 error_t app_fd_table_close(AppFdTable* table, int fd) {

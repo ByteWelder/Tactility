@@ -113,12 +113,31 @@ uint32_t stream_file_poll(void* object) {
     return bits;
 }
 
+// Fused with app_fd_table_get_and_retain()'s own lock, so a caller that gets a live AppFile back
+// is already counted here before it can be paused and raced by app_stream_unsubscribe()'s drain
+// wait (see StreamOperationGuard above for the equivalent per-call bracketing).
+void stream_file_retain(void* object) {
+    auto* stream = static_cast<AppStream*>(object);
+    mutex_lock(&stream->internal.mutex);
+    stream->internal.active_operations++;
+    mutex_unlock(&stream->internal.mutex);
+}
+
+void stream_file_release(void* object) {
+    auto* stream = static_cast<AppStream*>(object);
+    mutex_lock(&stream->internal.mutex);
+    stream->internal.active_operations--;
+    mutex_unlock(&stream->internal.mutex);
+}
+
 constexpr AppFileOps STREAM_OPS = {
     .read = stream_file_read,
     .write = stream_file_write,
     .close = stream_file_close,
     .await = stream_file_await,
     .poll = stream_file_poll,
+    .retain = stream_file_retain,
+    .release = stream_file_release,
 };
 
 } // namespace

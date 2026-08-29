@@ -33,6 +33,12 @@ struct AppFileOps {
     error_t (*await)(void* object, AppFileWait wait, TickType_t timeout);
     /** @return bitmask of APP_FILE_READABLE / APP_FILE_WRITABLE. */
     uint32_t (*poll)(void* object);
+    /** Optional (may be NULL). Called by app_fd_table_get_and_retain() atomically with the fd
+     * lookup, before handing `object` to a caller about to dispatch into it, so a concurrent
+     * teardown of `object` can wait for that dispatch to finish instead of racing it. The caller
+     * calls release() once done, regardless of what the dispatched call returned. */
+    void (*retain)(void* object);
+    void (*release)(void* object);
 };
 
 /** A file-descriptor-table entry: an operations table paired with the object it operates on. */

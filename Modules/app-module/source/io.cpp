@@ -49,11 +49,15 @@ ssize_t app_io_read(int fd, void* buffer, size_t size) {
     }
 
     AppFile file {};
-    if (!app_fd_table_get(table, fd, &file)) {
+    if (!app_fd_table_get_and_retain(table, fd, &file)) {
         errno = EBADF;
         return -1;
     }
-    return file.ops->read(file.object, buffer, size);
+    ssize_t result = file.ops->read(file.object, buffer, size);
+    if (file.ops->release != nullptr) {
+        file.ops->release(file.object);
+    }
+    return result;
 }
 
 ssize_t app_io_write(int fd, const void* buffer, size_t size) {
@@ -67,11 +71,15 @@ ssize_t app_io_write(int fd, const void* buffer, size_t size) {
     }
 
     AppFile file {};
-    if (!app_fd_table_get(table, fd, &file)) {
+    if (!app_fd_table_get_and_retain(table, fd, &file)) {
         errno = EBADF;
         return -1;
     }
-    return file.ops->write(file.object, buffer, size);
+    ssize_t result = file.ops->write(file.object, buffer, size);
+    if (file.ops->release != nullptr) {
+        file.ops->release(file.object);
+    }
+    return result;
 }
 
 int app_io_close(int fd) {

@@ -57,6 +57,15 @@ error_t app_fd_table_allocate(struct AppFdTable* table, const struct AppFileOps*
 bool app_fd_table_get(struct AppFdTable* table, int fd, struct AppFile* out_file);
 
 /**
+ * Like app_fd_table_get(), but also calls the returned AppFile's AppFileOps::retain() (if any)
+ * while still holding `mutex`, atomically with the lookup. A caller that gets true back can
+ * therefore never have @a fd closed/torn down out from under it between this call and actually
+ * dispatching into the returned AppFile. Caller must call AppFileOps::release() once done
+ * dispatching.
+ */
+bool app_fd_table_get_and_retain(struct AppFdTable* table, int fd, struct AppFile* out_file);
+
+/**
  * Closes @a fd (via AppFileOps::close()) and frees the slot for reuse.
  * @retval ERROR_NOT_FOUND @a fd is out of range or not currently in use
  */
