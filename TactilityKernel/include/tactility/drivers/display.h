@@ -210,6 +210,8 @@ struct DisplayApi {
     /**
      * @brief Gets the backlight device associated with this display, if any.
      * @warning Function pointer should be null if capability not available.
+     * @warning Implementations must not take a reference on *backlight: display_get_backlight()
+     * adds it on their behalf, once, so drivers don't each have to remember to.
      * @param[in] device the display device
      * @param[out] backlight the associated backlight device
      * @retval ERROR_NONE when a backlight is available and *backlight was set
@@ -336,6 +338,7 @@ uint8_t display_get_frame_buffer_count(struct Device* device);
 
 /**
  * @brief Gets the backlight device associated with the specified display, if any.
+ * @warning On success, *backlight is returned with an added reference (see device_get())
  * @retval ERROR_NONE when a backlight is available and *backlight was set
  * @retval ERROR_NOT_SUPPORTED when the display has no associated backlight
  */
