@@ -9,6 +9,7 @@ endif ()
 
 if ("${IDF_TARGET}" STREQUAL "esp32p4")
     list(APPEND PRIV_REQUIRES_LIST esp_driver_ppa)
+    list(APPEND PRIV_REQUIRES_LIST esp_mm)
 endif ()
 
 idf_component_register(

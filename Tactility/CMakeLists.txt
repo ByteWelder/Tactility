@@ -114,6 +114,7 @@ execute_process(
 # so the new component's include dirs never reach the compiler until a fullclean.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${DEVICETREE_LOCATION}/devicetree.yaml"
+    "${DEVICETREE_LOCATION}/device.properties" # due to the "hardware.bluetooth = true" search in this file from this CMakeLists.txt
 )
 
 execute_process(

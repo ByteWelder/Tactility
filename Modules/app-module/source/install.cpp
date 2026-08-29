@@ -37,6 +37,28 @@ std::string last_path_segment(const std::string& path) {
     return index == std::string::npos ? path : path.substr(index + 1);
 }
 
+// Rejects absolute paths and ".." components, so a crafted tar entry can't extract outside destination_path (CWE-22).
+bool is_tar_entry_path_safe(const std::string& path) {
+    if (path.empty() || path.front() == '/') {
+        return false;
+    }
+
+    size_t start = 0;
+    while (start <= path.size()) {
+        size_t slash = path.find('/', start);
+        size_t length = (slash == std::string::npos ? path.size() : slash) - start;
+        if (path.compare(start, length, "..") == 0) {
+            return false;
+        }
+        if (slash == std::string::npos) {
+            break;
+        }
+        start = slash + 1;
+    }
+
+    return true;
+}
+
 // mkdir -p.
 bool ensure_directory(const std::string& path) {
     if (path.empty() || app_fs_is_directory(path)) {
@@ -80,8 +102,9 @@ bool get_app_install_directory(std::string& out_path) {
 
 bool untar_file(minitar* archive, const minitar_entry* entry, const std::string& destination_path) {
     auto absolute_path = destination_path + "/" + entry->metadata.path;
-    if (!ensure_directory_recursive(destination_path)) {
-        LOG_E(TAG, "Can't find or create directory %s", destination_path.c_str());
+    auto parent_path = absolute_path.substr(0, absolute_path.find_last_of('/'));
+    if (!ensure_directory_recursive(parent_path)) {
+        LOG_E(TAG, "Can't find or create directory %s", parent_path.c_str());
         return false;
     }
 
@@ -111,6 +134,11 @@ bool untar(const std::string& tar_path, const std::string& destination_path) {
     minitar_entry entry {};
     while (minitar_read_entry(&archive, &entry) == 0) {
         LOG_I(TAG, "Extracting %s", entry.metadata.path);
+        if (!is_tar_entry_path_safe(entry.metadata.path)) {
+            LOG_E(TAG, "Rejecting unsafe tar entry path: %s", entry.metadata.path);
+            success = false;
+            break;
+        }
         if (entry.metadata.type == MTAR_DIRECTORY) {
             if (std::strcmp(entry.metadata.name, ".") == 0 || std::strcmp(entry.metadata.name, "..") == 0 || std::strcmp(entry.metadata.name, "/") == 0) {
                 continue;
@@ -336,7 +364,12 @@ error_t app_install(const char* source_path) {
         return ERROR_NOT_FOUND;
     }
 
-    auto staging_path = app_parent_path + "/" + last_path_segment(source_path);
+    auto source_name = last_path_segment(source_path);
+    if (source_name.empty() || source_name == "." || source_name == "..") {
+        LOG_E(TAG, "Invalid source path %s", source_path);
+        return ERROR_INVALID_ARGUMENT;
+    }
+    auto staging_path = app_parent_path + "/" + source_name;
     acquire_staging_lock(staging_path);
 
     delete_recursively(staging_path);

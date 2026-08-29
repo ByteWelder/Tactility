@@ -22,6 +22,7 @@
 #include <sys/errno.h>
 
 #ifdef CONFIG_IDF_TARGET_ESP32P4
+#include <esp_cache.h>
 #include <driver/ppa.h>
 #endif
 

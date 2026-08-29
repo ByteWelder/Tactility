@@ -4,6 +4,14 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+// pthread_cond_clockwait / pthread_rwlock_clock{rd,wr}lock are GNU extensions (glibc >= 2.30),
+// not POSIX - absent from ESP-IDF's newlib, macOS's libc, musl, and older glibc.
+#if !defined(ESP_PLATFORM) && defined(__GLIBC__) && __GLIBC_PREREQ(2, 30)
+#define TT_PTHREAD_HAS_CLOCKWAIT 1
+#else
+#define TT_PTHREAD_HAS_CLOCKWAIT 0
+#endif
+
 extern "C" {
 
 static const ModuleSymbol SYMBOLS[] = {
@@ -17,7 +25,7 @@ static const ModuleSymbol SYMBOLS[] = {
     // pthread_cond
     DEFINE_MODULE_SYMBOL(pthread_cond_init),
     DEFINE_MODULE_SYMBOL(pthread_cond_broadcast),
-#ifndef ESP_PLATFORM
+#if TT_PTHREAD_HAS_CLOCKWAIT
     DEFINE_MODULE_SYMBOL(pthread_cond_clockwait),
 #endif
     DEFINE_MODULE_SYMBOL(pthread_cond_destroy),
@@ -48,9 +56,11 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(sem_trywait),
     DEFINE_MODULE_SYMBOL(sem_wait),
     // pthread_rwlock
-#ifndef ESP_PLATFORM
+#if TT_PTHREAD_HAS_CLOCKWAIT
     DEFINE_MODULE_SYMBOL(pthread_rwlock_clockrdlock),
     DEFINE_MODULE_SYMBOL(pthread_rwlock_clockwrlock),
+#endif
+#ifndef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(pthread_rwlock_timedrdlock),
     DEFINE_MODULE_SYMBOL(pthread_rwlock_timedwrlock),
     DEFINE_MODULE_SYMBOL(pthread_rwlockattr_destroy),

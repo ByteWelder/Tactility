@@ -20,6 +20,10 @@ extern Driver gpio_backlight_driver;
 extern Driver rgb_led_gpio_driver;
 extern Driver rgb_led_pwm_driver;
 
+/**
+ * @warning Because the drivers have no owning module, they cannot be unbound.
+ * This is fine for now because we never unload the kernel once it's loaded.
+ */
 static Driver* const KERNEL_DRIVERS[] = {
     &root_driver,
     &battery_sense_driver,
