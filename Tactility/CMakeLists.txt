@@ -26,6 +26,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     list(APPEND REQUIRES_LIST
         app-esp32-module
+        freertos-module
         platform-esp32
         driver
         elf_loader

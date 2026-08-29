@@ -7,7 +7,6 @@
 #include "symbols/cplusplus.h"
 #include "symbols/esp_event.h"
 #include "symbols/esp_http_client.h"
-#include "symbols/freertos.h"
 #include "symbols/gcc_soft_float.h"
 #include "symbols/mbedtls.h"
 #include "symbols/stl.h"
@@ -427,7 +426,6 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
         gcc_soft_float_symbols,
         stl_symbols,
         cplusplus_symbols,
-        freertos_symbols,
         string_symbols,
         esp_event_symbols,
         esp_http_client_symbols,
