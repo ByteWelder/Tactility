@@ -16,6 +16,8 @@
 /** For an overloaded symbol (e.g. libc++/libstdc++'s float/double/long double math overloads),
  * where a bare `&symbol` is ambiguous - `type` picks the overload to take the address of. */
 #define DEFINE_MODULE_SYMBOL_SIGNATURE(symbol, type) { #symbol, (void*)(type)&symbol }
+/** Export `symbol` under a different exported `name`, for renamed symbols the loader must still resolve by their old name. */
+#define DEFINE_MODULE_SYMBOL_ALIAS(name, symbol) { name, (void*)&symbol }
 
 #ifdef __cplusplus
 extern "C" {
