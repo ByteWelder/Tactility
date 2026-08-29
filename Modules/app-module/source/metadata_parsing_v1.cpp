@@ -13,6 +13,7 @@ constexpr auto* TAG = "app_metadata_v1";
 
 bool app_metadata_parse_v1(const std::map<std::string, std::string>& properties, AppMetadata& out_metadata) {
     // [manifest]
+    LOG_W(TAG, "This manifest version is deprecated. Replace it with the newer version.");
 
     std::string format_version;
     if (!app_metadata_get_value(properties, "[manifest]version", format_version)) {
