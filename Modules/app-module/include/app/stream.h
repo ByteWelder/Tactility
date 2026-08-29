@@ -47,6 +47,10 @@ struct AppStream {
         uint32_t readable_bit;
         uint32_t writable_bit;
         bool closed;
+        /** Count of AppFileOps calls currently executing against this stream; app_stream_unsubscribe()
+         * waits for this to reach 0 before destructing `mutex`, since a call already blocked in
+         * app_stream_await() when unsubscribe starts only wakes (it doesn't vanish) when closed. */
+        int active_operations;
     } internal;
 };
 
@@ -56,8 +60,10 @@ struct AppStream {
  * There is at most one subscriber for a given app fd. Subscribing over an existing one
  * atomically closes it first (any task blocked on it wakes; already-buffered bytes remain
  * readable until drained) and installs @a stream in its place.
- * @param[in,out] stream caller-owned. Storage must remain valid until
- * app_stream_unsubscribe()/app_stream_close() or app-exit teardown.
+ * @param[in,out] stream caller-owned. Storage must remain valid until app_stream_unsubscribe()
+ * returns. That is the only operation guaranteeing both that the fd-table binding is gone and
+ * that no AppFileOps call is still executing against @a stream; app_stream_close() alone does
+ * neither.
  * @param[in] buffer ring buffer storage; caller-owned, same validity requirement as @a stream.
  * @param[in] buffer_capacity size of @a buffer in bytes.
  * @param[in] event_group caller-owned; must outlive @a stream (i.e. be destructed only after
@@ -70,8 +76,13 @@ struct AppStream {
  */
 error_t app_stream_subscribe(struct AppStream* stream, void* buffer, size_t buffer_capacity, struct TaskEventGroup* event_group, AppInstanceId producer_id, int producer_fd);
 
-/** Removes @a stream from whatever fd table it was installed in, restoring the null device there,
- * and releases its two bits back to the event_group given to app_stream_subscribe(). */
+/**
+ * Removes @a stream's binding from whichever fd table it was installed in (further use of that
+ * fd then fails), wakes and waits for every AppFileOps call currently in flight against
+ * @a stream to finish, then releases its two bits back to the event_group given to
+ * app_stream_subscribe() and destructs its internal mutex. Only after this returns is
+ * @a stream's storage safe to free or reuse.
+ */
 error_t app_stream_unsubscribe(struct AppStream* stream);
 
 /**
@@ -88,12 +99,15 @@ error_t app_stream_await(struct AppStream* stream, AppFileWait wait, TickType_t 
 /** Non-blocking: copies up to @a buffer_size currently-available bytes out of @a stream. */
 size_t app_stream_read(struct AppStream* stream, void* buffer, size_t buffer_size);
 
-/** Non-blocking: copies up to @a buffer_size bytes into @a stream, as much as currently fits. */
+/** Non-blocking: copies up to @a buffer_size bytes into @a stream, as much as currently fits.
+ * Copies nothing and returns 0 once @a stream is closed. */
 size_t app_stream_write(struct AppStream* stream, const void* buffer, size_t buffer_size);
 
 /**
  * Marks @a stream closed: wakes any task blocked in app_stream_await(), and causes the other side
- * to observe EOF (reader, once drained) or a write error (writer).
+ * to observe EOF (reader, once drained) or a write error (writer). Safe to call while another
+ * task may be blocked on @a stream, unlike app_stream_unsubscribe() (see its own doc); does not
+ * by itself make @a stream's storage safe to free.
  */
 error_t app_stream_close(struct AppStream* stream);
 

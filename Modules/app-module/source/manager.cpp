@@ -94,6 +94,11 @@ char** copy_arguments(int argc, const char* const argv[]) {
 // new instance's fd table before app_scheduler_start() is called, so they're in place before its
 // task begins executing (see app_manager_start_with_streams()).
 error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    if (binding_count != 0 && bindings == nullptr) {
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_INVALID_ARGUMENT;
+    }
+
     auto& ledger = app_ledger();
 
     mutex_lock(&ledger.mutex);

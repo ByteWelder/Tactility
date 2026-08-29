@@ -16,11 +16,18 @@
  * copies the AppFile out under the lock first), since those calls belong to independently
  * synchronized objects (AppStream's own mutex/event group) and may run concurrently with a
  * close()/bind() replacing an unrelated slot.
+ *
+ * `shutting_down` is set under `mutex` by app_fd_table_teardown() before it destructs `mutex`,
+ * and checked (also under `mutex`) by every other entry point. Callers are expected to
+ * serialize against teardown externally (see app_stream_subscribe()/app_stream_unsubscribe()),
+ * so a check() failure here means that external synchronization broke, not a condition to
+ * handle gracefully.
  */
 struct AppFdTable {
     struct AppFile slots[APP_MAX_FDS];
     struct AppFile* fds[APP_MAX_FDS];
     struct Mutex mutex;
+    bool shutting_down;
 };
 
 #ifdef __cplusplus

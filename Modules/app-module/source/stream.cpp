@@ -20,8 +20,33 @@ bool is_writable_locked(AppStream* stream) {
     return stream->internal.buffer.count < stream->internal.buffer.capacity || stream->internal.closed;
 }
 
+// Brackets one AppFileOps call against `stream` for app_stream_unsubscribe()'s drain wait: a
+// call already blocked in app_stream_await() when unsubscribe starts only wakes, it doesn't
+// vanish, so unsubscribe must know it's still running before destructing stream->internal.mutex.
+class StreamOperationGuard {
+public:
+    explicit StreamOperationGuard(AppStream* stream) : stream_(stream) {
+        mutex_lock(&stream_->internal.mutex);
+        stream_->internal.active_operations++;
+        mutex_unlock(&stream_->internal.mutex);
+    }
+
+    ~StreamOperationGuard() {
+        mutex_lock(&stream_->internal.mutex);
+        stream_->internal.active_operations--;
+        mutex_unlock(&stream_->internal.mutex);
+    }
+
+    StreamOperationGuard(const StreamOperationGuard&) = delete;
+    StreamOperationGuard& operator=(const StreamOperationGuard&) = delete;
+
+private:
+    AppStream* stream_;
+};
+
 ssize_t stream_file_read(void* object, void* buffer, size_t size) {
     auto* stream = static_cast<AppStream*>(object);
+    StreamOperationGuard guard(stream);
     while (true) {
         if (app_stream_await(stream, APP_FILE_WAIT_READABLE, portMAX_DELAY) != ERROR_NONE) {
             return -1;
@@ -43,28 +68,39 @@ ssize_t stream_file_read(void* object, void* buffer, size_t size) {
 
 ssize_t stream_file_write(void* object, const void* buffer, size_t size) {
     auto* stream = static_cast<AppStream*>(object);
+    StreamOperationGuard guard(stream);
     if (app_stream_await(stream, APP_FILE_WAIT_WRITABLE, portMAX_DELAY) != ERROR_NONE) {
         return -1;
+    }
+    // app_stream_write() itself refuses to copy anything once closed (checked under the same
+    // lock as the copy, so a close() racing right after this await() can't slip bytes in), and
+    // reports that as 0, indistinguishable here from "woke writable, nothing to copy" without
+    // checking closed separately.
+    size_t written = app_stream_write(stream, buffer, size);
+    if (written > 0) {
+        return static_cast<ssize_t>(written);
     }
     mutex_lock(&stream->internal.mutex);
     bool is_closed = stream->internal.closed;
     mutex_unlock(&stream->internal.mutex);
-    if (is_closed) {
-        return -1; // broken pipe: woke writable only because the consumer closed
-    }
-    return static_cast<ssize_t>(app_stream_write(stream, buffer, size));
+    return is_closed ? -1 : 0; // broken pipe, or a spurious wake with nothing to copy
 }
 
 error_t stream_file_close(void* object) {
-    return app_stream_close(static_cast<AppStream*>(object));
+    auto* stream = static_cast<AppStream*>(object);
+    StreamOperationGuard guard(stream);
+    return app_stream_close(stream);
 }
 
 error_t stream_file_await(void* object, AppFileWait wait, TickType_t timeout) {
-    return app_stream_await(static_cast<AppStream*>(object), wait, timeout);
+    auto* stream = static_cast<AppStream*>(object);
+    StreamOperationGuard guard(stream);
+    return app_stream_await(stream, wait, timeout);
 }
 
 uint32_t stream_file_poll(void* object) {
     auto* stream = static_cast<AppStream*>(object);
+    StreamOperationGuard guard(stream);
     mutex_lock(&stream->internal.mutex);
     uint32_t bits = 0;
     if (is_readable_locked(stream)) {
@@ -98,17 +134,6 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
         return ERROR_OUT_OF_RANGE;
     }
 
-    auto& ledger = app_ledger();
-    mutex_lock(&ledger.mutex);
-    auto iterator = ledger.instances.find(producer_id);
-    if (iterator == ledger.instances.end()) {
-        mutex_unlock(&ledger.mutex);
-        return ERROR_NOT_FOUND;
-    }
-    TaskHandle_t producer_task = iterator->second.task;
-    AppFdTable* table = &iterator->second.fd_table;
-    mutex_unlock(&ledger.mutex);
-
     uint32_t readable_bit;
     error_t claim_result = task_event_group_claim_bit(event_group, &readable_bit);
     if (claim_result != ERROR_NONE) {
@@ -123,7 +148,6 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
 
     stream->internal.producer_id = producer_id;
     stream->internal.producer_fd = producer_fd;
-    stream->internal.producer_task = producer_task;
     stream->internal.event_group = event_group;
     stream->internal.readable_bit = readable_bit;
     stream->internal.writable_bit = writable_bit;
@@ -133,9 +157,27 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
     stream->internal.buffer.write_pos = 0;
     stream->internal.buffer.count = 0;
     stream->internal.closed = false;
+    stream->internal.active_operations = 0;
     mutex_construct(&stream->internal.mutex);
 
-    error_t bind_result = app_fd_table_bind(table, producer_fd, &STREAM_OPS, stream);
+    // Held across the fd-table lookup and bind so this can't race app_fd_table_teardown():
+    // both teardown call sites (scheduler.cpp, manager.cpp) hold this same ledger mutex for
+    // their whole teardown call, and app_fd_table_bind()/close()/get() check for it (see
+    // fd_table.h's AppFdTable::shutting_down).
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.instances.find(producer_id);
+    if (iterator == ledger.instances.end()) {
+        mutex_unlock(&ledger.mutex);
+        mutex_destruct(&stream->internal.mutex);
+        task_event_group_release_bit(event_group, readable_bit);
+        task_event_group_release_bit(event_group, writable_bit);
+        return ERROR_NOT_FOUND;
+    }
+    stream->internal.producer_task = iterator->second.task;
+    error_t bind_result = app_fd_table_bind(&iterator->second.fd_table, producer_fd, &STREAM_OPS, stream);
+    mutex_unlock(&ledger.mutex);
+
     if (bind_result != ERROR_NONE) {
         mutex_destruct(&stream->internal.mutex);
         task_event_group_release_bit(event_group, readable_bit);
@@ -145,20 +187,35 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
 }
 
 error_t app_stream_unsubscribe(AppStream* stream) {
+    // Held across the fd-table lookup, get, and close. See app_stream_subscribe()'s own
+    // comment on why this must stay exclusive with app_fd_table_teardown().
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.instances.find(stream->internal.producer_id);
-    AppFdTable* table = (iterator != ledger.instances.end()) ? &iterator->second.fd_table : nullptr;
-    mutex_unlock(&ledger.mutex);
-
-    if (table != nullptr) {
+    if (iterator != ledger.instances.end()) {
+        AppFdTable* table = &iterator->second.fd_table;
         AppFile current {};
         if (app_fd_table_get(table, stream->internal.producer_fd, &current) && current.object == stream) {
             app_fd_table_close(table, stream->internal.producer_fd); // -> stream_file_close() -> app_stream_close()
         }
     }
+    mutex_unlock(&ledger.mutex);
 
-    app_stream_close(stream); // idempotent; covers the case where the producer already exited
+    app_stream_close(stream); // idempotent; wakes anyone already blocked in app_stream_await()
+
+    // Waking a blocked call doesn't mean it has finished. It still has to get scheduled, notice
+    // it's closed, and return. Wait for that before destructing mutex/bits below, mirroring
+    // scheduler.cpp's reap_self()/reaper_task_main() waiting out a task before freeing its stack.
+    while (true) {
+        mutex_lock(&stream->internal.mutex);
+        int active_operations = stream->internal.active_operations;
+        mutex_unlock(&stream->internal.mutex);
+        if (active_operations == 0) {
+            break;
+        }
+        taskYIELD();
+    }
+
     task_event_group_release_bit(stream->internal.event_group, stream->internal.readable_bit);
     task_event_group_release_bit(stream->internal.event_group, stream->internal.writable_bit);
     mutex_destruct(&stream->internal.mutex);
@@ -199,6 +256,10 @@ size_t app_stream_read(AppStream* stream, void* buffer, size_t buffer_size) {
 
 size_t app_stream_write(AppStream* stream, const void* buffer, size_t buffer_size) {
     mutex_lock(&stream->internal.mutex);
+    if (stream->internal.closed) {
+        mutex_unlock(&stream->internal.mutex);
+        return 0;
+    }
     AppStreamBuffer& ring = stream->internal.buffer;
     size_t available = ring.capacity - ring.count;
     size_t to_copy = buffer_size < available ? buffer_size : available;

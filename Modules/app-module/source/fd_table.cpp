@@ -2,6 +2,7 @@
 #include <app/private/fd_table.h>
 #include <app/private/null_device.h>
 
+#include <tactility/check.h>
 #include <tactility/concurrent/mutex.h>
 #include <tactility/error.h>
 
@@ -24,16 +25,28 @@ void app_fd_table_construct(AppFdTable* table) {
         table->slots[fd] = *null_file;
         table->fds[fd] = &table->slots[fd];
     }
+    table->shutting_down = false;
     mutex_construct(&table->mutex);
 }
 
 void app_fd_table_teardown(AppFdTable* table) {
+    AppFile closing[APP_MAX_FDS];
+    int closing_count = 0;
+
+    mutex_lock(&table->mutex);
+    table->shutting_down = true;
     for (int fd = 0; fd < APP_MAX_FDS; fd++) {
         if (table->fds[fd] != nullptr) {
-            table->slots[fd].ops->close(table->slots[fd].object);
+            closing[closing_count++] = table->slots[fd];
             table->fds[fd] = nullptr;
         }
     }
+    mutex_unlock(&table->mutex);
+
+    for (int i = 0; i < closing_count; i++) {
+        closing[i].ops->close(closing[i].object);
+    }
+
     mutex_destruct(&table->mutex);
 }
 
@@ -43,6 +56,7 @@ error_t app_fd_table_bind(AppFdTable* table, int fd, const AppFileOps* ops, void
     }
 
     mutex_lock(&table->mutex);
+    check(!table->shutting_down);
     AppFile old = table->slots[fd];
     bool had_old = table->fds[fd] != nullptr;
     table->slots[fd] = { .ops = ops, .object = object };
@@ -57,6 +71,7 @@ error_t app_fd_table_bind(AppFdTable* table, int fd, const AppFileOps* ops, void
 
 error_t app_fd_table_allocate(AppFdTable* table, const AppFileOps* ops, void* object, int* out_fd) {
     mutex_lock(&table->mutex);
+    check(!table->shutting_down);
     for (int fd = 3; fd < APP_MAX_FDS; fd++) {
         if (table->fds[fd] == nullptr) {
             table->slots[fd] = { .ops = ops, .object = object };
@@ -76,6 +91,7 @@ bool app_fd_table_get(AppFdTable* table, int fd, AppFile* out_file) {
     }
 
     mutex_lock(&table->mutex);
+    check(!table->shutting_down);
     bool in_use = table->fds[fd] != nullptr;
     if (in_use) {
         *out_file = table->slots[fd];
@@ -90,6 +106,7 @@ error_t app_fd_table_close(AppFdTable* table, int fd) {
     }
 
     mutex_lock(&table->mutex);
+    check(!table->shutting_down);
     bool in_use = table->fds[fd] != nullptr;
     AppFile old = table->slots[fd];
     table->fds[fd] = nullptr;
