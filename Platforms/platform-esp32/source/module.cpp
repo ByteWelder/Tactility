@@ -8,6 +8,8 @@
 
 extern "C" {
 
+extern const ModuleSymbol platform_esp32_symbols[];
+
 extern Driver esp32_adc_oneshot_driver;
 extern Driver esp32_gpio_driver;
 extern Driver esp32_i2c_driver;
@@ -112,7 +114,7 @@ static Driver* const platform_esp32_drivers[] = {
 Module platform_esp32_module = {
     .name = "platform-esp32",
     .drivers = platform_esp32_drivers,
-    .symbols = nullptr,
+    .symbols = platform_esp32_symbols,
     .internal = nullptr
 };
 

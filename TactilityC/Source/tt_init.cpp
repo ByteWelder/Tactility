@@ -4,7 +4,6 @@
 #include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
 
-#include "symbols/esp_event.h"
 #include "symbols/gcc_soft_float.h"
 
 #include <cassert>
@@ -419,7 +418,6 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
     static const std::vector all_symbols = {
         main_symbols,
         gcc_soft_float_symbols,
-        esp_event_symbols,
     };
 
     for (const auto* symbols : all_symbols) {
