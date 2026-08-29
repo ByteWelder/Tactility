@@ -312,42 +312,6 @@ static error_t api_transmit(Device* device, const uint8_t* data, size_t length, 
     return radio->transmit(data, length, id);
 }
 
-static error_t api_add_rx_callback(Device* device, void* callback_context, LoraRxCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->addRxCallback(callback_context, callback);
-}
-
-static error_t api_remove_rx_callback(Device* device, LoraRxCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->removeRxCallback(callback);
-}
-
-static error_t api_add_state_callback(Device* device, void* callback_context, LoraStateCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->addStateCallback(callback_context, callback);
-}
-
-static error_t api_remove_state_callback(Device* device, LoraStateCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->removeStateCallback(callback);
-}
-
-static error_t api_add_tx_callback(Device* device, void* callback_context, LoraTxCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->addTxCallback(callback_context, callback);
-}
-
-static error_t api_remove_tx_callback(Device* device, LoraTxCallback callback) {
-    auto* radio = get_radio(device);
-    if (radio == nullptr) return ERROR_INVALID_STATE;
-    return radio->removeTxCallback(callback);
-}
-
 static const struct LoraApi sx1262_lora_api = {
     .get_radio_state = api_get_radio_state,
     .set_enabled = api_set_enabled,
@@ -358,12 +322,6 @@ static const struct LoraApi sx1262_lora_api = {
     .set_parameter = api_set_parameter,
     .get_parameter = api_get_parameter,
     .transmit = api_transmit,
-    .add_rx_callback = api_add_rx_callback,
-    .remove_rx_callback = api_remove_rx_callback,
-    .add_state_callback = api_add_state_callback,
-    .remove_state_callback = api_remove_state_callback,
-    .add_tx_callback = api_add_tx_callback,
-    .remove_tx_callback = api_remove_tx_callback,
 };
 
 // endregion

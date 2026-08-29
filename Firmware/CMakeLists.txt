@@ -100,6 +100,7 @@ else ()
         app-module
         crypt-module
         gps-module
+        http-module
         gps-generic-module
         gps-meshtastic-module
         service-module
