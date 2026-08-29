@@ -25,7 +25,6 @@ file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 tactility_add_module(TactilityC
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS Include/
-    PRIV_INCLUDE_DIRS Private/
     REQUIRES ${REQUIRES_LIST}
     PRIV_REQUIRES ${PRIV_REQUIRES_LIST}
 )
