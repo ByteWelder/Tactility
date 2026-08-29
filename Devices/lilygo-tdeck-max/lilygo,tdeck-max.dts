@@ -8,8 +8,10 @@
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_uart.h>
 #include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
+#include <tactility/bindings/gpio_hog.h>
 #include <bindings/sx1262.h>
 #include <bindings/xl9555.h>
 #include <bindings/cst66xx.h>
@@ -17,6 +19,8 @@
 #include <bindings/tca8418.h>
 #include <bindings/sy6970.h>
 #include <bindings/bq27220.h>
+#include <bindings/drv2605.h>
+#include <gps_generic/bindings.h>
 
 // Reference: https://github.com/Xinyuan-LilyGO/T-Deck-MAX
 // lib/TDeckMaxBoard/src/TDeckMaxBoard.h, docs/pinmap.md
@@ -47,6 +51,17 @@
 		xl9555 {
 			compatible = "xlsemi,xl9555";
 			reg = <0x20>;
+
+			motor_power {
+				compatible = "gpio-hog";
+				pin = <&xl9555 5 GPIO_FLAG_NONE>;
+      };
+
+			gps_power {
+				compatible = "gpio-hog";
+				pin = <&xl9555 2 GPIO_FLAG_NONE>;
+				mode = <GPIO_HOG_MODE_OUTPUT_HIGH>;
+			};
 		};
 
 		// Vendor docs label this chip "CST328", but the vendor HynTouch driver probes
@@ -110,6 +125,11 @@
 		bq27220 {
 			compatible = "ti,bq27220";
 			reg = <0x55>;
+		};
+
+		drv2605 {
+			compatible = "ti,drv2605";
+			reg = <0x5A>;
 		};
 	};
 
@@ -201,6 +221,20 @@
 		compatible = "pwm-backlight";
 		status = "disabled";
 		pwm = <&display_backlight_pwm>;
+	};
+
+	uart_gps {
+		compatible = "espressif,esp32-uart";
+		port = <UART_NUM_2>;
+		pin-tx = <&gpio0 16 GPIO_FLAG_NONE>;
+		pin-rx = <&gpio0 2 GPIO_FLAG_NONE>;
+
+		gps {
+			compatible = "tactility,gps-generic";
+			status = "disabled";
+			baud-rate = <38400>;
+			model = <GPS_MODEL_UBLOX10>;
+		};
 	};
 
 };
