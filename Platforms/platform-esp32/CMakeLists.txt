@@ -4,10 +4,12 @@ file(GLOB_RECURSE SOURCES "source/*.c**")
 
 set(PRIV_REQUIRES_LIST "")
 if ("${IDF_TARGET}" STREQUAL "esp32s3" OR "${IDF_TARGET}" STREQUAL "esp32p4")
-    # esp32_usb_device_controller.cpp / esp32_usb_hid_device.cpp include tinyusb.h - only
-    # available on targets with TinyUSB device-mode support (mirrors Tactility/CMakeLists.txt's
-    # own esp_tinyusb requirement).
     list(APPEND PRIV_REQUIRES_LIST esp_tinyusb)
+endif ()
+
+if ("${IDF_TARGET}" STREQUAL "esp32p4")
+    list(APPEND PRIV_REQUIRES_LIST esp_driver_ppa)
+    list(APPEND PRIV_REQUIRES_LIST esp_mm)
 endif ()
 
 idf_component_register(

@@ -131,11 +131,6 @@ def main():
     # Mapping logic
     mappings = [
         {'src': 'version.txt', 'dst': ''},
-        # TactilityC
-        {'src': 'build/esp-idf/TactilityC/libTactilityC.a', 'dst': 'Libraries/TactilityC/binary/'},
-        {'src': 'TactilityC/Include/*', 'dst': 'Libraries/TactilityC/include/'},
-        {'src': 'TactilityC/CMakeLists.txt', 'dst': 'Libraries/TactilityC/'},
-        {'src': 'TactilityC/LICENSE*.*', 'dst': 'Libraries/TactilityC/'},
         # TactilityFreeRtos
         {'src': 'TactilityFreeRtos/Include/**', 'dst': 'Libraries/TactilityFreeRtos/Include/'},
         {'src': 'TactilityFreeRtos/CMakeLists.txt', 'dst': 'Libraries/TactilityFreeRtos/'},

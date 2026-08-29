@@ -531,5 +531,5 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     // lv_area
     DEFINE_MODULE_SYMBOL(lv_area_get_width),
     DEFINE_MODULE_SYMBOL(lv_area_get_height),
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };

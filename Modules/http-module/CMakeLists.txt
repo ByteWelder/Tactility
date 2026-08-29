@@ -11,6 +11,9 @@ list(APPEND REQUIRES_LIST
 if (DEFINED ENV{ESP_IDF_VERSION})
     list(APPEND REQUIRES_LIST
         esp_http_client
+        esp_netif
+        lwip
+        mbedtls
     )
     list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_mock\\.cpp$")
 else ()

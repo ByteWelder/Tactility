@@ -36,12 +36,18 @@
 #include <Tactility/settings/TimePrivate.h>
 #include <Tactility/settings/TouchCalibrationSettings.h>
 
+#include <c_symbols/module.h>
+#include <cpp_symbols/module.h>
 #include <crypt/module.h>
+#include <freertos/module.h>
 
 #include <gps/module.h>
 #include <gps_generic/module.h>
 #include <gps_meshtastic/module.h>
 #include <http/module.h>
+#include <mbedtls/module.h>
+#include <posix_symbols/module.h>
+#include <pthread/module.h>
 
 #include <crypt/module.h>
 #include <lvgl/devices/keyboard.h>
@@ -472,13 +478,23 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
         return;
     }
 
+    // The following groups of symbols are sorted by the estimated chance of them occurring
+
+    // C/C++/Posix symbols
+    check(module_ensure_started(&c_symbols_module) == ERROR_NONE);
+    check(module_ensure_started(&posix_symbols_module) == ERROR_NONE);
+    check(module_ensure_started(&cpp_symbols_module) == ERROR_NONE);
+    // OS level symbols
+    check(module_ensure_started(&freertos_module) == ERROR_NONE);
+    check(module_ensure_started(&pthread_module) == ERROR_NONE);
+    // Other libraries
+    check(module_ensure_started(&http_module) == ERROR_NONE);
+    check(module_ensure_started(&app_module) == ERROR_NONE);
     check(module_ensure_started(&crypt_module) == ERROR_NONE);
+    check(module_ensure_started(&mbedtls_module) == ERROR_NONE);
     check(module_ensure_started(&gps_module) == ERROR_NONE);
     check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
     check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
-    check(module_ensure_started(&http_module) == ERROR_NONE);
-    // Registers the APP_LOCATION_MEMORY app loader (boot/launcher need it below).
-    check(module_ensure_started(&app_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM
     check(module_ensure_started(&app_esp32_module) == ERROR_NONE);
 #endif

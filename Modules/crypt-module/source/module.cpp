@@ -5,7 +5,7 @@
 
 extern "C" {
 
-static const ModuleSymbol crypt_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(crypt_get_iv),
     DEFINE_MODULE_SYMBOL(crypt_generate_iv),
     DEFINE_MODULE_SYMBOL(crypt_encrypt),
@@ -17,7 +17,11 @@ static const ModuleSymbol crypt_module_symbols[] = {
 
 Module crypt_module = {
     .name = "crypt",
-    .symbols = crypt_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

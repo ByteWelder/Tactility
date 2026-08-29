@@ -5,7 +5,6 @@ import time
 
 def build(device: str) -> bool:
     print(f"Building {device}...")
-    shutil.rmtree(os.path.join('Firmware', 'Generated'), ignore_errors=True)
     result = subprocess.run(['python', 'device.py', device], capture_output=True, text=True)
     if result.returncode != 0:
         print(f"Failed to select device {device}")

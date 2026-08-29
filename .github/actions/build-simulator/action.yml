@@ -45,7 +45,7 @@ runs:
       run: cmake -S ./ -B buildsim
     - name: "Build Tests"
       shell: bash
-      run: cmake --build buildsim --target FirmwareSim
+      run: cmake --build buildsim --target Tactility
     - name: 'Release'
       shell: bash
       run: Buildscripts/release-simulator.sh buildsim release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
