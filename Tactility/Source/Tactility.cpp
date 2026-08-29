@@ -2,6 +2,7 @@
 #include <sdkconfig.h>
 #include <Tactility/InitEsp.h>
 #include <app_esp32/module.h>
+#include <cpp_symbols/module.h>
 #include <freertos/module.h>
 #endif
 
@@ -486,6 +487,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&app_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM
     check(module_ensure_started(&app_esp32_module) == ERROR_NONE);
+    check(module_ensure_started(&cpp_symbols_module) == ERROR_NONE);
     check(module_ensure_started(&freertos_module) == ERROR_NONE);
 #endif
 

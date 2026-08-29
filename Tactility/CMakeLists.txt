@@ -27,6 +27,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     list(APPEND REQUIRES_LIST
         app-esp32-module
+        cpp-symbols-module
         freertos-module
         platform-esp32
         driver

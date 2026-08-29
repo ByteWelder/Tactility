@@ -4,11 +4,8 @@
 #include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
 
-#include "symbols/cplusplus.h"
 #include "symbols/esp_event.h"
 #include "symbols/gcc_soft_float.h"
-#include "symbols/stl.h"
-#include "symbols/string.h"
 
 #include <cassert>
 #include <cmath>
@@ -422,9 +419,6 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
     static const std::vector all_symbols = {
         main_symbols,
         gcc_soft_float_symbols,
-        stl_symbols,
-        cplusplus_symbols,
-        string_symbols,
         esp_event_symbols,
     };
 
