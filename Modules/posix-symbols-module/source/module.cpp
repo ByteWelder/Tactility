@@ -34,7 +34,9 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(write),
     DEFINE_MODULE_SYMBOL(lseek),
     // strings.h
+#if defined(__BSD_VISIBLE) && __BSD_VISIBLE
     DEFINE_MODULE_SYMBOL(explicit_bzero),
+#endif
     DEFINE_MODULE_SYMBOL(strcasecmp),
     DEFINE_MODULE_SYMBOL(strncasecmp),
     // string.h
