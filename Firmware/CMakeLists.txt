@@ -83,10 +83,6 @@ foreach(dts_dependency IN LISTS DEVICE_DEPENDENCIES)
 endforeach()
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    list(APPEND REQUIRES_LIST
-        TactilityC
-    )
-
     idf_component_register(
         SRCS ${SOURCE_FILES} "${GENERATED_DIR}/devicetree.c"
         REQUIRES ${REQUIRES_LIST}
