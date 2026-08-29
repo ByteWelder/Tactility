@@ -3,6 +3,16 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
+
+// pthread_mutex_timedlock / pthread_rwlock_timed{rd,wr}lock / sem_timedwait belong to POSIX's
+// optional "Timeouts" feature (_POSIX_TIMEOUTS, from <unistd.h>) - Apple's libc never implements
+// it, so this is the portable, spec-sanctioned test rather than an OS-name check.
+#if defined(_POSIX_TIMEOUTS) && _POSIX_TIMEOUTS >= 0
+#define TT_PTHREAD_HAS_TIMEOUTS 1
+#else
+#define TT_PTHREAD_HAS_TIMEOUTS 0
+#endif
 
 #if !defined(ESP_PLATFORM) && defined(__GLIBC_PREREQ)
 #if __GLIBC_PREREQ(2, 30)
@@ -37,7 +47,9 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(pthread_mutex_destroy),
     DEFINE_MODULE_SYMBOL(pthread_mutex_init),
     DEFINE_MODULE_SYMBOL(pthread_mutex_lock),
+#if TT_PTHREAD_HAS_TIMEOUTS
     DEFINE_MODULE_SYMBOL(pthread_mutex_timedlock),
+#endif
     DEFINE_MODULE_SYMBOL(pthread_mutex_trylock),
     DEFINE_MODULE_SYMBOL(pthread_mutex_unlock),
     // pthread_mutexattr
@@ -54,7 +66,9 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(sem_getvalue),
     DEFINE_MODULE_SYMBOL(sem_init),
     DEFINE_MODULE_SYMBOL(sem_post),
+#if TT_PTHREAD_HAS_TIMEOUTS
     DEFINE_MODULE_SYMBOL(sem_timedwait),
+#endif
     DEFINE_MODULE_SYMBOL(sem_trywait),
     DEFINE_MODULE_SYMBOL(sem_wait),
     // pthread_rwlock
@@ -62,9 +76,11 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(pthread_rwlock_clockrdlock),
     DEFINE_MODULE_SYMBOL(pthread_rwlock_clockwrlock),
 #endif
-#ifndef ESP_PLATFORM
+#if TT_PTHREAD_HAS_TIMEOUTS
     DEFINE_MODULE_SYMBOL(pthread_rwlock_timedrdlock),
     DEFINE_MODULE_SYMBOL(pthread_rwlock_timedwrlock),
+#endif
+#ifndef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(pthread_rwlockattr_destroy),
     DEFINE_MODULE_SYMBOL(pthread_rwlockattr_getpshared),
     DEFINE_MODULE_SYMBOL(pthread_rwlockattr_init),
