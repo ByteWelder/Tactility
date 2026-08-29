@@ -108,8 +108,13 @@ struct BtHidDeviceApi {
 
 extern const struct DeviceType BLUETOOTH_HID_DEVICE_TYPE;
 
-/** Find the first ready BLE HID device child device. Returns NULL if unavailable. */
-struct Device* bluetooth_hid_device_get_device(void);
+/**
+ * @brief Find the first ready BLE HID device child device.
+ * @warning On success, the returned device has an added reference (see device_get()).
+ * The caller must call device_put() on it once done.
+ * @return the device, or NULL if unavailable
+ */
+struct Device* bluetooth_hid_device_get(void);
 
 error_t bluetooth_hid_device_start(struct Device* device, enum BtHidDeviceMode mode);
 error_t bluetooth_hid_device_stop(struct Device* device);

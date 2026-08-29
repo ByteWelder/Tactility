@@ -118,7 +118,16 @@ error_t display_get_backlight(Device* device, Device** backlight) {
     if (api->get_backlight == nullptr) {
         return ERROR_NOT_SUPPORTED;
     }
-    return api->get_backlight(device, backlight);
+    Device* found = nullptr;
+    error_t error = api->get_backlight(device, &found);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    error = device_get(found);
+    if (error == ERROR_NONE) {
+        *backlight = found;
+    }
+    return error;
 }
 
 const struct DeviceType DISPLAY_TYPE {

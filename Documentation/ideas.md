@@ -7,11 +7,7 @@
 
 ## Higher Priority
 
-- Get rid of TactilityC in favour of TactilityKernel and kernel modules
-- Add tests for app stdin/stdout
 - CrashDiagnostics shouldn't show a QR when there's no callstack
-- Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
-  Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
 - stopAppFromToolbar() in Tactility.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.
 - Warn if file operations are done from prohibited tasks (e.g. lvgl task)
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
@@ -20,8 +16,6 @@
 - Add bold fonts for e-ink readability improvement
 - Improve Setup: Show "Step done" screen
 - Improve Setup: Add keyboard/keypad navigation explanation
-- display.h API: get_backlight does not change ref counting, but it should
-- bluetooth: various getters for child devices do not change ref counting, but they should (e.g. bluetooth_hid_device_get_device())
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
@@ -51,7 +45,7 @@
 - Make USB host driver disabled by default, so it doesn't consume memory
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
-- Move HttpServer implementation to http-module
+- Refactor HttpServer into C code and move implementation to http-module
 - Use GPS time to set/update the current time
 
 ## Lower Priority

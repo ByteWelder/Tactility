@@ -99,6 +99,7 @@ void setupDisplay() {
         } else {
             LOG_E(TAG, "Failed to set brightness of %s", backlight->name);
         }
+        device_put(backlight);
     } else {
         LOG_I(TAG, "No backlight for %s", display->name);
     }

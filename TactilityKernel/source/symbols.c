@@ -340,7 +340,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(bluetooth_fire_event),
     DEFINE_MODULE_SYMBOL(BLUETOOTH_TYPE),
     // drivers/bluetooth_serial
-    DEFINE_MODULE_SYMBOL(bluetooth_serial_get_device),
+    DEFINE_MODULE_SYMBOL(bluetooth_serial_get),
+    DEFINE_MODULE_SYMBOL_ALIAS("bluetooth_serial_get_device", bluetooth_serial_get), // TODO remove in 2027
     DEFINE_MODULE_SYMBOL(bluetooth_serial_start),
     DEFINE_MODULE_SYMBOL(bluetooth_serial_stop),
     DEFINE_MODULE_SYMBOL(bluetooth_serial_write),
@@ -348,14 +349,16 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(bluetooth_serial_is_connected),
     DEFINE_MODULE_SYMBOL(BLUETOOTH_SERIAL_TYPE),
     // drivers/bluetooth_midi
-    DEFINE_MODULE_SYMBOL(bluetooth_midi_get_device),
+    DEFINE_MODULE_SYMBOL(bluetooth_midi_get),
+    DEFINE_MODULE_SYMBOL_ALIAS("bluetooth_midi_get_device", bluetooth_midi_get), // TODO remove in 2027
     DEFINE_MODULE_SYMBOL(bluetooth_midi_start),
     DEFINE_MODULE_SYMBOL(bluetooth_midi_stop),
     DEFINE_MODULE_SYMBOL(bluetooth_midi_send),
     DEFINE_MODULE_SYMBOL(bluetooth_midi_is_connected),
     DEFINE_MODULE_SYMBOL(BLUETOOTH_MIDI_TYPE),
     // drivers/bluetooth_hid_device
-    DEFINE_MODULE_SYMBOL(bluetooth_hid_device_get_device),
+    DEFINE_MODULE_SYMBOL(bluetooth_hid_device_get),
+    DEFINE_MODULE_SYMBOL_ALIAS("bluetooth_hid_device_get_device", bluetooth_hid_device_get), // TODO remove in 2027
     DEFINE_MODULE_SYMBOL(bluetooth_hid_device_start),
     DEFINE_MODULE_SYMBOL(bluetooth_hid_device_stop),
     DEFINE_MODULE_SYMBOL(bluetooth_hid_device_send_key),

@@ -178,10 +178,16 @@ class StatusbarService final : public Service {
             }
         }
 
-        Device* serial_dev = bluetooth_serial_get_device();
-        Device* midi_dev = bluetooth_midi_get_device();
+        Device* serial_dev = bluetooth_serial_get();
+        Device* midi_dev = bluetooth_midi_get();
         bool connected = (serial_dev && bluetooth_serial_is_connected(serial_dev)) ||
                          (midi_dev && bluetooth_midi_is_connected(midi_dev));
+        if (serial_dev) {
+            device_put(serial_dev);
+        }
+        if (midi_dev) {
+            device_put(midi_dev);
+        }
         const char* desired_icon = getBluetoothStatusIcon(radio_state, scanning, connected);
         if (bt_last_icon != desired_icon) {
             if (desired_icon != nullptr) {

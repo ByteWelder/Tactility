@@ -74,6 +74,7 @@ void onBacklightSliderEvent(lv_event_t* event) {
     ctx->displaySettings.backlightDuty = static_cast<uint8_t>(slider_value);
     ctx->displaySettingsUpdated = true;
     backlight_set_brightness(backlight, ctx->displaySettings.backlightDuty);
+    device_put(backlight);
 }
 
 void onOrientationSet(lv_event_t* event) {
@@ -184,6 +185,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
             lv_slider_set_value(brightness_slider, ctx->displaySettings.backlightDuty, LV_ANIM_OFF);
         }
+        // Only compared against nullptr below, never dereferenced again, so releasing it here is safe.
+        device_put(backlight);
     }
 
     // Orientation

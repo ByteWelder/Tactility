@@ -38,7 +38,6 @@ static void setBacklightBrightness(uint8_t brightness) {
     if (device_get_first_active_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE) {
         ::Device* backlight;
         if (display_get_backlight(display, &backlight) == ERROR_NONE) {
-            device_get(backlight);
             backlight_set_brightness(backlight, brightness);
             device_put(backlight);
         }
@@ -53,6 +52,7 @@ static bool hasDisplayWithBacklight() {
         ::Device* backlight;
         if (display_get_backlight(display, &backlight) == ERROR_NONE) {
             result = true;
+            device_put(backlight);
         }
         device_put(display);
     }
