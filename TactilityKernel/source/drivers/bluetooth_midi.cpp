@@ -10,10 +10,11 @@ const struct DeviceType BLUETOOTH_MIDI_TYPE = {
     .name = "bluetooth-midi",
 };
 
-struct Device* bluetooth_midi_get_device() {
+struct Device* bluetooth_midi_get() {
     struct Device* found = nullptr;
     device_for_each_of_type(&BLUETOOTH_MIDI_TYPE, &found, [](struct Device* dev, void* ctx) -> bool {
-        if (device_is_ready(dev)) {
+        // device_get() while still inside the ledger-locked callback, same as device_get_by_name().
+        if (device_is_ready(dev) && device_get(dev) == ERROR_NONE) {
             *static_cast<struct Device**>(ctx) = dev;
             return false;
         }

@@ -185,7 +185,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
             lv_slider_set_value(brightness_slider, ctx->displaySettings.backlightDuty, LV_ANIM_OFF);
         }
-        // Not dereferenced again below - only compared against nullptr, which stays valid.
+        // Only compared against nullptr below, never dereferenced again, so releasing it here is safe.
         device_put(backlight);
     }
 

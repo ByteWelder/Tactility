@@ -138,20 +138,23 @@ static void bt_event_bridge(BtEvent event) {
                             }
                         } else if (has_hid_device_auto) {
                             LOG_I(TAG, "HID device auto-start (bonded peer found)");
-                            if (Device* dev = bluetooth_hid_device_get_device()) {
+                            if (Device* dev = bluetooth_hid_device_get()) {
                                 bluetooth_hid_device_start(dev, BT_HID_DEVICE_MODE_KEYBOARD);
+                                device_put(dev);
                             }
                         } else {
                             if (settings::shouldSppAutoStart()) {
                                 LOG_I(TAG, "Auto-starting SPP server");
-                                if (Device* dev = bluetooth_serial_get_device()) {
+                                if (Device* dev = bluetooth_serial_get()) {
                                     bluetooth_serial_start(dev);
+                                    device_put(dev);
                                 }
                             }
                             if (settings::shouldMidiAutoStart()) {
                                 LOG_I(TAG, "Auto-starting MIDI server");
-                                if (Device* dev = bluetooth_midi_get_device()) {
+                                if (Device* dev = bluetooth_midi_get()) {
                                     bluetooth_midi_start(dev);
+                                    device_put(dev);
                                 }
                             }
                         }
@@ -476,18 +479,21 @@ void connect(const std::array<uint8_t, 6>& addr, int profileId) {
     if (profileId == BT_PROFILE_HID_HOST) {
         hidHostConnect(addr);
     } else if (profileId == BT_PROFILE_HID_DEVICE) {
-        if (Device* dev = bluetooth_hid_device_get_device()) {
+        if (Device* dev = bluetooth_hid_device_get()) {
             bluetooth_hid_device_start(dev, BT_HID_DEVICE_MODE_KEYBOARD);
+            device_put(dev);
         }
     } else if (profileId == BT_PROFILE_SPP) {
-        if (Device* dev = bluetooth_serial_get_device()) {
+        if (Device* dev = bluetooth_serial_get()) {
             bluetooth_serial_start(dev);
             settings::setSppAutoStart(true);
+            device_put(dev);
         }
     } else if (profileId == BT_PROFILE_MIDI) {
-        if (Device* dev = bluetooth_midi_get_device()) {
+        if (Device* dev = bluetooth_midi_get()) {
             bluetooth_midi_start(dev);
             settings::setMidiAutoStart(true);
+            device_put(dev);
         }
     }
 }
@@ -497,8 +503,9 @@ void disconnect(const std::array<uint8_t, 6>& addr, int profileId) {
     if (profileId == BT_PROFILE_HID_HOST) {
         hidHostDisconnect();
     } else if (profileId == BT_PROFILE_HID_DEVICE) {
-        if (Device* dev = bluetooth_hid_device_get_device()) {
+        if (Device* dev = bluetooth_hid_device_get()) {
             bluetooth_hid_device_stop(dev);
+            device_put(dev);
         }
     } else {
         Device* dev;

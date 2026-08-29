@@ -338,7 +338,8 @@ uint8_t display_get_frame_buffer_count(struct Device* device);
 
 /**
  * @brief Gets the backlight device associated with the specified display, if any.
- * @warning On success, *backlight is returned with an added reference (see device_get())
+ * @warning On success, *backlight is returned with an added reference (see device_get()).
+ * The caller must call device_put() on it once done.
  * @retval ERROR_NONE when a backlight is available and *backlight was set
  * @retval ERROR_NOT_SUPPORTED when the display has no associated backlight
  */
