@@ -101,6 +101,7 @@ else ()
         crypt-module
         gps-module
         http-module
+        mbedtls-module
         pthread-module
         gps-generic-module
         gps-meshtastic-module

@@ -8,7 +8,6 @@
 #include "symbols/esp_event.h"
 #include "symbols/esp_http_client.h"
 #include "symbols/gcc_soft_float.h"
-#include "symbols/mbedtls.h"
 #include "symbols/stl.h"
 #include "symbols/string.h"
 
@@ -429,7 +428,6 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
         string_symbols,
         esp_event_symbols,
         esp_http_client_symbols,
-        mbedtls_symbols,
     };
 
     for (const auto* symbols : all_symbols) {

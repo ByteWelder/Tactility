@@ -43,6 +43,7 @@
 #include <gps_generic/module.h>
 #include <gps_meshtastic/module.h>
 #include <http/module.h>
+#include <mbedtls/module.h>
 #include <pthread/module.h>
 
 #include <crypt/module.h>
@@ -475,6 +476,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     }
 
     check(module_ensure_started(&pthread_module) == ERROR_NONE);
+    check(module_ensure_started(&mbedtls_module) == ERROR_NONE);
     check(module_ensure_started(&crypt_module) == ERROR_NONE);
     check(module_ensure_started(&gps_module) == ERROR_NONE);
     check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
