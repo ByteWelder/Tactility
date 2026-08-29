@@ -2,11 +2,11 @@
 #include <sdkconfig.h>
 
 #include <freertos/module.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/queue.h>
 #include <freertos/semphr.h>
+#include <freertos/portmacro.h>
 #include <freertos/task.h>
 #include <freertos/timers.h>
 
@@ -107,14 +107,16 @@ static const ModuleSymbol freertos_module_symbols[] = {
 #if defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S3)
     DEFINE_MODULE_SYMBOL(xPortEnterCriticalTimeout),
 #endif
-#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#if (configNUM_CORES > 1)
     DEFINE_MODULE_SYMBOL(vPortExitCriticalMultiCore),
 #endif
+    // freertos_tasks_c_additions.h
     DEFINE_MODULE_SYMBOL(xPortInIsrContext),
     DEFINE_MODULE_SYMBOL(xPortCanYield),
     DEFINE_MODULE_SYMBOL(xPortGetCoreID),
     DEFINE_MODULE_SYMBOL(xPortGetTickRateHz),
     DEFINE_MODULE_SYMBOL(xPortInterruptedFromISRContext),
+    DEFINE_MODULE_SYMBOL(__getreent),
     MODULE_SYMBOL_TERMINATOR
 };
 

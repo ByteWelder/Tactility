@@ -5,11 +5,17 @@
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #include <esp_http_client.h>
+#include <lwip/sockets.h>
+#include <lwip/netdb.h>
+#include <esp_sntp.h>
+#include <esp_netif.h>
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include <esp_crt_bundle.h>
 #endif
 #endif
 
+
+#include <sys/select.h>
 extern "C" {
 
 static const ModuleSymbol http_module_symbols[] = {
@@ -18,7 +24,30 @@ static const ModuleSymbol http_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(http_download_poll),
     DEFINE_MODULE_SYMBOL(http_download_start),
     DEFINE_MODULE_SYMBOL(http_download_cancel),
+    // esp_netif.h
+    DEFINE_MODULE_SYMBOL(esp_netif_get_ip_info),
+    DEFINE_MODULE_SYMBOL(esp_netif_get_handle_from_ifkey),
+    // posix
+    DEFINE_MODULE_SYMBOL(select),
 #ifdef ESP_PLATFORM
+    // lwip/sockets.h
+    DEFINE_MODULE_SYMBOL(lwip_setsockopt),
+    DEFINE_MODULE_SYMBOL(lwip_socket),
+    DEFINE_MODULE_SYMBOL(lwip_recv),
+    DEFINE_MODULE_SYMBOL(lwip_getpeername),
+    DEFINE_MODULE_SYMBOL(lwip_bind),
+    DEFINE_MODULE_SYMBOL(lwip_listen),
+    DEFINE_MODULE_SYMBOL(lwip_close),
+    DEFINE_MODULE_SYMBOL(lwip_accept),
+    DEFINE_MODULE_SYMBOL(lwip_getsockname),
+    DEFINE_MODULE_SYMBOL(lwip_send),
+    DEFINE_MODULE_SYMBOL(lwip_connect),
+    DEFINE_MODULE_SYMBOL(lwip_select),
+    DEFINE_MODULE_SYMBOL(lwip_gethostbyname),
+    DEFINE_MODULE_SYMBOL(ipaddr_addr),
+    // esp_sntp.h
+    DEFINE_MODULE_SYMBOL(sntp_get_sync_status),
+    // esp_http
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
     // Needed for HTTPS: an app passes this as crt_bundle_attach to validate certificates against
     // the bundle already compiled into the firmware (CONFIG_MBEDTLS_CERTIFICATE_BUNDLE).

@@ -1,5 +1,6 @@
 #ifdef ESP_PLATFORM
 
+#include "private/elf_symbol.h"
 #include "tt_app_alertdialog.h"
 #include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
@@ -9,24 +10,13 @@
 #include <cstring>
 #include <ctime>
 #include <ctype.h>
-#include <driver/ledc.h>
-#include <getopt.h>
 #include <dirent.h>
-#include <esp_log.h>
-#include <esp_random.h>
-#include <esp_sntp.h>
-#include <esp_netif.h>
+#include <driver/ledc.h>
 #include <esp_heap_caps.h>
-#include <esp_timer.h>
-#include <esp_system.h>
-#include <esp_vfs.h>
 #include <fcntl.h>
-#include <lwip/sockets.h>
-#include <lwip/netdb.h>
-#include <lwip/inet.h>
-#include <miniz.h>
-#include <sys/select.h>
+#include <getopt.h>
 #include <locale.h>
+#include <miniz.h>
 #include <setjmp.h>
 #include <strings.h>
 #include <sys/errno.h>
@@ -63,12 +53,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(atoi),
     ESP_ELFSYM_EXPORT(atol),
     ESP_ELFSYM_EXPORT(system),
-    // esp random
-    ESP_ELFSYM_EXPORT(esp_random),
-    ESP_ELFSYM_EXPORT(esp_fill_random),
-    // esp other
-    ESP_ELFSYM_EXPORT(__floatsidf),
-    ESP_ELFSYM_EXPORT(_esp_error_check_failed),
     // unistd.h
     ESP_ELFSYM_EXPORT(usleep),
     ESP_ELFSYM_EXPORT(sleep),
@@ -89,8 +73,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(localtime_r),
     ESP_ELFSYM_EXPORT(localtime),
     ESP_ELFSYM_EXPORT(mktime),
-    // esp_sntp.h
-    ESP_ELFSYM_EXPORT(sntp_get_sync_status),
     // math.h
     ESP_ELFSYM_EXPORT(acos),
     ESP_ELFSYM_EXPORT(acoshf),
@@ -150,10 +132,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(fmod),
     ESP_ELFSYM_EXPORT(fmodf),
 #endif
-    // sys/errno.h
-    ESP_ELFSYM_EXPORT(__errno),
-    // freertos_tasks_c_additions.h
-    ESP_ELFSYM_EXPORT(__getreent),
 #ifdef __HAVE_LOCALE_INFO__
     // ctype.h
     ESP_ELFSYM_EXPORT(__locale_ctype_ptr),
@@ -247,18 +225,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(isxdigit),
     ESP_ELFSYM_EXPORT(tolower),
     ESP_ELFSYM_EXPORT(toupper),
-    // ESP-IDF
-    ESP_ELFSYM_EXPORT(esp_log),
-    // Lets an app that has taken over the display quieten firmware logging: with stdout redirected
-    // to a terminal the app owns, anything logged appears on screen as if the app had printed it.
-    ESP_ELFSYM_EXPORT(esp_log_level_set),
-    // Lets an app redirect firmware logging somewhere other than stdout. An app that has pointed
-    // stdout at its own terminal needs this: without it, every ESP_LOG from any component in the
-    // system - NTP, RTC, TLS - paints over the app's display.
-    ESP_ELFSYM_EXPORT(esp_log_set_vprintf),
-    ESP_ELFSYM_EXPORT(esp_log_write),
-    ESP_ELFSYM_EXPORT(esp_log_timestamp),
-    ESP_ELFSYM_EXPORT(esp_err_to_name),
+
     // Tactility
     ESP_ELFSYM_EXPORT(tt_app_fileselection_start_for_existing_file),
     ESP_ELFSYM_EXPORT(tt_app_fileselection_start_for_existing_or_new_file),
@@ -276,23 +243,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(readdir),
     // fcntl.h
     ESP_ELFSYM_EXPORT(fcntl),
-    // lwip/sockets.h
-    ESP_ELFSYM_EXPORT(lwip_setsockopt),
-    ESP_ELFSYM_EXPORT(lwip_socket),
-    ESP_ELFSYM_EXPORT(lwip_recv),
-    ESP_ELFSYM_EXPORT(lwip_getpeername),
-    ESP_ELFSYM_EXPORT(lwip_bind),
-    ESP_ELFSYM_EXPORT(lwip_listen),
-    ESP_ELFSYM_EXPORT(lwip_close),
-    ESP_ELFSYM_EXPORT(lwip_accept),
-    ESP_ELFSYM_EXPORT(lwip_getsockname),
-    ESP_ELFSYM_EXPORT(lwip_send),
-    ESP_ELFSYM_EXPORT(lwip_connect),
-    ESP_ELFSYM_EXPORT(lwip_select),
-    ESP_ELFSYM_EXPORT(lwip_gethostbyname),
-    ESP_ELFSYM_EXPORT(ipaddr_addr),
-    // POSIX socket names (VFS wrappers used when apps include <sys/socket.h>)
-    ESP_ELFSYM_EXPORT(select),
+
     // stdlib.h - environment and sorting
     ESP_ELFSYM_EXPORT(getenv),
     ESP_ELFSYM_EXPORT(setenv),
@@ -307,98 +258,10 @@ const esp_elfsym main_symbols[] {
     // sys/stat.h
     ESP_ELFSYM_EXPORT(stat),
     ESP_ELFSYM_EXPORT(mkdir),
-    // esp_vfs.h - lets an app register a device node (e.g. a terminal at /dev/...) so that plain
-    // printf/stdout reaches it. Note the registration is global and outlives the app unless it
-    // unregisters: an app that takes this must release it on shutdown, or the next one inherits a
-    // path whose callbacks point into unloaded memory.
-    ESP_ELFSYM_EXPORT(esp_vfs_register),
-    ESP_ELFSYM_EXPORT(esp_vfs_unregister),
-    // esp_netif.h
-    ESP_ELFSYM_EXPORT(esp_netif_get_ip_info),
-    ESP_ELFSYM_EXPORT(esp_netif_get_handle_from_ifkey),
     // Locale
     ESP_ELFSYM_EXPORT(localeconv),
-    // driver/gpio.h
-    ESP_ELFSYM_EXPORT(gpio_config),
-    ESP_ELFSYM_EXPORT(gpio_get_level),
-    ESP_ELFSYM_EXPORT(gpio_set_level),
-    ESP_ELFSYM_EXPORT(gpio_reset_pin),
-    // driver/i2s_common.h
-    ESP_ELFSYM_EXPORT(i2s_new_channel),
-    ESP_ELFSYM_EXPORT(i2s_del_channel),
-    ESP_ELFSYM_EXPORT(i2s_channel_enable),
-    ESP_ELFSYM_EXPORT(i2s_channel_disable),
-    ESP_ELFSYM_EXPORT(i2s_channel_write),
-    ESP_ELFSYM_EXPORT(i2s_channel_get_info),
-    ESP_ELFSYM_EXPORT(i2s_channel_read),
-    ESP_ELFSYM_EXPORT(i2s_channel_register_event_callback),
-    ESP_ELFSYM_EXPORT(i2s_channel_preload_data),
-    ESP_ELFSYM_EXPORT(i2s_channel_tune_rate),
-    // driver/i2s_std.h
-    ESP_ELFSYM_EXPORT(i2s_channel_init_std_mode),
-    ESP_ELFSYM_EXPORT(i2s_channel_reconfig_std_clock),
-    ESP_ELFSYM_EXPORT(i2s_channel_reconfig_std_slot),
-    ESP_ELFSYM_EXPORT(i2s_channel_reconfig_std_gpio),
-    // miniz.h
-    ESP_ELFSYM_EXPORT(tinfl_decompress),
-    ESP_ELFSYM_EXPORT(tinfl_decompress_mem_to_callback),
-    ESP_ELFSYM_EXPORT(tinfl_decompress_mem_to_mem),
-    // Compression, the counterpart to the tinfl_* decompression above. Like those, these live in
-    // the chip's ROM rather than in flash, so exporting them costs nothing.
-    //
-    // Note this is miniz, not zlib: ESP-IDF builds it with MINIZ_NO_ZLIB_APIS, so deflate/inflate,
-    // crc32 and the gz* file API do not exist anywhere in the firmware. An app wanting gzip files
-    // has to use the tdefl_/tinfl_ interfaces directly, or vendor zlib itself.
-    ESP_ELFSYM_EXPORT(tdefl_init),
-    ESP_ELFSYM_EXPORT(tdefl_compress),
-    ESP_ELFSYM_EXPORT(tdefl_compress_buffer),
-    ESP_ELFSYM_EXPORT(tdefl_compress_mem_to_mem),
-    ESP_ELFSYM_EXPORT(tdefl_compress_mem_to_output),
-    ESP_ELFSYM_EXPORT(tdefl_get_adler32),
-    ESP_ELFSYM_EXPORT(tdefl_get_prev_return_status),
-    // ledc
-    ESP_ELFSYM_EXPORT(ledc_update_duty),
-    ESP_ELFSYM_EXPORT(ledc_set_freq),
-    ESP_ELFSYM_EXPORT(ledc_channel_config),
-    ESP_ELFSYM_EXPORT(ledc_set_duty),
-    ESP_ELFSYM_EXPORT(ledc_set_fade),
-    ESP_ELFSYM_EXPORT(ledc_set_fade_with_step),
-    ESP_ELFSYM_EXPORT(ledc_set_fade_with_time),
-    ESP_ELFSYM_EXPORT(ledc_set_fade_step_and_start),
-    ESP_ELFSYM_EXPORT(ledc_set_fade_time_and_start),
-    ESP_ELFSYM_EXPORT(ledc_set_pin),
-    ESP_ELFSYM_EXPORT(ledc_timer_config),
-    ESP_ELFSYM_EXPORT(ledc_timer_pause),
-    ESP_ELFSYM_EXPORT(ledc_timer_resume),
-    ESP_ELFSYM_EXPORT(ledc_timer_rst),
-    // esp_heap_caps.h
-    ESP_ELFSYM_EXPORT(heap_caps_get_total_size),
-    ESP_ELFSYM_EXPORT(heap_caps_get_allocated_size),
-    ESP_ELFSYM_EXPORT(heap_caps_get_free_size),
-    ESP_ELFSYM_EXPORT(heap_caps_get_largest_free_block),
-    ESP_ELFSYM_EXPORT(heap_caps_aligned_alloc),
-    ESP_ELFSYM_EXPORT(heap_caps_malloc),
-    ESP_ELFSYM_EXPORT(heap_caps_calloc),
-    ESP_ELFSYM_EXPORT(heap_caps_free),
-    // esp_timer.h
-    ESP_ELFSYM_EXPORT(esp_timer_create),
-    ESP_ELFSYM_EXPORT(esp_timer_stop),
-    ESP_ELFSYM_EXPORT(esp_timer_delete),
-    ESP_ELFSYM_EXPORT(esp_timer_start_periodic),
-    ESP_ELFSYM_EXPORT(esp_timer_start_once),
-    ESP_ELFSYM_EXPORT(esp_timer_get_time),
-#ifdef CONFIG_IDF_TARGET_ESP32P4
-    // driver/ppa.h
-    ESP_ELFSYM_EXPORT(ppa_register_client),
-    ESP_ELFSYM_EXPORT(ppa_unregister_client),
-    ESP_ELFSYM_EXPORT(ppa_do_scale_rotate_mirror),
-    // esp_cache.h
-    ESP_ELFSYM_EXPORT(esp_cache_msync),
-    // esp_system.h
-    ESP_ELFSYM_EXPORT(esp_restart),
-#endif
     // delimiter
-    ESP_ELFSYM_END
+    ESP_ELFSYM_END,
 };
 
 uintptr_t resolve_symbol(const esp_elfsym* source, const char* symbolName) {

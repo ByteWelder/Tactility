@@ -1,11 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
-#ifdef ESP_PLATFORM
 #include <sdkconfig.h>
+#include <driver/gpio.h>
+#include <driver/i2s_common.h>
+#include <driver/i2s_std.h>
+#include <driver/ledc.h>
+#include <esp_event.h>
+#include <esp_log.h>
+#include <esp_log_write.h>
+#include <esp_random.h>
+#include <esp_system.h>
+#include <esp_timer.h>
+#include <esp_vfs.h>
+#include <miniz.h>
+#include <sys/errno.h>
+
+#ifdef CONFIG_IDF_TARGET_ESP32P4
+#include <driver/ppa.h>
 #endif
 
 #include <tactility/module.h>
-
-#include <esp_event.h>
 
 // GCC soft-float / compiler-rt helpers an app may need but can't reach through a header -
 // reference: https://gcc.gnu.org/onlinedocs/gccint/Soft-float-library-routines.html
@@ -103,6 +116,19 @@ extern "C" {
 extern "C" {
 
 const ModuleSymbol platform_esp32_symbols[] = {
+    // esp_log
+    DEFINE_MODULE_SYMBOL(esp_log),
+    DEFINE_MODULE_SYMBOL(esp_log_level_set),
+    DEFINE_MODULE_SYMBOL(esp_log_set_vprintf),
+    DEFINE_MODULE_SYMBOL(esp_log_write),
+    DEFINE_MODULE_SYMBOL(esp_log_timestamp),
+    // esp_err
+    DEFINE_MODULE_SYMBOL(esp_err_to_name),
+    DEFINE_MODULE_SYMBOL(_esp_error_check_failed),
+    // esp random
+    DEFINE_MODULE_SYMBOL(esp_random),
+    DEFINE_MODULE_SYMBOL(esp_fill_random),
+    // esp_event_loop
     DEFINE_MODULE_SYMBOL(esp_event_loop_create),
     DEFINE_MODULE_SYMBOL(esp_event_loop_delete),
     DEFINE_MODULE_SYMBOL(esp_event_loop_create_default),
@@ -120,6 +146,85 @@ const ModuleSymbol platform_esp32_symbols[] = {
     DEFINE_MODULE_SYMBOL(esp_event_post_to),
     DEFINE_MODULE_SYMBOL(esp_event_isr_post),
     DEFINE_MODULE_SYMBOL(esp_event_isr_post_to),
+    // sys/errno.h
+    DEFINE_MODULE_SYMBOL(__errno),
+    // esp_vfs.h
+    DEFINE_MODULE_SYMBOL(esp_vfs_register),
+    DEFINE_MODULE_SYMBOL(esp_vfs_unregister),
+    // driver/gpio.h
+    DEFINE_MODULE_SYMBOL(gpio_config),
+    DEFINE_MODULE_SYMBOL(gpio_get_level),
+    DEFINE_MODULE_SYMBOL(gpio_set_level),
+    DEFINE_MODULE_SYMBOL(gpio_reset_pin),
+    // driver/i2s_common.h
+    DEFINE_MODULE_SYMBOL(i2s_new_channel),
+    DEFINE_MODULE_SYMBOL(i2s_del_channel),
+    DEFINE_MODULE_SYMBOL(i2s_channel_enable),
+    DEFINE_MODULE_SYMBOL(i2s_channel_disable),
+    DEFINE_MODULE_SYMBOL(i2s_channel_write),
+    DEFINE_MODULE_SYMBOL(i2s_channel_get_info),
+    DEFINE_MODULE_SYMBOL(i2s_channel_read),
+    DEFINE_MODULE_SYMBOL(i2s_channel_register_event_callback),
+    DEFINE_MODULE_SYMBOL(i2s_channel_preload_data),
+    DEFINE_MODULE_SYMBOL(i2s_channel_tune_rate),
+    // driver/i2s_std.h
+    DEFINE_MODULE_SYMBOL(i2s_channel_init_std_mode),
+    DEFINE_MODULE_SYMBOL(i2s_channel_reconfig_std_clock),
+    DEFINE_MODULE_SYMBOL(i2s_channel_reconfig_std_slot),
+    DEFINE_MODULE_SYMBOL(i2s_channel_reconfig_std_gpio),
+    // miniz.h
+    DEFINE_MODULE_SYMBOL(tinfl_decompress),
+    DEFINE_MODULE_SYMBOL(tinfl_decompress_mem_to_callback),
+    DEFINE_MODULE_SYMBOL(tinfl_decompress_mem_to_mem),
+    DEFINE_MODULE_SYMBOL(tdefl_init),
+    DEFINE_MODULE_SYMBOL(tdefl_compress),
+    DEFINE_MODULE_SYMBOL(tdefl_compress_buffer),
+    DEFINE_MODULE_SYMBOL(tdefl_compress_mem_to_mem),
+    DEFINE_MODULE_SYMBOL(tdefl_compress_mem_to_output),
+    DEFINE_MODULE_SYMBOL(tdefl_get_adler32),
+    DEFINE_MODULE_SYMBOL(tdefl_get_prev_return_status),
+    // ledc
+    DEFINE_MODULE_SYMBOL(ledc_update_duty),
+    DEFINE_MODULE_SYMBOL(ledc_set_freq),
+    DEFINE_MODULE_SYMBOL(ledc_channel_config),
+    DEFINE_MODULE_SYMBOL(ledc_set_duty),
+    DEFINE_MODULE_SYMBOL(ledc_set_fade),
+    DEFINE_MODULE_SYMBOL(ledc_set_fade_with_step),
+    DEFINE_MODULE_SYMBOL(ledc_set_fade_with_time),
+    DEFINE_MODULE_SYMBOL(ledc_set_fade_step_and_start),
+    DEFINE_MODULE_SYMBOL(ledc_set_fade_time_and_start),
+    DEFINE_MODULE_SYMBOL(ledc_set_pin),
+    DEFINE_MODULE_SYMBOL(ledc_timer_config),
+    DEFINE_MODULE_SYMBOL(ledc_timer_pause),
+    DEFINE_MODULE_SYMBOL(ledc_timer_resume),
+    DEFINE_MODULE_SYMBOL(ledc_timer_rst),
+    // esp_heap_caps.h
+    DEFINE_MODULE_SYMBOL(heap_caps_get_total_size),
+    DEFINE_MODULE_SYMBOL(heap_caps_get_allocated_size),
+    DEFINE_MODULE_SYMBOL(heap_caps_get_free_size),
+    DEFINE_MODULE_SYMBOL(heap_caps_get_largest_free_block),
+    DEFINE_MODULE_SYMBOL(heap_caps_aligned_alloc),
+    DEFINE_MODULE_SYMBOL(heap_caps_malloc),
+    DEFINE_MODULE_SYMBOL(heap_caps_calloc),
+    DEFINE_MODULE_SYMBOL(heap_caps_free),
+    // esp_timer.h
+    DEFINE_MODULE_SYMBOL(esp_timer_create),
+    DEFINE_MODULE_SYMBOL(esp_timer_stop),
+    DEFINE_MODULE_SYMBOL(esp_timer_delete),
+    DEFINE_MODULE_SYMBOL(esp_timer_start_periodic),
+    DEFINE_MODULE_SYMBOL(esp_timer_start_once),
+    DEFINE_MODULE_SYMBOL(esp_timer_get_time),
+#ifdef CONFIG_IDF_TARGET_ESP32P4
+    // driver/ppa.h
+    DEFINE_MODULE_SYMBOL(ppa_register_client),
+    DEFINE_MODULE_SYMBOL(ppa_unregister_client),
+    DEFINE_MODULE_SYMBOL(ppa_do_scale_rotate_mirror),
+    // esp_cache.h
+    DEFINE_MODULE_SYMBOL(esp_cache_msync),
+#endif
+    // esp_system.h
+    DEFINE_MODULE_SYMBOL(esp_restart),
+    // soft float
 #ifndef CONFIG_IDF_TARGET_ESP32P4
     DEFINE_MODULE_SYMBOL(__addsf3),
     DEFINE_MODULE_SYMBOL(__adddf3),
@@ -201,7 +306,7 @@ const ModuleSymbol platform_esp32_symbols[] = {
     DEFINE_MODULE_SYMBOL(__divdi3),
     DEFINE_MODULE_SYMBOL(__udivdi3),
 #endif
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };
 
 }
