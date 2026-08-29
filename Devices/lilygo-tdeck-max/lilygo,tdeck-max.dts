@@ -19,6 +19,7 @@
 #include <bindings/tca8418.h>
 #include <bindings/sy6970.h>
 #include <bindings/bq27220.h>
+#include <bindings/drv2605.h>
 #include <gps_generic/bindings.h>
 
 // Reference: https://github.com/Xinyuan-LilyGO/T-Deck-MAX
@@ -50,6 +51,11 @@
 		xl9555 {
 			compatible = "xlsemi,xl9555";
 			reg = <0x20>;
+
+			motor_power {
+				compatible = "gpio-hog";
+				pin = <&xl9555 5 GPIO_FLAG_NONE>;
+      };
 
 			gps_power {
 				compatible = "gpio-hog";
@@ -119,6 +125,11 @@
 		bq27220 {
 			compatible = "ti,bq27220";
 			reg = <0x55>;
+		};
+
+		drv2605 {
+			compatible = "ti,drv2605";
+			reg = <0x5A>;
 		};
 	};
 

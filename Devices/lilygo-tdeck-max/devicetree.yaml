@@ -7,5 +7,6 @@ dependencies:
   - Drivers/tca8418-module
   - Drivers/sy6970-module
   - Drivers/bq27220-module
+  - Drivers/drv2605-module
   - Drivers/gps-generic-module
 dts: lilygo,tdeck-max.dts
