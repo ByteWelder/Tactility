@@ -33,16 +33,21 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     message("Using ESP-IDF ${Cyan}v$ENV{ESP_IDF_VERSION}${ColorReset}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-    set(COMPONENTS Firmware)
+    set(COMPONENTS Tactility)
     set(EXTRA_COMPONENT_DIRS
-        "Firmware"
+        # Tactility must be discovered first: its CMakeLists.txt calls init_tactility_globals(),
+        # which other components' CMakeLists.txt (e.g. lvgl-module) rely on having already run to
+        # read back TACTILITY_DEVICE_ID/TACTILITY_DEVICE_PROJECT via get_property(). ESP-IDF's
+        # requirements-discovery pass processes EXTRA_COMPONENT_DIRS in an isolated sub-process, in
+        # the order listed here, so this must stay first now that Firmware no longer exists as a
+        # separate component.
+        "Tactility"
         "Devices/${TACTILITY_DEVICE_PROJECT}"
         "Drivers"
         "Modules"
         "Platforms/platform-esp32"
         "TactilityKernel"
         "TactilityKernelCpp"
-        "Tactility"
         "TactilityFreeRtos"
         "Libraries/elf_loader"
         "Libraries/esp_epaper"
@@ -70,9 +75,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
 else ()
     message("Building for sim target")
-    # Devices/simulator/Source/Simulator.cpp always defines its own hardwareConfiguration; without
-    # this, Firmware/Source/Main.cpp's #else branch also defines an empty one (its ESP32-only
-    # fallback for devices migrated off the deprecated HAL), causing a duplicate-definition link error.
+    # eps-idf generates these from Kconfig, but posix build isn't set up with Kconfig.
     add_compile_definitions(CONFIG_TT_DEVICE_ID="simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_VENDOR="")
@@ -134,9 +137,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     target_link_libraries(lvgl PRIVATE SDL2-static)
-
-    # Sim app
-    add_subdirectory(Firmware)
 
     # Tests
     add_subdirectory(Tests)

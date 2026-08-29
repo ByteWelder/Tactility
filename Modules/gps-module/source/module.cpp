@@ -24,7 +24,7 @@ Module gps_module = {
     .stop = stop,
     .drivers = nullptr,
     .symbols = nullptr,
-    .internal = nullptr
+    .internal = nullptr,
 };
 
 }

@@ -18,18 +18,18 @@
 #include <sys/select.h>
 extern "C" {
 
-static const ModuleSymbol http_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(http_download_subscribe),
     DEFINE_MODULE_SYMBOL(http_download_unsubscribe),
     DEFINE_MODULE_SYMBOL(http_download_poll),
     DEFINE_MODULE_SYMBOL(http_download_start),
     DEFINE_MODULE_SYMBOL(http_download_cancel),
-    // esp_netif.h
-    DEFINE_MODULE_SYMBOL(esp_netif_get_ip_info),
-    DEFINE_MODULE_SYMBOL(esp_netif_get_handle_from_ifkey),
     // posix
     DEFINE_MODULE_SYMBOL(select),
 #ifdef ESP_PLATFORM
+    // esp_netif.h
+    DEFINE_MODULE_SYMBOL(esp_netif_get_ip_info),
+    DEFINE_MODULE_SYMBOL(esp_netif_get_handle_from_ifkey),
     // lwip/sockets.h
     DEFINE_MODULE_SYMBOL(lwip_setsockopt),
     DEFINE_MODULE_SYMBOL(lwip_socket),
@@ -102,7 +102,7 @@ Module http_module = {
     .start = nullptr,
     .stop = nullptr,
     .drivers = nullptr,
-    .symbols = http_module_symbols,
+    .symbols = SYMBOLS,
     .internal = nullptr,
 };
 

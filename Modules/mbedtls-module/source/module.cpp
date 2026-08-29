@@ -15,7 +15,7 @@
 
 extern "C" {
 
-static const ModuleSymbol mbedtls_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // CTR_DRBG (random number generation)
     DEFINE_MODULE_SYMBOL(mbedtls_ctr_drbg_init),
     DEFINE_MODULE_SYMBOL(mbedtls_ctr_drbg_free),
@@ -94,12 +94,16 @@ static const ModuleSymbol mbedtls_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(mbedtls_ecdh_compute_shared),
     // Error strings
     DEFINE_MODULE_SYMBOL(mbedtls_strerror),
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };
 
 Module mbedtls_module = {
     .name = "mbedtls",
-    .symbols = mbedtls_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

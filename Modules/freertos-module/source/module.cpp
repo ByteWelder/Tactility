@@ -7,13 +7,12 @@
 
 #include <tactility/freertos/event_groups.h>
 #include <tactility/freertos/queue.h>
-#include <tactility/freertos/semphr.h>
 #include <tactility/freertos/task.h>
 #include <tactility/freertos/timers.h>
 
 extern "C" {
 
-static const ModuleSymbol freertos_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // Task
     DEFINE_MODULE_SYMBOL(uxTaskGetStackHighWaterMark),
     DEFINE_MODULE_SYMBOL(uxTaskGetNumberOfTasks),
@@ -137,6 +136,9 @@ static const ModuleSymbol freertos_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(xPortEnterCriticalTimeout),
 #endif
 #if (configNUM_CORES > 1)
+    DEFINE_MODULE_SYMBOL(vPortExitCriticalCompliance),
+#endif
+#ifdef CONFIG_IDF_TARGET_ESP32P4
     DEFINE_MODULE_SYMBOL(vPortExitCriticalMultiCore),
 #endif
 #ifdef ESP_PLATFORM
@@ -148,12 +150,16 @@ static const ModuleSymbol freertos_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(xPortInterruptedFromISRContext),
     DEFINE_MODULE_SYMBOL(__getreent),
 #endif
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };
 
 Module freertos_module = {
     .name = "freertos",
-    .symbols = freertos_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

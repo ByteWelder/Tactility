@@ -38,7 +38,7 @@ extern "C" {
 #endif
 }
 
-static const ModuleSymbol cpp_symbols_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // cplusplus
 #ifdef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(_Znwj), // operator new(unsigned int)
@@ -75,7 +75,11 @@ extern "C" {
 
 Module cpp_symbols_module = {
     .name = "cpp-symbols",
-    .symbols = cpp_symbols_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

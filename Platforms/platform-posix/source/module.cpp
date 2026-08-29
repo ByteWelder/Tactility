@@ -10,11 +10,13 @@ static Driver* const platform_posix_drivers[] = {
     nullptr
 };
 
-struct Module platform_posix_module = {
+Module platform_posix_module = {
     .name = "platform-posix",
+    .start = nullptr,
+    .stop = nullptr,
     .drivers = platform_posix_drivers,
     .symbols = nullptr,
-    .internal = nullptr
+    .internal = nullptr,
 };
 
 }

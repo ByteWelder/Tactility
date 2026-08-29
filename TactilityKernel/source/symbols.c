@@ -570,5 +570,5 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(properties_file_set),
     DEFINE_MODULE_SYMBOL(properties_file_for_each),
     // terminator
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };

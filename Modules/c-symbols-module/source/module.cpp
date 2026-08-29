@@ -12,7 +12,7 @@
 
 extern "C" {
 
-static const ModuleSymbol c_symbols_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // stdlib.h
     DEFINE_MODULE_SYMBOL(malloc),
     DEFINE_MODULE_SYMBOL(calloc),
@@ -126,24 +126,33 @@ static const ModuleSymbol c_symbols_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(strncpy),
     DEFINE_MODULE_SYMBOL(strcpy),
     DEFINE_MODULE_SYMBOL(strcat),
-    // <cstring>'s C++ overloads (const/non-const char* variants of the same C symbol) make a bare
-    // `&strchr` ambiguous - disambiguate with an explicit function-pointer cast.
+#ifdef ESP_PLATFORM
+    // newlib's <cstring> declares these as plain (non-overloaded) functions - no ambiguity.
+    DEFINE_MODULE_SYMBOL(strchr),
+    DEFINE_MODULE_SYMBOL(strstr),
+    DEFINE_MODULE_SYMBOL(strrchr),
+    DEFINE_MODULE_SYMBOL(strpbrk),
+    DEFINE_MODULE_SYMBOL(memchr),
+#else
+    // libstdc++'s <cstring> C++ overloads (const/non-const char* variants of the same C symbol)
+    // make a bare `&strchr` ambiguous - disambiguate with an explicit function-pointer cast.
     { "strchr", (void*)static_cast<const char* (*)(const char*, int)>(&strchr) },
     { "strstr", (void*)static_cast<const char* (*)(const char*, const char*)>(&strstr) },
+    { "strrchr", (void*)static_cast<const char* (*)(const char*, int)>(&strrchr) },
+    { "strpbrk", (void*)static_cast<const char* (*)(const char*, const char*)>(&strpbrk) },
+    { "memchr", (void*)static_cast<const void* (*)(const void*, int, size_t)>(&memchr) },
+#endif
     DEFINE_MODULE_SYMBOL(strerror),
     DEFINE_MODULE_SYMBOL(strtod),
-    { "strrchr", (void*)static_cast<const char* (*)(const char*, int)>(&strrchr) },
     DEFINE_MODULE_SYMBOL(strtol),
     DEFINE_MODULE_SYMBOL(strtoul),
     DEFINE_MODULE_SYMBOL(strcspn),
     DEFINE_MODULE_SYMBOL(strncat),
-    { "strpbrk", (void*)static_cast<const char* (*)(const char*, const char*)>(&strpbrk) },
     DEFINE_MODULE_SYMBOL(strspn),
     DEFINE_MODULE_SYMBOL(strcoll),
     DEFINE_MODULE_SYMBOL(memset),
     DEFINE_MODULE_SYMBOL(memcpy),
     DEFINE_MODULE_SYMBOL(memcmp),
-    { "memchr", (void*)static_cast<const void* (*)(const void*, int, size_t)>(&memchr) },
     DEFINE_MODULE_SYMBOL(memmove),
     // ctype.h
     DEFINE_MODULE_SYMBOL(isalnum),
@@ -166,7 +175,11 @@ static const ModuleSymbol c_symbols_module_symbols[] = {
 
 Module c_symbols_module = {
     .name = "c-symbols",
-    .symbols = c_symbols_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

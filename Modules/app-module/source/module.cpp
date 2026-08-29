@@ -17,7 +17,7 @@ extern "C" {
 
 extern ServiceManifest app_internal_loader_service_manifest;
 
-const ModuleSymbol app_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // app/event
     DEFINE_MODULE_SYMBOL(app_event_subscribe),
     DEFINE_MODULE_SYMBOL(app_event_subscribe_with_app_id),
@@ -54,7 +54,7 @@ const ModuleSymbol app_module_symbols[] = {
     // app/scheduler
     DEFINE_MODULE_SYMBOL(app_scheduler_current_app_id),
     // terminator
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };
 
 static error_t start() {
@@ -70,8 +70,8 @@ Module app_module = {
     .start = start,
     .stop = stop,
     .drivers = nullptr,
-    .symbols = app_module_symbols,
-    .internal = nullptr
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

@@ -19,7 +19,7 @@
 
 extern "C" {
 
-static const ModuleSymbol posix_symbols_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // unistd.h
     DEFINE_MODULE_SYMBOL(usleep),
     DEFINE_MODULE_SYMBOL(sleep),
@@ -76,7 +76,11 @@ static const ModuleSymbol posix_symbols_module_symbols[] = {
 
 Module posix_symbols_module = {
     .name = "posix-symbols",
-    .symbols = posix_symbols_module_symbols
+    .start = nullptr,
+    .stop = nullptr,
+    .drivers = nullptr,
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
 
 }

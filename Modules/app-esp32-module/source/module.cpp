@@ -28,6 +28,7 @@ static error_t start() {
 }
 
 static error_t stop() {
+    elf_set_symbol_resolver(nullptr);
     return service_manager_remove(loader_service_manifest.id);
 }
 
@@ -37,7 +38,7 @@ Module app_esp32_module = {
     .stop = stop,
     .drivers = nullptr,
     .symbols = nullptr,
-    .internal = nullptr
+    .internal = nullptr,
 };
 
 }

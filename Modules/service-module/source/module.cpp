@@ -4,7 +4,7 @@
 #include <service/manager.h>
 #include <service/paths.h>
 
-const ModuleSymbol service_module_symbols[] = {
+static const ModuleSymbol SYMBOLS[] = {
     // service/service_instance
     DEFINE_MODULE_SYMBOL(service_instance_construct),
     DEFINE_MODULE_SYMBOL(service_instance_destruct),
@@ -30,7 +30,9 @@ const ModuleSymbol service_module_symbols[] = {
 
 Module service_module = {
     .name = "service",
+    .start = nullptr,
+    .stop = nullptr,
     .drivers = nullptr,
-    .symbols = service_module_symbols,
-    .internal = nullptr
+    .symbols = SYMBOLS,
+    .internal = nullptr,
 };
