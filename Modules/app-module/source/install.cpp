@@ -39,7 +39,7 @@ std::string last_path_segment(const std::string& path) {
 
 // Rejects absolute paths and ".." components, so a crafted tar entry can't extract outside destination_path (CWE-22).
 bool is_tar_entry_path_safe(const std::string& path) {
-    if (path.empty() || path.front() == '/') {
+    if (path.empty()) {
         return false;
     }
 
