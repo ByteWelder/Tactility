@@ -5,8 +5,6 @@
 #include <app/private/ledger.h>
 #include <app/scheduler.h>
 
-#include <cerrno>
-
 #ifdef ESP_PLATFORM
 extern "C" {
 ssize_t __real_read(int fd, void* buffer, size_t size);
@@ -40,18 +38,16 @@ extern "C" {
 
 ssize_t app_io_read(int fd, void* buffer, size_t size) {
     AppFdTable* table = current_app_fd_table();
-    if (table == nullptr) {
+    AppFile file {};
+    // No app instance, or an app instance that never bound/allocated this fd itself (e.g. a real
+    // file fd from fopen()/open(), which app-module never intercepts; see app/io.h). Either way
+    // @a fd is a real underlying fd, not one of ours.
+    if (table == nullptr || !app_fd_table_get_and_retain(table, fd, &file)) {
 #ifdef ESP_PLATFORM
         return __real_read(fd, buffer, size);
 #else
         return ::read(fd, buffer, size);
 #endif
-    }
-
-    AppFile file {};
-    if (!app_fd_table_get_and_retain(table, fd, &file)) {
-        errno = EBADF;
-        return -1;
     }
     ssize_t result = file.ops->read(file.object, buffer, size);
     if (file.ops->release != nullptr) {
@@ -62,18 +58,13 @@ ssize_t app_io_read(int fd, void* buffer, size_t size) {
 
 ssize_t app_io_write(int fd, const void* buffer, size_t size) {
     AppFdTable* table = current_app_fd_table();
-    if (table == nullptr) {
+    AppFile file {};
+    if (table == nullptr || !app_fd_table_get_and_retain(table, fd, &file)) {
 #ifdef ESP_PLATFORM
         return __real_write(fd, buffer, size);
 #else
         return ::write(fd, buffer, size);
 #endif
-    }
-
-    AppFile file {};
-    if (!app_fd_table_get_and_retain(table, fd, &file)) {
-        errno = EBADF;
-        return -1;
     }
     ssize_t result = file.ops->write(file.object, buffer, size);
     if (file.ops->release != nullptr) {
@@ -84,17 +75,12 @@ ssize_t app_io_write(int fd, const void* buffer, size_t size) {
 
 int app_io_close(int fd) {
     AppFdTable* table = current_app_fd_table();
-    if (table == nullptr) {
+    if (table == nullptr || app_fd_table_close(table, fd) != ERROR_NONE) {
 #ifdef ESP_PLATFORM
         return __real_close(fd);
 #else
         return ::close(fd);
 #endif
-    }
-
-    if (app_fd_table_close(table, fd) != ERROR_NONE) {
-        errno = EBADF;
-        return -1;
     }
     return 0;
 }

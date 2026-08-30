@@ -17,8 +17,11 @@ extern "C" {
 
 /**
  * FD-table dispatch for read()/write()/close(). When the calling task belongs to a running app
- * instance, @a fd is looked up in that instance's own fd table; otherwise (e.g. a kernel service
- * task) @a fd is a real underlying fd and the call falls through to the real syscall unchanged.
+ * instance and @a fd is one that instance bound/allocated itself, it's looked up in that
+ * instance's own fd table. Otherwise (no app instance, e.g. a kernel service task; or an app
+ * instance's own fd that was never bound through app-module, e.g. a real file from fopen()/
+ * open(), which this layer never intercepts) @a fd is a real underlying fd and the call falls
+ * through to the real syscall unchanged.
  * @return number of bytes transferred, 0 on EOF (read) or a closed peer (write), or -1 with
  * errno set on failure. This is the fd-layer translation of AppFileOps::read()/write()'s ssize_t
  * and AppFileOps::close()'s error_t.

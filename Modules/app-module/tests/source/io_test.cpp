@@ -11,6 +11,9 @@
 
 #include <tactility/delay.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <atomic>
 #include <cstring>
 #include <vector>
@@ -77,6 +80,33 @@ int32_t blocked_writer_app_main(int, char*[]) {
         sent += static_cast<size_t>(written);
     }
     g_blocked_writer_done.store(true, std::memory_order_release);
+    return 0;
+}
+
+std::atomic<ssize_t> g_real_file_write_result { -2 };
+std::atomic<ssize_t> g_real_file_read_result { -2 };
+std::atomic<bool> g_real_file_read_matches { false };
+std::atomic<int> g_real_file_close_result { -2 };
+
+// A real file fd from a bare open() call: app-module never intercepts open(), so this fd is
+// never bound/allocated in the app's own fd table. app_io_read/write/close() must still pass it
+// straight through to the real syscall instead of treating it as an unknown app-level fd.
+int32_t real_file_io_app_main(int, char*[]) {
+    const char* path = "/tmp/tactility_app_io_passthrough_test.txt";
+    int real_fd = ::open(path, O_CREAT | O_TRUNC | O_RDWR, 0600);
+    if (real_fd < 0) {
+        return 0;
+    }
+
+    g_real_file_write_result.store(app_io_write(real_fd, "hi", 2), std::memory_order_release);
+    ::lseek(real_fd, 0, SEEK_SET);
+    char buffer[2] = {};
+    ssize_t read_result = app_io_read(real_fd, buffer, sizeof(buffer));
+    g_real_file_read_result.store(read_result, std::memory_order_release);
+    g_real_file_read_matches.store(read_result == 2 && buffer[0] == 'h' && buffer[1] == 'i', std::memory_order_release);
+    g_real_file_close_result.store(app_io_close(real_fd), std::memory_order_release);
+
+    ::unlink(path);
     return 0;
 }
 
@@ -205,4 +235,26 @@ TEST_CASE("app_stream_unsubscribe is safe to call while a write is actively bloc
 
     task_event_group_destruct(&event_group);
     app_manager_remove("test.io.unsub_race");
+}
+
+TEST_CASE("app_io_read/write/close pass through a real file fd app-module never bound") {
+    ensure_memory_loader_registered();
+    g_real_file_write_result.store(-2, std::memory_order_relaxed);
+    g_real_file_read_result.store(-2, std::memory_order_relaxed);
+    g_real_file_read_matches.store(false, std::memory_order_relaxed);
+    g_real_file_close_result.store(-2, std::memory_order_relaxed);
+
+    AppManifest manifest { "test.io.real_file", "RealFile", APP_CATEGORY_USER, { APP_LOCATION_MEMORY, reinterpret_cast<void*>(real_file_io_app_main) } };
+    REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
+
+    AppInstanceId instance_id = 0;
+    REQUIRE_EQ(app_manager_start("test.io.real_file", &instance_id), ERROR_NONE);
+    REQUIRE(wait_for_state(instance_id, APP_INSTANCE_STATE_STOPPED, 1000));
+
+    CHECK_EQ(g_real_file_write_result.load(std::memory_order_acquire), 2);
+    CHECK_EQ(g_real_file_read_result.load(std::memory_order_acquire), 2);
+    CHECK(g_real_file_read_matches.load(std::memory_order_acquire));
+    CHECK_EQ(g_real_file_close_result.load(std::memory_order_acquire), 0);
+
+    app_manager_remove("test.io.real_file");
 }
