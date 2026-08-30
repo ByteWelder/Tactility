@@ -24,6 +24,7 @@ dependencies:
     version: "0.0.1"
     rules:
       - if: "target in [esp32, esp32s3]"
+  espressif/elf_loader: "1.3.3"
   espressif/esp_lcd_touch: "1.2.1"
   atanisoft/esp_lcd_touch_xpt2046:
     version: "1.0.6"

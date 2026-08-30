@@ -125,6 +125,11 @@ def main():
         print("Example: release-sdk.py release/TactilitySDK")
         sys.exit(1)
 
+    esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")
+    if not esp_idf_version:
+        print("Error: ESP_IDF_VERSION environment variable is not set")
+        sys.exit(1)
+
     target_path = os.path.abspath(sys.argv[1])
     os.makedirs(target_path, exist_ok=True)
 
@@ -148,8 +153,9 @@ def main():
         {'src': 'Libraries/lvgl/src/lv_conf_kconfig.h', 'dst': 'Libraries/lvgl/include/lv_conf.h'},
         {'src': 'Libraries/lvgl/src/**/*.h', 'dst': 'Libraries/lvgl/include/src/'},
         # elf_loader
-        {'src': 'Libraries/elf_loader/elf_loader.cmake', 'dst': 'Libraries/elf_loader/'},
-        {'src': 'Libraries/elf_loader/license.txt', 'dst': 'Libraries/elf_loader/'},
+        {'src': 'managed_components/espressif__elf_loader/*.cmake', 'dst': 'Libraries/elf_loader/'},
+        {'src': 'managed_components/espressif__elf_loader/*.lf', 'dst': 'Libraries/elf_loader/'},
+        {'src': 'managed_components/espressif__elf_loader/license.txt', 'dst': 'Libraries/elf_loader/'},
         # minitar
         {'src': 'build/esp-idf/minitar/libminitar.a', 'dst': 'Libraries/minitar/binary/'},
         {'src': 'Libraries/minitar/minitar/minitar.h', 'dst': 'Libraries/minitar/include/'},
@@ -179,7 +185,6 @@ def main():
     generate_tactility_sdk_top_cmakelists(target_path)
 
     # Output ESP-IDF SDK version to file
-    esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")
     with open(os.path.join(target_path, "idf-version.txt"), "a") as f:
         f.write(esp_idf_version)
 
