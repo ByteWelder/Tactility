@@ -208,9 +208,9 @@ def fetch_sdkconfig_files(platform_targets):
 def validate_environment(platforms):
     if any(not platform.startswith("posix") for platform in platforms) and os.environ.get("IDF_PATH") is None:
         if sys.platform == "win32":
-            print_warning("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via %IDF_PATH%\\export.ps1")
+            exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via %IDF_PATH%\\export.ps1")
         else:
-            print_warning("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
+            exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
     if not os.path.exists("manifest.properties"):
         exit_with_error("manifest.properties not found")
     if use_local_sdk == False and os.environ.get("TACTILITY_SDK_PATH") is not None:
