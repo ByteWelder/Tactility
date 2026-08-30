@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -60,8 +61,9 @@ def main():
         sdk_path = os.path.join("release", "TactilitySDK", f"{version}-{idf_target}", "TactilitySDK")
         run_release_script("release-sdk-esp32.py", sdk_path)
     else:
-        # release/TactilitySDK/${version}-posix/TactilitySDK
-        sdk_path = os.path.join("release", "TactilitySDK", f"{version}-posix", "TactilitySDK")
+        # release/TactilitySDK/${version}-posix-${arch}/TactilitySDK
+        arch = platform.machine()
+        sdk_path = os.path.join("release", "TactilitySDK", f"{version}-posix-{arch}", "TactilitySDK")
         run_release_script("release-sdk-posix.py", sdk_path)
 
 if __name__ == "__main__":
