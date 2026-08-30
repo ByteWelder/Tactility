@@ -317,6 +317,44 @@ def sdk_download_all(version, platforms):
 
 #endregion SDK download
 
+#region CMakeLists scaffolding
+
+# Bump whenever CMAKELISTS_TEMPLATE below changes, so existing apps' generated CMakeLists.txt get
+# regenerated on their next build instead of silently going stale.
+CMAKELISTS_VERSION = 1
+
+CMAKELISTS_TEMPLATE = """# tactility-cmakelists-version: %(version)d
+cmake_minimum_required(VERSION 3.20)
+
+if (NOT DEFINED ENV{TACTILITY_SDK_PATH})
+    message(FATAL_ERROR "TACTILITY_SDK_PATH environment variable is not set")
+endif()
+
+get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE)
+include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
+
+tactility_project_pre(%(app_id)s)
+project(%(app_id)s)
+tactility_project_post(%(app_id)s)
+"""
+
+def cmakelists_version_marker():
+    return f"# tactility-cmakelists-version: {CMAKELISTS_VERSION}"
+
+def ensure_cmakelists_up_to_date(manifest):
+    marker = cmakelists_version_marker()
+    if os.path.exists("CMakeLists.txt"):
+        with open("CMakeLists.txt", "r") as file:
+            first_line = file.readline().rstrip("\n")
+        if first_line == marker:
+            return
+    print(f"Updating CMakeLists.txt to {marker}")
+    content = CMAKELISTS_TEMPLATE % {"version": CMAKELISTS_VERSION, "app_id": manifest["app.id"]}
+    with open("CMakeLists.txt", "w") as file:
+        file.write(content)
+
+#endregion CMakeLists scaffolding
+
 #region Building
 
 def get_cmake_path(platform):
@@ -547,6 +585,7 @@ def setup_environment():
     os.makedirs(ttbuild_path, exist_ok=True)
 
 def build_action(manifest, platform_arg, skip_build):
+    ensure_cmakelists_up_to_date(manifest)
     platforms_to_build = get_manifest_target_platforms(manifest, platform_arg)
     # Environment validation
     validate_environment(platforms_to_build)
