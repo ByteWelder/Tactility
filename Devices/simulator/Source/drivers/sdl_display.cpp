@@ -22,6 +22,26 @@ struct SdlDisplayInternal {
     SDL_Texture* texture;
 };
 
+// Only one sdl-display device exists in the simulator; sdl_input.cpp uses this to map window
+// coordinates back to the fixed logical resolution SDL_RenderSetLogicalSize() scales to the window.
+static SdlDisplayInternal* g_display_internal = nullptr;
+
+SDL_Renderer* sdl_display_get_renderer(void) {
+    return g_display_internal != nullptr ? g_display_internal->renderer : nullptr;
+}
+
+// Re-blits the already-drawn texture at the renderer's current (possibly just-resized) scale.
+// No new pixel data needed: the window resizing doesn't change what LVGL last rendered, only how
+// large it should appear, and SDL only applies that until the next SDL_RenderPresent() call.
+void sdl_display_present_now(void) {
+    if (g_display_internal == nullptr) {
+        return;
+    }
+    SDL_RenderClear(g_display_internal->renderer);
+    SDL_RenderCopy(g_display_internal->renderer, g_display_internal->texture, nullptr, nullptr);
+    SDL_RenderPresent(g_display_internal->renderer);
+}
+
 // region Driver lifecycle
 
 static error_t start(Device* device) {
@@ -50,6 +70,10 @@ static error_t stop(Device* device) {
         SDL_QuitSubSystem(SDL_INIT_VIDEO);
     }
 
+    if (g_display_internal == internal) {
+        g_display_internal = nullptr;
+    }
+
     free(internal);
     device_set_driver_data(device, nullptr);
     return ERROR_NONE;
@@ -62,13 +86,14 @@ static error_t stop(Device* device) {
 static error_t sdl_display_reset(Device*) { return ERROR_NONE; }
 static error_t sdl_display_init(Device*) { return ERROR_NONE; }
 
-/**
- * The window/renderer/texture are created here (on first flush) rather than in start(),
- * because they must be created on the same thread that later drives them: start() runs on
- * the kernel-init thread, while every draw_bitmap() call runs on the lvgl task thread.
- * SDL's video/GPU calls are only safe to use consistently from a single thread; some GPU
- * drivers hang when that's violated.
- */
+static float sdl_display_get_dpi_scale() {
+    float hdpi = 96.0f;
+    if (SDL_GetDisplayDPI(0, nullptr, &hdpi, nullptr) != 0 || hdpi <= 0.0f) {
+        return 1.0f;
+    }
+    return hdpi / 96.0f;
+}
+
 static bool sdl_display_lazy_init(Device* device, SdlDisplayInternal* internal) {
     const auto* config = GET_CONFIG(device);
 
@@ -77,15 +102,27 @@ static bool sdl_display_lazy_init(Device* device, SdlDisplayInternal* internal) 
         return false;
     }
 
+    // Only the window's initial on-screen footprint scales here - the render/logical resolution
+    // (config->horizontal_resolution/vertical_resolution, used below for the texture and
+    // SDL_RenderSetLogicalSize()) is unaffected, same as any other resize the user does by hand.
+    const float dpi_scale = sdl_display_get_dpi_scale();
+    const int initial_width = static_cast<int>(config->horizontal_resolution * dpi_scale);
+    const int initial_height = static_cast<int>(config->vertical_resolution * dpi_scale);
+
     internal->window = SDL_CreateWindow(
         "Tactility",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        config->horizontal_resolution, config->vertical_resolution,
-        SDL_WINDOW_SHOWN
+        initial_width, initial_height,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
     internal->renderer = internal->window != nullptr
         ? SDL_CreateRenderer(internal->window, -1, SDL_RENDERER_ACCELERATED)
         : nullptr;
+    // Lets the window be resized freely while the renderer scales/letterboxes the fixed-resolution
+    // texture below to fit - LVGL keeps rendering at horizontal_resolution x vertical_resolution.
+    if (internal->renderer != nullptr) {
+        SDL_RenderSetLogicalSize(internal->renderer, config->horizontal_resolution, config->vertical_resolution);
+    }
     internal->texture = internal->renderer != nullptr
         ? SDL_CreateTexture(internal->renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING,
             config->horizontal_resolution, config->vertical_resolution)
@@ -100,6 +137,7 @@ static bool sdl_display_lazy_init(Device* device, SdlDisplayInternal* internal) 
         return false;
     }
 
+    g_display_internal = internal;
     return true;
 }
 
@@ -124,9 +162,7 @@ static error_t sdl_display_draw_bitmap(Device* device, int32_t x_start, int32_t 
         return ERROR_RESOURCE;
     }
 
-    SDL_RenderClear(internal->renderer);
-    SDL_RenderCopy(internal->renderer, internal->texture, nullptr, nullptr);
-    SDL_RenderPresent(internal->renderer);
+    sdl_display_present_now();
     return ERROR_NONE;
 }
 
