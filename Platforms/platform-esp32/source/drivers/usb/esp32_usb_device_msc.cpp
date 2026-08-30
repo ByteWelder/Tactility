@@ -187,10 +187,14 @@ static error_t msc_device_stop(struct Device* device) {
         return ERROR_NONE;
     }
 
-    tinyusb_msc_storage_deinit();
-
+    // Disconnect and fully stop the TinyUSB device task before freeing storage state: the task
+    // keeps servicing SCSI commands (Windows polls TEST UNIT READY continuously, even on an
+    // ejected-but-still-enumerated device) until tinyusb_driver_uninstall() actually stops it, so
+    // freeing first left tud_msc_*_cb() callbacks dereferencing an already-freed storage handle.
     auto* controller = device_get_parent(device);
     usb_device_controller_release(controller, USB_DEVICE_CLASS_MSC);
+
+    tinyusb_msc_storage_deinit();
 
     ctx->storage_active = false;
     ctx->mount_changed_cb = nullptr;

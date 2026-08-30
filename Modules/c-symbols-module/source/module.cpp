@@ -148,6 +148,11 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(memcmp),
     DEFINE_MODULE_SYMBOL(memmove),
     // ctype.h
+#ifdef ESP_PLATFORM
+    // _ctype_ is newlib's internal lookup table backing isalnum() etc.;
+    // glibc/macOS libc don't export a symbol by this name.
+    DEFINE_MODULE_SYMBOL(_ctype_),
+#endif
     DEFINE_MODULE_SYMBOL(isalnum),
     DEFINE_MODULE_SYMBOL(isalpha),
     DEFINE_MODULE_SYMBOL(iscntrl),

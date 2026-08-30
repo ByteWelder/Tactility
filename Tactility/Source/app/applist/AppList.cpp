@@ -53,17 +53,18 @@ void collectManifest(const ::AppManifest* manifest, void* context) {
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
 
+    // Flex column + flex_grow so LVGL recomputes the toolbar/list split on every layout pass,
+    // rather than a fixed height computed once from lv_obj_get_content_height(parent) that would
+    // go stale after a later display resolution/rotation change.
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
+
     auto* toolbar = lvgl_toolbar_create(parent, "Apps");
     lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
-    lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_align_to(list, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
-
-    auto toolbar_height = lv_obj_get_height(toolbar);
-    auto parent_content_height = lv_obj_get_content_height(parent);
-    lv_obj_set_height(list, parent_content_height - toolbar_height);
+    lv_obj_set_flex_grow(list, 1);
 
     std::vector<const ::AppManifest*> manifests;
     app_manager_for_each_manifest(collectManifest, &manifests);
