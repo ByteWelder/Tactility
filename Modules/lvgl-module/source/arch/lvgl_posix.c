@@ -28,6 +28,11 @@ static uint32_t task_max_sleep_ms = 10;
 static TaskHandle_t lvgl_task_handle = NULL;
 static bool lvgl_task_interrupt_requested = false;
 
+// ESP32 gets LVGL's tick driven for free by esp_lvgl_port; POSIX has no such
+// helper, so lv_tick_get() would otherwise stay at 0 forever and every timer
+// (indev polling included) would look permanently "not due yet".
+static uint32_t lvgl_last_tick_millis = 0;
+
 #define LVGL_STOP_POLL_INTERVAL 10
 #define LVGL_STOP_TIMEOUT 5000
 
@@ -80,7 +85,13 @@ static void lvgl_task(void* arg) {
     // on_start must be called from the task, otherwise the display doesn't work
     if (lvgl_module_config.on_start) lvgl_module_config.on_start();
 
+    lvgl_last_tick_millis = (uint32_t)get_millis();
+
     while (!lvgl_task_is_interrupt_requested()) {
+        uint32_t now_millis = (uint32_t)get_millis();
+        lv_tick_inc(now_millis - lvgl_last_tick_millis);
+        lvgl_last_tick_millis = now_millis;
+
         if (lvgl_try_lock(10)) {
             task_delay_ms = lv_timer_handler();
             lvgl_unlock();
