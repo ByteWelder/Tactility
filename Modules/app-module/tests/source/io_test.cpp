@@ -110,6 +110,20 @@ int32_t real_file_io_app_main(int, char*[]) {
     return 0;
 }
 
+std::atomic<int> g_double_close_first_result { -2 };
+std::atomic<int> g_double_close_second_result { -2 };
+std::atomic<ssize_t> g_write_after_close_result { -2 };
+
+// A second close() of an already-closed app fd, and a write() after that, must both report
+// EBADF, never fall through to the platform syscall, which by then could be operating on a real
+// fd that fd number was recycled for (e.g. the process's real stdout).
+int32_t double_close_app_main(int, char*[]) {
+    g_double_close_first_result.store(app_io_close(STDOUT_FILENO), std::memory_order_release);
+    g_double_close_second_result.store(app_io_close(STDOUT_FILENO), std::memory_order_release);
+    g_write_after_close_result.store(app_io_write(STDOUT_FILENO, "x", 1), std::memory_order_release);
+    return 0;
+}
+
 } // namespace
 
 TEST_CASE("an app's stdio fds default to the null device: write succeeds and discards, read reports EOF") {
@@ -257,4 +271,24 @@ TEST_CASE("app_io_read/write/close pass through a real file fd app-module never 
     CHECK_EQ(g_real_file_close_result.load(std::memory_order_acquire), 0);
 
     app_manager_remove("test.io.real_file");
+}
+
+TEST_CASE("closing an already-closed app fd reports EBADF instead of falling through to the platform") {
+    ensure_memory_loader_registered();
+    g_double_close_first_result.store(-2, std::memory_order_relaxed);
+    g_double_close_second_result.store(-2, std::memory_order_relaxed);
+    g_write_after_close_result.store(-2, std::memory_order_relaxed);
+
+    AppManifest manifest { "test.io.double_close", "DoubleClose", APP_CATEGORY_USER, { APP_LOCATION_MEMORY, reinterpret_cast<void*>(double_close_app_main) } };
+    REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
+
+    AppInstanceId instance_id = 0;
+    REQUIRE_EQ(app_manager_start("test.io.double_close", &instance_id), ERROR_NONE);
+    REQUIRE(wait_for_state(instance_id, APP_INSTANCE_STATE_STOPPED, 1000));
+
+    CHECK_EQ(g_double_close_first_result.load(std::memory_order_acquire), 0);
+    CHECK_EQ(g_double_close_second_result.load(std::memory_order_acquire), -1);
+    CHECK_EQ(g_write_after_close_result.load(std::memory_order_acquire), -1);
+
+    app_manager_remove("test.io.double_close");
 }

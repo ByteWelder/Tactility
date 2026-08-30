@@ -38,10 +38,12 @@ void app_fd_table_construct(AppFdTable* table) {
     const AppFile* null_file = app_null_file();
     for (int fd = 0; fd < APP_MAX_FDS; fd++) {
         table->fds[fd] = nullptr;
+        table->ever_used[fd] = false;
     }
     for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; fd++) {
         table->slots[fd] = *null_file;
         table->fds[fd] = &table->slots[fd];
+        table->ever_used[fd] = true;
     }
     table->shutting_down = false;
     mutex_construct(&table->mutex);
@@ -79,6 +81,7 @@ error_t app_fd_table_bind(AppFdTable* table, int fd, const AppFileOps* ops, void
     bool had_old = table->fds[fd] != nullptr;
     table->slots[fd] = { .ops = ops, .object = object };
     table->fds[fd] = &table->slots[fd];
+    table->ever_used[fd] = true;
     mutex_unlock(&table->mutex);
 
     if (had_old) {
@@ -94,6 +97,7 @@ error_t app_fd_table_allocate(AppFdTable* table, const AppFileOps* ops, void* ob
         if (table->fds[fd] == nullptr) {
             table->slots[fd] = { .ops = ops, .object = object };
             table->fds[fd] = &table->slots[fd];
+            table->ever_used[fd] = true;
             mutex_unlock(&table->mutex);
             *out_fd = fd;
             return ERROR_NONE;
@@ -127,6 +131,17 @@ error_t app_fd_table_close(AppFdTable* table, int fd) {
         return ERROR_NOT_FOUND;
     }
     return old.ops->close(old.object);
+}
+
+bool app_fd_table_is_app_owned(AppFdTable* table, int fd) {
+    if (!fd_in_range(fd)) {
+        return false;
+    }
+
+    mutex_lock(&table->mutex);
+    bool owned = table->fds[fd] != nullptr || table->ever_used[fd];
+    mutex_unlock(&table->mutex);
+    return owned;
 }
 
 } // extern "C"

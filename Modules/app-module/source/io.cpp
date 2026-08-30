@@ -5,6 +5,8 @@
 #include <app/private/ledger.h>
 #include <app/scheduler.h>
 
+#include <cerrno>
+
 #ifdef ESP_PLATFORM
 extern "C" {
 ssize_t __real_read(int fd, void* buffer, size_t size);
@@ -39,50 +41,66 @@ extern "C" {
 ssize_t app_io_read(int fd, void* buffer, size_t size) {
     AppFdTable* table = current_app_fd_table();
     AppFile file {};
-    // No app instance, or an app instance that never bound/allocated this fd itself (e.g. a real
-    // file fd from fopen()/open(), which app-module never intercepts; see app/io.h). Either way
-    // @a fd is a real underlying fd, not one of ours.
-    if (table == nullptr || !app_fd_table_get_and_retain(table, fd, &file)) {
+    if (table != nullptr && app_fd_table_get_and_retain(table, fd, &file)) {
+        ssize_t result = file.ops->read(file.object, buffer, size);
+        if (file.ops->release != nullptr) {
+            file.ops->release(file.object);
+        }
+        return result;
+    }
+    // @a fd isn't currently bound. If this table has never touched it either, it's a real
+    // underlying fd (e.g. from fopen()/open(), which app-module never intercepts; see app/io.h),
+    // so fall through. Otherwise it's one of ours that's already been closed: a real EBADF, not
+    // a real fd to hand to the platform (which could belong to something else entirely by now).
+    if (table != nullptr && app_fd_table_is_app_owned(table, fd)) {
+        errno = EBADF;
+        return -1;
+    }
 #ifdef ESP_PLATFORM
-        return __real_read(fd, buffer, size);
+    return __real_read(fd, buffer, size);
 #else
-        return ::read(fd, buffer, size);
+    return ::read(fd, buffer, size);
 #endif
-    }
-    ssize_t result = file.ops->read(file.object, buffer, size);
-    if (file.ops->release != nullptr) {
-        file.ops->release(file.object);
-    }
-    return result;
 }
 
 ssize_t app_io_write(int fd, const void* buffer, size_t size) {
     AppFdTable* table = current_app_fd_table();
     AppFile file {};
-    if (table == nullptr || !app_fd_table_get_and_retain(table, fd, &file)) {
+    if (table != nullptr && app_fd_table_get_and_retain(table, fd, &file)) {
+        ssize_t result = file.ops->write(file.object, buffer, size);
+        if (file.ops->release != nullptr) {
+            file.ops->release(file.object);
+        }
+        return result;
+    }
+    if (table != nullptr && app_fd_table_is_app_owned(table, fd)) {
+        errno = EBADF;
+        return -1;
+    }
 #ifdef ESP_PLATFORM
-        return __real_write(fd, buffer, size);
+    return __real_write(fd, buffer, size);
 #else
-        return ::write(fd, buffer, size);
+    return ::write(fd, buffer, size);
 #endif
-    }
-    ssize_t result = file.ops->write(file.object, buffer, size);
-    if (file.ops->release != nullptr) {
-        file.ops->release(file.object);
-    }
-    return result;
 }
 
 int app_io_close(int fd) {
     AppFdTable* table = current_app_fd_table();
-    if (table == nullptr || app_fd_table_close(table, fd) != ERROR_NONE) {
-#ifdef ESP_PLATFORM
-        return __real_close(fd);
-#else
-        return ::close(fd);
-#endif
+    if (table != nullptr) {
+        error_t result = app_fd_table_close(table, fd);
+        if (result == ERROR_NONE) {
+            return 0;
+        }
+        if (app_fd_table_is_app_owned(table, fd)) {
+            errno = EBADF;
+            return -1;
+        }
     }
-    return 0;
+#ifdef ESP_PLATFORM
+    return __real_close(fd);
+#else
+    return ::close(fd);
+#endif
 }
 
 } // extern "C"

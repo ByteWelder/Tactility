@@ -22,10 +22,17 @@
  * serialize against teardown externally (see app_stream_subscribe()/app_stream_unsubscribe()),
  * so a check() failure here means that external synchronization broke, not a condition to
  * handle gracefully.
+ *
+ * `ever_used[i]` is set once `fds[i]` is ever bound/allocated (including the default stdio
+ * binding at construct time) and never cleared, even once `fds[i]` goes back to NULL on close.
+ * This is what lets app_fd_table_is_app_owned() distinguish "this fd number belongs to us, it's
+ * just currently closed" (an app-level EBADF) from "app-module has never touched this fd number"
+ * (a real underlying fd, e.g. from fopen()/open(), that a caller should fall through on).
  */
 struct AppFdTable {
     struct AppFile slots[APP_MAX_FDS];
     struct AppFile* fds[APP_MAX_FDS];
+    bool ever_used[APP_MAX_FDS];
     struct Mutex mutex;
     bool shutting_down;
 };
@@ -70,6 +77,13 @@ bool app_fd_table_get_and_retain(struct AppFdTable* table, int fd, struct AppFil
  * @retval ERROR_NOT_FOUND @a fd is out of range or not currently in use
  */
 error_t app_fd_table_close(struct AppFdTable* table, int fd);
+
+/**
+ * @return true if @a fd is currently in use, or was in the past (even if since closed). This is
+ * whether the table claims @a fd as one of its own, regardless of its current state. False means
+ * @a fd is a real underlying fd this table has never bound or allocated.
+ */
+bool app_fd_table_is_app_owned(struct AppFdTable* table, int fd);
 
 #ifdef __cplusplus
 }
