@@ -9,6 +9,8 @@
 #include <lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <greeting.h>
+
 #include <stdbool.h>
 
 static void create_widgets(lv_obj_t* parent, void* userData) {
@@ -16,7 +18,7 @@ static void create_widgets(lv_obj_t* parent, void* userData) {
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t* label = lv_label_create(parent);
-    lv_label_set_text(label, "Hello, world!");
+    lv_label_set_text(label, SDK_TEST_GREETING);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 

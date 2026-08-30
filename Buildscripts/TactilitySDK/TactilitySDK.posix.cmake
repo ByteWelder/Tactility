@@ -38,11 +38,14 @@ macro(tactility_project_post project_name)
 endmacro()
 
 macro(tactility_component_register)
-    cmake_parse_arguments(TT_COMPONENT "" "" "SRCS" ${ARGN})
+    cmake_parse_arguments(TT_COMPONENT "" "" "SRCS;INCLUDE_DIRS;REQUIRES;PRIV_REQUIRES" ${ARGN})
     # Must be a SHARED object, not a -pie executable: glibc's dlopen() unconditionally refuses
     # any ET_DYN carrying the DF_1_PIE flag ("cannot dynamically load position-independent
     # executable"), regardless of whether it has a dynamic-linker segment - verified empirically.
     add_library(${PROJECT_NAME} SHARED ${TT_COMPONENT_SRCS})
     target_link_libraries(${PROJECT_NAME} PRIVATE TactilitySDK)
     set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if (TT_COMPONENT_INCLUDE_DIRS)
+        target_include_directories(${PROJECT_NAME} PRIVATE ${TT_COMPONENT_INCLUDE_DIRS})
+    endif ()
 endmacro()
