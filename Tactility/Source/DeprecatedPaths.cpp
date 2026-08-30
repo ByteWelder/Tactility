@@ -52,11 +52,7 @@ std::string getUserDataRootPath() {
 }
 
 std::string getDataPath() {
-#ifdef ESP_PLATFORM
     return getUserDataRootPath() + "/tactility";
-#else
-    return "data";
-#endif
 }
 
 std::string getTempPath() {

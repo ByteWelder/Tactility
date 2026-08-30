@@ -1,3 +1,4 @@
+#include "app_posix/module.h"
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #include <Tactility/InitEsp.h>
@@ -497,6 +498,8 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM
     check(module_ensure_started(&app_esp32_module) == ERROR_NONE);
+#else
+    check(module_ensure_started(&app_posix_module) == ERROR_NONE);
 #endif
 
 #ifdef ESP_PLATFORM

@@ -185,6 +185,10 @@ else ()
     # Exports Tactility's own symbols (-rdynamic) so a dlopen()ed app-posix-module app can resolve
     # calls back into it - the OS-native equivalent of app-esp32-module's custom symbol resolver.
     set_target_properties(Tactility PROPERTIES ENABLE_EXPORTS ON)
+    # Routes every pthread_attr_setstack() call (FreeRTOS's POSIX port hands each task a stack
+    # carved out of its own heap through this) to __wrap_pthread_attr_setstack() in
+    # Platforms/platform-posix/source/pthread_stack_wrap.c, which no-ops it - see that file for why.
+    target_link_options(Tactility PRIVATE "-Wl,--wrap=pthread_attr_setstack")
 endif ()
 
 #

@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
+#include <format>
 #include <unistd.h>
 
 namespace tt::app::files {
@@ -174,43 +175,22 @@ static bool copyRecursive(const std::string& src, const std::string& dst) {
 
 void View::viewFile(const std::string& path, const std::string& filename) {
     std::string file_path = path + "/" + filename;
-
-    // For PC we need to make the path relative to the current work directory,
-    // because that's how LVGL maps its 'drive letter' to the file system.
-    std::string processed_filepath;
-    if (kernel::getPlatform() == kernel::PlatformSimulator) {
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) == nullptr) {
-            LOG_E(TAG, "Failed to get current working directory");
-            return;
-        }
-        if (!file_path.starts_with(cwd)) {
-            LOG_E(TAG, "Can only work with files in working directory %s", cwd);
-            return;
-        }
-        processed_filepath = file_path.substr(strlen(cwd));
-    } else {
-        processed_filepath = file_path;
-    }
-
     LOG_I(TAG, "Clicked %s", file_path.c_str());
 
     if (isSupportedAppFile(filename)) {
-#ifdef ESP_PLATFORM
         // install(filename);
         auto message = std::format("Do you want to install {}?", filename);
-        installAppPath = processed_filepath;
+        installAppPath = file_path;
         auto choices = std::vector<std::string> {"Yes", "No"};
         installDialogId = alertdialog::start(appInstanceId, "Install?", message, choices);
-#endif
     } else if (isSupportedImageFile(filename)) {
-        imageviewer::start(processed_filepath);
+        imageviewer::start(file_path);
     } else if (isSupportedTextFile(filename)) {
         if (kernel::getPlatform() == kernel::PlatformEsp) {
-            notes::start(processed_filepath);
+            notes::start(file_path);
         } else {
             // Remove forward slash, because we need a relative path
-            notes::start(processed_filepath.substr(1));
+            notes::start(file_path.substr(1));
         }
     } else {
         LOG_W(TAG, "Opening files of this type is not supported");

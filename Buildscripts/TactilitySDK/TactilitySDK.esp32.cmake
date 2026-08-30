@@ -38,3 +38,7 @@ macro(tactility_project_post project_name)
     )
 
 endmacro()
+
+macro(tactility_component_register)
+    idf_component_register(${ARGN} REQUIRES TactilitySDK)
+endmacro()
