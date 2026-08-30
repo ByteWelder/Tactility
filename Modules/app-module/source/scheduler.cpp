@@ -104,9 +104,9 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
         // Streams bound before this instance's task existed (app_manager_start_with_streams())
         // only got producer_task filled in as NULL at subscribe time. Backfill it now.
         AppFdTable& fd_table = iterator->second.fd_table;
-        for (auto* file : fd_table.fds) {
-            if (file != nullptr && file->ops == app_stream_ops()) {
-                static_cast<AppStream*>(file->object)->internal.producer_task = task;
+        for (auto& slot : fd_table.slots) {
+            if (slot.in_use && slot.file.ops == app_stream_ops()) {
+                static_cast<AppStream*>(slot.file.object)->internal.producer_task = task;
             }
         }
     }

@@ -19,9 +19,10 @@ bool get_internal(AppFdTable* table, int fd, AppFile* out_file, bool retain) {
 
     mutex_lock(&table->mutex);
     check(!table->shutting_down);
-    bool in_use = table->fds[fd] != nullptr;
+    AppFdSlot& slot = table->slots[fd];
+    bool in_use = slot.in_use;
     if (in_use) {
-        *out_file = table->slots[fd];
+        *out_file = slot.file;
         if (retain && out_file->ops->retain != nullptr) {
             out_file->ops->retain(out_file->object);
         }
@@ -37,13 +38,13 @@ extern "C" {
 void app_fd_table_construct(AppFdTable* table) {
     const AppFile* null_file = app_null_file();
     for (int fd = 0; fd < APP_MAX_FDS; fd++) {
-        table->fds[fd] = nullptr;
-        table->ever_used[fd] = false;
+        table->slots[fd].in_use = false;
+        table->slots[fd].ever_used = false;
     }
     for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; fd++) {
-        table->slots[fd] = *null_file;
-        table->fds[fd] = &table->slots[fd];
-        table->ever_used[fd] = true;
+        table->slots[fd].file = *null_file;
+        table->slots[fd].in_use = true;
+        table->slots[fd].ever_used = true;
     }
     table->shutting_down = false;
     mutex_construct(&table->mutex);
@@ -56,9 +57,9 @@ void app_fd_table_teardown(AppFdTable* table) {
     mutex_lock(&table->mutex);
     table->shutting_down = true;
     for (int fd = 0; fd < APP_MAX_FDS; fd++) {
-        if (table->fds[fd] != nullptr) {
-            closing[closing_count++] = table->slots[fd];
-            table->fds[fd] = nullptr;
+        if (table->slots[fd].in_use) {
+            closing[closing_count++] = table->slots[fd].file;
+            table->slots[fd].in_use = false;
         }
     }
     mutex_unlock(&table->mutex);
@@ -77,11 +78,12 @@ error_t app_fd_table_bind(AppFdTable* table, int fd, const AppFileOps* ops, void
 
     mutex_lock(&table->mutex);
     check(!table->shutting_down);
-    AppFile old = table->slots[fd];
-    bool had_old = table->fds[fd] != nullptr;
-    table->slots[fd] = { .ops = ops, .object = object };
-    table->fds[fd] = &table->slots[fd];
-    table->ever_used[fd] = true;
+    AppFdSlot& slot = table->slots[fd];
+    AppFile old = slot.file;
+    bool had_old = slot.in_use;
+    slot.file = { .ops = ops, .object = object };
+    slot.in_use = true;
+    slot.ever_used = true;
     mutex_unlock(&table->mutex);
 
     if (had_old) {
@@ -94,10 +96,11 @@ error_t app_fd_table_allocate(AppFdTable* table, const AppFileOps* ops, void* ob
     mutex_lock(&table->mutex);
     check(!table->shutting_down);
     for (int fd = 3; fd < APP_MAX_FDS; fd++) {
-        if (table->fds[fd] == nullptr) {
-            table->slots[fd] = { .ops = ops, .object = object };
-            table->fds[fd] = &table->slots[fd];
-            table->ever_used[fd] = true;
+        AppFdSlot& slot = table->slots[fd];
+        if (!slot.in_use) {
+            slot.file = { .ops = ops, .object = object };
+            slot.in_use = true;
+            slot.ever_used = true;
             mutex_unlock(&table->mutex);
             *out_fd = fd;
             return ERROR_NONE;
@@ -122,9 +125,10 @@ error_t app_fd_table_close(AppFdTable* table, int fd) {
 
     mutex_lock(&table->mutex);
     check(!table->shutting_down);
-    bool in_use = table->fds[fd] != nullptr;
-    AppFile old = table->slots[fd];
-    table->fds[fd] = nullptr;
+    AppFdSlot& slot = table->slots[fd];
+    bool in_use = slot.in_use;
+    AppFile old = slot.file;
+    slot.in_use = false;
     mutex_unlock(&table->mutex);
 
     if (!in_use) {
@@ -139,7 +143,7 @@ bool app_fd_table_is_app_owned(AppFdTable* table, int fd) {
     }
 
     mutex_lock(&table->mutex);
-    bool owned = table->fds[fd] != nullptr || table->ever_used[fd];
+    bool owned = table->slots[fd].in_use || table->slots[fd].ever_used;
     mutex_unlock(&table->mutex);
     return owned;
 }

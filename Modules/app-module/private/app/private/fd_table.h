@@ -10,29 +10,33 @@
 #include <tactility/error.h>
 
 /**
- * Every app instance's fd table (see AppInstanceRecord). `slots` is the backing storage for the
- * AppFile each in-use `fds[]` entry points to: `fds[i]` is either NULL or `&slots[i]`. `mutex`
- * guards `fds`/`slots` only; it is never held while calling into an AppFile's ops (dispatch
- * copies the AppFile out under the lock first), since those calls belong to independently
- * synchronized objects (AppStream's own mutex/event group) and may run concurrently with a
- * close()/bind() replacing an unrelated slot.
+ * One fd's worth of state in an AppFdTable. `file` is valid only while `in_use` is true.
+ * `ever_used` is set once `in_use` is ever set true (including the default stdio binding at
+ * construct time) and never cleared, even once `in_use` goes back to false on close. This is
+ * what lets app_fd_table_is_app_owned() distinguish "this fd number belongs to us, it's just
+ * currently closed" (an app-level EBADF) from "app-module has never touched this fd number" (a
+ * real underlying fd, e.g. from fopen()/open(), that a caller should fall through on).
+ */
+struct AppFdSlot {
+    struct AppFile file;
+    bool in_use;
+    bool ever_used;
+};
+
+/**
+ * Every app instance's fd table (see AppInstanceRecord). `mutex` guards `slots` only; it is
+ * never held while calling into an AppFile's ops (dispatch copies the AppFile out under the lock
+ * first), since those calls belong to independently synchronized objects (AppStream's own
+ * mutex/event group) and may run concurrently with a close()/bind() replacing an unrelated slot.
  *
  * `shutting_down` is set under `mutex` by app_fd_table_teardown() before it destructs `mutex`,
  * and checked (also under `mutex`) by every other entry point. Callers are expected to
  * serialize against teardown externally (see app_stream_subscribe()/app_stream_unsubscribe()),
  * so a check() failure here means that external synchronization broke, not a condition to
  * handle gracefully.
- *
- * `ever_used[i]` is set once `fds[i]` is ever bound/allocated (including the default stdio
- * binding at construct time) and never cleared, even once `fds[i]` goes back to NULL on close.
- * This is what lets app_fd_table_is_app_owned() distinguish "this fd number belongs to us, it's
- * just currently closed" (an app-level EBADF) from "app-module has never touched this fd number"
- * (a real underlying fd, e.g. from fopen()/open(), that a caller should fall through on).
  */
 struct AppFdTable {
-    struct AppFile slots[APP_MAX_FDS];
-    struct AppFile* fds[APP_MAX_FDS];
-    bool ever_used[APP_MAX_FDS];
+    struct AppFdSlot slots[APP_MAX_FDS];
     struct Mutex mutex;
     bool shutting_down;
 };
