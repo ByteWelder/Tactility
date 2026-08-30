@@ -174,7 +174,7 @@
 	i2c_keyboard: i2c2 {
 		compatible = "espressif,esp32-i2c-master";
 		port = <LP_I2C_NUM_0>;
-		clock-frequency = <100000>;
+		clock-frequency = <400000>;
 		clock-source = <LP_I2C_SCLK_DEFAULT>;
 		pin-sda = <&gpio0 0 GPIO_FLAG_PULL_UP>;
 		pin-scl = <&gpio0 1 GPIO_FLAG_PULL_UP>;

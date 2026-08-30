@@ -37,6 +37,12 @@ bool tab5_keyboard_is_attached(struct Device* device);
 // tab5_keyboard_attach_detect.cpp).
 void tab5_keyboard_reinit(struct Device* device);
 
+// Emits a release for every currently-held key (a hardware release can't arrive once the keyboard
+// is unplugged), then clears held-key/software-repeat/modifier state. Callers must call this on
+// confirmed detach (see tab5_keyboard_attach_detect.cpp) so a key held across an unplug doesn't
+// leave consumers with a stuck key or spurious repeats/modifiers after reattach.
+void tab5_keyboard_reset_state(struct Device* device);
+
 #ifdef __cplusplus
 }
 #endif
