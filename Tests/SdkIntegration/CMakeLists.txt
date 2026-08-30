@@ -1,16 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-
-if (DEFINED ENV{TACTILITY_SDK_PATH})
-    set(TACTILITY_SDK_PATH $ENV{TACTILITY_SDK_PATH})
-else()
-    set(TACTILITY_SDK_PATH ../../release/TactilitySDK)
-    message(WARNING "TACTILITY_SDK_PATH environment variable is not set, defaulting to ${TACTILITY_SDK_PATH}")
+if (NOT DEFINED ENV{TACTILITY_SDK_PATH})
+    message(FATAL_ERROR "TACTILITY_SDK_PATH environment variable is not set")
 endif()
 
+# Absolute, since it's later used (e.g. main/CMakeLists.txt's target_include_directories) from
+# subdirectories where a relative path would resolve against the wrong directory.
+get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE)
 include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
-set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules)
-
-project(SdkTest)
 tactility_project(SdkTest)

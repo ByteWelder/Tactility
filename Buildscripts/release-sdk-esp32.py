@@ -1,66 +1,16 @@
 #!/usr/bin/env python3
 
 import os
-import shutil
 import glob
 import subprocess
 import sys
+import importlib.util
 from textwrap import dedent
 
-def map_copy(mappings, target_base):
-    """
-    Helper function to map input files/directories to output files/directories.
-    mappings: list of dicts with 'src' (glob pattern) and 'dst' (relative to target_base or absolute)
-    'src' can be a single file or a directory (if it ends with /).
-    """
-    for mapping in mappings:
-        src_pattern = mapping['src']
-        dst_rel = mapping['dst']
-        dst_path = os.path.join(target_base, dst_rel)
+_shared_spec = importlib.util.spec_from_file_location("release_sdk_shared", os.path.join("Buildscripts", "release-sdk-shared.py"))
+shared = importlib.util.module_from_spec(_shared_spec)
+_shared_spec.loader.exec_module(shared)
 
-        # To preserve directory structure, we need to know where the wildcard starts
-        # or have a way to determine the "base" of the search.
-        # We'll split the pattern into a fixed base and a pattern part.
-        
-        # Simple heuristic: find the first occurrence of '*' or '?'
-        wildcard_idx = -1
-        for i, char in enumerate(src_pattern):
-            if char in '*?':
-                wildcard_idx = i
-                break
-        
-        if wildcard_idx != -1:
-            # Found a wildcard. The base is the directory containing it.
-            pattern_base = os.path.dirname(src_pattern[:wildcard_idx])
-        else:
-            # No wildcard. If it's a directory, we might want to preserve its name?
-            # For now, let's treat no-wildcard as no relative structure needed.
-            pattern_base = None
-
-        src_files = glob.glob(src_pattern, recursive=True)
-        if not src_files:
-            continue
-
-        for src in src_files:
-            if os.path.isdir(src):
-                continue
-            
-            if pattern_base and src.startswith(pattern_base):
-                # Calculate relative path from the base of the glob pattern
-                rel_src = os.path.relpath(src, pattern_base)
-                # If dst_rel ends with /, it's a target directory
-                if dst_rel.endswith('/') or os.path.isdir(dst_path):
-                    final_dst = os.path.join(dst_path, rel_src)
-                else:
-                    # If dst_rel is a file, we can't really preserve structure 
-                    # unless we join it. But usually it's a dir if structure is preserved.
-                    final_dst = dst_path
-            else:
-                final_dst = dst_path if not (dst_rel.endswith('/') or os.path.isdir(dst_path)) else os.path.join(dst_path, os.path.basename(src))
-
-            os.makedirs(os.path.dirname(final_dst), exist_ok=True)
-            shutil.copy2(src, final_dst)
-            
 def get_driver_mappings(driver_name):
     return [
         {'src': f'Drivers/{driver_name}/include/**', 'dst': f'Drivers/{driver_name}/include/'},
@@ -82,11 +32,7 @@ def create_module_cmakelists(module_name):
         INCLUDE_DIRS "include"
     )
     add_prebuilt_library({module_name} "binary/lib{module_name}.a")
-    '''.format(module_name=module_name))
-
-def write_module_cmakelists(path, content):
-    with open(path, 'w') as f:
-        f.write(content)
+    ''')
 
 def driver_is_available(driver_name):
     """
@@ -101,28 +47,20 @@ def driver_is_available(driver_name):
 
 def add_driver(target_path, driver_name):
     mappings = get_driver_mappings(driver_name)
-    map_copy(mappings, target_path)
+    shared.map_copy(mappings, target_path)
     cmakelists_content = create_module_cmakelists(driver_name)
-    write_module_cmakelists(os.path.join(target_path, f"Drivers/{driver_name}/CMakeLists.txt"), cmakelists_content)
+    shared.write_module_cmakelists(os.path.join(target_path, f"Drivers/{driver_name}/CMakeLists.txt"), cmakelists_content)
 
 def add_module(target_path, module_name):
     mappings = get_module_mappings(module_name)
-    map_copy(mappings, target_path)
+    shared.map_copy(mappings, target_path)
     cmakelists_content = create_module_cmakelists(module_name)
-    write_module_cmakelists(os.path.join(target_path, f"Modules/{module_name}/CMakeLists.txt"), cmakelists_content)
-
-def generate_tactility_sdk_cmake(target_path):
-    src = os.path.join('Buildscripts', 'TactilitySDK', 'TactilitySDK.cmake')
-    shutil.copy2(src, os.path.join(target_path, 'TactilitySDK.cmake'))
-
-def generate_tactility_sdk_top_cmakelists(target_path):
-    src = os.path.join('Buildscripts', 'TactilitySDK', 'CMakeLists.txt')
-    shutil.copy2(src, os.path.join(target_path, 'CMakeLists.txt'))
+    shared.write_module_cmakelists(os.path.join(target_path, f"Modules/{module_name}/CMakeLists.txt"), cmakelists_content)
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: release-sdk.py [target_path]")
-        print("Example: release-sdk.py release/TactilitySDK")
+        print("Usage: release-sdk-esp32.py [target_path]")
+        print("Example: release-sdk-esp32.py release/TactilitySDK")
         sys.exit(1)
 
     esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")
@@ -169,20 +107,16 @@ def main():
         {'src': 'Libraries/minmea/COPYING', 'dst': 'Libraries/minmea/'},
     ]
 
-    map_copy(mappings, target_path)
+    shared.map_copy(mappings, target_path)
 
     # Modules
-    add_module(target_path, "app-module")
-    add_module(target_path, "crypt-module")
-    add_module(target_path, "gps-module")
-    add_module(target_path, "http-module")
-    add_module(target_path, "lvgl-module")
-    add_module(target_path, "lvgl-window-manager-module")
-    add_module(target_path, "service-module")
+    module_names = shared.read_module_list(os.path.join('Buildscripts', 'release-sdk-modules.txt'))
+    for module_name in module_names:
+        add_module(target_path, module_name)
 
     # Final scripts - copied verbatim
-    generate_tactility_sdk_cmake(target_path)
-    generate_tactility_sdk_top_cmakelists(target_path)
+    shared.generate_tactility_sdk_cmake(target_path, 'esp32')
+    shared.generate_tactility_sdk_top_cmakelists(target_path)
 
     # Output ESP-IDF SDK version to file
     with open(os.path.join(target_path, "idf-version.txt"), "a") as f:

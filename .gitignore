@@ -2,6 +2,7 @@
 .DS_Store
 
 build*/
+!.github/actions/build*/
 cmake*/
 CMakeCache.txt
 *.cbp
@@ -25,3 +26,5 @@ sdkconfig.board.*.dev
 
 .caveman.json
 .ai/mcp
+
+__pycache__

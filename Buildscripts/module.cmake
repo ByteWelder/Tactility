@@ -16,8 +16,7 @@ macro(tactility_add_module NAME)
     # undefined reference to. Needed when this module provides symbols a component it depends on
     # (e.g. lvgl__lvgl's custom-allocator hooks) calls back into - a reverse reference a normal
     # single-pass static-archive link can't resolve, since that component is scanned after this
-    # one's archive has already been passed once. POSIX builds link everything as plain OBJECT
-    # libraries (no archive-pruning to begin with), so this is a no-op there.
+    # one's archive has already been passed once.
     set(options WHOLE_ARCHIVE)
     set(oneValueArgs)
     set(multiValueArgs SRCS INCLUDE_DIRS PRIV_INCLUDE_DIRS REQUIRES PRIV_REQUIRES)
@@ -40,7 +39,7 @@ macro(tactility_add_module NAME)
             ${whole_archive_arg}
         )
     else()
-        add_library(${NAME} OBJECT)
+        add_library(${NAME} STATIC)
         target_sources(${NAME} PRIVATE ${ARG_SRCS})
         target_include_directories(${NAME}
             PRIVATE ${ARG_PRIV_INCLUDE_DIRS}
@@ -48,5 +47,12 @@ macro(tactility_add_module NAME)
         )
         target_link_libraries(${NAME} PUBLIC ${ARG_REQUIRES})
         target_link_libraries(${NAME} PRIVATE ${ARG_PRIV_REQUIRES})
+        if (ARG_WHOLE_ARCHIVE)
+            # A static archive only pulls in object files that already have a pending undefined
+            # reference at the point the archive is scanned, so a plain link drops ${NAME}'s
+            # reverse dependencies (see WHOLE_ARCHIVE comment above). Make whoever links ${NAME}
+            # whole-archive it instead of just archive-pruning it.
+            set_property(TARGET ${NAME} APPEND PROPERTY INTERFACE_LINK_LIBRARIES $<LINK_LIBRARY:WHOLE_ARCHIVE,${NAME}>)
+        endif()
     endif()
 endmacro()

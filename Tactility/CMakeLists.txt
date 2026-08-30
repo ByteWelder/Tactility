@@ -88,6 +88,7 @@ else ()
 
     list(APPEND REQUIRES_LIST
         platform-posix
+        app-posix-module
         freertos_kernel
         cJSON
         lvgl
@@ -181,6 +182,9 @@ else ()
     target_include_directories(Tactility PUBLIC Include/)
     target_include_directories(Tactility PRIVATE Private/)
     target_link_libraries(Tactility PRIVATE ${TACTILITY_REQUIRES_LIST})
+    # Exports Tactility's own symbols (-rdynamic) so a dlopen()ed app-posix-module app can resolve
+    # calls back into it - the OS-native equivalent of app-esp32-module's custom symbol resolver.
+    set_target_properties(Tactility PROPERTIES ENABLE_EXPORTS ON)
 endif ()
 
 #
