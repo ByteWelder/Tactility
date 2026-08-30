@@ -125,6 +125,11 @@ def main():
         print("Example: release-sdk.py release/TactilitySDK")
         sys.exit(1)
 
+    esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")
+    if not esp_idf_version:
+        print("Error: ESP_IDF_VERSION environment variable is not set")
+        sys.exit(1)
+
     target_path = os.path.abspath(sys.argv[1])
     os.makedirs(target_path, exist_ok=True)
 
@@ -180,10 +185,6 @@ def main():
     generate_tactility_sdk_top_cmakelists(target_path)
 
     # Output ESP-IDF SDK version to file
-    esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")
-    if not esp_idf_version:
-        print("Error: ESP_IDF_VERSION environment variable is not set")
-        sys.exit(1)
     with open(os.path.join(target_path, "idf-version.txt"), "a") as f:
         f.write(esp_idf_version)
 
