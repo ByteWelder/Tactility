@@ -16,6 +16,7 @@
 
 #if TT_IS_POSIX
 #include <app_posix/module.h>
+#include <Tactility/PartitionsPosix.h>
 #endif
 
 #include <format>
@@ -519,6 +520,8 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
 
 #ifdef ESP_PLATFORM
     initEsp();
+#elif TT_IS_POSIX
+    check(initPartitionsPosix(), "Failed to init partitions");
 #endif
 
     settings::initTimeZone();

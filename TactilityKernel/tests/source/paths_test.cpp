@@ -5,22 +5,22 @@
 #include <tactility/paths.h>
 
 // The simulator target is never built with ESP_PLATFORM, so paths_get_data_path()
-// always takes the fixed "data" path branch here, guarded by a buffer-size check.
+// always takes the fixed "data" root, with "/tactility" appended, guarded by a buffer-size check.
 
 TEST_CASE("paths_get_data_path succeeds when the buffer exactly fits") {
-    char buffer[16] = { 0 };
+    char buffer[32] = { 0 };
     CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_NONE);
-    CHECK_EQ(std::strcmp(buffer, "data"), 0);
+    CHECK_EQ(std::strcmp(buffer, "data/tactility"), 0);
 }
 
 TEST_CASE("paths_get_data_path succeeds with a buffer sized to exactly fit the string and terminator") {
-    char buffer[5] = { 0 }; // strlen("data") + 1
+    char buffer[15] = { 0 }; // strlen("data/tactility") + 1
     CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_NONE);
-    CHECK_EQ(std::strcmp(buffer, "data"), 0);
+    CHECK_EQ(std::strcmp(buffer, "data/tactility"), 0);
 }
 
 TEST_CASE("paths_get_data_path reports a buffer overflow when the buffer is one byte too small") {
-    char buffer[4] = { 0 }; // strlen("data"), no room for the terminator
+    char buffer[14] = { 0 }; // strlen("data/tactility"), no room for the terminator
     CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_BUFFER_OVERFLOW);
 }
 
