@@ -2,6 +2,8 @@ if (COMMAND tactility_add_module)
     return()
 endif()
 
+cmake_minimum_required(VERSION 3.24)
+
 macro(tactility_get_module_name NAME OUT_NAME)
     if (DEFINED ENV{ESP_IDF_VERSION})
         set(${OUT_NAME} ${COMPONENT_LIB})
