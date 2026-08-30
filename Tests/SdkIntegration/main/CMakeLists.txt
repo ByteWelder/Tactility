@@ -1,5 +1,5 @@
 if (NOT DEFINED TACTILITY_SDK_PATH)
-    get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE)
+    get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 endif ()
 include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
 
