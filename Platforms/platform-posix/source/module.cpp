@@ -88,7 +88,17 @@ static Driver* const platform_posix_drivers[] = {
 
 static error_t start() {
     system_fs = register_directory_fs("system", &system_fs_data);
+    if (system_fs == nullptr) {
+        return ERROR_RESOURCE;
+    }
+
     data_fs = register_directory_fs("data", &data_fs_data);
+    if (data_fs == nullptr) {
+        unregister_directory_fs(system_fs);
+        system_fs = nullptr;
+        return ERROR_RESOURCE;
+    }
+
     return ERROR_NONE;
 }
 
