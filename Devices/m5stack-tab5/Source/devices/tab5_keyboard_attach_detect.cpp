@@ -96,6 +96,17 @@ static void attach_detect_callback(TimerHandle_t /*timer*/) {
     // the lock in apply_state() instead).
     const bool lvgl_ready = lvgl_is_running();
     if (lvgl_ready && !was_lvgl_ready) {
+        // If the keyboard is (and, per was_attached, already was) physically detached, forcing
+        // was_attached false below means the detach transition below will never fire again for
+        // this unplug - it already happened before this restart. Reset software state here
+        // instead, since apply_state()'s own detach path may never have run: it could have bailed
+        // out early (LVGL lock busy, or display not ready yet) before reaching its
+        // tab5_keyboard_reset_state() call, and now never will, because that transition is about
+        // to be erased. This reset doesn't touch LVGL/display state, so it doesn't need
+        // apply_state()'s lock/display gating.
+        if (was_attached && !tab5_keyboard_is_attached(keyboard_device)) {
+            tab5_keyboard_reset_state(keyboard_device);
+        }
         was_attached = false;
         pending_attach_confirm_count = 0;
     }

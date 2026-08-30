@@ -483,6 +483,12 @@ void tab5_keyboard_reset_state(Device* device) {
         if (internal->held[idx]) {
             Tab5KeyEvent event = internal->held_event[idx];
             event.pressed = false;
+            // This runs under lvgl_lock() (apply_state()'s caller), and the consumer that drains
+            // this queue is LVGL's own indev read callback - blocking here for queue space could
+            // deadlock against that consumer needing the same lock. Best-effort send only, same as
+            // drain_events()'s hot path; internal->held[idx] is still cleared on a dropped send so
+            // this reset doesn't get stuck retrying a release that already lost its only chance to
+            // be delivered before the state it referred to (an unplugged keyboard) is gone anyway.
             xQueueSend(internal->queue, &event, 0);
             internal->held[idx] = false;
         }
