@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+/** @warning This is internal data. Do not read/write to it directly. */
 struct AppStreamBuffer {
     uint8_t* data;
     size_t capacity;
@@ -26,32 +27,30 @@ struct AppStreamBuffer {
 };
 
 /**
- * Internal state of the stream.
  * Buffered byte-oriented communication between one producer task and one consumer task. The
  * consumer owns the AppStream object and its lifetime. See app_stream_subscribe().
- * @warning `internal` is for internal use only; do not read or write its fields directly.
+ *
+ * @warning This is internal data. Do not read/write to it directly.
  */
 struct AppStream {
-    struct {
-        struct AppStreamBuffer buffer;
-        AppInstanceId producer_id;
-        TaskHandle_t producer_task;
-        /** fd this stream is installed at in producer_id's fd table; set by
-         * app_stream_subscribe()/app_manager_start_with_streams(), used by
-         * app_stream_unsubscribe() to find it again. */
-        int producer_fd;
+    struct AppStreamBuffer buffer;
+    AppInstanceId producer_id;
+    TaskHandle_t producer_task;
+    /** fd this stream is installed at in producer_id's fd table; set by
+     * app_stream_subscribe()/app_manager_start_with_streams(), used by
+     * app_stream_unsubscribe() to find it again. */
+    int producer_fd;
 
-        struct Mutex mutex;
-        /** Caller-owned group readiness is signalled on; see app_stream_subscribe(). */
-        struct TaskEventGroup* event_group;
-        uint32_t readable_bit;
-        uint32_t writable_bit;
-        bool closed;
-        /** Count of AppFileOps calls currently executing against this stream; app_stream_unsubscribe()
-         * waits for this to reach 0 before destructing `mutex`, since a call already blocked in
-         * app_stream_await() when unsubscribe starts only wakes (it doesn't vanish) when closed. */
-        int active_operations;
-    } internal;
+    struct Mutex mutex;
+    /** Caller-owned group readiness is signalled on; see app_stream_subscribe(). */
+    struct TaskEventGroup* event_group;
+    uint32_t readable_bit;
+    uint32_t writable_bit;
+    bool closed;
+    /** Count of AppFileOps calls currently executing against this stream; app_stream_unsubscribe()
+     * waits for this to reach 0 before destructing `mutex`, since a call already blocked in
+     * app_stream_await() when unsubscribe starts only wakes (it doesn't vanish) when closed. */
+    int active_operations;
 };
 
 /**

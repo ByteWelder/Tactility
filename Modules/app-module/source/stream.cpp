@@ -10,31 +10,31 @@
 
 namespace {
 
-// Caller must hold stream->internal.mutex.
+// Caller must hold stream->mutex.
 bool is_readable_locked(AppStream* stream) {
-    return stream->internal.buffer.count > 0 || stream->internal.closed;
+    return stream->buffer.count > 0 || stream->closed;
 }
 
-// Caller must hold stream->internal.mutex.
+// Caller must hold stream->mutex.
 bool is_writable_locked(AppStream* stream) {
-    return stream->internal.buffer.count < stream->internal.buffer.capacity || stream->internal.closed;
+    return stream->buffer.count < stream->buffer.capacity || stream->closed;
 }
 
 // Brackets one AppFileOps call against `stream` for app_stream_unsubscribe()'s drain wait: a
 // call already blocked in app_stream_await() when unsubscribe starts only wakes, it doesn't
-// vanish, so unsubscribe must know it's still running before destructing stream->internal.mutex.
+// vanish, so unsubscribe must know it's still running before destructing stream->mutex.
 class StreamOperationGuard {
 public:
     explicit StreamOperationGuard(AppStream* stream) : stream_(stream) {
-        mutex_lock(&stream_->internal.mutex);
-        stream_->internal.active_operations++;
-        mutex_unlock(&stream_->internal.mutex);
+        mutex_lock(&stream_->mutex);
+        stream_->active_operations++;
+        mutex_unlock(&stream_->mutex);
     }
 
     ~StreamOperationGuard() {
-        mutex_lock(&stream_->internal.mutex);
-        stream_->internal.active_operations--;
-        mutex_unlock(&stream_->internal.mutex);
+        mutex_lock(&stream_->mutex);
+        stream_->active_operations--;
+        mutex_unlock(&stream_->mutex);
     }
 
     StreamOperationGuard(const StreamOperationGuard&) = delete;
@@ -55,9 +55,9 @@ ssize_t stream_file_read(void* object, void* buffer, size_t size) {
         if (read > 0) {
             return static_cast<ssize_t>(read);
         }
-        mutex_lock(&stream->internal.mutex);
-        bool is_closed = stream->internal.closed;
-        mutex_unlock(&stream->internal.mutex);
+        mutex_lock(&stream->mutex);
+        bool is_closed = stream->closed;
+        mutex_unlock(&stream->mutex);
         if (is_closed) {
             return 0; // EOF: readable-because-closed, and nothing left buffered
         }
@@ -80,9 +80,9 @@ ssize_t stream_file_write(void* object, const void* buffer, size_t size) {
     if (written > 0) {
         return static_cast<ssize_t>(written);
     }
-    mutex_lock(&stream->internal.mutex);
-    bool is_closed = stream->internal.closed;
-    mutex_unlock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
+    bool is_closed = stream->closed;
+    mutex_unlock(&stream->mutex);
     return is_closed ? -1 : 0; // broken pipe, or a spurious wake with nothing to copy
 }
 
@@ -101,7 +101,7 @@ error_t stream_file_await(void* object, AppFileWait wait, TickType_t timeout) {
 uint32_t stream_file_poll(void* object) {
     auto* stream = static_cast<AppStream*>(object);
     StreamOperationGuard guard(stream);
-    mutex_lock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
     uint32_t bits = 0;
     if (is_readable_locked(stream)) {
         bits |= APP_FILE_READABLE;
@@ -109,7 +109,7 @@ uint32_t stream_file_poll(void* object) {
     if (is_writable_locked(stream)) {
         bits |= APP_FILE_WRITABLE;
     }
-    mutex_unlock(&stream->internal.mutex);
+    mutex_unlock(&stream->mutex);
     return bits;
 }
 
@@ -118,16 +118,16 @@ uint32_t stream_file_poll(void* object) {
 // wait (see StreamOperationGuard above for the equivalent per-call bracketing).
 void stream_file_retain(void* object) {
     auto* stream = static_cast<AppStream*>(object);
-    mutex_lock(&stream->internal.mutex);
-    stream->internal.active_operations++;
-    mutex_unlock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
+    stream->active_operations++;
+    mutex_unlock(&stream->mutex);
 }
 
 void stream_file_release(void* object) {
     auto* stream = static_cast<AppStream*>(object);
-    mutex_lock(&stream->internal.mutex);
-    stream->internal.active_operations--;
-    mutex_unlock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
+    stream->active_operations--;
+    mutex_unlock(&stream->mutex);
 }
 
 constexpr AppFileOps STREAM_OPS = {
@@ -165,19 +165,19 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
         return claim_result;
     }
 
-    stream->internal.producer_id = producer_id;
-    stream->internal.producer_fd = producer_fd;
-    stream->internal.event_group = event_group;
-    stream->internal.readable_bit = readable_bit;
-    stream->internal.writable_bit = writable_bit;
-    stream->internal.buffer.data = static_cast<uint8_t*>(buffer);
-    stream->internal.buffer.capacity = buffer_capacity;
-    stream->internal.buffer.read_pos = 0;
-    stream->internal.buffer.write_pos = 0;
-    stream->internal.buffer.count = 0;
-    stream->internal.closed = false;
-    stream->internal.active_operations = 0;
-    mutex_construct(&stream->internal.mutex);
+    stream->producer_id = producer_id;
+    stream->producer_fd = producer_fd;
+    stream->event_group = event_group;
+    stream->readable_bit = readable_bit;
+    stream->writable_bit = writable_bit;
+    stream->buffer.data = static_cast<uint8_t*>(buffer);
+    stream->buffer.capacity = buffer_capacity;
+    stream->buffer.read_pos = 0;
+    stream->buffer.write_pos = 0;
+    stream->buffer.count = 0;
+    stream->closed = false;
+    stream->active_operations = 0;
+    mutex_construct(&stream->mutex);
 
     // Held across the fd-table lookup and bind so this can't race app_fd_table_teardown():
     // both teardown call sites (scheduler.cpp, manager.cpp) hold this same ledger mutex for
@@ -188,17 +188,17 @@ error_t app_stream_subscribe(AppStream* stream, void* buffer, size_t buffer_capa
     auto iterator = ledger.instances.find(producer_id);
     if (iterator == ledger.instances.end()) {
         mutex_unlock(&ledger.mutex);
-        mutex_destruct(&stream->internal.mutex);
+        mutex_destruct(&stream->mutex);
         task_event_group_release_bit(event_group, readable_bit);
         task_event_group_release_bit(event_group, writable_bit);
         return ERROR_NOT_FOUND;
     }
-    stream->internal.producer_task = iterator->second.task;
+    stream->producer_task = iterator->second.task;
     error_t bind_result = app_fd_table_bind(&iterator->second.fd_table, producer_fd, &STREAM_OPS, stream);
     mutex_unlock(&ledger.mutex);
 
     if (bind_result != ERROR_NONE) {
-        mutex_destruct(&stream->internal.mutex);
+        mutex_destruct(&stream->mutex);
         task_event_group_release_bit(event_group, readable_bit);
         task_event_group_release_bit(event_group, writable_bit);
     }
@@ -210,12 +210,12 @@ error_t app_stream_unsubscribe(AppStream* stream) {
     // comment on why this must stay exclusive with app_fd_table_teardown().
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
-    auto iterator = ledger.instances.find(stream->internal.producer_id);
+    auto iterator = ledger.instances.find(stream->producer_id);
     if (iterator != ledger.instances.end()) {
         AppFdTable* table = &iterator->second.fd_table;
         AppFile current {};
-        if (app_fd_table_get(table, stream->internal.producer_fd, &current) && current.object == stream) {
-            app_fd_table_close(table, stream->internal.producer_fd); // -> stream_file_close() -> app_stream_close()
+        if (app_fd_table_get(table, stream->producer_fd, &current) && current.object == stream) {
+            app_fd_table_close(table, stream->producer_fd); // -> stream_file_close() -> app_stream_close()
         }
     }
     mutex_unlock(&ledger.mutex);
@@ -226,36 +226,36 @@ error_t app_stream_unsubscribe(AppStream* stream) {
     // it's closed, and return. Wait for that before destructing mutex/bits below, mirroring
     // scheduler.cpp's reap_self()/reaper_task_main() waiting out a task before freeing its stack.
     while (true) {
-        mutex_lock(&stream->internal.mutex);
-        int active_operations = stream->internal.active_operations;
-        mutex_unlock(&stream->internal.mutex);
+        mutex_lock(&stream->mutex);
+        int active_operations = stream->active_operations;
+        mutex_unlock(&stream->mutex);
         if (active_operations == 0) {
             break;
         }
         taskYIELD();
     }
 
-    task_event_group_release_bit(stream->internal.event_group, stream->internal.readable_bit);
-    task_event_group_release_bit(stream->internal.event_group, stream->internal.writable_bit);
-    mutex_destruct(&stream->internal.mutex);
+    task_event_group_release_bit(stream->event_group, stream->readable_bit);
+    task_event_group_release_bit(stream->event_group, stream->writable_bit);
+    mutex_destruct(&stream->mutex);
     return ERROR_NONE;
 }
 
 error_t app_stream_await(AppStream* stream, AppFileWait wait, TickType_t timeout) {
-    mutex_lock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
     bool ready = (wait == APP_FILE_WAIT_READABLE) ? is_readable_locked(stream) : is_writable_locked(stream);
-    mutex_unlock(&stream->internal.mutex);
+    mutex_unlock(&stream->mutex);
     if (ready) {
         return ERROR_NONE;
     }
 
-    uint32_t bit = (wait == APP_FILE_WAIT_READABLE) ? stream->internal.readable_bit : stream->internal.writable_bit;
-    return task_event_group_wait(stream->internal.event_group, bit, /*await_all=*/false, nullptr, timeout);
+    uint32_t bit = (wait == APP_FILE_WAIT_READABLE) ? stream->readable_bit : stream->writable_bit;
+    return task_event_group_wait(stream->event_group, bit, /*await_all=*/false, nullptr, timeout);
 }
 
 size_t app_stream_read(AppStream* stream, void* buffer, size_t buffer_size) {
-    mutex_lock(&stream->internal.mutex);
-    AppStreamBuffer& ring = stream->internal.buffer;
+    mutex_lock(&stream->mutex);
+    AppStreamBuffer& ring = stream->buffer;
     size_t to_copy = buffer_size < ring.count ? buffer_size : ring.count;
     for (size_t i = 0; i < to_copy; i++) {
         static_cast<uint8_t*>(buffer)[i] = ring.data[(ring.read_pos + i) % ring.capacity];
@@ -264,9 +264,9 @@ size_t app_stream_read(AppStream* stream, void* buffer, size_t buffer_size) {
         ring.read_pos = (ring.read_pos + to_copy) % ring.capacity;
     }
     ring.count -= to_copy;
-    TaskEventGroup* event_group = stream->internal.event_group;
-    uint32_t writable_bit = stream->internal.writable_bit;
-    mutex_unlock(&stream->internal.mutex);
+    TaskEventGroup* event_group = stream->event_group;
+    uint32_t writable_bit = stream->writable_bit;
+    mutex_unlock(&stream->mutex);
     if (to_copy > 0) {
         task_event_group_signal(event_group, writable_bit); // space freed up
     }
@@ -274,12 +274,12 @@ size_t app_stream_read(AppStream* stream, void* buffer, size_t buffer_size) {
 }
 
 size_t app_stream_write(AppStream* stream, const void* buffer, size_t buffer_size) {
-    mutex_lock(&stream->internal.mutex);
-    if (stream->internal.closed) {
-        mutex_unlock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
+    if (stream->closed) {
+        mutex_unlock(&stream->mutex);
         return 0;
     }
-    AppStreamBuffer& ring = stream->internal.buffer;
+    AppStreamBuffer& ring = stream->buffer;
     size_t available = ring.capacity - ring.count;
     size_t to_copy = buffer_size < available ? buffer_size : available;
     for (size_t i = 0; i < to_copy; i++) {
@@ -289,9 +289,9 @@ size_t app_stream_write(AppStream* stream, const void* buffer, size_t buffer_siz
         ring.write_pos = (ring.write_pos + to_copy) % ring.capacity;
     }
     ring.count += to_copy;
-    TaskEventGroup* event_group = stream->internal.event_group;
-    uint32_t readable_bit = stream->internal.readable_bit;
-    mutex_unlock(&stream->internal.mutex);
+    TaskEventGroup* event_group = stream->event_group;
+    uint32_t readable_bit = stream->readable_bit;
+    mutex_unlock(&stream->mutex);
     if (to_copy > 0) {
         task_event_group_signal(event_group, readable_bit); // data became available
     }
@@ -299,12 +299,12 @@ size_t app_stream_write(AppStream* stream, const void* buffer, size_t buffer_siz
 }
 
 error_t app_stream_close(AppStream* stream) {
-    mutex_lock(&stream->internal.mutex);
-    stream->internal.closed = true;
-    TaskEventGroup* event_group = stream->internal.event_group;
-    uint32_t readable_bit = stream->internal.readable_bit;
-    uint32_t writable_bit = stream->internal.writable_bit;
-    mutex_unlock(&stream->internal.mutex);
+    mutex_lock(&stream->mutex);
+    stream->closed = true;
+    TaskEventGroup* event_group = stream->event_group;
+    uint32_t readable_bit = stream->readable_bit;
+    uint32_t writable_bit = stream->writable_bit;
+    mutex_unlock(&stream->mutex);
     task_event_group_signal(event_group, readable_bit);
     task_event_group_signal(event_group, writable_bit);
     return ERROR_NONE;

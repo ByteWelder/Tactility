@@ -241,7 +241,7 @@ TEST_CASE("app_stream_unsubscribe is safe to call while a write is actively bloc
     REQUIRE_FALSE(g_blocked_writer_done.load(std::memory_order_acquire));
 
     // Regression: unsubscribing directly here used to be able to destruct
-    // stream->internal.mutex while the blocked write above was still executing against it.
+    // stream->mutex while the blocked write above was still executing against it.
     REQUIRE_EQ(app_stream_unsubscribe(&child_stdout), ERROR_NONE);
 
     REQUIRE(wait_for_state(child_id, APP_INSTANCE_STATE_STOPPED, 1000));

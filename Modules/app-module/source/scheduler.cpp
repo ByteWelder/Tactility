@@ -106,7 +106,7 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
         AppFdTable& fd_table = iterator->second.fd_table;
         for (auto& slot : fd_table.slots) {
             if (slot.in_use && slot.file.ops == app_stream_ops()) {
-                static_cast<AppStream*>(slot.file.object)->internal.producer_task = task;
+                static_cast<AppStream*>(slot.file.object)->producer_task = task;
             }
         }
     }

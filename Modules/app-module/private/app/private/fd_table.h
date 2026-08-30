@@ -16,6 +16,8 @@
  * what lets app_fd_table_is_app_owned() distinguish "this fd number belongs to us, it's just
  * currently closed" (an app-level EBADF) from "app-module has never touched this fd number" (a
  * real underlying fd, e.g. from fopen()/open(), that a caller should fall through on).
+ *
+ * @warning This is internal data. Do not read/write to it directly.
  */
 struct AppFdSlot {
     struct AppFile file;
@@ -34,6 +36,8 @@ struct AppFdSlot {
  * serialize against teardown externally (see app_stream_subscribe()/app_stream_unsubscribe()),
  * so a check() failure here means that external synchronization broke, not a condition to
  * handle gracefully.
+ *
+ * @warning This is internal data. Do not read/write to it directly.
  */
 struct AppFdTable {
     struct AppFdSlot slots[APP_MAX_FDS];
