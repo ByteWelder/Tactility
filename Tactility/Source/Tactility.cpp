@@ -1,8 +1,21 @@
-#include "app_posix/module.h"
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #include <Tactility/InitEsp.h>
 #include <app_esp32/module.h>
+#endif
+
+#if __has_include(<unistd.h>) && not defined(ESP_PLATFORM)
+#define TT_IS_POSIX 1
+#else
+#define TT_IS_POSIX 0
+#endif
+
+#if TT_IS_POSIX or defined(ESP_PLATFORM) // esp-idf supports certain posix symbols
+#include <posix_symbols/module.h>
+#endif
+
+#if TT_IS_POSIX
+#include <app_posix/module.h>
 #endif
 
 #include <format>
@@ -47,7 +60,6 @@
 #include <gps_meshtastic/module.h>
 #include <http/module.h>
 #include <mbedtls/module.h>
-#include <posix_symbols/module.h>
 #include <pthread/module.h>
 
 #include <crypt/module.h>
@@ -483,7 +495,9 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
 
     // C/C++/Posix symbols
     check(module_ensure_started(&c_symbols_module) == ERROR_NONE);
+#if TT_IS_POSIX or defined(ESP_PLATFORM) // esp-idf supports certain posix symbols
     check(module_ensure_started(&posix_symbols_module) == ERROR_NONE);
+#endif
     check(module_ensure_started(&cpp_symbols_module) == ERROR_NONE);
     // OS level symbols
     check(module_ensure_started(&freertos_module) == ERROR_NONE);
@@ -498,7 +512,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM
     check(module_ensure_started(&app_esp32_module) == ERROR_NONE);
-#else
+#elif TT_IS_POSIX
     check(module_ensure_started(&app_posix_module) == ERROR_NONE);
 #endif
 
