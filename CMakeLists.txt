@@ -58,10 +58,20 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(EXCLUDE_COMPONENTS "Simulator")
 
-    # Panic handler wrapping is only available on Xtensa architecture
-    if (CONFIG_IDF_TARGET_ARCH_XTENSA)
-        idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
-    endif ()
+    # panic_info_t is architecture-independent (esp_private/panic_internal.h) so this wrap applies
+    # to every target; PanicHandler.cpp branches internally per architecture.
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
+
+    # PanicHandler.cpp's RISC-V callstack walker requires s0 to stay a frame pointer, which GCC
+    # does not guarantee without this flag. CONFIG_ESP_SYSTEM_USE_FRAME_POINTER does not add it
+    # (it only selects which ESP-IDF backtrace-printing function gets compiled), and can't be used
+    # instead: the bootloader shares this project's sdkconfig with no per-subproject override, and
+    # enabling it there overflows the bootloader's fixed partition budget. Setting the flag here via
+    # idf_build_set_property() only affects this project's own configure, not the bootloader's
+    # separate one, so it's naturally excluded. Gated to RISC-V since Xtensa never reads s0 this way.
+    if(CONFIG_IDF_TARGET_ARCH_RISCV)
+        idf_build_set_property(COMPILE_OPTIONS "-fno-omit-frame-pointer" APPEND)
+    endif()
 
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=read" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=write" APPEND)

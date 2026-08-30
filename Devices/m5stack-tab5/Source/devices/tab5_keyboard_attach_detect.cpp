@@ -84,7 +84,7 @@ static void attach_detect_callback(TimerHandle_t /*timer*/) {
     // LVGL restarting is a distinct event from the keyboard physically attaching/detaching: the
     // accessory may never have moved, but whatever apply_state() last set (rotation) may have
     // been reset in the meantime by the restart. Forcing was_attached false makes the block below
-    // see a fresh "attached" transition (still going through the normal 2-check debounce) so
+    // see a fresh "attached" transition, still going through the normal two-check debounce, so
     // apply_state() re-announces the current state instead of staying silent forever, waiting for
     // an edge that will never come because the keyboard was never actually unplugged.
     // lvgl_is_running() is safe to call unlocked (unlike lv_display_get_default(), resolved inside
@@ -98,7 +98,7 @@ static void attach_detect_callback(TimerHandle_t /*timer*/) {
 
     const bool attached = tab5_keyboard_is_attached(keyboard_device);
     if (attached != was_attached) {
-        // Require the new state to be confirmed on a second consecutive check before acting - a
+        // Require the new state to be confirmed on a second consecutive check before acting: a
         // single probe on a floating/half-connected bus (e.g. mid-unplug) can false-positive.
         if (attached != pending_attach_state || pending_attach_confirm_count == 0) {
             pending_attach_state = attached;
@@ -108,7 +108,7 @@ static void attach_detect_callback(TimerHandle_t /*timer*/) {
             if (apply_state(keyboard_device, attached)) {
                 was_attached = attached;
             }
-            // else: not handled yet (e.g. LVGL lock busy) - retry on the next confirmed check
+            // else: not handled yet (e.g. LVGL lock busy); retry on the next confirmed check
         }
     } else {
         pending_attach_confirm_count = 0;

@@ -226,7 +226,16 @@ void lvgl_software_keyboard_construct(LvglSoftwareKeyboard* keyboard, lv_obj_t* 
 void lvgl_software_keyboard_destruct(LvglSoftwareKeyboard* keyboard) {
     check(keyboard->object);
 
+    // lv_obj_delete() walks/mutates the object graph (event lists, group
+    // membership, parent/child links). Without the LVGL lock this can race
+    // the LVGL port task's own concurrent traversal (input dispatch, timers,
+    // animations), producing an intermittent double-free/use-after-free
+    // inside lv_obj_destructor/lv_event_mark_deleted. Every other object
+    // deletion in this codebase (window_manager.cpp's delete_widget,
+    // DisplayIdle.cpp's screensaver teardown) already locks around it.
+    lvgl_lock();
     lv_obj_delete(keyboard->object);
+    lvgl_unlock();
     keyboard->object = nullptr;
 
     last_software_keyboard = *keyboard;

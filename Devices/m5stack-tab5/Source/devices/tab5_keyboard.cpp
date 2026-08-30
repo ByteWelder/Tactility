@@ -29,8 +29,8 @@ static constexpr uint8_t I2C_ADDRESS = 0x6D;
 static constexpr uint32_t REPEAT_INITIAL_MS = 400;
 static constexpr uint32_t REPEAT_RATE_MS = 80;
 
-// I2C event-poll interval - mirrors the old deprecated-HAL's 20ms Timer period. Drives both
-// REG_INT_STAT polling (when no IRQ pin) and software key-repeat ticking.
+// I2C event-poll interval
+// Drives both REG_INT_STAT polling (when no IRQ pin) and software key-repeat ticking.
 static constexpr uint32_t POLL_INTERVAL_MS = 20;
 
 // Upper bound on events consumed per drain_events() call. Since the loop re-reads REG_EVENT_NUM
@@ -193,6 +193,7 @@ static uint32_t now_ms() {
 // the event - and software key-repeat replays this same struct, so a held chord keeps its modifiers.
 struct Tab5KeyEvent {
     uint32_t key;
+    bool pressed;
     bool ctrl;
     bool alt;
     uint8_t hid_keycode;
@@ -216,11 +217,20 @@ struct Tab5KeyboardInternal {
     gpio_num_t irq_pin;
 
     // Poll throttling (real-time based, since read_key() is called at whatever rate LVGL's indev
-    // timer and its own drain-loop - via continue_reading - happen to run at, unlike the old
-    // deprecated-HAL's fixed 20ms Timer)
+    // timer and its own drain-loop, via continue_reading, happen to run at).
     uint32_t last_poll_ms;
 
-    // Software key-repeat state (tracked by position to survive modifier changes)
+    // Original press event for every currently-held key, indexed by matrix position (row*14+col),
+    // so a release can recover the exact event its press queued (modifiers captured at press
+    // time) even when another key was pressed and released in between. held_event[i].key can
+    // legitimately be 0 (e.g. F1-F12, see drain_events()), so held[i] tracks validity separately
+    // rather than using a sentinel key value.
+    Tab5KeyEvent held_event[70];
+    bool held[70];
+
+    // Software key-repeat state: tracks only the most recently pressed key, independent of the
+    // per-position storage above (repeats stop as soon as a different key is pressed, matching
+    // typical keyboard behavior, and don't need to survive that key's release).
     Tab5KeyEvent repeat_event;
     uint8_t repeat_row;
     uint8_t repeat_col;
@@ -258,15 +268,17 @@ bool tab5_keyboard_is_attached(Device* device) {
 }
 
 // ---------------------------------------------------------------------------
-// LED helpers - LED0 = Sym indicator (green), LED1 = Aa indicator (red)
+// LED helpers - LED0 = Sym indicator (blue), LED1 = Aa indicator (red)
 // RGB register layout: [B, G, R] per LED, stride 4 (byte 3 reserved)
 // ---------------------------------------------------------------------------
-static void update_leds(Device* device, const Tab5KeyboardInternal* internal) {
+static constexpr uint8_t LED_SYM_ON_BLUE = 0xC0;
+static constexpr uint8_t LED_AA_ON_RED = 0x90;
+
+static void update_leds(Device* device, Tab5KeyboardInternal* internal) {
     auto* parent = device_get_parent(device);
-    // [LED0: B,G,R, reserved, LED1: B,G,R]
     uint8_t buf[7] = {
-        0x00, internal->sym_active ? uint8_t(0xA0) : uint8_t(0x00), 0x00, 0x00,
-        0x00, 0x00, internal->aa_sticky ? uint8_t(0xA0) : uint8_t(0x00),
+        internal->sym_active ? LED_SYM_ON_BLUE : uint8_t(0x00), 0x00, 0x00, 0x00,
+        0x00, 0x00, internal->aa_sticky ? LED_AA_ON_RED : uint8_t(0x00),
     };
     i2c_controller_write_register(parent, I2C_ADDRESS, REG_RGB_BASE, buf, 7, pdMS_TO_TICKS(50));
 }
@@ -389,9 +401,14 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                     // no business reaching into, so ESC is now just queued as a normal key
                     // like everything else (LVGL/app code already handles ESC via focus/group
                     // navigation the same way a dedicated ESC key on any other keyboard would).
-                    const Tab5KeyEvent event = { lv_key, internal->ctrl_held, internal->alt_held,
+                    const Tab5KeyEvent event = { lv_key, true, internal->ctrl_held, internal->alt_held,
                                                  m.keycode, modifier };
                     xQueueSend(internal->queue, &event, 0);
+                    // Remember this key's press event by position so its release (whenever it
+                    // comes, regardless of what else is pressed in between) reports the same value.
+                    const uint8_t idx = row * 14U + col;
+                    internal->held_event[idx] = event;
+                    internal->held[idx] = true;
                     // Arm software repeat tracking by row/col to survive modifier changes
                     const uint32_t now = now_ms();
                     internal->repeat_event = event;
@@ -405,9 +422,31 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                         internal->aa_held = false;
                         update_leds(device, internal);
                     }
-                } else if (row == internal->repeat_row && col == internal->repeat_col) {
-                    // Match release by position, not translated value — survives sticky Aa clear
-                    internal->repeat_event.key = 0;
+                } else {
+                    // Always queue the release: callers key their own "is this held" state off
+                    // (key, pressed) pairs, and a dropped release leaves that key stuck down forever.
+                    //
+                    // Reuse the matching press's key/modifier (via held_event, tracked by matrix
+                    // position) rather than recomputing from current modifier state: aa_active
+                    // above is read fresh, but sticky Aa is consumed right after the press fires
+                    // (above), so recomputing here would give the release a different key value
+                    // than its press whenever Aa was sticky (e.g. shifted vs unshifted). Only
+                    // recompute as a fallback for the case where no press was ever recorded for
+                    // this position (e.g. driver just started while the key was already held).
+                    const uint8_t idx = row * 14U + col;
+                    Tab5KeyEvent event;
+                    if (internal->held[idx]) {
+                        event = internal->held_event[idx];
+                        internal->held[idx] = false;
+                    } else {
+                        event = { lv_key, false, internal->ctrl_held, internal->alt_held, m.keycode, modifier };
+                    }
+                    event.pressed = false;
+                    xQueueSend(internal->queue, &event, 0);
+
+                    if (row == internal->repeat_row && col == internal->repeat_col) {
+                        internal->repeat_event.key = 0;
+                    }
                 }
             }
         }
@@ -429,7 +468,7 @@ void tab5_keyboard_reinit(Device* device) {
     write_reg_fast(device, REG_EVENT_NUM, 0x00);     // flush event queue
     write_reg_fast(device, REG_INT_STAT, 0x00);      // clear pending INT
     write_reg_fast(device, REG_RGB_MODE, 0x01);      // Custom RGB mode (manual LED control)
-    write_reg_fast(device, REG_BRIGHTNESS, 50);      // 50% brightness
+    write_reg_fast(device, REG_BRIGHTNESS, 30);      // 30% brightness
     update_leds(device, internal);                   // restore current LED state
 
     if (internal->irq_configured) {
@@ -438,8 +477,7 @@ void tab5_keyboard_reinit(Device* device) {
 }
 
 // ---------------------------------------------------------------------------
-// poll_if_due - the closest equivalent to the old deprecated-HAL's 20ms-Timer-driven
-// processKeyboard(): drains new key events (IRQ-gated or polled) and ticks software key-repeat.
+// poll_if_due - drains new key events (IRQ-gated or polled) and ticks software key-repeat.
 // Called from read_key(), throttled to real elapsed time rather than call count, since read_key()
 // can be called back-to-back multiple times per LVGL indev timer tick while draining an
 // already-queued burst (continue_reading). Hot-plug attach detection lives outside the driver -
@@ -566,7 +604,7 @@ static error_t tab5_keyboard_read_key(Device* device, KeyboardKeyData* data) {
     Tab5KeyEvent event = {};
     if (xQueueReceive(internal->queue, &event, 0) == pdTRUE) {
         data->key = event.key;
-        data->pressed = true;
+        data->pressed = event.pressed;
         data->continue_reading = uxQueueMessagesWaiting(internal->queue) > 0;
         data->ctrl = event.ctrl;
         data->alt = event.alt;

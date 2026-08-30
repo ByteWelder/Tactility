@@ -33,6 +33,7 @@
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
+#include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/settings/TimePrivate.h>
 #include <Tactility/settings/TouchCalibrationSettings.h>
 
@@ -415,6 +416,18 @@ static void applySavedTouchCalibration() {
 #endif // CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 
 static void onLvglStarted() {
+    // lv_display_create() (inside lvgl_devices_attach(), which already ran by this point) always
+    // resets rotation to LV_DISPLAY_ROTATION_0. The only other code that ever applies a saved
+    // orientation is the display settings app's dropdown change handler, so without this, every
+    // LVGL restart (not just first boot) silently drops back to unrotated. Must run before
+    // window_manager_start() below builds the window tree against the display's current size.
+    lvgl_lock();
+    if (auto* display = lv_display_get_default(); display != nullptr) {
+        auto displaySettings = settings::display::loadOrGetDefault();
+        lv_display_set_rotation(display, settings::display::toLvglDisplayRotation(displaySettings.orientation));
+    }
+    lvgl_unlock();
+
     window_manager_configure(windowManagerScreenInit);
     check(module_ensure_started(&lvgl_window_manager_module) == ERROR_NONE);
 

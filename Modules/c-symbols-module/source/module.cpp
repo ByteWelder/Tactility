@@ -148,6 +148,7 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(memcmp),
     DEFINE_MODULE_SYMBOL(memmove),
     // ctype.h
+    DEFINE_MODULE_SYMBOL(_ctype_),
     DEFINE_MODULE_SYMBOL(isalnum),
     DEFINE_MODULE_SYMBOL(isalpha),
     DEFINE_MODULE_SYMBOL(iscntrl),

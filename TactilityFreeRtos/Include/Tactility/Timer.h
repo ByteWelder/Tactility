@@ -4,6 +4,7 @@
 #include "Thread.h"
 #include "freertoscompat/Timers.h"
 
+#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -36,6 +37,15 @@ private:
     Callback callback;
     std::unique_ptr<std::remove_pointer_t<TimerHandle_t>, TimerHandleDeleter> handle;
 
+    // Set for the duration of a callback invocation. xTimerStop()/xTimerDelete() only prevent
+    // *future* dispatches: if a callback was already dispatched by the timer daemon task, they
+    // return immediately without waiting for it to finish. Callers that stop a timer and then
+    // immediately destroy state the callback reads/writes (e.g. a Service destructing itself
+    // right after stopping its own update timer) can otherwise race an in-flight callback against
+    // that destruction. stop() below spins on this flag so it only returns once no callback is
+    // executing and none can start afterward.
+    std::atomic<bool> callbackRunning {false};
+
     static TimerHandle_t createTimer(Type type, TickType_t ticks, void* timerId, TimerCallbackFunction_t callback) {
         assert(timerId != nullptr);
         assert(callback != nullptr);
@@ -47,7 +57,9 @@ private:
     static void onCallback(TimerHandle_t hTimer) {
         auto* timer = static_cast<Timer*>(pvTimerGetTimerID(hTimer));
         if (timer != nullptr) {
+            timer->callbackRunning.store(true, std::memory_order_release);
             timer->callback();
+            timer->callbackRunning.store(false, std::memory_order_release);
         }
     }
 
@@ -78,13 +90,22 @@ public:
         return xTimerStart(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
     }
 
-    /** Stop the timer
-     * @warning If the timer was just triggered, the callback might still be going on after stop() was called
+    /**
+     * Stop the timer. Unlike a bare xTimerStop(), this blocks until any
+     * callback invocation already dispatched by the timer daemon task has
+     * finished running, so it is safe to destroy state the callback reads or
+     * writes as soon as this returns.
+     * @warning Do not call this from within the timer's own callback - it
+     *          would deadlock waiting on itself.
      * @return success result
      */
     bool stop() const {
         assert(xPortInIsrContext() == pdFALSE);
-        return xTimerStop(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
+        bool result = xTimerStop(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
+        while (callbackRunning.load(std::memory_order_acquire)) {
+            vTaskDelay(1);
+        }
+        return result;
     }
 
     /**
