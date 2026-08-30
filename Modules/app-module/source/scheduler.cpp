@@ -2,9 +2,12 @@
 #include <app/instance.h>
 #include <app/loader.h>
 #include <app/private/event.h>
+#include <app/private/fd_table.h>
 #include <app/private/ledger.h>
 #include <app/private/scheduler.h>
+#include <app/private/stream_internal.h>
 #include <app/scheduler.h>
+#include <app/stream.h>
 
 #include <service/instance.h>
 #include <service/manager.h>
@@ -98,6 +101,14 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
     auto iterator = ledger.instances.find(app_instance_id);
     if (iterator != ledger.instances.end()) {
         iterator->second.task = task;
+        // Streams bound before this instance's task existed (app_manager_start_with_streams())
+        // only got producer_task filled in as NULL at subscribe time. Backfill it now.
+        AppFdTable& fd_table = iterator->second.fd_table;
+        for (auto& slot : fd_table.slots) {
+            if (slot.in_use && slot.file.ops == app_stream_ops()) {
+                static_cast<AppStream*>(slot.file.object)->producer_task = task;
+            }
+        }
     }
     mutex_unlock(&ledger.mutex);
 }
@@ -218,8 +229,14 @@ void app_task_main(void* context) {
     // Erase the ledger entry before self-deleting - see "Reap self-terminated app tasks":
     // nothing else is guaranteed to ever call app_scheduler_stop() for this instance (the
     // common case is the app just closing itself), so this can't wait for that to happen.
+    // Every non-null fd is closed here too. Stream-backed entries wake/mark closed whoever is
+    // on the other end (e.g. a parent reading this instance's stdout).
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
+    auto fd_table_iterator = ledger.instances.find(app_instance_id);
+    if (fd_table_iterator != ledger.instances.end()) {
+        app_fd_table_teardown(&fd_table_iterator->second.fd_table);
+    }
     ledger.instances.erase(app_instance_id);
     mutex_unlock(&ledger.mutex);
 

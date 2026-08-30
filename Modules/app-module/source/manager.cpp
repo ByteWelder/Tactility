@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/manager.h>
 #include <app/metadata.h>
+#include <app/private/fd_table.h>
 #include <app/private/fs.h>
 #include <app/private/ledger.h>
 #include <app/private/scheduler.h>
@@ -89,8 +90,15 @@ char** copy_arguments(int argc, const char* const argv[]) {
 
 // Takes ownership of argv (already a deep copy, or NULL/argc==0) regardless of outcome -
 // app_scheduler_start() frees it on any failure path, and the spawned task frees it once its
-// run() returns.
-error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], AppInstanceId* out_app_instance_id) {
+// run() returns. @a bindings (@a binding_count entries, may be NULL/0) are subscribed into the
+// new instance's fd table before app_scheduler_start() is called, so they're in place before its
+// task begins executing (see app_manager_start_with_streams()).
+error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    if (binding_count != 0 && bindings == nullptr) {
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_INVALID_ARGUMENT;
+    }
+
     auto& ledger = app_ledger();
 
     mutex_lock(&ledger.mutex);
@@ -106,13 +114,42 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
     AppInstanceRecord record { .id = target_id, .manifest = manifest, .state = APP_INSTANCE_STATE_STARTING, .task = nullptr };
     record.parent_id = parent_instance_id;
     ledger.instances[target_id] = record;
+    // Constructed on the map-resident copy, not the local `record` about to go out of scope.
+    // AppFdTable::fds[] entries point into AppFdTable::slots[] by address (see fd_table.h), so
+    // constructing before the copy above would leave them pointing at stack storage.
+    app_fd_table_construct(&ledger.instances[target_id].fd_table);
     mutex_unlock(&ledger.mutex);
 
     LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest->id, parent_instance_id);
 
+    for (size_t i = 0; i < binding_count; i++) {
+        error_t bind_result = app_stream_subscribe(bindings[i].stream, bindings[i].buffer, bindings[i].buffer_capacity, bindings[i].event_group, target_id, bindings[i].producer_fd);
+        if (bind_result != ERROR_NONE) {
+            LOG_E(TAG, "[instance %d] Failed to bind stream at fd %d: %s", target_id, bindings[i].producer_fd, error_to_string(bind_result));
+            // Undo bindings[0..i): app_fd_table_teardown() below only closes each stream. It
+            // doesn't release the event bits app_stream_subscribe() claimed or destruct
+            // stream->internal.mutex; only app_stream_unsubscribe() does that.
+            for (size_t j = 0; j < i; j++) {
+                app_stream_unsubscribe(bindings[j].stream);
+            }
+            mutex_lock(&ledger.mutex);
+            app_fd_table_teardown(&ledger.instances[target_id].fd_table);
+            ledger.instances.erase(target_id);
+            mutex_unlock(&ledger.mutex);
+            app_ledger_free_arguments(argc, argv);
+            return bind_result;
+        }
+    }
+
     error_t error = app_scheduler_start(target_id, manifest->location, manifest->stack, argc, argv);
     if (error != ERROR_NONE) {
+        // Every binding succeeded before app_scheduler_start() failed. Unsubscribe all of them,
+        // same reasoning as the bind-failure path above.
+        for (size_t j = 0; j < binding_count; j++) {
+            app_stream_unsubscribe(bindings[j].stream);
+        }
         mutex_lock(&ledger.mutex);
+        app_fd_table_teardown(&ledger.instances[target_id].fd_table);
         ledger.instances.erase(target_id);
         mutex_unlock(&ledger.mutex);
         LOG_I(TAG, "[instance %d] Failed to start: %s", target_id, error_to_string(error));
@@ -126,15 +163,19 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
 } // namespace
 
 error_t app_manager_start(const char* id, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, 0, nullptr, out_app_instance_id);
+    return start_internal(id, 0, 0, nullptr, nullptr, 0, out_app_instance_id);
 }
 
 error_t app_manager_start_with_parameters(const char* id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, argc, copy_arguments(argc, argv), out_app_instance_id);
+    return start_internal(id, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
 }
 
 error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), out_app_instance_id);
+    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
+}
+
+error_t app_manager_start_with_streams(const char* id, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    return start_internal(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
 }
 
 error_t app_manager_stop(AppInstanceId app_instance_id) {

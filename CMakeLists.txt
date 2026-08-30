@@ -64,6 +64,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
     endif ()
 
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=read" APPEND)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=write" APPEND)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=close" APPEND)
+
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_button_create" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_dropdown_create" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_list_create" APPEND)
