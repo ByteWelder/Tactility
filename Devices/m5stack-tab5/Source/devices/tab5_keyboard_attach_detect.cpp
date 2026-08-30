@@ -63,6 +63,11 @@ static bool apply_state(Device* keyboard_device, bool attached) {
             lv_display_set_rotation(display, LV_DISPLAY_ROTATION_90);
         }
     } else {
+        // A key held at the moment of unplug can never get its hardware release - reset tracked
+        // state so it doesn't read as stuck or feed stale modifiers into whatever's pressed next
+        // after reattach.
+        tab5_keyboard_reset_state(keyboard_device);
+
         // Only restore if rotation is still what we set it to - if the user manually changed it
         // since attaching, respect their choice instead.
         if (rotation_override_active && lv_display_get_rotation(display) == LV_DISPLAY_ROTATION_90) {

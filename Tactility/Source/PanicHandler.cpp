@@ -147,11 +147,15 @@ void __wrap_esp_panic_handler(void* info) {
         // boundaries but not of a frame pointer (fp only needs word alignment). esp_ptr_in_dram()
         // is the same range check without that assumption.
         //
+        // Checked against fp-8, not just fp: the record about to be read is [fp-8, fp), and an fp
+        // near the very start of the DRAM range can itself pass esp_ptr_in_dram() while fp-8
+        // underflows below it, so validate the whole record before dereferencing any of it.
+        //
         // Every task's root frame is vPortTaskWrapper() (FreeRTOS-Kernel/portable/riscv/port.c),
         // which marks itself `.cfi_undefined ra`: no valid frame exists below it, so an invalid fp
         // here is the expected end of the walk once at least one real frame has been captured, not
         // corruption. An invalid fp on the very first iteration is a real problem.
-        if (!esp_ptr_in_dram(reinterpret_cast<void*>(fp)) || (fp & 0x3) != 0) {
+        if (!esp_ptr_in_dram(reinterpret_cast<void*>(fp - 8)) || !esp_ptr_in_dram(reinterpret_cast<void*>(fp)) || (fp & 0x3) != 0) {
             crashData.callstackCorrupted = (crashData.callstackLength <= 1);
             break;
         }

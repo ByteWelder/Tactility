@@ -4,6 +4,12 @@
 #include "Thread.h"
 #include "freertoscompat/Timers.h"
 
+#ifdef ESP_PLATFORM
+#include <freertos/semphr.h>
+#else
+#include <semphr.h>
+#endif
+
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -63,6 +69,14 @@ private:
         }
     }
 
+    // Signals a SemaphoreHandle_t (passed as context) from the timer daemon task. Used by stop()
+    // as a barrier: FreeRTOS timer commands are processed FIFO, so queuing this via
+    // xTimerPendFunctionCall right after xTimerStop() guarantees it only runs once the daemon has
+    // drained everything queued ahead of it - including an expiry command that raced the stop.
+    static void onStopBarrier(void* context, uint32_t /*arg*/) {
+        xSemaphoreGive(static_cast<SemaphoreHandle_t>(context));
+    }
+
 public:
 
     /**
@@ -92,9 +106,9 @@ public:
 
     /**
      * Stop the timer. Unlike a bare xTimerStop(), this blocks until any
-     * callback invocation already dispatched by the timer daemon task has
-     * finished running, so it is safe to destroy state the callback reads or
-     * writes as soon as this returns.
+     * callback invocation already queued or dispatched by the timer daemon
+     * task at the time of the call has finished running, so it is safe to
+     * destroy state the callback reads or writes as soon as this returns.
      * @warning Do not call this from within the timer's own callback - it
      *          would deadlock waiting on itself.
      * @return success result
@@ -102,6 +116,19 @@ public:
     bool stop() const {
         assert(xPortInIsrContext() == pdFALSE);
         bool result = xTimerStop(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
+        if (result) {
+            // xTimerStop() only queues tmrCOMMAND_STOP - the daemon may not have processed it yet,
+            // and an expiry command already ahead of it in the queue can still dispatch a callback
+            // after this returns. Queuing a pend-function-call barrier right after the stop command
+            // guarantees (FIFO command processing) that it only runs once everything queued ahead
+            // of it - including such an expiry - has been handled.
+            SemaphoreHandle_t barrier = xSemaphoreCreateBinary();
+            assert(barrier != nullptr);
+            if (setPendingCallback(onStopBarrier, barrier, 0, kernel::FREERTOS_MAX_TICKS)) {
+                xSemaphoreTake(barrier, kernel::FREERTOS_MAX_TICKS);
+            }
+            vSemaphoreDelete(barrier);
+        }
         while (callbackRunning.load(std::memory_order_acquire)) {
             vTaskDelay(1);
         }

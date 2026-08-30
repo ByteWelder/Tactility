@@ -476,6 +476,31 @@ void tab5_keyboard_reinit(Device* device) {
     }
 }
 
+void tab5_keyboard_reset_state(Device* device) {
+    auto* internal = static_cast<Tab5KeyboardInternal*>(device_get_driver_data(device));
+
+    for (uint8_t idx = 0; idx < 70U; idx++) {
+        if (internal->held[idx]) {
+            Tab5KeyEvent event = internal->held_event[idx];
+            event.pressed = false;
+            xQueueSend(internal->queue, &event, 0);
+            internal->held[idx] = false;
+        }
+    }
+
+    internal->repeat_event.key = 0;
+    internal->repeat_row = 0xFF;
+    internal->repeat_col = 0xFF;
+
+    internal->sym_active = false;
+    internal->aa_sticky = false;
+    internal->aa_held = false;
+    internal->aa_tapped = false;
+    internal->ctrl_held = false;
+    internal->alt_held = false;
+    update_leds(device, internal);
+}
+
 // ---------------------------------------------------------------------------
 // poll_if_due - drains new key events (IRQ-gated or polled) and ticks software key-repeat.
 // Called from read_key(), throttled to real elapsed time rather than call count, since read_key()

@@ -474,7 +474,13 @@ static void onLvglStopped() {
     check(service::removeService(service::statusbar::manifest.id));
 
     if (softwareKeyboard.object != nullptr) {
+        // lv_obj_delete() walks/mutates the object graph (event lists, group membership,
+        // parent/child links). Without the LVGL lock this can race the LVGL port task's own
+        // concurrent traversal (input dispatch, timers, animations), producing an intermittent
+        // double-free/use-after-free inside lv_obj_destructor/lv_event_mark_deleted.
+        lvgl_lock();
         lvgl_software_keyboard_destruct(&softwareKeyboard);
+        lvgl_unlock();
     }
 
     module_stop(&lvgl_window_manager_module);

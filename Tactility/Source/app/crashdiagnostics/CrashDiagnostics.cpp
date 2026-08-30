@@ -31,6 +31,7 @@
 
 #include <sdkconfig.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -181,8 +182,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     // Target ~60% of the available space so the code scales with screen size but keeps a margin
     // from the labels/screen edges.
     int32_t target_size = smallest_size * 6 / 10;
-    int32_t pixel_size = target_size / qrcode.size;
-    if (pixel_size < 1) {
+    int32_t pixel_size = std::max<int32_t>(1, target_size / qrcode.size);
+    if (pixel_size * qrcode.size > smallest_size) {
         LOG_E(TAG, "QR code won't fit screen");
         ctx->hasFatalError = true;
         return;

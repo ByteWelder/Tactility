@@ -83,9 +83,20 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
 
     if (app_count == 0) {
-        auto* no_apps_label = lv_label_create(parent);
+        // lv_obj_align() is ignored for children of a flex-managed parent, so the empty-state
+        // label needs its own flex-growing wrapper to center within; the (empty) list is hidden
+        // rather than deleted so the wrapper can just take its place in the flex flow.
+        lv_obj_add_flag(list, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_flex_grow(list, 0);
+
+        auto* empty_wrapper = lv_obj_create(parent);
+        lv_obj_set_width(empty_wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(empty_wrapper, 1);
+        lv_obj_set_flex_align(empty_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_border_width(empty_wrapper, 0, LV_STATE_DEFAULT);
+
+        auto* no_apps_label = lv_label_create(empty_wrapper);
         lv_label_set_text(no_apps_label, "No apps installed");
-        lv_obj_align(no_apps_label, LV_ALIGN_CENTER, 0, 0);
     }
 }
 
