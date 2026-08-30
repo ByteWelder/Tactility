@@ -61,7 +61,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         app-esp32-module
         platform-esp32
         driver
-        elf_loader
         QRCode
         esp_http_server
         esp_http_client
