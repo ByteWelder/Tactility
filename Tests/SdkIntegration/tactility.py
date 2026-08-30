@@ -130,16 +130,8 @@ def read_sdk_json():
     with open(json_file_path) as json_file:
         return json.load(json_file)
 
-def sdk_platform_key(platform):
-    # All posix architectures ("posix-x86_64", "posix-aarch64", ...) share one universal SDK
-    # download - it's headers only, since a posix app is dlopen()ed into the running Tactility
-    # process at runtime rather than linked against the SDK's prebuilt libs, unlike ESP32 where
-    # each chip variant needs its own prebuilt binaries.
-    return "posix" if platform.startswith("posix") else platform
-
 def get_sdk_dir(version, platform):
     global use_local_sdk, local_base_path
-    platform = sdk_platform_key(platform)
     if use_local_sdk:
         base_path = local_base_path
         if base_path is None:
@@ -158,7 +150,6 @@ def validate_local_sdks(platforms, version):
     global local_base_path
     base_path = local_base_path
     for platform in platforms:
-        platform = sdk_platform_key(platform)
         sdk_parent_dir = os.path.join(base_path, f"{version}-{platform}")
         sdk_dir = os.path.join(sdk_parent_dir, "TactilitySDK")
         if not os.path.isdir(sdk_dir):
@@ -166,7 +157,7 @@ def validate_local_sdks(platforms, version):
 
 def get_sdk_root_dir(version, platform):
     global ttbuild_cdn
-    return os.path.join(ttbuild_path, f"{version}-{sdk_platform_key(platform)}")
+    return os.path.join(ttbuild_path, f"{version}-{platform}")
 
 def get_sdk_url(version, file):
     global ttbuild_cdn
@@ -285,7 +276,6 @@ def safe_extract_zip(zip_ref, target_dir):
     zip_ref.extractall(target_dir)
 
 def sdk_download(version, platform):
-    sdk_key = sdk_platform_key(platform)
     sdk_root_dir = get_sdk_root_dir(version, platform)
     os.makedirs(sdk_root_dir, exist_ok=True)
     sdk_index_url = get_sdk_url(version, "index.json")
@@ -300,12 +290,12 @@ def sdk_download(version, platform):
     with open(sdk_index_filepath) as sdk_index_json_file:
         sdk_index_json = json.load(sdk_index_json_file)
     sdk_platforms = sdk_index_json["platforms"]
-    if sdk_key not in sdk_platforms:
-        print_error(f"Platform {sdk_key} not found in {sdk_platforms} for version {version}")
+    if platform not in sdk_platforms:
+        print_error(f"Platform {platform} not found in {sdk_platforms} for version {version}")
         return False
-    sdk_platform_file = sdk_platforms[sdk_key]
+    sdk_platform_file = sdk_platforms[platform]
     sdk_zip_source_url = get_sdk_url(version, sdk_platform_file)
-    sdk_zip_target_filepath = os.path.join(sdk_root_dir, f"{version}-{sdk_key}.zip")
+    sdk_zip_target_filepath = os.path.join(sdk_root_dir, f"{version}-{platform}.zip")
     if verbose:
         print(f"Downloading {sdk_zip_source_url} to {sdk_zip_target_filepath}")
     if not download_file(sdk_zip_source_url, sdk_zip_target_filepath):

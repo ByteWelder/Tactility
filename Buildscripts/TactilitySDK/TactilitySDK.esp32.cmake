@@ -4,11 +4,12 @@ endfunction()
 function(_tactility_project)
 endfunction()
 
-macro(tactility_project project_name)
+macro(tactility_project_pre project_name)
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
     set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules)
-    project(${project_name})
+endmacro()
 
+macro(tactility_project_post project_name)
     set(TACTILITY_SKIP_SPIFFS 1)
 
     include("${TACTILITY_SDK_PATH}/Libraries/elf_loader/elf_loader.cmake")

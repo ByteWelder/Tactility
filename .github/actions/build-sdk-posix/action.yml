@@ -6,6 +6,10 @@ runs:
     - uses: actions/checkout@v6
       with:
         submodules: recursive
+    - name: 'Detect architecture'
+      id: arch
+      shell: bash
+      run: echo "value=$(uname -m)" >> "$GITHUB_OUTPUT"
     - name: 'Configure'
       shell: bash
       run: cmake -S ./ -B buildsim
@@ -19,18 +23,20 @@ runs:
       shell: bash
       # The manifest.properties of our integration test uses version 0.0.0 to indicate that it is not using a normal SDK
       # This way, it only works with our custom build. That means we have to create a copy of the SDK with the correct folder structure:
-      # All posix architectures share one universal SDK download, so this sentinel folder is not
-      # architecture-tagged even though the app built below is.
+      env:
+        TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
       run: |
-        TACTILITY_SDK_NAME="0.0.0-posix"
+        TACTILITY_SDK_NAME="0.0.0-posix-$TACTILITY_ARCH"
         mkdir -p test_sdk/$TACTILITY_SDK_NAME
         cp -r release/TactilitySDK test_sdk/$TACTILITY_SDK_NAME
     - name: 'Test Integration'
       shell: bash
-      run: cd Tests/SdkIntegration && TACTILITY_SDK_PATH=../../test_sdk python tactility.py build posix-$(uname -m) --local-sdk
+      env:
+        TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
+      run: cd Tests/SdkIntegration && TACTILITY_SDK_PATH=../../test_sdk python tactility.py build posix-$TACTILITY_ARCH --local-sdk
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
-        name: TactilitySDK-posix
+        name: TactilitySDK-posix-${{ steps.arch.outputs.value }}
         path: release/TactilitySDK
         retention-days: 30
