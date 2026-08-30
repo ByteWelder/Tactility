@@ -24,7 +24,6 @@
 #include <vector>
 
 #include <app/event.h>
-#include <app/install.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/module.h>
@@ -33,7 +32,6 @@
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/DeprecatedPaths.h>
-#include <Tactility/LogMessages.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/bluetooth/Bluetooth.h>
@@ -48,7 +46,10 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
+
+#ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 #include <Tactility/settings/TouchCalibrationSettings.h>
+#endif
 
 #include <c_symbols/module.h>
 #include <cpp_symbols/module.h>
