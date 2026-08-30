@@ -24,6 +24,7 @@ target_link_libraries(TactilityTests PRIVATE
     TactilityKernelCpp
     TactilityFreeRtos
     platform-posix
+    app-posix-module
     lvgl-module
     lvgl-window-manager-module
     app-module
