@@ -15,6 +15,8 @@ constexpr auto* TAG = "SdlDisplay";
 #define GET_CONFIG(device) (static_cast<const SdlDisplayConfig*>((device)->config))
 
 struct SdlDisplayInternal {
+    bool initialized;
+    bool init_failed;
     SDL_Window* window;
     SDL_Renderer* renderer;
     SDL_Texture* texture;
@@ -23,17 +25,56 @@ struct SdlDisplayInternal {
 // region Driver lifecycle
 
 static error_t start(Device* device) {
-    const auto* config = GET_CONFIG(device);
-
     auto* internal = static_cast<SdlDisplayInternal*>(malloc(sizeof(SdlDisplayInternal)));
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
     }
 
+    internal->initialized = false;
+    internal->init_failed = false;
+    internal->window = nullptr;
+    internal->renderer = nullptr;
+    internal->texture = nullptr;
+
+    device_set_driver_data(device, internal);
+    return ERROR_NONE;
+}
+
+static error_t stop(Device* device) {
+    auto* internal = static_cast<SdlDisplayInternal*>(device_get_driver_data(device));
+
+    if (internal->initialized) {
+        SDL_DestroyTexture(internal->texture);
+        SDL_DestroyRenderer(internal->renderer);
+        SDL_DestroyWindow(internal->window);
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    }
+
+    free(internal);
+    device_set_driver_data(device, nullptr);
+    return ERROR_NONE;
+}
+
+// endregion
+
+// region DisplayApi
+
+static error_t sdl_display_reset(Device*) { return ERROR_NONE; }
+static error_t sdl_display_init(Device*) { return ERROR_NONE; }
+
+/**
+ * The window/renderer/texture are created here (on first flush) rather than in start(),
+ * because they must be created on the same thread that later drives them: start() runs on
+ * the kernel-init thread, while every draw_bitmap() call runs on the lvgl task thread.
+ * SDL's video/GPU calls are only safe to use consistently from a single thread; some GPU
+ * drivers hang when that's violated.
+ */
+static bool sdl_display_lazy_init(Device* device, SdlDisplayInternal* internal) {
+    const auto* config = GET_CONFIG(device);
+
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
         LOG_E(TAG, "SDL_InitSubSystem failed: %s", SDL_GetError());
-        free(internal);
-        return ERROR_RESOURCE;
+        return false;
     }
 
     internal->window = SDL_CreateWindow(
@@ -56,36 +97,26 @@ static error_t start(Device* device) {
         if (internal->renderer != nullptr) SDL_DestroyRenderer(internal->renderer);
         if (internal->window != nullptr) SDL_DestroyWindow(internal->window);
         SDL_QuitSubSystem(SDL_INIT_VIDEO);
-        free(internal);
-        return ERROR_RESOURCE;
+        return false;
     }
 
-    device_set_driver_data(device, internal);
-    return ERROR_NONE;
+    return true;
 }
-
-static error_t stop(Device* device) {
-    auto* internal = static_cast<SdlDisplayInternal*>(device_get_driver_data(device));
-
-    SDL_DestroyTexture(internal->texture);
-    SDL_DestroyRenderer(internal->renderer);
-    SDL_DestroyWindow(internal->window);
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
-
-    free(internal);
-    device_set_driver_data(device, nullptr);
-    return ERROR_NONE;
-}
-
-// endregion
-
-// region DisplayApi
-
-static error_t sdl_display_reset(Device*) { return ERROR_NONE; }
-static error_t sdl_display_init(Device*) { return ERROR_NONE; }
 
 static error_t sdl_display_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<SdlDisplayInternal*>(device_get_driver_data(device));
+
+    if (internal->init_failed) {
+        return ERROR_RESOURCE;
+    }
+
+    if (!internal->initialized) {
+        if (!sdl_display_lazy_init(device, internal)) {
+            internal->init_failed = true;
+            return ERROR_RESOURCE;
+        }
+        internal->initialized = true;
+    }
 
     SDL_Rect rect = { x_start, y_start, x_end - x_start, y_end - y_start };
     // RGB565 = 2 bytes/pixel.
