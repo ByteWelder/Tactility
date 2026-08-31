@@ -27,11 +27,7 @@ static error_t start(Device* device) {
     auto* parent = device_get_parent(device);
     check(device_get_type(parent) == &I2C_CONTROLLER_TYPE);
 
-    auto address = GET_CONFIG(device)->address;
-    if (i2c_controller_has_device_at_address(parent, address, I2C_TIMEOUT) != ERROR_NONE) {
-        LOG_E(TAG, "No device found on I2C bus at address 0x%02X", address);
-        return ERROR_RESOURCE;
-    }
+    // We don't check whether the device is present, because it doesn't respond reliably at boot
 
     auto* internal = static_cast<TdeckKeyboardInternal*>(malloc(sizeof(TdeckKeyboardInternal)));
     if (internal == nullptr) {
