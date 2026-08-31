@@ -11,7 +11,11 @@
 #include <stdarg.h>
 #include <sys/time.h>
 
-static const char* get_log_color(LogLevel level) {
+namespace {
+
+constexpr auto MINIMUM_LOG_LEVEL = LOG_LEVEL_INFO;
+
+const char* get_log_color(LogLevel level) {
     using enum LogLevel;
     switch (level) {
         case LOG_LEVEL_ERROR:
@@ -29,7 +33,7 @@ static const char* get_log_color(LogLevel level) {
     }
 }
 
-static inline char get_log_prefix(LogLevel level) {
+inline char get_log_prefix(LogLevel level) {
     using enum LogLevel;
     switch (level) {
         case LOG_LEVEL_ERROR:
@@ -47,7 +51,7 @@ static inline char get_log_prefix(LogLevel level) {
     }
 }
 
-static uint64_t get_log_timestamp() {
+uint64_t get_log_timestamp() {
     static uint64_t base = 0U;
     static std::once_flag init_flag;
     std::call_once(init_flag, []() {
@@ -61,15 +65,19 @@ static uint64_t get_log_timestamp() {
     return now - base;
 }
 
+}
+
 extern "C" {
 
 void log_generic(enum LogLevel level, const char* tag, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    printf("%s %c (%" PRIu64 ") %s ", get_log_color(level), get_log_prefix(level), get_log_timestamp(), tag);
-    vprintf(format, args);
-    printf("\033[0m\n");
-    va_end(args);
+    if (MINIMUM_LOG_LEVEL >= level) {
+        va_list args;
+        va_start(args, format);
+        printf("%s %c (%" PRIu64 ") %s ", get_log_color(level), get_log_prefix(level), get_log_timestamp(), tag);
+        vprintf(format, args);
+        printf("\033[0m\n");
+        va_end(args);
+    }
 }
 
 }

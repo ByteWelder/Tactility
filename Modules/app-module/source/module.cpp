@@ -38,6 +38,7 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_manager_start_with_parameters),
     DEFINE_MODULE_SYMBOL(app_manager_start_for_result),
     DEFINE_MODULE_SYMBOL(app_manager_start_with_streams),
+    DEFINE_MODULE_SYMBOL(app_manager_start_for_result_with_streams),
     DEFINE_MODULE_SYMBOL(app_manager_stop),
     DEFINE_MODULE_SYMBOL(app_manager_get_state),
     DEFINE_MODULE_SYMBOL(app_manager_find_manifest),

@@ -112,6 +112,23 @@ struct AppStreamBinding {
 error_t app_manager_start_with_streams(const char* id, const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
 
 /**
+ * Combines app_manager_start_for_result() and app_manager_start_with_streams(): starts @a id as
+ * a modal child of @a parent_instance_id (see app_manager_start_for_result()'s own doc for the
+ * result-delivery contract) with @a bindings installed into its fd table before its task begins
+ * executing (see app_manager_start_with_streams()'s own doc for stream ownership). For a child
+ * that needs to hand back more than an int32_t (e.g. a path) via its own stdout instead of the
+ * "get last result" getter pattern (see app_manager_start_for_result()) - see e.g.
+ * tt::app::fileselection::startForExistingFile().
+ * @param[in] argv see app_manager_start_for_result().
+ * @param[in] bindings see app_manager_start_with_streams().
+ * @retval ERROR_NOT_FOUND no manifest with this id is registered, or no AppLoaderApi is registered
+ * @retval ERROR_OUT_OF_RANGE a binding's producer_fd is out of range
+ * @retval ERROR_RESOURCE a binding's event_group has no free bits left to claim
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
+
+/**
  * Stop an app instance permanently. Emits APP_EVENT_CLOSE and bound-waits for its task to exit
  * if it was running.
  * @warning Must not be called from the instance's own task (it bound-waits via thread_join(),

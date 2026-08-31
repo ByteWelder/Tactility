@@ -1,4 +1,7 @@
 #include <Tactility/app/notes/Notes.h>
+
+#include "Tactility/app/alertdialog/AlertDialog.h"
+
 #include <Tactility/app/fileselection/FileSelection.h>
 #include <Tactility/file/File.h>
 
@@ -25,6 +28,7 @@ namespace {
 
 struct Context {
     uint32_t appInstanceId;
+    TaskEventGroup* eventGroup = nullptr;
 
     lv_obj_t* uiCurrentFileName = nullptr;
     lv_obj_t* uiDropDownMenu = nullptr;
@@ -35,6 +39,8 @@ struct Context {
 
     uint32_t loadFileLaunchId = 0;
     uint32_t saveFileLaunchId = 0;
+    fileselection::PathResult loadResult;
+    fileselection::PathResult saveResult;
 };
 
 
@@ -90,11 +96,11 @@ void appNotesEventCb(lv_event_t* e) {
                     lvgl_lock();
                     ctx->saveBuffer = lv_textarea_get_text(ctx->uiNoteText);
                     lvgl_unlock();
-                    ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId);
+                    ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResult, ctx->eventGroup);
                     LOG_I(TAG, "launched with id %u", ctx->saveFileLaunchId);
                     break;
                 case 3: // Load
-                    ctx->loadFileLaunchId = fileselection::startForExistingFile(ctx->appInstanceId);
+                    ctx->loadFileLaunchId = fileselection::startForExistingFile(ctx->appInstanceId, ctx->loadResult, ctx->eventGroup);
                     LOG_I(TAG, "launched with id %u", ctx->loadFileLaunchId);
                     break;
             }
@@ -102,7 +108,7 @@ void appNotesEventCb(lv_event_t* e) {
             auto* cont = lv_event_get_current_target_obj(e);
             if (obj == cont) return;
             if (lv_obj_get_child(cont, 1)) {
-                ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId);
+                ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResult, ctx->eventGroup);
                 LOG_I(TAG, "launched with id %u", ctx->saveFileLaunchId);
             } else { //Reset
                 resetFileContent(ctx);
@@ -189,6 +195,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+    ctx.eventGroup = &event_group;
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
@@ -206,23 +213,29 @@ int32_t appMain(int argc, char* argv[]) {
                     shouldClose = true;
                     break;
                 case APP_EVENT_RESULT:
-                    LOG_I(TAG, "Result for launch id %u", event.result.launch_id);
+                    LOG_I(TAG, "Result for launch id %u = %u", event.result.launch_id, event.result.result);
                     if (event.result.launch_id == ctx.loadFileLaunchId) {
                         ctx.loadFileLaunchId = 0;
                         if (event.result.result == 0 /* Ok */) {
-                            auto path = fileselection::getLastPath();
+                            auto path = fileselection::readResultPath(ctx.loadResult);
+                            LOG_I(TAG, "Path: '%s'", path.c_str());
                             if (!path.empty()) {
                                 openFile(&ctx, path);
                             }
+                        } else {
+                            app_stream_unsubscribe(&ctx.loadResult.stream);
                         }
                     } else if (event.result.launch_id == ctx.saveFileLaunchId) {
                         ctx.saveFileLaunchId = 0;
                         if (event.result.result == 0 /* Ok */) {
-                            auto path = fileselection::getLastPath();
+                            auto path = fileselection::readResultPath(ctx.saveResult);
                             // Must re-open file, because the UI was cleared after opening the dialog.
+                            LOG_I(TAG, "Path: '%s'", path.c_str());
                             if (!path.empty() && saveFile(&ctx, path)) {
                                 openFile(&ctx, path);
                             }
+                        } else {
+                            app_stream_unsubscribe(&ctx.loadResult.stream);
                         }
                     }
                     app_manager_stop(event.result.launch_id);

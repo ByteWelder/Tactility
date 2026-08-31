@@ -7,7 +7,7 @@
 
 #include <cerrno>
 
-#ifdef ESP_PLATFORM
+#if defined(TT_APP_IO_WRAPS_STDIO)
 extern "C" {
 ssize_t __real_read(int fd, void* buffer, size_t size);
 ssize_t __real_write(int fd, const void* buffer, size_t size);
@@ -56,7 +56,7 @@ ssize_t app_io_read(int fd, void* buffer, size_t size) {
         errno = EBADF;
         return -1;
     }
-#ifdef ESP_PLATFORM
+#if defined(TT_APP_IO_WRAPS_STDIO)
     return __real_read(fd, buffer, size);
 #else
     return ::read(fd, buffer, size);
@@ -71,13 +71,25 @@ ssize_t app_io_write(int fd, const void* buffer, size_t size) {
         if (file.ops->release != nullptr) {
             file.ops->release(file.object);
         }
+        // Tee to the real fd too: a bound stream only exists because a parent explicitly asked
+        // to capture this app instance's own output (see AppStreamBinding), but generic code
+        // running on that same instance's thread - most commonly the platform's own logging
+        // (LOG_I/etc, which calls write() the same as anything else) - has no way to know its
+        // output is currently being intercepted. Without this, a log line emitted while any app
+        // instance has its stdout captured would vanish from the console entirely instead of
+        // just also being visible to the capturing parent.
+#if defined(TT_APP_IO_WRAPS_STDIO)
+        __real_write(fd, buffer, size);
+#else
+        ::write(fd, buffer, size);
+#endif
         return result;
     }
     if (table != nullptr && app_fd_table_is_app_owned(table, fd)) {
         errno = EBADF;
         return -1;
     }
-#ifdef ESP_PLATFORM
+#if defined(TT_APP_IO_WRAPS_STDIO)
     return __real_write(fd, buffer, size);
 #else
     return ::write(fd, buffer, size);
@@ -96,7 +108,7 @@ int app_io_close(int fd) {
             return -1;
         }
     }
-#ifdef ESP_PLATFORM
+#if defined(TT_APP_IO_WRAPS_STDIO)
     return __real_close(fd);
 #else
     return ::close(fd);

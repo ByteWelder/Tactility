@@ -199,11 +199,18 @@ void app_task_main(void* context) {
     check(pvTaskGetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX, reinterpret_cast<void*>(static_cast<uintptr_t>(ctx->app_instance_id)));
 
-    LOG_I(TAG, "[instance %lu] Task started", ctx->app_instance_id);
+    // Debug logging so it's invisible by default
+    // When logging happens, it can distort the application stdout, which breaks apps that use
+    // stdout to output important information, such as the file selection dialog app.
+    // LOG_D(TAG, "[instance %lu] Task started", ctx->app_instance_id);
 
     set_state(ctx->app_instance_id, APP_INSTANCE_STATE_ACTIVE);
 
     int32_t result = ctx->loader->run(ctx->runtime, ctx->app_instance_id, ctx->argc, ctx->argv);
+
+    // The platform might buffer stdout (e.g. esp-idf with newlib)
+    // Do a manual flush to ensure data has been written:
+    fflush(stdout);
 
     vTaskSetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX, nullptr);
 
@@ -224,7 +231,7 @@ void app_task_main(void* context) {
     StaticTask_t* task_tcb = ctx->taskTcb;
     delete ctx;
 
-    LOG_I(TAG, "[instance %lu] Task finished", app_instance_id);
+    // LOG_D(TAG, "[instance %lu] Task finished", app_instance_id);
 
     // Erase the ledger entry before self-deleting - see "Reap self-terminated app tasks":
     // nothing else is guaranteed to ever call app_scheduler_stop() for this instance (the
@@ -250,7 +257,7 @@ void app_task_main(void* context) {
     xSemaphoreGive(completion->semaphore);
     release_completion_signal(completion); // releases app_task_main()'s own reference
 
-    LOG_I(TAG, "[instance %lu] minimum free stack space: %d bytes", app_instance_id, uxTaskGetStackHighWaterMark(nullptr));
+    // LOG_D(TAG, "[instance %lu] minimum free stack space: %d bytes", app_instance_id, uxTaskGetStackHighWaterMark(nullptr));
 #ifdef ESP_PLATFORM
     // Statically-allocated stack/TCB (see app_scheduler_start()) - can't self-delete, see reap_self().
     reap_self(stack_buffer, task_tcb);

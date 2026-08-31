@@ -60,12 +60,15 @@ void View::onTapFile(const std::string& path, const std::string& filename) {
             LOG_E(TAG, "Can only work with files in working directory %s", cwd);
             return;
         }
-        processed_filepath = file_path.substr(strlen(cwd));
+        // MountPoints.h's MOUNT_POINT_DATA/MOUNT_POINT_SYSTEM have no leading slash on POSIX
+        // (fopen() resolves relative to cwd there), unlike ESP32's real VFS mount points - so
+        // strip the separator too, not just cwd itself.
+        processed_filepath = file_path.substr(strlen(cwd) + 1);
     } else {
         processed_filepath = file_path;
     }
 
-    LOG_I(TAG, "Clicked %s", processed_filepath.c_str());
+    LOG_D(TAG, "Clicked %s", processed_filepath.c_str());
 
     lv_textarea_set_text(path_textarea, processed_filepath.c_str());
 }
@@ -73,7 +76,7 @@ void View::onTapFile(const std::string& path, const std::string& filename) {
 void View::onDirEntryPressed(uint32_t index) {
     dirent dir_entry;
     if (state->getDirent(index, dir_entry)) {
-        LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, (int)dir_entry.d_type);
+        LOG_D(TAG, "Pressed %s %d", dir_entry.d_name, (int)dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
         using namespace tt::file;
         switch (dir_entry.d_type) {
@@ -146,7 +149,7 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
 
 void View::onNavigateUpPressed() {
     if (state->getCurrentPath() != "/") {
-        LOG_I(TAG, "Navigating upwards");
+        LOG_D(TAG, "Navigating upwards");
         std::string new_absolute_path;
         if (string::getPathParent(state->getCurrentPath(), new_absolute_path)) {
             state->setEntriesForPath(new_absolute_path);
