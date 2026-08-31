@@ -96,13 +96,13 @@ int32_t appMain(int argc, char* argv[]) {
 
 namespace {
 
-uint32_t startWithMode(const char* modeArg, uint32_t callerAppInstanceId, PathResult& result, TaskEventGroup* eventGroup) {
+uint32_t startWithMode(const char* modeArg, uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
     const char* argv[] = { modeArg };
     AppStreamBinding binding = {
         .producer_fd = STDOUT_FILENO,
-        .stream = &result.stream,
-        .buffer = result.buffer,
-        .buffer_capacity = sizeof(result.buffer),
+        .stream = &stream,
+        .buffer = buffer,
+        .buffer_capacity = bufferCapacity,
         .event_group = eventGroup,
     };
     uint32_t instanceId = 0;
@@ -112,19 +112,12 @@ uint32_t startWithMode(const char* modeArg, uint32_t callerAppInstanceId, PathRe
 
 } // namespace
 
-uint32_t startForExistingFile(uint32_t callerAppInstanceId, PathResult& result, TaskEventGroup* eventGroup) {
-    return startWithMode("--existing", callerAppInstanceId, result, eventGroup);
+uint32_t startForExistingFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
+    return startWithMode("--existing", callerAppInstanceId, stream, buffer, bufferCapacity, eventGroup);
 }
 
-uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, PathResult& result, TaskEventGroup* eventGroup) {
-    return startWithMode("--existing-or-new", callerAppInstanceId, result, eventGroup);
-}
-
-std::string readResultPath(PathResult& result) {
-    char destination[sizeof(result.buffer)];
-    size_t length = app_stream_read(&result.stream, destination, sizeof(destination));
-    app_stream_unsubscribe(&result.stream);
-    return std::string(destination, length);
+uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
+    return startWithMode("--existing-or-new", callerAppInstanceId, stream, buffer, bufferCapacity, eventGroup);
 }
 
 extern const ::AppManifest manifest = {

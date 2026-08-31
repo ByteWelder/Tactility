@@ -9,6 +9,7 @@
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+#include <app/stream.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -39,8 +40,10 @@ struct Context {
 
     uint32_t loadFileLaunchId = 0;
     uint32_t saveFileLaunchId = 0;
-    fileselection::PathResult loadResult;
-    fileselection::PathResult saveResult;
+    AppStream loadResultStream {};
+    uint8_t loadResultBuffer[256] {};
+    AppStream saveResultStream {};
+    uint8_t saveResultBuffer[256] {};
 };
 
 
@@ -96,11 +99,11 @@ void appNotesEventCb(lv_event_t* e) {
                     lvgl_lock();
                     ctx->saveBuffer = lv_textarea_get_text(ctx->uiNoteText);
                     lvgl_unlock();
-                    ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResult, ctx->eventGroup);
+                    ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResultStream, ctx->saveResultBuffer, sizeof(ctx->saveResultBuffer), ctx->eventGroup);
                     LOG_I(TAG, "launched with id %u", ctx->saveFileLaunchId);
                     break;
                 case 3: // Load
-                    ctx->loadFileLaunchId = fileselection::startForExistingFile(ctx->appInstanceId, ctx->loadResult, ctx->eventGroup);
+                    ctx->loadFileLaunchId = fileselection::startForExistingFile(ctx->appInstanceId, ctx->loadResultStream, ctx->loadResultBuffer, sizeof(ctx->loadResultBuffer), ctx->eventGroup);
                     LOG_I(TAG, "launched with id %u", ctx->loadFileLaunchId);
                     break;
             }
@@ -108,7 +111,7 @@ void appNotesEventCb(lv_event_t* e) {
             auto* cont = lv_event_get_current_target_obj(e);
             if (obj == cont) return;
             if (lv_obj_get_child(cont, 1)) {
-                ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResult, ctx->eventGroup);
+                ctx->saveFileLaunchId = fileselection::startForExistingOrNewFile(ctx->appInstanceId, ctx->saveResultStream, ctx->saveResultBuffer, sizeof(ctx->saveResultBuffer), ctx->eventGroup);
                 LOG_I(TAG, "launched with id %u", ctx->saveFileLaunchId);
             } else { //Reset
                 resetFileContent(ctx);
@@ -217,25 +220,31 @@ int32_t appMain(int argc, char* argv[]) {
                     if (event.result.launch_id == ctx.loadFileLaunchId) {
                         ctx.loadFileLaunchId = 0;
                         if (event.result.result == 0 /* Ok */) {
-                            auto path = fileselection::readResultPath(ctx.loadResult);
+                            char destination[sizeof(ctx.loadResultBuffer)];
+                            size_t length = app_stream_read(&ctx.loadResultStream, destination, sizeof(destination));
+                            app_stream_unsubscribe(&ctx.loadResultStream);
+                            auto path = std::string(destination, length);
                             LOG_I(TAG, "Path: '%s'", path.c_str());
                             if (!path.empty()) {
                                 openFile(&ctx, path);
                             }
                         } else {
-                            app_stream_unsubscribe(&ctx.loadResult.stream);
+                            app_stream_unsubscribe(&ctx.loadResultStream);
                         }
                     } else if (event.result.launch_id == ctx.saveFileLaunchId) {
                         ctx.saveFileLaunchId = 0;
                         if (event.result.result == 0 /* Ok */) {
-                            auto path = fileselection::readResultPath(ctx.saveResult);
+                            char destination[sizeof(ctx.saveResultBuffer)];
+                            size_t length = app_stream_read(&ctx.saveResultStream, destination, sizeof(destination));
+                            app_stream_unsubscribe(&ctx.saveResultStream);
+                            auto path = std::string(destination, length);
                             // Must re-open file, because the UI was cleared after opening the dialog.
                             LOG_I(TAG, "Path: '%s'", path.c_str());
                             if (!path.empty() && saveFile(&ctx, path)) {
                                 openFile(&ctx, path);
                             }
                         } else {
-                            app_stream_unsubscribe(&ctx.loadResult.stream);
+                            app_stream_unsubscribe(&ctx.saveResultStream);
                         }
                     }
                     app_manager_stop(event.result.launch_id);

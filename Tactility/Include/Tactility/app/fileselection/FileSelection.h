@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <string>
 
 #include <app/stream.h>
 #include <tactility/concurrent/task_event_group.h>
@@ -9,39 +9,28 @@
 namespace tt::app::fileselection {
 
 /**
- * Caller-owned storage for capturing the selected path back from the started file-selection
- * app's stdout. Must stay valid from startForExistingFile()/startForExistingOrNewFile() until
- * readResultPath()/closeResult() is called on it.
- */
-struct PathResult {
-    AppStream stream {};
-    char buffer[512] {};
-};
-
-/**
  * Show a file selection dialog that allows the user to select an existing file, as a modal
  * child of @a callerAppInstanceId (see app_manager_start_for_result_with_streams()). Result
- * (0 = Ok, 1 = Cancelled) is delivered back via APP_EVENT_RESULT once this app's thread exits -
- * call readResultPath(result) right after receiving it on result == 0, or closeResult(result)
- * otherwise. The caller must call app_manager_stop() on the returned instance id once that event
- * arrives, to fully reap this instance.
- * @param[in,out] result caller-owned storage the selected path is captured into; see PathResult.
+ * (0 = Ok, 1 = Cancelled) is delivered back via APP_EVENT_RESULT once this app's thread exits.
+ * On result == 0, read the picked path with app_stream_read(&stream, ...) then
+ * app_stream_unsubscribe(&stream); on any other result, just app_stream_unsubscribe(&stream).
+ * The caller must call app_manager_stop() on the returned instance id once that event arrives,
+ * to fully reap this instance.
+ * @param[in,out] stream caller-owned storage bound to the started app's stdout; must stay valid
+ * until app_stream_unsubscribe() is called on it (see above).
+ * @param[in] buffer caller-owned backing storage for @a stream's ring buffer; must stay valid
+ * for the same duration as @a stream.
+ * @param[in] bufferCapacity size of @a buffer in bytes.
  * @param[in] eventGroup the caller's own event group, reused for the stream's readiness bits
  * (see app_stream_subscribe()) - the caller isn't required to actually wait on them itself.
  * @return the new app instance id
  */
-uint32_t startForExistingFile(uint32_t callerAppInstanceId, PathResult& result, TaskEventGroup* eventGroup);
+uint32_t startForExistingFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup);
 
 /**
  * Same as startForExistingFile(), but also allows picking a path that doesn't exist yet (for
  * "save as"-style flows).
  */
-uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, PathResult& result, TaskEventGroup* eventGroup);
-
-/**
- * Reads the path captured in @a result and unsubscribes its stream. Call exactly once, after
- * APP_EVENT_RESULT arrives with result == 0 (Ok).
- */
-std::string readResultPath(PathResult& result);
+uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup);
 
 } // namespace
