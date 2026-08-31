@@ -199,11 +199,18 @@ void app_task_main(void* context) {
     check(pvTaskGetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX, reinterpret_cast<void*>(static_cast<uintptr_t>(ctx->app_instance_id)));
 
+    // Debug logging so it's invisible by default
+    // When logging happens, it can distort the application stdout, which breaks apps that use
+    // stdout to output important information, such as the file selection dialog app.
     LOG_I(TAG, "[instance %lu] Task started", ctx->app_instance_id);
 
     set_state(ctx->app_instance_id, APP_INSTANCE_STATE_ACTIVE);
 
     int32_t result = ctx->loader->run(ctx->runtime, ctx->app_instance_id, ctx->argc, ctx->argv);
+
+    // The platform might buffer stdout (e.g. esp-idf with newlib)
+    // Do a manual flush to ensure data has been written:
+    fflush(stdout);
 
     vTaskSetThreadLocalStoragePointer(nullptr, APP_INSTANCE_ID_THREAD_SLOT_INDEX, nullptr);
 

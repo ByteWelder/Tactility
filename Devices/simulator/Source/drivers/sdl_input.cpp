@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "sdl_input.h"
+#include "sdl_display.h"
 
 #include <tactility/drivers/keyboard.h>
 
@@ -34,6 +35,23 @@ void push_key(uint32_t key) {
 // all of these back to LVGL's own sentinels (CODEPOINT_ESCAPE/BACKSPACE/DELETE already equal their
 // LV_KEY_* counterpart numerically, so no translation is needed for those). Printable characters
 // arrive separately via SDL_TEXTINPUT.
+// The window can be freely resized (see sdl_display.cpp's SDL_WINDOW_RESIZABLE/
+// SDL_RenderSetLogicalSize()), so raw SDL mouse coordinates are in window-pixel space, not the
+// fixed logical resolution LVGL renders at. SDL_RenderWindowToLogical() is the renderer's own
+// inverse of that scaling, accounting for both the scale factor and any letterbox offset.
+void set_pointer_position(int32_t window_x, int32_t window_y) {
+    SDL_Renderer* renderer = sdl_display_get_renderer();
+    if (renderer == nullptr) {
+        pointer_state.x = window_x;
+        pointer_state.y = window_y;
+        return;
+    }
+    float logical_x, logical_y;
+    SDL_RenderWindowToLogical(renderer, window_x, window_y, &logical_x, &logical_y);
+    pointer_state.x = static_cast<int32_t>(logical_x);
+    pointer_state.y = static_cast<int32_t>(logical_y);
+}
+
 uint32_t keycode_to_key(SDL_Keycode sdl_key, bool shift) {
     switch (sdl_key) {
         case SDLK_RIGHT: return CODEPOINT_ARROW_RIGHT;
@@ -64,13 +82,17 @@ void sdl_input_pump() {
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_MOUSEMOTION:
-                pointer_state.x = event.motion.x;
-                pointer_state.y = event.motion.y;
+                set_pointer_position(event.motion.x, event.motion.y);
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 if (event.button.button == SDL_BUTTON_LEFT) {
-                    pointer_state.x = event.button.x;
-                    pointer_state.y = event.button.y;
+                    // event.button.x/y can be stale immediately after a window resize (an
+                    // SDL/X11 event-queue quirk - confirmed by comparing against a live
+                    // SDL_GetWindowSize() at the same instant). SDL_GetMouseState() queries the
+                    // OS for the current pointer position directly, sidestepping that entirely.
+                    int live_x, live_y;
+                    SDL_GetMouseState(&live_x, &live_y);
+                    set_pointer_position(live_x, live_y);
                     pointer_state.pressed = true;
                 }
                 break;
@@ -85,6 +107,14 @@ void sdl_input_pump() {
             case SDL_TEXTINPUT:
                 // ASCII only (first byte of event.text.text) - sufficient for a simulator keyboard.
                 push_key(static_cast<uint8_t>(event.text.text[0]));
+                break;
+            case SDL_WINDOWEVENT:
+                // Resizing doesn't change what LVGL last rendered, only how large it should
+                // appear - re-present the existing frame at the new scale immediately, rather
+                // than leaving stale-looking content on screen until the next LVGL-driven flush.
+                if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    sdl_display_present_now();
+                }
                 break;
             case SDL_QUIT:
                 exit(0);

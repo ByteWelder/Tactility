@@ -1,18 +1,23 @@
+#include "Tactility/app/fileselection/FileSelection.h"
 #include "Tactility/app/fileselection/FileSelectionPrivate.h"
 #include "Tactility/app/fileselection/View.h"
 #include "Tactility/app/fileselection/State.h"
 
 #include <app/event.h>
+#include <app/io.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+#include <app/stream.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
 
+#include <cstdio>
 #include <memory>
 #include <string>
+#include <unistd.h>
 
 namespace tt::app::fileselection {
 
@@ -27,19 +32,10 @@ struct Context {
     Mode mode;
     std::shared_ptr<State> state;
     std::unique_ptr<View> view;
-    // The eventual appMain() return value - see AlertDialog.cpp's Context::result for why this
-    // is a plain (non-atomic) field safely shared between the LVGL thread (writer, before
-    // emitting APP_EVENT_CLOSE) and this app's own thread (reader, after waking from it).
-    int32_t result = 1; // Cancelled - safety-net default if closed without picking a file
+    std::string resultPath;
+    int32_t resultCode = 1; // 1 means Cancelled
 };
 
-
-// The last picked path. Static rather than per-instance: simple, and in practice only one
-// FileSelection dialog is ever open at a time. Written on the LVGL thread (View's select-button
-// callback, before emitting APP_EVENT_CLOSE); read by the parent via getLastPath() after
-// receiving that event - safe without a lock for the same reason Context::result is (see
-// AlertDialog.cpp).
-std::string lastPath;
 
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
@@ -52,16 +48,11 @@ int32_t appMain(int argc, char* argv[]) {
 
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
-    ctx.mode = (argc > 0 && std::string(argv[0]) == "existing_or_new") ? Mode::ExistingOrNew : Mode::Existing;
+    ctx.mode = (argc > 0 && std::string(argv[0]) == "--existing-or-new") ? Mode::ExistingOrNew : Mode::Existing;
     ctx.state = std::make_shared<State>();
     ctx.view = std::make_unique<View>(appInstanceId, ctx.state, [&ctx, appInstanceId](const std::string& path) {
-        // Runs on the LVGL task (View::onSelectButtonPressed) - must NOT call app_manager_stop()
-        // here: that bound-waits (thread_join) for this app's own thread to finish, which needs
-        // the LVGL lock (window_manager_remove()) - but this callback runs ON the LVGL task,
-        // which would deadlock against itself. The caller reaps this instance via
-        // app_manager_stop() after it receives the APP_EVENT_RESULT instead.
-        lastPath = path;
-        ctx.result = 0;
+        ctx.resultPath = path;
+        ctx.resultCode = 0;
         app_event_emit_close(appInstanceId);
     });
 
@@ -91,27 +82,42 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
-    return ctx.result;
+    if (ctx.resultCode == 0) {
+        // The parent captures this via an AppStream bound to our stdout (see startWithMode()) -
+        // see AppStdioWrap.cpp for how printf() itself gets routed there on POSIX.
+        LOG_I(TAG, "Result: %s", ctx.resultPath.c_str());
+        printf("%s", ctx.resultPath.c_str());
+    }
+
+    return ctx.resultCode;
 }
 
 } // namespace
 
-std::string getLastPath() {
-    return lastPath;
-}
+namespace {
 
-uint32_t startForExistingFile(uint32_t callerAppInstanceId) {
-    const char* argv[] = { "existing" };
+uint32_t startWithMode(const char* modeArg, uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
+    const char* argv[] = { modeArg };
+    AppStreamBinding binding = {
+        .producer_fd = STDOUT_FILENO,
+        .stream = &stream,
+        .buffer = buffer,
+        .buffer_capacity = bufferCapacity,
+        .event_group = eventGroup,
+    };
     uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, callerAppInstanceId, 1, argv, &instanceId);
+    app_manager_start_for_result_with_streams(manifest.id, callerAppInstanceId, 1, argv, &binding, 1, &instanceId);
     return instanceId;
 }
 
-uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId) {
-    const char* argv[] = { "existing_or_new" };
-    uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, callerAppInstanceId, 1, argv, &instanceId);
-    return instanceId;
+} // namespace
+
+uint32_t startForExistingFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
+    return startWithMode("--existing", callerAppInstanceId, stream, buffer, bufferCapacity, eventGroup);
+}
+
+uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
+    return startWithMode("--existing-or-new", callerAppInstanceId, stream, buffer, bufferCapacity, eventGroup);
 }
 
 extern const ::AppManifest manifest = {

@@ -19,11 +19,25 @@ target_include_directories(TactilityTests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../P
 
 add_test(NAME TactilityTests COMMAND TactilityTests)
 
+# Matches Tactility/CMakeLists.txt's own set of --wrap flags: this binary also compiles
+# AppStdioWrap.cpp and links app-module (whose io.cpp calls __real_read/write/close() on
+# non-Apple POSIX - see TT_APP_IO_WRAPS_STDIO in Modules/app-module/CMakeLists.txt), so it
+# needs the same wraps applied or those go unresolved.
+if (NOT APPLE)
+    target_link_options(TactilityTests PRIVATE
+        "-Wl,--wrap=pthread_attr_setstack" "-Wl,--wrap=read" "-Wl,--wrap=write" "-Wl,--wrap=close"
+        "-Wl,--wrap=printf" "-Wl,--wrap=fprintf" "-Wl,--wrap=vprintf" "-Wl,--wrap=vfprintf"
+        "-Wl,--wrap=puts" "-Wl,--wrap=fputs" "-Wl,--wrap=putchar" "-Wl,--wrap=fputc"
+        "-Wl,--wrap=getchar" "-Wl,--wrap=fgetc" "-Wl,--wrap=fgets"
+    )
+endif ()
+
 target_link_libraries(TactilityTests PRIVATE
     TactilityKernel
     TactilityKernelCpp
     TactilityFreeRtos
     platform-posix
+    app-posix-module
     lvgl-module
     lvgl-window-manager-module
     app-module

@@ -1,16 +1,13 @@
+# tactility-cmakelists-version: 1
 cmake_minimum_required(VERSION 3.20)
 
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-
-if (DEFINED ENV{TACTILITY_SDK_PATH})
-    set(TACTILITY_SDK_PATH $ENV{TACTILITY_SDK_PATH})
-else()
-    set(TACTILITY_SDK_PATH ../../release/TactilitySDK)
-    message(WARNING "TACTILITY_SDK_PATH environment variable is not set, defaulting to ${TACTILITY_SDK_PATH}")
+if (NOT DEFINED ENV{TACTILITY_SDK_PATH})
+    message(FATAL_ERROR "TACTILITY_SDK_PATH environment variable is not set")
 endif()
 
+get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE)
 include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
-set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules)
 
-project(SdkTest)
-tactility_project(SdkTest)
+tactility_project_pre(tactility.sdktest)
+project(tactility.sdktest)
+tactility_project_post(tactility.sdktest)

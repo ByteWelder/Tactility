@@ -9,6 +9,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/TactilityKernel/tests ${CMAKE_CURRENT_BINAR
 add_subdirectory(${CMAKE_SOURCE_DIR}/Tactility/Tests ${CMAKE_CURRENT_BINARY_DIR}/Tactility)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Modules/crypt-module/tests ${CMAKE_CURRENT_BINARY_DIR}/crypt-module)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Modules/app-module/tests ${CMAKE_CURRENT_BINARY_DIR}/app-module)
+add_subdirectory(${CMAKE_SOURCE_DIR}/Modules/app-posix-module/tests ${CMAKE_CURRENT_BINARY_DIR}/app-posix-module)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Modules/http-module/tests ${CMAKE_CURRENT_BINARY_DIR}/http-module)
 
 add_custom_target(build-tests)
@@ -18,4 +19,5 @@ add_dependencies(build-tests TactilityTests)
 add_dependencies(build-tests TactilityKernelTests)
 add_dependencies(build-tests CryptModuleTests)
 add_dependencies(build-tests AppModuleTests)
+add_dependencies(build-tests AppPosixModuleTests)
 add_dependencies(build-tests HttpModuleTests)

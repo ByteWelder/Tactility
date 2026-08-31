@@ -29,7 +29,7 @@ runs:
       env:
         # NOTE: Update with ESP-IDF!
         ESP_IDF_VERSION: '5.5.2'
-      run: python Buildscripts/release-sdk.py release/TactilitySDK
+      run: python Buildscripts/release-sdk-esp32.py release/TactilitySDK
     - name: 'Test Integration Prep'
       shell: bash
       # The manifest.properties of our integration test uses version 0.0.0 to indicate that it is not using a normal SDK

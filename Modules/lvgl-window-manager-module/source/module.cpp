@@ -8,6 +8,7 @@ extern "C" {
 
 static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(window_manager_create),
+    DEFINE_MODULE_SYMBOL(window_manager_create_ext),
     DEFINE_MODULE_SYMBOL(window_manager_remove),
     DEFINE_MODULE_SYMBOL(window_manager_get_state),
     DEFINE_MODULE_SYMBOL(window_manager_await_state_change),

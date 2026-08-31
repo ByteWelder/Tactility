@@ -12,7 +12,7 @@ import tarfile
 from urllib.parse import urlparse
 
 ttbuild_path = ".tactility"
-ttbuild_version = "4.1.0"
+ttbuild_version = "5.0.0"
 ttbuild_cdn = "https://cdn.tactilityproject.org"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -20,6 +20,10 @@ verbose = False
 use_local_sdk = False
 local_base_path = None
 http_timeout_seconds = 10
+# App install uploads the whole package over HTTP and the device only responds once it's
+# fully received, extracted and registered - large packages (e.g. bundled fonts/assets) can
+# easily take well over http_timeout_seconds on a slow SD card, so give it a lot more room.
+install_timeout_seconds = 120
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -183,24 +187,26 @@ def update_tool_json():
 
 def should_fetch_sdkconfig_files(platform_targets):
     for platform in platform_targets:
-        sdkconfig_filename = f"sdkconfig.app.{platform}"
-        if not os.path.exists(os.path.join(ttbuild_path, sdkconfig_filename)):
-            return True
+        if not platform.startswith("posix"):
+            sdkconfig_filename = f"sdkconfig.app.{platform}"
+            if not os.path.exists(os.path.join(ttbuild_path, sdkconfig_filename)):
+                return True
     return False
 
 def fetch_sdkconfig_files(platform_targets):
     for platform in platform_targets:
-        sdkconfig_filename = f"sdkconfig.app.{platform}"
-        target_path = os.path.join(ttbuild_path, sdkconfig_filename)
-        if not download_file(f"{ttbuild_cdn}/sdk/{sdkconfig_filename}", target_path):
-            exit_with_error(f"Failed to download sdkconfig file for {platform}")
+        if not platform.startswith("posix"):
+            sdkconfig_filename = f"sdkconfig.app.{platform}"
+            target_path = os.path.join(ttbuild_path, sdkconfig_filename)
+            if not download_file(f"{ttbuild_cdn}/sdk/{sdkconfig_filename}", target_path):
+                exit_with_error(f"Failed to download sdkconfig file for {platform}")
 
 #endregion SDK helpers
 
 #region Validation
 
-def validate_environment():
-    if os.environ.get("IDF_PATH") is None:
+def validate_environment(platforms):
+    if any(not platform.startswith("posix") for platform in platforms) and os.environ.get("IDF_PATH") is None:
         if sys.platform == "win32":
             exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via %IDF_PATH%\\export.ps1")
         else:
@@ -311,6 +317,44 @@ def sdk_download_all(version, platforms):
 
 #endregion SDK download
 
+#region CMakeLists scaffolding
+
+# Bump whenever CMAKELISTS_TEMPLATE below changes, so existing apps' generated CMakeLists.txt get
+# regenerated on their next build instead of silently going stale.
+CMAKELISTS_VERSION = 1
+
+CMAKELISTS_TEMPLATE = """# tactility-cmakelists-version: %(version)d
+cmake_minimum_required(VERSION 3.20)
+
+if (NOT DEFINED ENV{TACTILITY_SDK_PATH})
+    message(FATAL_ERROR "TACTILITY_SDK_PATH environment variable is not set")
+endif()
+
+get_filename_component(TACTILITY_SDK_PATH "$ENV{TACTILITY_SDK_PATH}" ABSOLUTE)
+include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
+
+tactility_project_pre(%(app_id)s)
+project(%(app_id)s)
+tactility_project_post(%(app_id)s)
+"""
+
+def cmakelists_version_marker():
+    return f"# tactility-cmakelists-version: {CMAKELISTS_VERSION}"
+
+def ensure_cmakelists_up_to_date(manifest):
+    marker = cmakelists_version_marker()
+    if os.path.exists("CMakeLists.txt"):
+        with open("CMakeLists.txt", "r") as file:
+            first_line = file.readline().rstrip("\n")
+        if first_line == marker:
+            return
+    print(f"Updating CMakeLists.txt to {marker}")
+    content = CMAKELISTS_TEMPLATE % {"version": CMAKELISTS_VERSION, "app_id": manifest["app.id"]}
+    with open("CMakeLists.txt", "w") as file:
+        file.write(content)
+
+#endregion CMakeLists scaffolding
+
 #region Building
 
 def get_cmake_path(platform):
@@ -318,18 +362,65 @@ def get_cmake_path(platform):
 
 def find_elf_file(platform):
     cmake_dir = get_cmake_path(platform)
-    if os.path.exists(cmake_dir):
-        for file in os.listdir(cmake_dir):
-            if file.endswith(".app.elf"):
-                return os.path.join(cmake_dir, file)
+    if not os.path.exists(cmake_dir):
+        return None
+    # POSIX apps are dlopen()ed shared objects (app-posix-module), not idf.py/elf_loader
+    # relocatable images, so they land as a plain ".so" instead of "*.app.elf".
+    suffix = ".so" if platform.startswith("posix") else ".app.elf"
+    for file in os.listdir(cmake_dir):
+        if file.endswith(suffix):
+            return os.path.join(cmake_dir, file)
     return None
+
+def get_posix_build_env(sdk_dir):
+    # A dev shell may already have ESP-IDF's export.sh sourced; strip it so the SDK's plain-CMake
+    # top-level CMakeLists.txt takes the POSIX branch instead of the idf.py one.
+    env = os.environ.copy()
+    env.pop("ESP_IDF_VERSION", None)
+    env.pop("IDF_PATH", None)
+    env["TACTILITY_SDK_PATH"] = sdk_dir
+    return env
+
+def build_posix(version, platform, skip_build):
+    sdk_dir = get_sdk_dir(version, platform)
+    if verbose:
+        print(f"Using SDK at {sdk_dir}")
+    if skip_build:
+        return True
+    env = get_posix_build_env(sdk_dir)
+    cmake_path = get_cmake_path(platform)
+    print_status_busy(f"Building {platform}")
+    configure_command = ["cmake", "-S", ".", "-B", cmake_path, "-G", "Ninja"]
+    if verbose:
+        print(f"Running command: {' '.join(configure_command)}")
+    configure_result = subprocess.run(configure_command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if configure_result.returncode != 0:
+        print(configure_result.stdout.decode("UTF-8"), end="")
+        print_status_error(f"Configuring {platform}")
+        return False
+    build_command = ["cmake", "--build", cmake_path]
+    if verbose:
+        print(f"Running command: {' '.join(build_command)}")
+    with subprocess.Popen(build_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as process:
+        build_output = wait_for_process(process)
+        if process.returncode == 0:
+            print_status_success(f"Building {platform}")
+            return True
+        else:
+            for line in build_output:
+                print(line, end="")
+            print_status_error(f"Building {platform}")
+            return False
 
 def build_all(version, platforms, skip_build):
     for platform in platforms:
+        if platform.startswith("posix"):
+            if not build_posix(version, platform, skip_build):
+                return False
         # First build command must be "idf.py build", otherwise it fails to execute "idf.py elf"
         # We check if the ELF file exists and run the correct command
         # This can lead to code caching issues, so sometimes a clean build is required
-        if find_elf_file(platform) is None:
+        elif find_elf_file(platform) is None:
             if not build_first(version, platform, skip_build):
                 return False
         else:
@@ -368,7 +459,8 @@ def build_first(version, platform, skip_build):
         print(f"Using SDK at {sdk_dir}")
     os.environ["TACTILITY_SDK_PATH"] = sdk_dir
     sdkconfig_path = os.path.join(ttbuild_path, f"sdkconfig.app.{platform}")
-    shutil.copy(sdkconfig_path, "sdkconfig")
+    if not platform.startswith("posix"):
+        shutil.copy(sdkconfig_path, "sdkconfig")
     elf_path = find_elf_file(platform)
     # Remove previous elf file: re-creation of the file is used to measure if the build succeeded,
     # as the actual build job will always fail due to technical issues with the elf cmake script
@@ -444,7 +536,10 @@ def package_intermediate_binaries(target_path, platforms):
         if elf_path is None:
             print_error(f"ELF file not found for {platform}")
             return False
-        shutil.copy(elf_path, os.path.join(elf_dir, f"{platform}.elf"))
+        # app-posix-module's loader resolves an installed app to "elf/posix-<arch>.so", matching
+        # its own compile-time architecture, not "*.elf".
+        extension = ".so" if platform.startswith("posix") else ".elf"
+        shutil.copy(elf_path, os.path.join(elf_dir, f"{platform}{extension}"))
     return True
 
 def package_intermediate_assets(target_path):
@@ -463,12 +558,10 @@ def package_intermediate(platforms):
     package_intermediate_assets(target_path)
     return True
 
-def package_name(platforms):
-    elf_path = find_elf_file(platforms[0])
-    elf_base_name = os.path.basename(elf_path).removesuffix(".app.elf")
-    return os.path.join("build", f"{elf_base_name}.app")
+def package_name(manifest):
+    return os.path.join("build", f"{manifest['app.id']}.app")
 
-def package_all(platforms):
+def package_all(manifest, platforms):
     status = f"Building package with {platforms}"
     print_status_busy(status)
     if not package_intermediate(platforms):
@@ -476,7 +569,7 @@ def package_all(platforms):
         return False
     # Create build/something.app
     try:
-        tar_path = package_name(platforms)
+        tar_path = package_name(manifest)
         with tarfile.open(tar_path, mode="w", format=tarfile.USTAR_FORMAT) as tar:
             tar.add(os.path.join("build", "package-intermediate"), arcname="")
         print_status_success(status)
@@ -492,10 +585,11 @@ def setup_environment():
     os.makedirs(ttbuild_path, exist_ok=True)
 
 def build_action(manifest, platform_arg, skip_build):
-    # Environment validation
-    validate_environment()
+    ensure_cmakelists_up_to_date(manifest)
     platforms_to_build = get_manifest_target_platforms(manifest, platform_arg)
-    
+    # Environment validation
+    validate_environment(platforms_to_build)
+
     if use_local_sdk:
         global local_base_path
         local_base_path = os.environ.get("TACTILITY_SDK_PATH")
@@ -515,7 +609,7 @@ def build_action(manifest, platform_arg, skip_build):
     if not build_all(sdk_version, platforms_to_build, skip_build):  # Environment validation
         return False
     if not skip_build:
-        if not package_all(platforms_to_build):
+        if not package_all(manifest, platforms_to_build):
             return False
     return True
 
@@ -570,14 +664,14 @@ def run_action(manifest, ip):
     except requests.RequestException as e:
         print_status_error(f"Running request failed: {e}")
 
-def install_action(ip, platforms):
+def install_action(manifest, ip, platforms):
     print_status_busy("Installing")
     for platform in platforms:
         elf_path = find_elf_file(platform)
         if elf_path is None:
             print_status_error(f"ELF file not built for {platform}")
             return False
-    package_path = package_name(platforms)
+    package_path = package_name(manifest)
     # print(f"Installing {package_path} to {ip}")
     url = get_url(ip, "/app/install")
     try:
@@ -586,7 +680,7 @@ def install_action(ip, platforms):
             files = {
                 'elf': file
             }
-            response = requests.put(url, files=files, timeout=http_timeout_seconds)
+            response = requests.put(url, files=files, timeout=install_timeout_seconds)
             if response.status_code != 200:
                 print_status_error("Install failed")
                 return False
@@ -691,7 +785,7 @@ if __name__ == "__main__":
         if len(sys.argv) >= 4:
             platform = sys.argv[3]
             platforms_to_install = [platform]
-        install_action(sys.argv[2], platforms_to_install)
+        install_action(manifest, sys.argv[2], platforms_to_install)
     elif action_arg == "uninstall":
         if len(sys.argv) < 3:
             print_help()
@@ -707,7 +801,7 @@ if __name__ == "__main__":
             platform = sys.argv[3]
             platforms_to_install = [platform]
         if build_action(manifest, platform, skip_build):
-            if install_action(sys.argv[2], platforms_to_install):
+            if install_action(manifest, sys.argv[2], platforms_to_install):
                 run_action(manifest, sys.argv[2])
     else:
         print_help()

@@ -28,11 +28,7 @@ static error_t start(Device* device) {
     auto* parent = device_get_parent(device);
     check(device_get_type(parent) == &I2C_CONTROLLER_TYPE);
 
-    auto address = GET_CONFIG(device)->address;
-    if (i2c_controller_has_device_at_address(parent, address, I2C_TIMEOUT) != ERROR_NONE) {
-        LOG_E(TAG, "No device found on I2C bus at address 0x%02X", address);
-        return ERROR_RESOURCE;
-    }
+    // We don't check whether the device is present, because it doesn't respond reliably at boot
 
     auto* internal = static_cast<TdeckKeyboardBacklightInternal*>(malloc(sizeof(TdeckKeyboardBacklightInternal)));
     if (internal == nullptr) {
@@ -42,6 +38,8 @@ static error_t start(Device* device) {
     device_set_driver_data(device, internal);
 
     auto brightness_default = GET_CONFIG(device)->brightness_default;
+
+    auto address = GET_CONFIG(device)->address;
 
     // Configures the keyboard controller's own persisted default, used by its onboard ALT+B toggle.
     if (i2c_controller_write_register(parent, address, CMD_DEFAULT_BRIGHTNESS, &brightness_default, 1, I2C_TIMEOUT) != ERROR_NONE) {

@@ -2,6 +2,7 @@
 
 #include <tactility/device.h>
 #include <tactility/log.h>
+#include <tactility/log_queue.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,6 +47,8 @@ Module kernel_module = {
 };
 
 error_t kernel_init(Module* const dts_modules[], const DtsDevice dts_devices[]) {
+    log_queue_init();
+
     LOG_I(TAG, "init");
 
     if (module_construct_add_start(&kernel_module) != ERROR_NONE) {

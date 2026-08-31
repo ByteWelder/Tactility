@@ -42,7 +42,6 @@ static error_t paths_get_data_root_path(char* out_path, size_t out_path_size) {
 extern "C" {
 
 error_t paths_get_data_path(char* out_path, size_t out_path_size) {
-#ifdef ESP_PLATFORM
     char root[64];
     error_t error = paths_get_data_root_path(root, sizeof(root));
     if (error != ERROR_NONE) {
@@ -53,14 +52,6 @@ error_t paths_get_data_path(char* out_path, size_t out_path_size) {
         return ERROR_BUFFER_OVERFLOW;
     }
     return ERROR_NONE;
-#else
-    const char* fixed_path = "data";
-    if (std::strlen(fixed_path) + 1 > out_path_size) {
-        return ERROR_BUFFER_OVERFLOW;
-    }
-    std::strcpy(out_path, fixed_path);
-    return ERROR_NONE;
-#endif
 }
 
 } // extern "C"

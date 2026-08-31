@@ -1,0 +1,7 @@
+app-module
+crypt-module
+gps-module
+http-module
+lvgl-module
+lvgl-window-manager-module
+service-module

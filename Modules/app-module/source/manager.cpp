@@ -178,6 +178,10 @@ error_t app_manager_start_with_streams(const char* id, const AppStreamBinding* b
     return start_internal(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
 }
 
+error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
+}
+
 error_t app_manager_stop(AppInstanceId app_instance_id) {
     return app_scheduler_stop(app_instance_id, pdMS_TO_TICKS(2000));
 }

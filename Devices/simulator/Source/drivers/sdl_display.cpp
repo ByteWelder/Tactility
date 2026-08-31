@@ -15,50 +15,46 @@ constexpr auto* TAG = "SdlDisplay";
 #define GET_CONFIG(device) (static_cast<const SdlDisplayConfig*>((device)->config))
 
 struct SdlDisplayInternal {
+    bool initialized;
+    bool init_failed;
     SDL_Window* window;
     SDL_Renderer* renderer;
     SDL_Texture* texture;
 };
 
+// Only one sdl-display device exists in the simulator; sdl_input.cpp uses this to map window
+// coordinates back to the fixed logical resolution SDL_RenderSetLogicalSize() scales to the window.
+static SdlDisplayInternal* g_display_internal = nullptr;
+
+SDL_Renderer* sdl_display_get_renderer(void) {
+    return g_display_internal != nullptr ? g_display_internal->renderer : nullptr;
+}
+
+// Re-blits the already-drawn texture at the renderer's current (possibly just-resized) scale.
+// No new pixel data needed: the window resizing doesn't change what LVGL last rendered, only how
+// large it should appear, and SDL only applies that until the next SDL_RenderPresent() call.
+void sdl_display_present_now(void) {
+    if (g_display_internal == nullptr) {
+        return;
+    }
+    SDL_RenderClear(g_display_internal->renderer);
+    SDL_RenderCopy(g_display_internal->renderer, g_display_internal->texture, nullptr, nullptr);
+    SDL_RenderPresent(g_display_internal->renderer);
+}
+
 // region Driver lifecycle
 
 static error_t start(Device* device) {
-    const auto* config = GET_CONFIG(device);
-
     auto* internal = static_cast<SdlDisplayInternal*>(malloc(sizeof(SdlDisplayInternal)));
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
     }
 
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
-        LOG_E(TAG, "SDL_InitSubSystem failed: %s", SDL_GetError());
-        free(internal);
-        return ERROR_RESOURCE;
-    }
-
-    internal->window = SDL_CreateWindow(
-        "Tactility",
-        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        config->horizontal_resolution, config->vertical_resolution,
-        SDL_WINDOW_SHOWN
-    );
-    internal->renderer = internal->window != nullptr
-        ? SDL_CreateRenderer(internal->window, -1, SDL_RENDERER_ACCELERATED)
-        : nullptr;
-    internal->texture = internal->renderer != nullptr
-        ? SDL_CreateTexture(internal->renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING,
-            config->horizontal_resolution, config->vertical_resolution)
-        : nullptr;
-
-    if (internal->window == nullptr || internal->renderer == nullptr || internal->texture == nullptr) {
-        LOG_E(TAG, "Failed to create SDL window: %s", SDL_GetError());
-        if (internal->texture != nullptr) SDL_DestroyTexture(internal->texture);
-        if (internal->renderer != nullptr) SDL_DestroyRenderer(internal->renderer);
-        if (internal->window != nullptr) SDL_DestroyWindow(internal->window);
-        SDL_QuitSubSystem(SDL_INIT_VIDEO);
-        free(internal);
-        return ERROR_RESOURCE;
-    }
+    internal->initialized = false;
+    internal->init_failed = false;
+    internal->window = nullptr;
+    internal->renderer = nullptr;
+    internal->texture = nullptr;
 
     device_set_driver_data(device, internal);
     return ERROR_NONE;
@@ -67,10 +63,16 @@ static error_t start(Device* device) {
 static error_t stop(Device* device) {
     auto* internal = static_cast<SdlDisplayInternal*>(device_get_driver_data(device));
 
-    SDL_DestroyTexture(internal->texture);
-    SDL_DestroyRenderer(internal->renderer);
-    SDL_DestroyWindow(internal->window);
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    if (internal->initialized) {
+        SDL_DestroyTexture(internal->texture);
+        SDL_DestroyRenderer(internal->renderer);
+        SDL_DestroyWindow(internal->window);
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    }
+
+    if (g_display_internal == internal) {
+        g_display_internal = nullptr;
+    }
 
     free(internal);
     device_set_driver_data(device, nullptr);
@@ -84,8 +86,75 @@ static error_t stop(Device* device) {
 static error_t sdl_display_reset(Device*) { return ERROR_NONE; }
 static error_t sdl_display_init(Device*) { return ERROR_NONE; }
 
+static float sdl_display_get_dpi_scale() {
+    float hdpi = 96.0f;
+    if (SDL_GetDisplayDPI(0, nullptr, &hdpi, nullptr) != 0 || hdpi <= 0.0f) {
+        return 1.0f;
+    }
+    return hdpi / 96.0f;
+}
+
+static bool sdl_display_lazy_init(Device* device, SdlDisplayInternal* internal) {
+    const auto* config = GET_CONFIG(device);
+
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
+        LOG_E(TAG, "SDL_InitSubSystem failed: %s", SDL_GetError());
+        return false;
+    }
+
+    // Only the window's initial on-screen footprint scales here - the render/logical resolution
+    // (config->horizontal_resolution/vertical_resolution, used below for the texture and
+    // SDL_RenderSetLogicalSize()) is unaffected, same as any other resize the user does by hand.
+    const float dpi_scale = sdl_display_get_dpi_scale();
+    const int initial_width = static_cast<int>(config->horizontal_resolution * dpi_scale);
+    const int initial_height = static_cast<int>(config->vertical_resolution * dpi_scale);
+
+    internal->window = SDL_CreateWindow(
+        "Tactility",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        initial_width, initial_height,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
+    );
+    internal->renderer = internal->window != nullptr
+        ? SDL_CreateRenderer(internal->window, -1, SDL_RENDERER_ACCELERATED)
+        : nullptr;
+    // Lets the window be resized freely while the renderer scales/letterboxes the fixed-resolution
+    // texture below to fit - LVGL keeps rendering at horizontal_resolution x vertical_resolution.
+    if (internal->renderer != nullptr) {
+        SDL_RenderSetLogicalSize(internal->renderer, config->horizontal_resolution, config->vertical_resolution);
+    }
+    internal->texture = internal->renderer != nullptr
+        ? SDL_CreateTexture(internal->renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING,
+            config->horizontal_resolution, config->vertical_resolution)
+        : nullptr;
+
+    if (internal->window == nullptr || internal->renderer == nullptr || internal->texture == nullptr) {
+        LOG_E(TAG, "Failed to create SDL window: %s", SDL_GetError());
+        if (internal->texture != nullptr) SDL_DestroyTexture(internal->texture);
+        if (internal->renderer != nullptr) SDL_DestroyRenderer(internal->renderer);
+        if (internal->window != nullptr) SDL_DestroyWindow(internal->window);
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+        return false;
+    }
+
+    g_display_internal = internal;
+    return true;
+}
+
 static error_t sdl_display_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<SdlDisplayInternal*>(device_get_driver_data(device));
+
+    if (internal->init_failed) {
+        return ERROR_RESOURCE;
+    }
+
+    if (!internal->initialized) {
+        if (!sdl_display_lazy_init(device, internal)) {
+            internal->init_failed = true;
+            return ERROR_RESOURCE;
+        }
+        internal->initialized = true;
+    }
 
     SDL_Rect rect = { x_start, y_start, x_end - x_start, y_end - y_start };
     // RGB565 = 2 bytes/pixel.
@@ -93,9 +162,7 @@ static error_t sdl_display_draw_bitmap(Device* device, int32_t x_start, int32_t 
         return ERROR_RESOURCE;
     }
 
-    SDL_RenderClear(internal->renderer);
-    SDL_RenderCopy(internal->renderer, internal->texture, nullptr, nullptr);
-    SDL_RenderPresent(internal->renderer);
+    sdl_display_present_now();
     return ERROR_NONE;
 }
 

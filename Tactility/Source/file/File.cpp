@@ -66,7 +66,6 @@ int scandir(
     ScandirFilter filterMethod,
     ScandirSort sortMethod
 ) {
-    LOG_I(TAG, "scandir start");
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
         LOG_E(TAG, "Failed to open dir %s", path.c_str());
@@ -86,7 +85,6 @@ int scandir(
         std::ranges::sort(outList, sortMethod);
     }
 
-    LOG_I(TAG, "scandir finish");
     return outList.size();
 }
 

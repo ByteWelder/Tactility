@@ -4,13 +4,27 @@
 #include <app_esp32/module.h>
 #endif
 
+#if __has_include(<unistd.h>) && not defined(ESP_PLATFORM)
+#define TT_IS_POSIX 1
+#else
+#define TT_IS_POSIX 0
+#endif
+
+#if TT_IS_POSIX or defined(ESP_PLATFORM) // esp-idf supports certain posix symbols
+#include <posix_symbols/module.h>
+#endif
+
+#if TT_IS_POSIX
+#include <app_posix/module.h>
+#include <Tactility/PartitionsPosix.h>
+#endif
+
 #include <format>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <app/event.h>
-#include <app/install.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 #include <app/module.h>
@@ -19,7 +33,6 @@
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/DeprecatedPaths.h>
-#include <Tactility/LogMessages.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/bluetooth/Bluetooth.h>
@@ -35,7 +48,10 @@
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/settings/TimePrivate.h>
+
+#ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 #include <Tactility/settings/TouchCalibrationSettings.h>
+#endif
 
 #include <c_symbols/module.h>
 #include <cpp_symbols/module.h>
@@ -47,7 +63,6 @@
 #include <gps_meshtastic/module.h>
 #include <http/module.h>
 #include <mbedtls/module.h>
-#include <posix_symbols/module.h>
 #include <pthread/module.h>
 
 #include <crypt/module.h>
@@ -501,7 +516,9 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
 
     // C/C++/Posix symbols
     check(module_ensure_started(&c_symbols_module) == ERROR_NONE);
+#if TT_IS_POSIX or defined(ESP_PLATFORM) // esp-idf supports certain posix symbols
     check(module_ensure_started(&posix_symbols_module) == ERROR_NONE);
+#endif
     check(module_ensure_started(&cpp_symbols_module) == ERROR_NONE);
     // OS level symbols
     check(module_ensure_started(&freertos_module) == ERROR_NONE);
@@ -516,10 +533,14 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
 #ifdef ESP_PLATFORM
     check(module_ensure_started(&app_esp32_module) == ERROR_NONE);
+#elif TT_IS_POSIX
+    check(module_ensure_started(&app_posix_module) == ERROR_NONE);
 #endif
 
 #ifdef ESP_PLATFORM
     initEsp();
+#elif TT_IS_POSIX
+    check(initPartitionsPosix(), "Failed to init partitions");
 #endif
 
     settings::initTimeZone();

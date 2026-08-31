@@ -1,29 +1,36 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <string>
+
+#include <app/stream.h>
+#include <tactility/concurrent/task_event_group.h>
 
 namespace tt::app::fileselection {
 
 /**
  * Show a file selection dialog that allows the user to select an existing file, as a modal
- * child of @a callerAppInstanceId (see app_manager_start_for_result()). Result (0 = Ok,
- * 1 = Cancelled) is delivered back via APP_EVENT_RESULT once this app's thread exits - call
- * getLastPath() right after receiving it, on result == 0. The caller must call
- * app_manager_stop() on the returned instance id once that event arrives, to fully reap this
- * instance.
+ * child of @a callerAppInstanceId (see app_manager_start_for_result_with_streams()). Result
+ * (0 = Ok, 1 = Cancelled) is delivered back via APP_EVENT_RESULT once this app's thread exits.
+ * On result == 0, read the picked path with app_stream_read(&stream, ...) then
+ * app_stream_unsubscribe(&stream); on any other result, just app_stream_unsubscribe(&stream).
+ * The caller must call app_manager_stop() on the returned instance id once that event arrives,
+ * to fully reap this instance.
+ * @param[in,out] stream caller-owned storage bound to the started app's stdout; must stay valid
+ * until app_stream_unsubscribe() is called on it (see above).
+ * @param[in] buffer caller-owned backing storage for @a stream's ring buffer; must stay valid
+ * for the same duration as @a stream.
+ * @param[in] bufferCapacity size of @a buffer in bytes.
+ * @param[in] eventGroup the caller's own event group, reused for the stream's readiness bits
+ * (see app_stream_subscribe()) - the caller isn't required to actually wait on them itself.
  * @return the new app instance id
  */
-uint32_t startForExistingFile(uint32_t callerAppInstanceId);
+uint32_t startForExistingFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup);
 
 /**
  * Same as startForExistingFile(), but also allows picking a path that doesn't exist yet (for
  * "save as"-style flows).
  */
-uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId);
-
-/** @return the path picked by the last FileSelection dialog that closed with result == Ok. Only
- * one dialog is expected to be open at a time. */
-std::string getLastPath();
+uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup);
 
 } // namespace

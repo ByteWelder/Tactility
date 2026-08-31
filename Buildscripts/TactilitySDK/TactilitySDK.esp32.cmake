@@ -4,7 +4,12 @@ endfunction()
 function(_tactility_project)
 endfunction()
 
-macro(tactility_project project_name)
+macro(tactility_project_pre project_name)
+    include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+    set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules)
+endmacro()
+
+macro(tactility_project_post project_name)
     set(TACTILITY_SKIP_SPIFFS 1)
 
     # Tactility's PanicHandler.cpp needs s0 to stay a frame pointer to capture a callstack for
@@ -44,4 +49,14 @@ macro(tactility_project project_name)
         service-module
     )
 
+endmacro()
+
+macro(tactility_component_register)
+    cmake_parse_arguments(TT_COMPONENT "" "" "SRCS;INCLUDE_DIRS;REQUIRES;PRIV_REQUIRES" ${ARGN})
+    idf_component_register(
+        SRCS ${TT_COMPONENT_SRCS}
+        INCLUDE_DIRS ${TT_COMPONENT_INCLUDE_DIRS}
+        REQUIRES TactilitySDK ${TT_COMPONENT_REQUIRES}
+        PRIV_REQUIRES ${TT_COMPONENT_PRIV_REQUIRES}
+    )
 endmacro()
