@@ -71,17 +71,3 @@ inline AppLedger& app_ledger() {
     static AppLedger ledger;
     return ledger;
 }
-
-/**
- * Frees a deep-copied argv previously built by app_start()/app_start_for_result():
- * each individually heap-allocated string, then the array itself. Safe to call with count == 0  values == nullptr (no-op).
- */
-inline void app_ledger_free_arguments(int count, char** values) {
-    if (values == nullptr) {
-        return;
-    }
-    for (int i = 0; i < count; i++) {
-        delete[] values[i];
-    }
-    delete[] values;
-}

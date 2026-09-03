@@ -83,7 +83,7 @@ error_t app_execute_for_result_with_streams(
     struct AppStackConfig stack,
     int argc,
     const char* const argv[],
-    const struct AppStreamBinding* binding,
+    const struct AppStreamBinding* bindings,
     size_t binding_count,
     AppInstanceId parent_instance_id,
     AppInstanceId* out_app_instance_id
