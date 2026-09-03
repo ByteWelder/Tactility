@@ -3,6 +3,7 @@
 
 #include <app/manifest.h>
 #include <tactility/error.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include "location.h"
 
@@ -18,15 +19,8 @@ extern "C" {
  * APP_LOCATION_PATH must register under. Implemented by a platform module (e.g. app-esp32-module). */
 #define APP_LOADER_PATH_SERVICE_ID "app-loader-path"
 
-/**
- * Entry point signature for an APP_LOCATION_MEMORY app: a function linked directly into this
- * firmware binary. Called on the dedicated task app-module's scheduler spawns for this instance,
- * blocking for the app's whole lifetime - same contract as an external app's main(). Use
- * app_scheduler_current_app_id() to identify this running instance (e.g. with
- * app_event_subscribe()/window_manager_create()/etc.). The instance closes when this function
- * returns - no separate call is needed.
- * AppManifest::location.location holds this cast to void*.
- */
+/** Entry point signature for an APP_LOCATION_MEMORY app.
+ * AppManifest::location.location holds this cast to void*. */
 typedef int32_t (*AppMainFn)(int argc, char* argv[]);
 
 typedef void* AppRuntime;
@@ -53,6 +47,11 @@ struct AppLoaderApi {
 
     /** Releases whatever load() allocated. Called after run() returns. */
     void (*unload)(AppRuntime runtime);
+
+    /**
+     * Reports whether this loader could load and run whatever @a location points at, without actually loading it.
+     */
+    bool (*is_executable)(struct AppLocation location);
 };
 
 #ifdef __cplusplus

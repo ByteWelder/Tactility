@@ -24,10 +24,15 @@ int32_t api_run(AppRuntime runtime, uint32_t /*app_instance_id*/, int argc, char
 void api_unload(AppRuntime /*unused*/) {
 }
 
+bool api_is_executable(AppLocation location) {
+    return location.type == APP_LOCATION_MEMORY && location.location != nullptr;
+}
+
 AppLoaderApi memory_loader_api = {
     .load = api_load,
     .run = api_run,
     .unload = api_unload,
+    .is_executable = api_is_executable,
 };
 
 void* create_service(const ServiceManifest*) {

@@ -11,6 +11,10 @@ add_library(app_posix_module_test_fixture SHARED EXCLUDE_FROM_ALL ${CMAKE_CURREN
 target_include_directories(app_posix_module_test_fixture PRIVATE ${CMAKE_SOURCE_DIR}/Modules/app-module/include)
 set_target_properties(app_posix_module_test_fixture PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# A file with a ".so" extension but no ELF header, for is_executable() rejection tests.
+set(NON_ELF_FIXTURE_PATH "${CMAKE_CURRENT_BINARY_DIR}/not-elf.so")
+file(WRITE "${NON_ELF_FIXTURE_PATH}" "not an elf file")
+
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/source/*.cpp)
 add_executable(AppPosixModuleTests EXCLUDE_FROM_ALL ${TEST_SOURCES})
 add_dependencies(AppPosixModuleTests app_posix_module_test_fixture)
@@ -18,6 +22,7 @@ add_dependencies(AppPosixModuleTests app_posix_module_test_fixture)
 target_include_directories(AppPosixModuleTests PRIVATE ${DOCTESTINC})
 target_compile_definitions(AppPosixModuleTests PRIVATE
     FIXTURE_APP_PATH="$<TARGET_FILE:app_posix_module_test_fixture>"
+    FIXTURE_NON_ELF_PATH="${NON_ELF_FIXTURE_PATH}"
 )
 
 add_test(NAME AppPosixModuleTests COMMAND AppPosixModuleTests)

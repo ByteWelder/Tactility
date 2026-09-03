@@ -1,5 +1,6 @@
-#include <app/install.h>
 #include <app/event.h>
+#include <app/exec.h>
+#include <app/install.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
@@ -102,6 +103,11 @@ static void onPastePressedCallback(lv_event_t* event) {
     view->onPastePressed();
 }
 
+static void onRunPressedCallback(lv_event_t* event) {
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    view->onRunPressed();
+}
+
 // endregion
 
 // region File helpers
@@ -192,11 +198,22 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             // Remove forward slash, because we need a relative path
             notes::start(file_path.substr(1));
         }
+    } else if (app_exec_is_executable_path(file_path.c_str())) {
+        runFile(file_path);
     } else {
         LOG_W(TAG, "Opening files of this type is not supported");
     }
 
     onNavigate();
+}
+
+void View::runFile(const std::string& file_path) {
+    LOG_I(TAG, "Running %s", file_path.c_str());
+    AppInstanceId instance_id = 0;
+    if (app_exec_run_path(file_path.c_str(), 0, nullptr, &instance_id) != ERROR_NONE) {
+        LOG_W(TAG, "Failed to run %s", file_path.c_str());
+        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+    }
 }
 
 bool View::resolveDirentFromListIndex(int32_t list_index, dirent& out_entry) {
@@ -287,6 +304,8 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
         symbol = LV_SYMBOL_IMAGE;
     } else if (dir_entry.d_type == file::TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
+    } else if (app_exec_is_executable_path(file::getChildPath(state->getCurrentPath(), dir_entry.d_name).c_str())) {
+        symbol = LV_SYMBOL_PLAY;
     } else {
         symbol = LV_SYMBOL_FILE;
     }
@@ -370,9 +389,7 @@ void View::onNewFolderPressed() {
     inputdialog::start(appInstanceId, "New Folder", "Enter folder name:", "");
 }
 
-void View::showActions() {
-    lv_obj_clean(action_list);
-
+void View::addCommonFileActions() {
     auto* copy_button = lv_list_add_button(action_list, LV_SYMBOL_COPY, "Copy");
     lv_obj_add_event_cb(copy_button, onCopyPressedCallback, LV_EVENT_SHORT_CLICKED, this);
     auto* cut_button = lv_list_add_button(action_list, LV_SYMBOL_CUT, "Cut");
@@ -381,12 +398,27 @@ void View::showActions() {
     lv_obj_add_event_cb(rename_button, onRenamePressedCallback, LV_EVENT_SHORT_CLICKED, this);
     auto* delete_button = lv_list_add_button(action_list, LV_SYMBOL_TRASH, "Delete");
     lv_obj_add_event_cb(delete_button, onDeletePressedCallback, LV_EVENT_SHORT_CLICKED, this);
+}
 
+void View::showActions() {
+    lv_obj_clean(action_list);
+    addCommonFileActions();
     lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
 }
 
 void View::showActionsForDirectory() { showActions(); }
-void View::showActionsForFile() { showActions(); }
+
+void View::showActionsForFile() {
+    lv_obj_clean(action_list);
+
+    if (app_exec_is_executable_path(state->getSelectedChildPath().c_str())) {
+        auto* run_button = lv_list_add_button(action_list, LV_SYMBOL_PLAY, "Run");
+        lv_obj_add_event_cb(run_button, onRunPressedCallback, LV_EVENT_SHORT_CLICKED, this);
+    }
+
+    addCommonFileActions();
+    lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+}
 
 void View::showActionsForMountPoint() {
     lv_obj_clean(action_list);
@@ -395,6 +427,12 @@ void View::showActionsForMountPoint() {
     lv_obj_add_event_cb(eject_button, onEjectPressedCallback, LV_EVENT_SHORT_CLICKED, this);
 
     lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+}
+
+void View::onRunPressed() {
+    std::string file_path = state->getSelectedChildPath();
+    onNavigate();
+    runFile(file_path);
 }
 
 void View::onEjectPressed() {

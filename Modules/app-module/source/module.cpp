@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
+#include <app/exec.h>
 #include <app/install.h>
 #include <app/io.h>
 #include <app/manager.h>
@@ -8,6 +9,8 @@
 #include <app/paths.h>
 #include <app/scheduler.h>
 #include <app/stream.h>
+
+#include <app/private/exec_internal.h>
 
 #include <service/manager.h>
 
@@ -73,7 +76,12 @@ static const ModuleSymbol SYMBOLS[] = {
 };
 
 static error_t start() {
-    return service_manager_add(&app_internal_loader_service_manifest, /*auto_start=*/true);
+    error_t error = service_manager_add(&app_internal_loader_service_manifest, /*auto_start=*/true);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    app_exec_register_default_paths();
+    return ERROR_NONE;
 }
 
 static error_t stop() {
