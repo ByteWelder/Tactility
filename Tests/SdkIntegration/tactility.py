@@ -12,7 +12,7 @@ import tarfile
 from urllib.parse import urlparse
 
 ttbuild_path = ".tactility"
-ttbuild_version = "5.0.0"
+ttbuild_version = "5.0.1"
 ttbuild_cdn = "https://cdn.tactilityproject.org"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -140,9 +140,13 @@ def get_sdk_dir(version, platform):
         sdk_dir = os.path.join(sdk_parent_dir, "TactilitySDK")
         if not os.path.isdir(sdk_dir):
             exit_with_error(f"Local SDK folder not found for platform {platform}: {sdk_dir}")
-        return sdk_dir
+        return os.path.abspath(sdk_dir)
     else:
-        return os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK")
+        # Must be absolute: this is exported as $TACTILITY_SDK_PATH and included by each app's
+        # main/CMakeLists.txt, which ESP-IDF also re-processes in a separate `cmake -P` subprocess
+        # (tools/cmake/scripts/component_get_requirements.cmake) with its own working directory -
+        # a relative path here resolves against whatever CWD that subprocess happens to have.
+        return os.path.abspath(os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK"))
 
 def validate_local_sdks(platforms, version):
     if not use_local_sdk:
