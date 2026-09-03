@@ -5,8 +5,6 @@
 
 #include <app/loader.h>
 #include <app/location.h>
-#include <app/manager.h>
-#include <app/manifest.h>
 
 #include <service/instance.h>
 #include <service/manager.h>
@@ -17,12 +15,10 @@
 #include <tactility/paths.h>
 
 #include <climits>
-#include <cstdio>
+#include <cstdlib>
 #include <cstring>
-#include <memory>
 #include <string>
 #include <unistd.h>
-#include <unordered_map>
 
 constexpr auto* TAG = "app_exec";
 
@@ -81,6 +77,19 @@ bool has_dotdot_segment(const std::string& path) {
     return false;
 }
 
+// Resolves @a absolute_path through every symlink on its way (POSIX realpath()), so a symlink
+// sitting inside an allowed directory can't point at a target outside it. is_under_directory()
+// only ever sees where a path physically ends up, never the lexical path a caller wrote. Falls
+// back to @a absolute_path unresolved if realpath() fails (e.g. nothing exists there yet): a
+// nonexistent path can't be dlopen()ed either way, so comparing it unresolved is still safe.
+std::string resolve_physical(const std::string& absolute_path) {
+    char resolved[PATH_MAX];
+    if (realpath(absolute_path.c_str(), resolved) == nullptr) {
+        return absolute_path;
+    }
+    return std::string(resolved);
+}
+
 // True when @a file_path lives strictly under @a dir (a direct or nested child). Never equal to
 // @a dir itself: a bare directory is never itself an executable candidate.
 bool is_under_directory(const std::string& file_path, const std::string& dir) {
@@ -96,49 +105,6 @@ const AppLoaderApi* find_path_loader_api() {
         return nullptr;
     }
     return static_cast<const AppLoaderApi*>(service_instance_get_data(instance));
-}
-
-// region Ad hoc "run this path directly" registry: owns the AppManifest (and its id/name/path
-// strings) that app_manager's own ledger only keeps a non-owning pointer to (see
-// app_manager_add()'s contract; install.cpp's InstallRegistry exists for the same reason).
-// Keyed by path so re-running the same file reuses its manifest instead of re-adding it.
-
-struct RunRecord {
-    std::string id;
-    std::string name;
-    std::string path;
-    AppManifest manifest {};
-};
-
-struct RunRegistry {
-    std::unordered_map<std::string, std::unique_ptr<RunRecord>> apps;
-    Mutex mutex {};
-
-    RunRegistry() { mutex_construct(&mutex); }
-};
-
-RunRegistry& run_registry() {
-    static RunRegistry registry;
-    return registry;
-}
-
-std::string last_path_segment(const std::string& path) {
-    auto index = path.find_last_of('/');
-    return index == std::string::npos ? path : path.substr(index + 1);
-}
-
-// A short, stable-per-path id that fits AppManifest::id's APP_ID_LENGTH limit regardless of how
-// long @a path is. FNV-1a's collision odds are irrelevant at the scale of "distinct executables
-// one user runs from the Files app".
-std::string make_run_id(const std::string& path) {
-    uint32_t hash = 2166136261u;
-    for (unsigned char c: path) {
-        hash ^= c;
-        hash *= 16777619u;
-    }
-    char id[16];
-    std::snprintf(id, sizeof(id), "run.%08x", static_cast<unsigned int>(hash));
-    return id;
 }
 
 } // namespace
@@ -193,12 +159,16 @@ bool app_exec_path_allowed(const char* file_path) {
     if (has_dotdot_segment(path)) {
         return false;
     }
+    std::string resolved_path = resolve_physical(path);
 
     auto& reg = registry();
     mutex_lock(&reg.mutex);
     bool allowed = false;
     for (size_t i = 0; i < reg.count; i++) {
-        if (is_under_directory(path, reg.paths[i])) {
+        // Resolved at check time, not at app_exec_path_add() time: the registered directory
+        // itself may not exist yet when it's registered (e.g. before the first app_install()).
+        std::string resolved_dir = resolve_physical(reg.paths[i]);
+        if (is_under_directory(resolved_path, resolved_dir)) {
             allowed = true;
             break;
         }
@@ -215,49 +185,6 @@ bool app_exec_is_executable_path(const char* path) {
 
     AppLocation location { APP_LOCATION_PATH, const_cast<char*>(path) };
     return loader->is_executable(location);
-}
-
-error_t app_exec_run_path(const char* path, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    if (!app_exec_is_executable_path(path)) {
-        return ERROR_NOT_ALLOWED;
-    }
-
-    std::string path_str(path);
-    auto& reg = run_registry();
-    mutex_lock(&reg.mutex);
-
-    auto iterator = reg.apps.find(path_str);
-    std::string id;
-    if (iterator != reg.apps.end()) {
-        id = iterator->second->id;
-        mutex_unlock(&reg.mutex);
-    } else {
-        auto record = std::make_unique<RunRecord>();
-        record->id = make_run_id(path_str);
-        record->name = last_path_segment(path_str);
-        record->path = path_str;
-        record->manifest = AppManifest {
-            .id = record->id.c_str(),
-            .name = record->name.c_str(),
-            .category = APP_CATEGORY_USER,
-            .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
-            .flags = APP_MANIFEST_FLAG_HIDDEN,
-            .stack = { .depth = 0, .desired_memory_capability = 0 },
-        };
-
-        error_t add_result = app_manager_add(&record->manifest);
-        if (add_result != ERROR_NONE) {
-            mutex_unlock(&reg.mutex);
-            LOG_E(TAG, "Failed to register %s: %s", path, error_to_string(add_result));
-            return add_result;
-        }
-
-        id = record->id;
-        reg.apps[path_str] = std::move(record);
-        mutex_unlock(&reg.mutex);
-    }
-
-    return app_manager_start_with_parameters(id.c_str(), argc, argv, out_app_instance_id);
 }
 
 void app_exec_register_default_paths() {

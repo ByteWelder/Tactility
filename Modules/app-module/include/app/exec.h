@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <app/instance.h>
-
 #include <stdbool.h>
 #include <tactility/error.h>
 
@@ -40,17 +38,6 @@ bool app_exec_path_allowed(const char* file_path);
  * @return false if @a path can't be run, or if no path loader is registered
  */
 bool app_exec_is_executable_path(const char* path);
-
-/**
- * Runs @a path directly, without it having to be pre-registered as an app (e.g. via
- * app_manager_add() or app_install()), for a file a user picked in a file browser. Internally
- * registers (app_manager_add(), APP_MANIFEST_FLAG_HIDDEN so it never shows up in app-browsing
- * UIs) a manifest for @a path the first time it's run, reusing that same registration on
- * subsequent calls for the same path, then starts it (app_manager_start_with_parameters()).
- * @retval ERROR_NOT_ALLOWED app_exec_is_executable_path(path) is false
- * @retval ERROR_NONE on success
- */
-error_t app_exec_run_path(const char* path, int argc, const char* const argv[], AppInstanceId* out_app_instance_id);
 
 #ifdef __cplusplus
 }

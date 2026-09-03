@@ -10,7 +10,9 @@
 
 #include <climits>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
+#include <sys/stat.h>
 #include <unistd.h>
 
 extern ServiceManifest app_internal_loader_service_manifest;
@@ -28,6 +30,47 @@ const AppLoaderApi* memory_loader_api() {
 
 int32_t fake_entry(int, char*[]) {
     return 0;
+}
+
+// Creates <tmp>/{bin,outside} plus a real file at outside/target.so, for the symlink-escape
+// tests below. Caller removes everything via remove_symlink_fixture() once done.
+struct SymlinkFixture {
+    std::string root;
+    std::string bin_dir;
+    std::string outside_dir;
+    std::string outside_target;
+
+    bool create() {
+        char temp_template[] = "/tmp/exec-test-symlink-XXXXXX";
+        char* temp_dir = mkdtemp(temp_template);
+        if (temp_dir == nullptr) {
+            return false;
+        }
+        root = temp_dir;
+        bin_dir = root + "/bin";
+        outside_dir = root + "/outside";
+        outside_target = outside_dir + "/target.so";
+
+        if (mkdir(bin_dir.c_str(), 0755) != 0 || mkdir(outside_dir.c_str(), 0755) != 0) {
+            return false;
+        }
+        FILE* file = fopen(outside_target.c_str(), "w");
+        if (file == nullptr) {
+            return false;
+        }
+        fclose(file);
+        return true;
+    }
+};
+
+void remove_symlink_fixture(const SymlinkFixture& fixture) {
+    unlink((fixture.bin_dir + "/escape.so").c_str());
+    unlink((fixture.bin_dir + "/inside.so").c_str());
+    unlink((fixture.bin_dir + "/real.so").c_str());
+    unlink(fixture.outside_target.c_str());
+    rmdir(fixture.bin_dir.c_str());
+    rmdir(fixture.outside_dir.c_str());
+    rmdir(fixture.root.c_str());
 }
 
 } // namespace
@@ -102,6 +145,44 @@ TEST_CASE("app_exec_path_allowed resolves a relative incoming path to absolute, 
     CHECK(app_exec_path_allowed("exec-test-relative2/bin/foo"));
 
     app_exec_path_remove(absolute_dir.c_str());
+}
+
+TEST_CASE("app_exec_path_allowed rejects a symlink inside a registered directory that resolves outside it") {
+    SymlinkFixture fixture;
+    REQUIRE(fixture.create());
+
+    std::string escape_link = fixture.bin_dir + "/escape.so";
+    REQUIRE_EQ(symlink(fixture.outside_target.c_str(), escape_link.c_str()), 0);
+
+    REQUIRE_EQ(app_exec_path_add(fixture.bin_dir.c_str()), ERROR_NONE);
+
+    // Lexically "escape.so" is inside bin_dir, but it physically resolves to outside_dir. Must
+    // be rejected, or the posix loader would dlopen() a binary the caller never allowed.
+    CHECK_FALSE(app_exec_path_allowed(escape_link.c_str()));
+
+    app_exec_path_remove(fixture.bin_dir.c_str());
+    remove_symlink_fixture(fixture);
+}
+
+TEST_CASE("app_exec_path_allowed accepts a real file, and a symlink that stays inside, a registered directory") {
+    SymlinkFixture fixture;
+    REQUIRE(fixture.create());
+
+    std::string real_file = fixture.bin_dir + "/real.so";
+    FILE* file = fopen(real_file.c_str(), "w");
+    REQUIRE(file != nullptr);
+    fclose(file);
+
+    std::string inside_link = fixture.bin_dir + "/inside.so";
+    REQUIRE_EQ(symlink(real_file.c_str(), inside_link.c_str()), 0);
+
+    REQUIRE_EQ(app_exec_path_add(fixture.bin_dir.c_str()), ERROR_NONE);
+
+    CHECK(app_exec_path_allowed(real_file.c_str()));
+    CHECK(app_exec_path_allowed(inside_link.c_str()));
+
+    app_exec_path_remove(fixture.bin_dir.c_str());
+    remove_symlink_fixture(fixture);
 }
 
 TEST_CASE("app_exec_path_add returns ERROR_OUT_OF_MEMORY once the registry is full") {

@@ -92,8 +92,10 @@ char** copy_arguments(int argc, const char* const argv[]) {
 // app_scheduler_start() frees it on any failure path, and the spawned task frees it once its
 // run() returns. @a bindings (@a binding_count entries, may be NULL/0) are subscribed into the
 // new instance's fd table before app_scheduler_start() is called, so they're in place before its
-// task begins executing (see app_manager_start_with_streams()).
-error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+// task begins executing (see app_manager_start_with_streams()). @a manifest may be NULL, for a
+// location-based start with no manifest at all (see app_manager_start_location()); it's stored
+// on the ledger record as-is and never dereferenced here beyond the log line below.
+error_t start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
     if (binding_count != 0 && bindings == nullptr) {
         app_ledger_free_arguments(argc, argv);
         return ERROR_INVALID_ARGUMENT;
@@ -102,14 +104,6 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
     auto& ledger = app_ledger();
 
     mutex_lock(&ledger.mutex);
-    auto manifest_iterator = ledger.manifests.find(id);
-    if (manifest_iterator == ledger.manifests.end()) {
-        mutex_unlock(&ledger.mutex);
-        app_ledger_free_arguments(argc, argv);
-        return ERROR_NOT_FOUND;
-    }
-    const AppManifest* manifest = manifest_iterator->second;
-
     AppInstanceId target_id = ledger.next_instance_id++;
     AppInstanceRecord record { .id = target_id, .manifest = manifest, .state = APP_INSTANCE_STATE_STARTING, .task = nullptr };
     record.parent_id = parent_instance_id;
@@ -120,7 +114,7 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
     app_fd_table_construct(&ledger.instances[target_id].fd_table);
     mutex_unlock(&ledger.mutex);
 
-    LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest->id, parent_instance_id);
+    LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest != nullptr ? manifest->id : "<unregistered>", parent_instance_id);
 
     for (size_t i = 0; i < binding_count; i++) {
         error_t bind_result = app_stream_subscribe(bindings[i].stream, bindings[i].buffer, bindings[i].buffer_capacity, bindings[i].event_group, target_id, bindings[i].producer_fd);
@@ -141,7 +135,7 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
         }
     }
 
-    error_t error = app_scheduler_start(target_id, manifest->location, manifest->stack, argc, argv);
+    error_t error = app_scheduler_start(target_id, location, stack, argc, argv);
     if (error != ERROR_NONE) {
         // Every binding succeeded before app_scheduler_start() failed. Unsubscribe all of them,
         // same reasoning as the bind-failure path above.
@@ -160,26 +154,60 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
     return ERROR_NONE;
 }
 
+// Looks @a id up in the manifest registry, then delegates to start_internal(). The only path
+// that requires a registered manifest; app_manager_start_location() bypasses this entirely.
+error_t start_internal_by_id(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    auto& ledger = app_ledger();
+
+    mutex_lock(&ledger.mutex);
+    auto manifest_iterator = ledger.manifests.find(id);
+    if (manifest_iterator == ledger.manifests.end()) {
+        mutex_unlock(&ledger.mutex);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_NOT_FOUND;
+    }
+    const AppManifest* manifest = manifest_iterator->second;
+    mutex_unlock(&ledger.mutex);
+
+    return start_internal(manifest, manifest->location, manifest->stack, parent_instance_id, argc, argv, bindings, binding_count, out_app_instance_id);
+}
+
 } // namespace
 
 error_t app_manager_start(const char* id, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, 0, nullptr, nullptr, 0, out_app_instance_id);
+    return start_internal_by_id(id, 0, 0, nullptr, nullptr, 0, out_app_instance_id);
 }
 
 error_t app_manager_start_with_parameters(const char* id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
+    return start_internal_by_id(id, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
 }
 
 error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
+    return start_internal_by_id(id, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
 }
 
 error_t app_manager_start_with_streams(const char* id, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
+    return start_internal_by_id(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
 }
 
 error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
+    return start_internal_by_id(id, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
+}
+
+error_t app_manager_start_location(AppLocation location, AppStackConfig stack, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
+    return start_internal(nullptr, location, stack, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
+}
+
+error_t app_manager_start_location_for_result(AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
+    return start_internal(nullptr, location, stack, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
+}
+
+error_t app_manager_start_location_with_streams(AppLocation location, AppStackConfig stack, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    return start_internal(nullptr, location, stack, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
+}
+
+error_t app_manager_start_location_for_result_with_streams(AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    return start_internal(nullptr, location, stack, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
 }
 
 error_t app_manager_stop(AppInstanceId app_instance_id) {
@@ -230,7 +258,8 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.instances.find(topmost_id);
-    const char* app_id = (iterator != ledger.instances.end()) ? iterator->second.manifest->id : nullptr;
+    const AppManifest* manifest = (iterator != ledger.instances.end()) ? iterator->second.manifest : nullptr;
+    const char* app_id = manifest != nullptr ? manifest->id : nullptr;
     mutex_unlock(&ledger.mutex);
 
     if (app_id == nullptr) {

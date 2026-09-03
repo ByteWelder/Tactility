@@ -129,6 +129,53 @@ error_t app_manager_start_with_streams(const char* id, const struct AppStreamBin
 error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
 
 /**
+ * Starts an app directly from @a location, without it having to be pre-registered via
+ * app_manager_add() first. Independent of the id-based app_manager_start*() family: performs no
+ * checks of its own beyond what AppLoaderApi::load() itself rejects. Not manifest lookup, and
+ * not whether @a location should be allowed to run (see app_exec_is_executable_path(),
+ * app/exec.h, for that): callers that need a check must run it themselves before calling this.
+ * @param[in] stack stack allocation config for the app's task; all-zero uses the scheduler's
+ * default depth/capability, same as an AppManifest that leaves AppManifest::stack zeroed
+ * @param[in] argv see app_manager_start_with_parameters()
+ * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_location(struct AppLocation location, struct AppStackConfig stack, int argc, const char* const argv[], AppInstanceId* out_app_instance_id);
+
+/**
+ * Same as app_manager_start_location(), but as a modal child of @a parent_instance_id - see
+ * app_manager_start_for_result()'s own doc for the result-delivery contract. Still no manifest
+ * and no check of its own beyond what AppLoaderApi::load() itself rejects.
+ * @param[in] argv see app_manager_start_with_parameters()
+ * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_location_for_result(struct AppLocation location, struct AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id);
+
+/**
+ * Same as app_manager_start_location(), but installs @a bindings into the new instance's fd
+ * table before its task begins executing - see app_manager_start_with_streams()'s own doc for
+ * stream ownership.
+ * @param[in] bindings see app_manager_start_with_streams()
+ * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
+ * @retval ERROR_OUT_OF_RANGE a binding's producer_fd is out of range
+ * @retval ERROR_RESOURCE a binding's event_group has no free bits left to claim
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_location_with_streams(struct AppLocation location, struct AppStackConfig stack, const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
+
+/**
+ * Combines app_manager_start_location_for_result() and app_manager_start_location_with_streams().
+ * @param[in] argv see app_manager_start_with_parameters()
+ * @param[in] bindings see app_manager_start_with_streams()
+ * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
+ * @retval ERROR_OUT_OF_RANGE a binding's producer_fd is out of range
+ * @retval ERROR_RESOURCE a binding's event_group has no free bits left to claim
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_start_location_for_result_with_streams(struct AppLocation location, struct AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], const struct AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id);
+
+/**
  * Stop an app instance permanently. Emits APP_EVENT_CLOSE and bound-waits for its task to exit
  * if it was running.
  * @warning Must not be called from the instance's own task (it bound-waits via thread_join(),

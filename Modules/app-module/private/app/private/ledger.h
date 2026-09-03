@@ -38,6 +38,7 @@ struct AppCompletionSignal {
 /** A registered/running app instance, as tracked internally by app-module. */
 struct AppInstanceRecord {
     uint32_t id;
+    /** NULL for an instance started via app_manager_start_location() (no manifest involved). */
     const AppManifest* manifest;
     AppInstanceState state;
     /** The FreeRTOS task currently executing AppLoaderApi::run() for this instance; NULL when not running. */

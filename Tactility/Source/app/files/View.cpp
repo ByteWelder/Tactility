@@ -1,6 +1,7 @@
 #include <app/event.h>
 #include <app/exec.h>
 #include <app/install.h>
+#include <app/manager.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
@@ -209,8 +210,16 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 
 void View::runFile(const std::string& file_path) {
     LOG_I(TAG, "Running %s", file_path.c_str());
+
+    if (!app_exec_is_executable_path(file_path.c_str())) {
+        LOG_W(TAG, "Not executable: %s", file_path.c_str());
+        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+        return;
+    }
+
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(file_path.c_str()) };
     AppInstanceId instance_id = 0;
-    if (app_exec_run_path(file_path.c_str(), 0, nullptr, &instance_id) != ERROR_NONE) {
+    if (app_manager_start_location(location, AppStackConfig {}, 0, nullptr, &instance_id) != ERROR_NONE) {
         LOG_W(TAG, "Failed to run %s", file_path.c_str());
         alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
     }
