@@ -6,6 +6,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -123,7 +124,7 @@ int32_t appMain(int argc, char* argv[]) {
 void start(const std::string& file) {
     const char* argv[] = { file.c_str() };
     uint32_t instanceId = 0;
-    app_manager_start_with_parameters(manifest.id, 1, argv, &instanceId);
+    app_start(manifest.id, 1, argv, &instanceId);
 }
 
 extern const ::AppManifest manifest = {

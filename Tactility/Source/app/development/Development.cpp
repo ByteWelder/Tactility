@@ -9,6 +9,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -184,7 +185,7 @@ int32_t appMain(int argc, char* argv[]) {
         if (lvgl_is_running()) {
             lvgl_lock();
             // Widgets only exist while this window is topmost - skip otherwise. Another app
-            // (started non-modally, e.g. via app_manager_start()) can bury this window without
+            // (started non-modally, e.g. via app_start()) can bury this window without
             // stopping this instance or notifying it; window_manager deletes a buried window's
             // widgets, so touching ctx->statusLabel here would use-after-free it.
             if (window_manager_get_state(window) == WINDOW_STATE_GRANTED) {

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/elf_check.h>
-#include <app/exec.h>
 #include <app/loader.h>
 #include <app/location.h>
 
@@ -45,10 +44,10 @@ constexpr ElfRequirements EXECUTABLE_REQUIREMENTS = {
 #endif
 
 // Validates an already-resolved binary path (see resolve_app_path()) before it's handed to
-// dlopen(): the extension and directory checks are cheap string comparisons, so the file is only
-// opened as a last resort.
+// dlopen(): the extension check is a cheap string comparison, so the file is only opened as a
+// last resort.
 bool is_executable_file(const std::string& resolved_path) {
-    if (!resolved_path.ends_with(".so") || !app_exec_path_allowed(resolved_path.c_str())) {
+    if (!resolved_path.ends_with(".so")) {
         return false;
     }
 #ifdef __APPLE__

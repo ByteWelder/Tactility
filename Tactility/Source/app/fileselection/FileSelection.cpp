@@ -6,6 +6,7 @@
 #include <app/event.h>
 #include <app/io.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 #include <app/stream.h>
@@ -106,7 +107,7 @@ uint32_t startWithMode(const char* modeArg, uint32_t callerAppInstanceId, AppStr
         .event_group = eventGroup,
     };
     uint32_t instanceId = 0;
-    app_manager_start_for_result_with_streams(manifest.id, callerAppInstanceId, 1, argv, &binding, 1, &instanceId);
+    app_start_for_result_with_streams(manifest.id, 1, argv, &binding, 1, callerAppInstanceId, &instanceId);
     return instanceId;
 }
 

@@ -2,9 +2,10 @@
 #include "doctest.h"
 
 #include <app/event.h>
-#include <app/exec.h>
+#include <app/execute.h>
 #include <app/loader.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/scheduler.h>
 
 #include <service/manager.h>
@@ -50,6 +51,11 @@ bool wait_for_state(AppInstanceId id, AppInstanceState target, uint32_t timeout_
     return app_manager_get_state(id) == target;
 }
 
+bool is_executable_path(const char* path) {
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(path) };
+    return app_is_executable(location);
+}
+
 std::atomic<int32_t> g_fixture_result { -1 };
 std::atomic<bool> g_fixture_result_received { false };
 
@@ -71,7 +77,7 @@ int32_t parent_app_main(int, char*[]) {
     app_manager_add(&fixture_manifest);
 
     AppInstanceId fixture_id = 0;
-    app_manager_start_for_result("test.posix.fixture", self_id, 0, nullptr, &fixture_id);
+    app_start_for_result("test.posix.fixture", 0, nullptr, self_id, &fixture_id);
 
     while (true) {
         if (task_event_group_wait_any(&event_group, nullptr, pdMS_TO_TICKS(5000)) != ERROR_NONE) {
@@ -102,7 +108,6 @@ int32_t parent_app_main(int, char*[]) {
 TEST_CASE("app-posix-module's loader-path service dlopen()s a .so and calls its main(), which resolves a real Tactility symbol against the host") {
     ensure_path_loader_registered();
     ensure_memory_loader_registered();
-    REQUIRE_EQ(app_exec_path_add(FIXTURE_DIR.c_str()), ERROR_NONE);
     g_fixture_result.store(-1, std::memory_order_relaxed);
     g_fixture_result_received.store(false, std::memory_order_relaxed);
 
@@ -110,7 +115,7 @@ TEST_CASE("app-posix-module's loader-path service dlopen()s a .so and calls its 
     REQUIRE_EQ(app_manager_add(&parent_manifest), ERROR_NONE);
 
     AppInstanceId parent_id = 0;
-    REQUIRE_EQ(app_manager_start("test.posix.parent", &parent_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.posix.parent", 0, nullptr, &parent_id), ERROR_NONE);
     REQUIRE(wait_for_state(parent_id, APP_INSTANCE_STATE_STOPPED, 3000));
 
     CHECK(g_fixture_result_received.load(std::memory_order_acquire));
@@ -122,44 +127,27 @@ TEST_CASE("app-posix-module's loader-path service dlopen()s a .so and calls its 
     app_manager_remove("test.posix.parent");
 }
 
-TEST_CASE("app_exec_is_executable_path() accepts a real .so in a registered directory") {
+TEST_CASE("app_is_executable() accepts a real .so") {
     ensure_path_loader_registered();
-    REQUIRE_EQ(app_exec_path_add(FIXTURE_DIR.c_str()), ERROR_NONE);
 
-    CHECK(app_exec_is_executable_path(FIXTURE_APP_PATH));
+    CHECK(is_executable_path(FIXTURE_APP_PATH));
 }
 
-TEST_CASE("app_exec_is_executable_path() rejects the same .so when its directory isn't registered") {
+TEST_CASE("app_is_executable() rejects a .so-named file with no ELF header") {
     ensure_path_loader_registered();
-    app_exec_path_remove(FIXTURE_DIR.c_str());
 
-    CHECK_FALSE(app_exec_is_executable_path(FIXTURE_APP_PATH));
-
-    // Restore for any later test case that relies on it being registered.
-    app_exec_path_add(FIXTURE_DIR.c_str());
+    CHECK_FALSE(is_executable_path(FIXTURE_NON_ELF_PATH));
 }
 
-TEST_CASE("app_exec_is_executable_path() rejects a .so-named file with no ELF header") {
+TEST_CASE("app_is_executable() rejects a nonexistent path") {
     ensure_path_loader_registered();
-    auto non_elf_dir = directory_of(FIXTURE_NON_ELF_PATH);
-    REQUIRE_EQ(app_exec_path_add(non_elf_dir.c_str()), ERROR_NONE);
 
-    CHECK_FALSE(app_exec_is_executable_path(FIXTURE_NON_ELF_PATH));
-
-    app_exec_path_remove(non_elf_dir.c_str());
+    CHECK_FALSE(is_executable_path((FIXTURE_DIR + "/does-not-exist.so").c_str()));
 }
 
-TEST_CASE("app_exec_is_executable_path() rejects a nonexistent path in a registered directory") {
+TEST_CASE("app_is_executable() rejects an install-directory-shaped path missing its per-arch .so") {
     ensure_path_loader_registered();
-    REQUIRE_EQ(app_exec_path_add(FIXTURE_DIR.c_str()), ERROR_NONE);
-
-    CHECK_FALSE(app_exec_is_executable_path((FIXTURE_DIR + "/does-not-exist.so").c_str()));
-}
-
-TEST_CASE("app_exec_is_executable_path() rejects an install-directory-shaped path missing its per-arch .so") {
-    ensure_path_loader_registered();
-    REQUIRE_EQ(app_exec_path_add(FIXTURE_DIR.c_str()), ERROR_NONE);
 
     // FIXTURE_DIR itself has no elf/posix-<arch>.so under it, so resolution fails.
-    CHECK_FALSE(app_exec_is_executable_path(FIXTURE_DIR.c_str()));
+    CHECK_FALSE(is_executable_path(FIXTURE_DIR.c_str()));
 }

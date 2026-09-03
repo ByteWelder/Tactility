@@ -4,6 +4,7 @@
 #include <app/private/fd_table.h>
 #include <app/private/fs.h>
 #include <app/private/ledger.h>
+#include <app/private/manager_internal.h>
 #include <app/private/scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
@@ -88,14 +89,13 @@ char** copy_arguments(int argc, const char* const argv[]) {
     return copy;
 }
 
-// Takes ownership of argv (already a deep copy, or NULL/argc==0) regardless of outcome -
-// app_scheduler_start() frees it on any failure path, and the spawned task frees it once its
-// run() returns. @a bindings (@a binding_count entries, may be NULL/0) are subscribed into the
-// new instance's fd table before app_scheduler_start() is called, so they're in place before its
-// task begins executing (see app_manager_start_with_streams()). @a manifest may be NULL, for a
-// location-based start with no manifest at all (see app_manager_start_location()); it's stored
-// on the ledger record as-is and never dereferenced here beyond the log line below.
-error_t start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+} // namespace
+
+error_t app_manager_start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv_in[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    // Owns its own deep copy from here on: app_scheduler_start() takes ownership of it regardless
+    // of outcome, and the spawned task frees it once its run() returns.
+    char** argv = copy_arguments(argc, argv_in);
+
     if (binding_count != 0 && bindings == nullptr) {
         app_ledger_free_arguments(argc, argv);
         return ERROR_INVALID_ARGUMENT;
@@ -152,62 +152,6 @@ error_t start_internal(const AppManifest* manifest, AppLocation location, AppSta
 
     *out_app_instance_id = target_id;
     return ERROR_NONE;
-}
-
-// Looks @a id up in the manifest registry, then delegates to start_internal(). The only path
-// that requires a registered manifest; app_manager_start_location() bypasses this entirely.
-error_t start_internal_by_id(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    auto& ledger = app_ledger();
-
-    mutex_lock(&ledger.mutex);
-    auto manifest_iterator = ledger.manifests.find(id);
-    if (manifest_iterator == ledger.manifests.end()) {
-        mutex_unlock(&ledger.mutex);
-        app_ledger_free_arguments(argc, argv);
-        return ERROR_NOT_FOUND;
-    }
-    const AppManifest* manifest = manifest_iterator->second;
-    mutex_unlock(&ledger.mutex);
-
-    return start_internal(manifest, manifest->location, manifest->stack, parent_instance_id, argc, argv, bindings, binding_count, out_app_instance_id);
-}
-
-} // namespace
-
-error_t app_manager_start(const char* id, AppInstanceId* out_app_instance_id) {
-    return start_internal_by_id(id, 0, 0, nullptr, nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_with_parameters(const char* id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal_by_id(id, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal_by_id(id, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_with_streams(const char* id, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal_by_id(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
-}
-
-error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal_by_id(id, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
-}
-
-error_t app_manager_start_location(AppLocation location, AppStackConfig stack, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(nullptr, location, stack, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_location_for_result(AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(nullptr, location, stack, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_location_with_streams(AppLocation location, AppStackConfig stack, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(nullptr, location, stack, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
-}
-
-error_t app_manager_start_location_for_result_with_streams(AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(nullptr, location, stack, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
 }
 
 error_t app_manager_stop(AppInstanceId app_instance_id) {

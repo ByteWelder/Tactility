@@ -2,6 +2,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -132,7 +133,7 @@ int32_t appMain(int argc, char* argv[]) {
 
 namespace {
 
-// Builds argv = [title, message, buttonLabels...] for app_manager_start_for_result().
+// Builds argv = [title, message, buttonLabels...] for app_start_for_result().
 std::vector<const char*> buildArgv(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels) {
     std::vector<const char*> argv { title.c_str(), message.c_str() };
     for (const auto& label: buttonLabels) {
@@ -146,7 +147,7 @@ std::vector<const char*> buildArgv(const std::string& title, const std::string& 
 uint32_t start(uint32_t callerAppInstanceId, const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels) {
     auto argv = buildArgv(title, message, buttonLabels);
     uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, callerAppInstanceId, static_cast<int>(argv.size()), argv.data(), &instanceId);
+    app_start_for_result(manifest.id, static_cast<int>(argv.size()), argv.data(), callerAppInstanceId, &instanceId);
     return instanceId;
 }
 

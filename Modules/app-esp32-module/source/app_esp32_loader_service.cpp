@@ -4,7 +4,6 @@
 #endif
 
 #include <app/elf_check.h>
-#include <app/exec.h>
 #include <app/loader.h>
 #include <app/location.h>
 
@@ -88,11 +87,10 @@ constexpr ElfRequirements EXECUTABLE_REQUIREMENTS = {
 };
 
 // Validates an already-resolved binary path (see resolve_elf_path()) before it's handed to
-// esp_elf_relocate(), which performs no header validation of its own: the extension and
-// directory checks are cheap string comparisons, so the file is only opened as a last resort.
+// esp_elf_relocate(), which performs no header validation of its own: the extension check is a
+// cheap string comparison, so the file is only opened as a last resort.
 bool is_executable_file(const std::string& resolved_path) {
     return resolved_path.ends_with(".elf")
-        && app_exec_path_allowed(resolved_path.c_str())
         && elf_check_file(resolved_path.c_str(), &EXECUTABLE_REQUIREMENTS);
 }
 

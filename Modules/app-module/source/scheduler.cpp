@@ -101,7 +101,7 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
     auto iterator = ledger.instances.find(app_instance_id);
     if (iterator != ledger.instances.end()) {
         iterator->second.task = task;
-        // Streams bound before this instance's task existed (app_manager_start_with_streams())
+        // Streams bound before this instance's task existed (app_start_with_streams())
         // only got producer_task filled in as NULL at subscribe time. Backfill it now.
         AppFdTable& fd_table = iterator->second.fd_table;
         for (auto& slot : fd_table.slots) {
@@ -168,7 +168,7 @@ const AppLoaderApi* find_loader_api(AppLocationType type) {
     return static_cast<const AppLoaderApi*>(service_instance_get_data(instance));
 }
 
-// If this instance was launched via app_manager_start_for_result(), delivers @a result (its
+// If this instance was launched via app_start_for_result(), delivers @a result (its
 // own AppMainFn/AppLoaderApi::run() return value) to its parent. No-op for a top-level instance
 // (parent_id == 0).
 void deliver_result_to_parent_if_any(AppInstanceId app_instance_id, int32_t result) {

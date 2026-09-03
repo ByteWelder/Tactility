@@ -2,6 +2,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -145,7 +146,7 @@ int32_t appMain(int argc, char* argv[]) {
 uint32_t start(uint32_t callerAppInstanceId, const std::string& title, const std::string& message, const std::string& prefilled) {
     const char* argv[] = { title.c_str(), message.c_str(), prefilled.c_str() };
     uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, callerAppInstanceId, 3, argv, &instanceId);
+    app_start_for_result(manifest.id, 3, argv, callerAppInstanceId, &instanceId);
     return instanceId;
 }
 

@@ -1,7 +1,6 @@
 #include <app/event.h>
-#include <app/exec.h>
+#include <app/execute.h>
 #include <app/install.h>
-#include <app/manager.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
@@ -113,6 +112,11 @@ static void onRunPressedCallback(lv_event_t* event) {
 
 // region File helpers
 
+static bool isExecutablePath(const std::string& path) {
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(path.c_str()) };
+    return app_is_executable(location);
+}
+
 static bool copyFileContents(const std::string& src, const std::string& dst) {
     FILE* in = fopen(src.c_str(), "rb");
     if (in == nullptr) {
@@ -199,7 +203,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             // Remove forward slash, because we need a relative path
             notes::start(file_path.substr(1));
         }
-    } else if (app_exec_is_executable_path(file_path.c_str())) {
+    } else if (isExecutablePath(file_path)) {
         runFile(file_path);
     } else {
         LOG_W(TAG, "Opening files of this type is not supported");
@@ -211,7 +215,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 void View::runFile(const std::string& file_path) {
     LOG_I(TAG, "Running %s", file_path.c_str());
 
-    if (!app_exec_is_executable_path(file_path.c_str())) {
+    if (!isExecutablePath(file_path)) {
         LOG_W(TAG, "Not executable: %s", file_path.c_str());
         alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
         return;
@@ -219,7 +223,7 @@ void View::runFile(const std::string& file_path) {
 
     AppLocation location { APP_LOCATION_PATH, const_cast<char*>(file_path.c_str()) };
     AppInstanceId instance_id = 0;
-    if (app_manager_start_location(location, AppStackConfig {}, 0, nullptr, &instance_id) != ERROR_NONE) {
+    if (app_execute(location, AppStackConfig {}, 0, nullptr, &instance_id) != ERROR_NONE) {
         LOG_W(TAG, "Failed to run %s", file_path.c_str());
         alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
     }
@@ -313,7 +317,7 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
         symbol = LV_SYMBOL_IMAGE;
     } else if (dir_entry.d_type == file::TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
-    } else if (app_exec_is_executable_path(file::getChildPath(state->getCurrentPath(), dir_entry.d_name).c_str())) {
+    } else if (isExecutablePath(file::getChildPath(state->getCurrentPath(), dir_entry.d_name))) {
         symbol = LV_SYMBOL_PLAY;
     } else {
         symbol = LV_SYMBOL_FILE;
@@ -420,7 +424,7 @@ void View::showActionsForDirectory() { showActions(); }
 void View::showActionsForFile() {
     lv_obj_clean(action_list);
 
-    if (app_exec_is_executable_path(state->getSelectedChildPath().c_str())) {
+    if (isExecutablePath(state->getSelectedChildPath())) {
         auto* run_button = lv_list_add_button(action_list, LV_SYMBOL_PLAY, "Run");
         lv_obj_add_event_cb(run_button, onRunPressedCallback, LV_EVENT_SHORT_CLICKED, this);
     }

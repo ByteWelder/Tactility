@@ -10,7 +10,7 @@ namespace tt::app::fileselection {
 
 /**
  * Show a file selection dialog that allows the user to select an existing file, as a modal
- * child of @a callerAppInstanceId (see app_manager_start_for_result_with_streams()). Result
+ * child of @a callerAppInstanceId (see app_start_for_result_with_streams()). Result
  * (0 = Ok, 1 = Cancelled) is delivered back via APP_EVENT_RESULT once this app's thread exits.
  * On result == 0, read the picked path with app_stream_read(&stream, ...) then
  * app_stream_unsubscribe(&stream); on any other result, just app_stream_unsubscribe(&stream).

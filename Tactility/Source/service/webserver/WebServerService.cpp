@@ -2,6 +2,8 @@
 
 #include <Tactility/service/webserver/WebServerService.h>
 #include <Tactility/service/ServiceManifest.h>
+
+#include <app/start.h>
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
@@ -1270,7 +1272,7 @@ esp_err_t WebServerService::handleApiAppsRun(httpd_req_t* request) {
     // Every app instance gets its own task now, so there's no "stop the existing one first" -
     // this just starts a fresh instance alongside whatever's already running.
     AppInstanceId instance_id = 0;
-    app_manager_start(appId.c_str(), &instance_id);
+    app_start(appId.c_str(), 0, nullptr, &instance_id);
 
     LOG_I(TAG, "[200] /api/apps/run %s", appId.c_str());
     httpd_resp_sendstr(request, "ok");
