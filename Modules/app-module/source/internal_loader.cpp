@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/loader.h>
-#include <app/manifest.h>
 
 #include <service/instance.h>
 #include <service/manager.h>
