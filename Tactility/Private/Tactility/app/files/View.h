@@ -2,6 +2,9 @@
 
 #include "./State.h"
 
+#include <app/stream.h>
+#include <tactility/concurrent/task_event_group.h>
+
 #include <cstdint>
 #include <lvgl.h>
 #include <memory>
@@ -10,7 +13,11 @@ namespace tt::app::files {
 
 class View final {
     std::shared_ptr<State> state;
+    TaskEventGroup* eventGroup = nullptr;
     uint32_t appInstanceId = 0;
+
+    AppStream inputDialogStream {};
+    uint8_t inputDialogBuffer[256] {};
 
     size_t current_start_index = 0;
     size_t last_loaded_index = 0;
@@ -39,7 +46,7 @@ class View final {
 
 public:
 
-    explicit View(const std::shared_ptr<State>& state) : state(state) {}
+    View(const std::shared_ptr<State>& state, TaskEventGroup* eventGroup) : state(state), eventGroup(eventGroup) {}
 
     void init(uint32_t appInstanceId, lv_obj_t* parent);
     void update(size_t start_index = 0);

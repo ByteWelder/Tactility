@@ -5,6 +5,7 @@
 #include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+#include <app/stream.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -13,6 +14,8 @@
 #include <tactility/log.h>
 
 #include <lvgl.h>
+
+#include <unistd.h>
 
 namespace tt::app::inputdialog {
 
@@ -31,7 +34,8 @@ struct Context {
     // The eventual appMain() return value - see AlertDialog.cpp's Context::result for why this
     // is a plain (non-atomic) field safely shared between the LVGL thread (writer, before
     // emitting APP_EVENT_CLOSE) and this dialog's own thread (reader, after waking from it).
-    int32_t result = 1; // Cancelled - safety-net default if closed without pressing a button
+    int32_t resultCode = 1; // Cancelled - safety-net default if closed without pressing a button
+    std::string resultText;
 };
 
 struct ButtonContext {
@@ -39,12 +43,6 @@ struct ButtonContext {
     /** Non-null for OK (read at press time), NULL for Cancel. */
     lv_obj_t* textarea;
 };
-
-// The last text entered via OK. Static rather than per-instance: simple, and in practice only
-// one InputDialog is ever open at a time. Written on the LVGL thread (onButtonPressed(), before
-// emitting APP_EVENT_CLOSE); read by the parent via getLastText() after receiving that event -
-// safe without a lock for the same reason Context::result is (see AlertDialog.cpp).
-std::string lastText;
 
 void onButtonDeleted(lv_event_t* e) {
     delete static_cast<ButtonContext*>(lv_event_get_user_data(e));
@@ -54,11 +52,11 @@ void onButtonPressed(lv_event_t* e) {
     auto* btnCtx = static_cast<ButtonContext*>(lv_event_get_user_data(e));
     if (btnCtx->textarea != nullptr) {
         LOG_I(TAG, "OK pressed");
-        lastText = lv_textarea_get_text(btnCtx->textarea);
-        btnCtx->ctx->result = 0;
+        btnCtx->ctx->resultText = lv_textarea_get_text(btnCtx->textarea);
+        btnCtx->ctx->resultCode = 0;
     } else {
         LOG_I(TAG, "Cancel pressed");
-        btnCtx->ctx->result = 1;
+        btnCtx->ctx->resultCode = 1;
     }
     app_event_emit_close(btnCtx->ctx->appInstanceId);
 }
@@ -138,20 +136,28 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
-    return ctx.result;
+    if (ctx.resultCode == 0) {
+        // The caller captures this via an AppStream bound to our stdout (see start()); see
+        // AppStdioWrap.cpp for how printf() itself gets routed there on POSIX.
+        printf("%s", ctx.resultText.c_str());
+    }
+    return ctx.resultCode;
 }
 
 } // namespace
 
-uint32_t start(uint32_t callerAppInstanceId, const std::string& title, const std::string& message, const std::string& prefilled) {
+uint32_t start(uint32_t callerAppInstanceId, const std::string& title, const std::string& message, const std::string& prefilled, AppStream& stream, void* buffer, size_t bufferCapacity, TaskEventGroup* eventGroup) {
     const char* argv[] = { title.c_str(), message.c_str(), prefilled.c_str() };
+    AppStreamBinding binding = {
+        .producer_fd = STDOUT_FILENO,
+        .stream = &stream,
+        .buffer = buffer,
+        .buffer_capacity = bufferCapacity,
+        .event_group = eventGroup,
+    };
     uint32_t instanceId = 0;
-    app_start_for_result(manifest.id, 3, argv, callerAppInstanceId, &instanceId);
+    app_start_for_result_with_streams(manifest.id, 3, argv, &binding, 1, callerAppInstanceId, &instanceId);
     return instanceId;
-}
-
-std::string getLastText() {
-    return lastText;
 }
 
 extern const ::AppManifest manifest = {

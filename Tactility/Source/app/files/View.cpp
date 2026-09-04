@@ -1,6 +1,7 @@
 #include <app/event.h>
 #include <app/execute.h>
 #include <app/install.h>
+#include <app/stream.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
@@ -378,7 +379,7 @@ void View::onRenamePressed() {
     std::string entry_name = state->getSelectedChildEntry();
     LOG_I(TAG, "Pending rename %s", entry_name.c_str());
     state->setPendingAction(State::ActionRename);
-    inputdialog::start(appInstanceId, "Rename", "", entry_name);
+    inputdialog::start(appInstanceId, "Rename", "", entry_name, inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
 void View::onDeletePressed() {
@@ -393,13 +394,13 @@ void View::onDeletePressed() {
 void View::onNewFilePressed() {
     LOG_I(TAG, "Creating new file");
     state->setPendingAction(State::ActionCreateFile);
-    inputdialog::start(appInstanceId, "New File", "Enter filename:", "");
+    inputdialog::start(appInstanceId, "New File", "Enter filename:", "", inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
 void View::onNewFolderPressed() {
     LOG_I(TAG, "Creating new folder");
     state->setPendingAction(State::ActionCreateFolder);
-    inputdialog::start(appInstanceId, "New Folder", "Enter folder name:", "");
+    inputdialog::start(appInstanceId, "New Folder", "Enter folder name:", "", inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
 void View::addCommonFileActions() {
@@ -597,10 +598,21 @@ void View::onResult(uint32_t launchId, int32_t result) {
     std::string filepath = state->getSelectedChildPath();
     LOG_I(TAG, "Result for %s", filepath.c_str());
 
-    // Text-entry result (rename/new file/new folder); empty for Cancel, or for a dialog that
-    // doesn't produce text (delete/paste confirmations) - those switch cases below only look at
-    // `result`, not this.
-    std::string resultText = (result == 0) ? inputdialog::getLastText() : std::string();
+    // Text-entry result (rename/new file/new folder), read from the AppStream bound to that
+    // dialog's stdout. Empty for Cancel. Other pending actions (delete/paste confirmations) never
+    // bound this stream; their switch cases below only look at `result`, not `resultText`.
+    bool isTextEntryAction = state->getPendingAction() == State::ActionRename ||
+        state->getPendingAction() == State::ActionCreateFile ||
+        state->getPendingAction() == State::ActionCreateFolder;
+    std::string resultText;
+    if (isTextEntryAction) {
+        if (result == 0) {
+            char buffer[sizeof(inputDialogBuffer)];
+            size_t length = app_stream_read(&inputDialogStream, buffer, sizeof(buffer));
+            resultText = std::string(buffer, length);
+        }
+        app_stream_unsubscribe(&inputDialogStream);
+    }
 
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
