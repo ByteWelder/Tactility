@@ -74,6 +74,9 @@ void app_manager_for_each_manifest(AppManifestVisitorFn visitor, void* context) 
 
 error_t app_manager_start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv_in[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
     char** argv = app_arguments_copy(argc, argv_in);
+    if (argc > 0 && argv == nullptr) {
+        return ERROR_OUT_OF_MEMORY;
+    }
 
     if (binding_count != 0 && bindings == nullptr) {
         app_arguments_free(argc, argv);
