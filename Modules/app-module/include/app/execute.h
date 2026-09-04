@@ -17,11 +17,9 @@ extern "C" {
 
 /**
  * Starts an app directly from @a location, without it having to be pre-registered via
- * app_manager_add() first. Independent of the id-based app_start*() family
- * (app/manager.h): performs no checks of its own beyond what AppLoaderApi::load() itself
- * rejects. Not manifest lookup, and not whether @a location should be allowed to run (see
- * app_is_executable() below): callers that need a check must run it themselves before calling
- * this.
+ * app_manager_add() first.
+ * Performs no checks of its own beyond what AppLoaderApi::load() itself rejects.
+ * @warning It's advised to validate @a location with app_is_executable() first
  * @param[in] stack stack allocation config for the app's task; all-zero uses the scheduler's
  * default depth/capability, same as an AppManifest that leaves AppManifest::stack zeroed
  * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
@@ -36,9 +34,8 @@ error_t app_execute(
 );
 
 /**
- * Same as app_execute(), but as a modal child of @a parent_instance_id - see
- * app_start_for_result()'s own doc for the result-delivery contract. Still no manifest
- * and no check of its own beyond what AppLoaderApi::load() itself rejects.
+ * Same as app_execute(), but as a modal child of @a parent_instance_id.
+ * See app_start_for_result()'s own doc for the result-delivery contract.
  * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
  * @retval ERROR_NONE on success
  */
@@ -53,7 +50,7 @@ error_t app_execute_for_result(
 
 /**
  * Same as app_execute(), but installs @a bindings into the new instance's fd table before its
- * task begins executing - see app_start_with_streams()'s own doc for stream ownership.
+ * task begins executing. See app_start_with_streams()'s own doc for stream ownership.
  * @param[in] bindings see app_start_with_streams()
  * @retval ERROR_NOT_FOUND no AppLoaderApi is registered for @a location.type
  * @retval ERROR_OUT_OF_RANGE a binding's producer_fd is out of range
@@ -90,9 +87,9 @@ error_t app_execute_for_result_with_streams(
 );
 
 /**
- * Reports whether @a location is runnable on this target - the extension and header a loader
- * requires (e.g. an ELF's class/data/type/machine), not whether it lives anywhere in particular:
- * any executable app is runnable from any path. Cheap enough to call while listing a directory.
+ * Reports whether @a location is runnable on this target: the extension and header a loader
+ * requires (e.g. an ELF's class/data/type/machine), not whether it lives anywhere in particular.
+ * Any executable app is runnable from any path. Cheap enough to call while listing a directory.
  * @return false if @a location can't be run, or if no AppLoaderApi is registered for its type
  */
 bool app_is_executable(struct AppLocation location);
