@@ -10,6 +10,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -251,7 +252,7 @@ void startNextApp() {
 
     auto launcher_app_id = getLauncherAppId();
     uint32_t launcher_instance_id = 0;
-    app_manager_start(launcher_app_id.c_str(), &launcher_instance_id);
+    app_start(launcher_app_id.c_str(), 0, nullptr, &launcher_instance_id);
 }
 
 void runBootSequence(TickType_t startTime) {
@@ -318,7 +319,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     runBootSequence(start_time);
 
-    // Waits until app_manager_start(launcher) (or a permanent stop) tells us to give up -
+    // Waits until app_start(launcher) (or a permanent stop) tells us to give up -
     // startNextApp() above is what triggers that, via app-module's "save the previously active
     // app" policy, unless sdCardMissing halted before it.
     while (true) {

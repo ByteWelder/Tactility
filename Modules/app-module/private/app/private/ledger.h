@@ -38,21 +38,22 @@ struct AppCompletionSignal {
 /** A registered/running app instance, as tracked internally by app-module. */
 struct AppInstanceRecord {
     uint32_t id;
+    /** NULL for an instance started via app_execute() (app/execute.h; no manifest involved). */
     const AppManifest* manifest;
     AppInstanceState state;
     /** The FreeRTOS task currently executing AppLoaderApi::run() for this instance; NULL when not running. */
     TaskHandle_t task;
 
-    /** 0 for a top-level launch (app_manager_start()). Non-zero for a modal child launched via
-     * app_manager_start_for_result() - the instance that receives this child's APP_EVENT_RESULT. */
+    /** 0 for a top-level launch (app_start()). Non-zero for a modal child launched via
+     * app_start_for_result() - the instance that receives this child's APP_EVENT_RESULT. */
     uint32_t parent_id = 0;
 
     /** This instance's completion signal - see AppCompletionSignal. Set once by
      * app_scheduler_start(), never reassigned. */
     AppCompletionSignal* completion = nullptr;
 
-    /** This instance's fd table. Constructed by start_internal() before insertion into
-     * AppLedger::instances, torn down (every open fd closed) when the instance's task exits. */
+    /** This instance's fd table. Constructed by app_manager_start_internal() before insertion
+     * into AppLedger::instances, torn down (every open fd closed) when the instance's task exits. */
     AppFdTable fd_table {};
 };
 
@@ -69,18 +70,4 @@ struct AppLedger {
 inline AppLedger& app_ledger() {
     static AppLedger ledger;
     return ledger;
-}
-
-/**
- * Frees a deep-copied argv previously built by app_manager_start_with_parameters()/app_manager_start_for_result():
- * each individually heap-allocated string, then the array itself. Safe to call with count == 0  values == nullptr (no-op).
- */
-inline void app_ledger_free_arguments(int count, char** values) {
-    if (values == nullptr) {
-        return;
-    }
-    for (int i = 0; i < count; i++) {
-        delete[] values[i];
-    }
-    delete[] values;
 }

@@ -1,5 +1,6 @@
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -28,7 +29,7 @@ void onAppPressed(lv_event_t* e) {
     // Fire-and-forget top-level navigation, same as Launcher's own app-launch buttons.
     const auto* manifest = static_cast<const ::AppManifest*>(lv_event_get_user_data(e));
     uint32_t instanceId = 0;
-    app_manager_start(manifest->id, &instanceId);
+    app_start(manifest->id, 0, nullptr, &instanceId);
 }
 
 void onBackPressed(lv_event_t* event) {

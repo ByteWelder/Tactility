@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/manager.h>
 #include <app/metadata.h>
+#include <app/private/arguments.h>
 #include <app/private/fd_table.h>
 #include <app/private/fs.h>
 #include <app/private/ledger.h>
+#include <app/private/manager_internal.h>
 #include <app/private/scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
@@ -70,65 +72,37 @@ void app_manager_for_each_manifest(AppManifestVisitorFn visitor, void* context) 
     mutex_unlock(&ledger.mutex);
 }
 
-namespace {
-
-// Deep-copies argv (argc <= 0 => NULL, matching "no parameters"). Caller passes the result to
-// app_scheduler_start(), which takes ownership regardless of outcome.
-char** copy_arguments(int argc, const char* const argv[]) {
-    if (argc <= 0) {
-        return nullptr;
+error_t app_manager_start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv_in[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
+    char** argv = app_arguments_copy(argc, argv_in);
+    if (argc > 0 && argv == nullptr) {
+        return ERROR_OUT_OF_MEMORY;
     }
-    auto* copy = new char*[argc + 1];
-    for (int i = 0; i < argc; i++) {
-        size_t length = strlen(argv[i]);
-        copy[i] = new char[length + 1];
-        memcpy(copy[i], argv[i], length + 1);
-    }
-    copy[argc] = nullptr;
-    return copy;
-}
 
-// Takes ownership of argv (already a deep copy, or NULL/argc==0) regardless of outcome -
-// app_scheduler_start() frees it on any failure path, and the spawned task frees it once its
-// run() returns. @a bindings (@a binding_count entries, may be NULL/0) are subscribed into the
-// new instance's fd table before app_scheduler_start() is called, so they're in place before its
-// task begins executing (see app_manager_start_with_streams()).
-error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
     if (binding_count != 0 && bindings == nullptr) {
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_INVALID_ARGUMENT;
     }
 
     auto& ledger = app_ledger();
 
     mutex_lock(&ledger.mutex);
-    auto manifest_iterator = ledger.manifests.find(id);
-    if (manifest_iterator == ledger.manifests.end()) {
-        mutex_unlock(&ledger.mutex);
-        app_ledger_free_arguments(argc, argv);
-        return ERROR_NOT_FOUND;
-    }
-    const AppManifest* manifest = manifest_iterator->second;
-
     AppInstanceId target_id = ledger.next_instance_id++;
     AppInstanceRecord record { .id = target_id, .manifest = manifest, .state = APP_INSTANCE_STATE_STARTING, .task = nullptr };
     record.parent_id = parent_instance_id;
     ledger.instances[target_id] = record;
-    // Constructed on the map-resident copy, not the local `record` about to go out of scope.
-    // AppFdTable::fds[] entries point into AppFdTable::slots[] by address (see fd_table.h), so
-    // constructing before the copy above would leave them pointing at stack storage.
+    // Construct on the map-resident copy, not `record`: fds[] point into slots[] by address
+    // (fd_table.h), so constructing on the stack-local record would leave them dangling.
     app_fd_table_construct(&ledger.instances[target_id].fd_table);
     mutex_unlock(&ledger.mutex);
 
-    LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest->id, parent_instance_id);
+    LOG_I(TAG, "[instance %d] starting %s with parent %d", target_id, manifest != nullptr ? manifest->id : "<unregistered>", parent_instance_id);
 
     for (size_t i = 0; i < binding_count; i++) {
         error_t bind_result = app_stream_subscribe(bindings[i].stream, bindings[i].buffer, bindings[i].buffer_capacity, bindings[i].event_group, target_id, bindings[i].producer_fd);
         if (bind_result != ERROR_NONE) {
             LOG_E(TAG, "[instance %d] Failed to bind stream at fd %d: %s", target_id, bindings[i].producer_fd, error_to_string(bind_result));
-            // Undo bindings[0..i): app_fd_table_teardown() below only closes each stream. It
-            // doesn't release the event bits app_stream_subscribe() claimed or destruct
-            // stream->internal.mutex; only app_stream_unsubscribe() does that.
+            // Undo bindings[0..i): teardown() below only closes the fd, not the event bits
+            // or mutex app_stream_subscribe() claimed; only app_stream_unsubscribe() does.
             for (size_t j = 0; j < i; j++) {
                 app_stream_unsubscribe(bindings[j].stream);
             }
@@ -136,15 +110,13 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
             app_fd_table_teardown(&ledger.instances[target_id].fd_table);
             ledger.instances.erase(target_id);
             mutex_unlock(&ledger.mutex);
-            app_ledger_free_arguments(argc, argv);
+            app_arguments_free(argc, argv);
             return bind_result;
         }
     }
 
-    error_t error = app_scheduler_start(target_id, manifest->location, manifest->stack, argc, argv);
+    error_t error = app_scheduler_start(target_id, location, stack, argc, argv);
     if (error != ERROR_NONE) {
-        // Every binding succeeded before app_scheduler_start() failed. Unsubscribe all of them,
-        // same reasoning as the bind-failure path above.
         for (size_t j = 0; j < binding_count; j++) {
             app_stream_unsubscribe(bindings[j].stream);
         }
@@ -158,28 +130,6 @@ error_t start_internal(const char* id, AppInstanceId parent_instance_id, int arg
 
     *out_app_instance_id = target_id;
     return ERROR_NONE;
-}
-
-} // namespace
-
-error_t app_manager_start(const char* id, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, 0, nullptr, nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_with_parameters(const char* id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], AppInstanceId* out_app_instance_id) {
-    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), nullptr, 0, out_app_instance_id);
-}
-
-error_t app_manager_start_with_streams(const char* id, const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, 0, 0, nullptr, bindings, binding_count, out_app_instance_id);
-}
-
-error_t app_manager_start_for_result_with_streams(const char* id, AppInstanceId parent_instance_id, int argc, const char* const argv[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
-    return start_internal(id, parent_instance_id, argc, copy_arguments(argc, argv), bindings, binding_count, out_app_instance_id);
 }
 
 error_t app_manager_stop(AppInstanceId app_instance_id) {
@@ -200,8 +150,7 @@ error_t app_manager_get_topmost_instance_id(AppInstanceId* out_app_instance_id) 
     mutex_lock(&ledger.mutex);
     AppInstanceId topmost_id = 0;
     for (auto& [instance_id, record] : ledger.instances) {
-        // Instance ids are handed out in increasing order (AppLedger::next_instance_id), so
-        // the highest Active id is also the most recently started one.
+        // Ids increase monotonically, so the highest Active id is the most recent.
         if (record.state == APP_INSTANCE_STATE_ACTIVE && instance_id > topmost_id) {
             topmost_id = instance_id;
         }
@@ -230,7 +179,8 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.instances.find(topmost_id);
-    const char* app_id = (iterator != ledger.instances.end()) ? iterator->second.manifest->id : nullptr;
+    const AppManifest* manifest = (iterator != ledger.instances.end()) ? iterator->second.manifest : nullptr;
+    const char* app_id = manifest != nullptr ? manifest->id : nullptr;
     mutex_unlock(&ledger.mutex);
 
     if (app_id == nullptr) {
@@ -251,10 +201,8 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size) {
 namespace {
 
 // Owns the AppManifest (and its id/name/path strings) that app_manager_add() only keeps a
-// non-owning pointer to (see app_manager_add()'s contract), for manifests registered by
-// app_manager_install_path_scan() specifically - separate from app_install.cpp's own registry,
-// since scanning only ever adds/removes manifest registrations and never touches files on disk
-// or running instances (unlike app_install()/app_uninstall()).
+// non-owning pointer to. Separate from app_install.cpp's registry: scanning only
+// adds/removes registrations, never touches disk or running instances.
 struct ScannedAppManifest {
     std::string id;
     std::string name;
@@ -301,15 +249,15 @@ void app_manager_install_path_scan(void) {
         app_fs_list_direct_subdirectories(root, found_app_dirs);
     }
 
-    // Snapshot of what's already registered, taken once so the rest of this scan can run without holding registry.mutex
+    // Snapshot once so the rest of the scan doesn't hold registry.mutex.
     mutex_lock(&registry.mutex);
-    std::unordered_map<std::string, std::string> known_paths; // id -> path
+    std::unordered_map<std::string, std::string> known_paths;
     for (const auto& [id, record] : registry.scanned) {
         known_paths.emplace(id, record->path);
     }
     mutex_unlock(&registry.mutex);
 
-    // Stat each manifest and parse it entirely without registry.mutex held (due to filesystem IO being slow)
+    // Parses without registry.mutex held; filesystem IO is slow.
     std::vector<std::unique_ptr<ScannedAppManifest>> new_records;
     for (const auto& app_dir : found_app_dirs) {
         auto manifest_path = app_dir + "/manifest.properties";
@@ -324,7 +272,7 @@ void app_manager_install_path_scan(void) {
         }
 
         if (known_paths.contains(metadata.app_id)) {
-            continue; // already registered by an earlier scan
+            continue;
         }
 
         auto record = std::make_unique<ScannedAppManifest>();
@@ -342,7 +290,6 @@ void app_manager_install_path_scan(void) {
         new_records.push_back(std::move(record));
     }
 
-    // Anything a previous scan registered whose directory has since disappeared  gets unregistered below.
     std::vector<std::string> missing_ids;
     for (const auto& [id, path] : known_paths) {
         if (!app_fs_is_directory(path)) {
@@ -350,11 +297,9 @@ void app_manager_install_path_scan(void) {
         }
     }
 
-    // app_manager_add()/app_manager_remove() take app-module's own ledger mutex internally -
-    // calling them while holding registry.mutex would establish a registry.mutex -> ledger-
-    // mutex lock order that any future opposite-order path would deadlock against, so these
-    // also run with registry.mutex released. registry.mutex is taken only afterward, briefly,
-    // to publish the results (plain in-memory map updates, no I/O or other locks involved).
+    // app_manager_add()/remove() take the ledger mutex internally, so calling them under
+    // registry.mutex would fix a lock order an opposite-order caller could deadlock against.
+    // registry.mutex is retaken afterward only to publish the in-memory results.
     for (const auto& id : missing_ids) {
         app_manager_remove(id.c_str());
     }
@@ -391,10 +336,8 @@ error_t app_manager_install_path_uninstall(const char* app_id) {
     auto path = iterator->second->path;
     mutex_unlock(&registry.mutex);
 
-    // Stop every running instance that retains this manifest pointer, mirroring
-    // stop_all_instances_of() in app_install.cpp.  Collect under ledger.mutex,
-    // then call app_manager_stop() outside it (that call bound-joins the
-    // instance's thread, which itself takes ledger.mutex in its thread_main).
+    // Mirrors stop_all_instances_of() in app_install.cpp. Collect under ledger.mutex, stop
+    // outside it: app_manager_stop() bound-joins the thread, which itself takes ledger.mutex.
     std::vector<uint32_t> instance_ids;
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
@@ -409,14 +352,12 @@ error_t app_manager_install_path_uninstall(const char* app_id) {
         app_manager_stop(id);
     }
 
-    // app_manager_remove takes ledger.mutex internally - call outside both
-    // registry.mutex and ledger.mutex to match the lock ordering in
-    // app_manager_install_path_scan().
+    // app_manager_remove() takes ledger.mutex; call outside registry.mutex too, matching
+    // the lock order in app_manager_install_path_scan().
     app_manager_remove(app_id);
 
-    // Every instance has stopped and the manifest is unregistered — safe to
-    // delete the on-disk directory.  Delete before erasing the scan record so
-    // that a failed deletion leaves the entry discoverable for a retry.
+    // Delete before erasing the scan record, so a failed deletion still leaves the
+    // entry discoverable for a retry.
     if (!app_fs_delete_recursively(path)) {
         return ERROR_RESOURCE;
     }

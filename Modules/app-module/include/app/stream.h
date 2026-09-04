@@ -37,7 +37,7 @@ struct AppStream {
     AppInstanceId producer_id;
     TaskHandle_t producer_task;
     /** fd this stream is installed at in producer_id's fd table; set by
-     * app_stream_subscribe()/app_manager_start_with_streams(), used by
+     * app_stream_subscribe()/app_start_with_streams(), used by
      * app_stream_unsubscribe() to find it again. */
     int producer_fd;
 

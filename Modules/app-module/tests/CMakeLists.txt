@@ -12,7 +12,7 @@ if (NOT APPLE)
     target_sources(AppModuleTests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../../../Tactility/Source/AppStdioWrap.cpp)
 endif ()
 
-target_include_directories(AppModuleTests PRIVATE ${DOCTESTINC})
+target_include_directories(AppModuleTests PRIVATE ${DOCTESTINC} ${CMAKE_CURRENT_LIST_DIR}/../private)
 
 add_test(NAME AppModuleTests COMMAND AppModuleTests)
 

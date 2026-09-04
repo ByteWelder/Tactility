@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/instance.h>
 #include <app/loader.h>
+#include <app/private/arguments.h>
 #include <app/private/event.h>
 #include <app/private/fd_table.h>
 #include <app/private/ledger.h>
@@ -101,7 +102,7 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
     auto iterator = ledger.instances.find(app_instance_id);
     if (iterator != ledger.instances.end()) {
         iterator->second.task = task;
-        // Streams bound before this instance's task existed (app_manager_start_with_streams())
+        // Streams bound before this instance's task existed (app_start_with_streams())
         // only got producer_task filled in as NULL at subscribe time. Backfill it now.
         AppFdTable& fd_table = iterator->second.fd_table;
         for (auto& slot : fd_table.slots) {
@@ -168,7 +169,7 @@ const AppLoaderApi* find_loader_api(AppLocationType type) {
     return static_cast<const AppLoaderApi*>(service_instance_get_data(instance));
 }
 
-// If this instance was launched via app_manager_start_for_result(), delivers @a result (its
+// If this instance was launched via app_start_for_result(), delivers @a result (its
 // own AppMainFn/AppLoaderApi::run() return value) to its parent. No-op for a top-level instance
 // (parent_id == 0).
 void deliver_result_to_parent_if_any(AppInstanceId app_instance_id, int32_t result) {
@@ -223,7 +224,7 @@ void app_task_main(void* context) {
     // response to APP_EVENT_CLOSE.
     set_state(ctx->app_instance_id, APP_INSTANCE_STATE_STOPPED);
 
-    app_ledger_free_arguments(ctx->argc, ctx->argv);
+    app_arguments_free(ctx->argc, ctx->argv);
 
     AppInstanceId app_instance_id = ctx->app_instance_id;
     AppCompletionSignal* completion = ctx->completion;
@@ -274,7 +275,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     const AppLoaderApi* loader = find_loader_api(location.type);
     if (loader == nullptr) {
         LOG_E(TAG, "[instance %lu] No app loader is registered (service '%s' not found)", app_instance_id, loader_service_id_for(location.type));
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_NOT_FOUND;
     }
 
@@ -282,7 +283,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     error_t load_result = loader->load(location, &runtime);
     if (load_result != ERROR_NONE) {
         LOG_E(TAG, "[instance %lu] Failed to load app: %s", app_instance_id, error_to_string(load_result));
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return load_result;
     }
 
@@ -290,7 +291,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     if (completion == nullptr) {
         LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
     completion->semaphore = xSemaphoreCreateBinary();
@@ -298,7 +299,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         LOG_E(TAG, "[instance %lu] Failed to allocate app", app_instance_id);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
 
@@ -309,7 +310,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_INVALID_ARGUMENT;
     }
 
@@ -335,7 +336,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
 
@@ -346,7 +347,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
 #else
@@ -374,7 +375,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
 
@@ -401,7 +402,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         vSemaphoreDelete(completion->semaphore);
         delete completion;
         loader->unload(runtime);
-        app_ledger_free_arguments(argc, argv);
+        app_arguments_free(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
     vTaskSuspend(task_handle);

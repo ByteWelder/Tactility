@@ -24,8 +24,8 @@ struct AppResultEventData {
     uint32_t launch_id;
     /** The child app instance's own AppMainFn/AppLoaderApi::run() return value. By convention:
      * 0 = Ok, 1 = Cancelled, 2 = Error. Apps that need to hand back more than this (e.g. picked
-     * text, a path) expose their own "get last result" getter instead - see e.g.
-     * tt::app::inputdialog::getLastText(). */
+     * text, a path) write it to their own stdout instead, for the caller to read via an
+     * AppStream bound to it. See e.g. tt::app::inputdialog::start(). */
     int32_t result;
 };
 

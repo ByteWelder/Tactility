@@ -1,5 +1,7 @@
-#include <app/install.h>
 #include <app/event.h>
+#include <app/execute.h>
+#include <app/install.h>
+#include <app/stream.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
@@ -102,9 +104,19 @@ static void onPastePressedCallback(lv_event_t* event) {
     view->onPastePressed();
 }
 
+static void onRunPressedCallback(lv_event_t* event) {
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    view->onRunPressed();
+}
+
 // endregion
 
 // region File helpers
+
+static bool isExecutablePath(const std::string& path) {
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(path.c_str()) };
+    return app_is_executable(location);
+}
 
 static bool copyFileContents(const std::string& src, const std::string& dst) {
     FILE* in = fopen(src.c_str(), "rb");
@@ -192,11 +204,30 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             // Remove forward slash, because we need a relative path
             notes::start(file_path.substr(1));
         }
+    } else if (isExecutablePath(file_path)) {
+        runFile(file_path);
     } else {
         LOG_W(TAG, "Opening files of this type is not supported");
     }
 
     onNavigate();
+}
+
+void View::runFile(const std::string& file_path) {
+    LOG_I(TAG, "Running %s", file_path.c_str());
+
+    if (!isExecutablePath(file_path)) {
+        LOG_W(TAG, "Not executable: %s", file_path.c_str());
+        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+        return;
+    }
+
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(file_path.c_str()) };
+    AppInstanceId instance_id = 0;
+    if (app_execute(location, AppStackConfig {}, 0, nullptr, &instance_id) != ERROR_NONE) {
+        LOG_W(TAG, "Failed to run %s", file_path.c_str());
+        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+    }
 }
 
 bool View::resolveDirentFromListIndex(int32_t list_index, dirent& out_entry) {
@@ -287,6 +318,8 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
         symbol = LV_SYMBOL_IMAGE;
     } else if (dir_entry.d_type == file::TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
+    } else if (isExecutablePath(file::getChildPath(state->getCurrentPath(), dir_entry.d_name))) {
+        symbol = LV_SYMBOL_PLAY;
     } else {
         symbol = LV_SYMBOL_FILE;
     }
@@ -346,7 +379,7 @@ void View::onRenamePressed() {
     std::string entry_name = state->getSelectedChildEntry();
     LOG_I(TAG, "Pending rename %s", entry_name.c_str());
     state->setPendingAction(State::ActionRename);
-    inputdialog::start(appInstanceId, "Rename", "", entry_name);
+    inputdialog::start(appInstanceId, "Rename", "", entry_name, inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
 void View::onDeletePressed() {
@@ -361,18 +394,16 @@ void View::onDeletePressed() {
 void View::onNewFilePressed() {
     LOG_I(TAG, "Creating new file");
     state->setPendingAction(State::ActionCreateFile);
-    inputdialog::start(appInstanceId, "New File", "Enter filename:", "");
+    inputdialog::start(appInstanceId, "New File", "Enter filename:", "", inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
 void View::onNewFolderPressed() {
     LOG_I(TAG, "Creating new folder");
     state->setPendingAction(State::ActionCreateFolder);
-    inputdialog::start(appInstanceId, "New Folder", "Enter folder name:", "");
+    inputdialog::start(appInstanceId, "New Folder", "Enter folder name:", "", inputDialogStream, inputDialogBuffer, sizeof(inputDialogBuffer), eventGroup);
 }
 
-void View::showActions() {
-    lv_obj_clean(action_list);
-
+void View::addCommonFileActions() {
     auto* copy_button = lv_list_add_button(action_list, LV_SYMBOL_COPY, "Copy");
     lv_obj_add_event_cb(copy_button, onCopyPressedCallback, LV_EVENT_SHORT_CLICKED, this);
     auto* cut_button = lv_list_add_button(action_list, LV_SYMBOL_CUT, "Cut");
@@ -381,12 +412,27 @@ void View::showActions() {
     lv_obj_add_event_cb(rename_button, onRenamePressedCallback, LV_EVENT_SHORT_CLICKED, this);
     auto* delete_button = lv_list_add_button(action_list, LV_SYMBOL_TRASH, "Delete");
     lv_obj_add_event_cb(delete_button, onDeletePressedCallback, LV_EVENT_SHORT_CLICKED, this);
+}
 
+void View::showActions() {
+    lv_obj_clean(action_list);
+    addCommonFileActions();
     lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
 }
 
 void View::showActionsForDirectory() { showActions(); }
-void View::showActionsForFile() { showActions(); }
+
+void View::showActionsForFile() {
+    lv_obj_clean(action_list);
+
+    if (isExecutablePath(state->getSelectedChildPath())) {
+        auto* run_button = lv_list_add_button(action_list, LV_SYMBOL_PLAY, "Run");
+        lv_obj_add_event_cb(run_button, onRunPressedCallback, LV_EVENT_SHORT_CLICKED, this);
+    }
+
+    addCommonFileActions();
+    lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+}
 
 void View::showActionsForMountPoint() {
     lv_obj_clean(action_list);
@@ -395,6 +441,12 @@ void View::showActionsForMountPoint() {
     lv_obj_add_event_cb(eject_button, onEjectPressedCallback, LV_EVENT_SHORT_CLICKED, this);
 
     lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+}
+
+void View::onRunPressed() {
+    std::string file_path = state->getSelectedChildPath();
+    onNavigate();
+    runFile(file_path);
 }
 
 void View::onEjectPressed() {
@@ -546,10 +598,21 @@ void View::onResult(uint32_t launchId, int32_t result) {
     std::string filepath = state->getSelectedChildPath();
     LOG_I(TAG, "Result for %s", filepath.c_str());
 
-    // Text-entry result (rename/new file/new folder); empty for Cancel, or for a dialog that
-    // doesn't produce text (delete/paste confirmations) - those switch cases below only look at
-    // `result`, not this.
-    std::string resultText = (result == 0) ? inputdialog::getLastText() : std::string();
+    // Text-entry result (rename/new file/new folder), read from the AppStream bound to that
+    // dialog's stdout. Empty for Cancel. Other pending actions (delete/paste confirmations) never
+    // bound this stream; their switch cases below only look at `result`, not `resultText`.
+    bool isTextEntryAction = state->getPendingAction() == State::ActionRename ||
+        state->getPendingAction() == State::ActionCreateFile ||
+        state->getPendingAction() == State::ActionCreateFolder;
+    std::string resultText;
+    if (isTextEntryAction) {
+        if (result == 0) {
+            char buffer[sizeof(inputDialogBuffer)];
+            size_t length = app_stream_read(&inputDialogStream, buffer, sizeof(buffer));
+            resultText = std::string(buffer, length);
+        }
+        app_stream_unsubscribe(&inputDialogStream);
+    }
 
     switch (state->getPendingAction()) {
         case State::ActionDelete: {

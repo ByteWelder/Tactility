@@ -3,6 +3,7 @@
 #include <sdkconfig.h>
 #endif
 
+#include <app/elf_check.h>
 #include <app/loader.h>
 #include <app/location.h>
 
@@ -72,6 +73,27 @@ std::string resolve_elf_path(const std::string& path) {
     return path + "/elf/" + CONFIG_IDF_TARGET + ".elf";
 }
 
+constexpr ElfRequirements EXECUTABLE_REQUIREMENTS = {
+    .elf_class = ELF_CLASS_32,
+    .data = ELF_DATA_2LSB,
+    .type = ELF_TYPE_DYN,
+#if defined(__XTENSA__)
+    .machine = ELF_MACHINE_XTENSA,
+#elif defined(__riscv)
+    .machine = ELF_MACHINE_RISCV,
+#else
+#error "Unsupported ESP32 architecture for ELF machine check"
+#endif
+};
+
+// Validates an already-resolved binary path (see resolve_elf_path()) before it's handed to
+// esp_elf_relocate(), which performs no header validation of its own: the extension check is a
+// cheap string comparison, so the file is only opened as a last resort.
+bool is_executable_file(const std::string& resolved_path) {
+    return resolved_path.ends_with(".elf")
+        && elf_check_file(resolved_path.c_str(), &EXECUTABLE_REQUIREMENTS);
+}
+
 error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     if (location.type != APP_LOCATION_PATH) {
         LOG_E(TAG, "Out of memory");
@@ -87,6 +109,12 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     }
 
     auto elf_path = resolve_elf_path(static_cast<const char*>(location.location));
+
+    if (!is_executable_file(elf_path)) {
+        LOG_E(TAG, "Not executable: %s", elf_path.c_str());
+        delete runtime;
+        return ERROR_NOT_ALLOWED;
+    }
 
     size_t size = 0;
     error_t read_result = read_file(elf_path.c_str(), &runtime->file_data, &size);
@@ -127,10 +155,20 @@ void api_unload(AppRuntime runtime_ptr) {
     delete runtime;
 }
 
+bool api_is_executable(AppLocation location) {
+    if (location.type != APP_LOCATION_PATH) {
+        return false;
+    }
+
+    auto elf_path = resolve_elf_path(static_cast<const char*>(location.location));
+    return is_executable_file(elf_path);
+}
+
 AppLoaderApi loader_api = {
     .load = api_load,
     .run = api_run,
     .unload = api_unload,
+    .is_executable = api_is_executable,
 };
 
 void* create_service(const ServiceManifest*) {

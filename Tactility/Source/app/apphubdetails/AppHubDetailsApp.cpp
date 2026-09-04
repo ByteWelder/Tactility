@@ -9,6 +9,7 @@
 #include <app/install.h>
 #include <app/metadata.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -351,7 +352,7 @@ void start(const apphub::AppHubEntry& entry) {
         argv.push_back(platform.c_str());
     }
     uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, /*parent_instance_id=*/0, static_cast<int>(argv.size()), argv.data(), &instanceId);
+    app_start_for_result(manifest.id, static_cast<int>(argv.size()), argv.data(), /*parent_instance_id=*/0, &instanceId);
 }
 
 extern const ::AppManifest manifest = {

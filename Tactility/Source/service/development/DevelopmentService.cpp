@@ -2,6 +2,7 @@
 
 #include <app/install.h>
 #include <app/manager.h>
+#include <app/start.h>
 
 #include <tactility/log.h>
 
@@ -113,7 +114,7 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
         }
     }
 
-    app_manager_start(id_key_pos->second.c_str(), &instance_id);
+    app_start(id_key_pos->second.c_str(), 0, nullptr, &instance_id);
 
     LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
     httpd_resp_send(request, nullptr, 0);

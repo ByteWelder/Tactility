@@ -2,8 +2,10 @@
 #include "doctest.h"
 
 #include <app/event.h>
+#include <app/execute.h>
 #include <app/loader.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/scheduler.h>
 
 #include <service/manager.h>
@@ -11,6 +13,7 @@
 #include <tactility/delay.h>
 
 #include <atomic>
+#include <string>
 
 extern ServiceManifest loader_service_manifest;              // app-posix-module's own
 extern ServiceManifest app_internal_loader_service_manifest; // app-module's real memory loader
@@ -29,6 +32,13 @@ void ensure_memory_loader_registered() {
     }
 }
 
+std::string directory_of(const std::string& path) {
+    auto slash = path.find_last_of('/');
+    return slash == std::string::npos ? "." : path.substr(0, slash);
+}
+
+const std::string FIXTURE_DIR = directory_of(FIXTURE_APP_PATH);
+
 bool wait_for_state(AppInstanceId id, AppInstanceState target, uint32_t timeout_ms) {
     uint32_t waited = 0;
     while (waited < timeout_ms) {
@@ -39,6 +49,11 @@ bool wait_for_state(AppInstanceId id, AppInstanceState target, uint32_t timeout_
         waited += 10;
     }
     return app_manager_get_state(id) == target;
+}
+
+bool is_executable_path(const char* path) {
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(path) };
+    return app_is_executable(location);
 }
 
 std::atomic<int32_t> g_fixture_result { -1 };
@@ -62,7 +77,7 @@ int32_t parent_app_main(int, char*[]) {
     app_manager_add(&fixture_manifest);
 
     AppInstanceId fixture_id = 0;
-    app_manager_start_for_result("test.posix.fixture", self_id, 0, nullptr, &fixture_id);
+    app_start_for_result("test.posix.fixture", 0, nullptr, self_id, &fixture_id);
 
     while (true) {
         if (task_event_group_wait_any(&event_group, nullptr, pdMS_TO_TICKS(5000)) != ERROR_NONE) {
@@ -100,7 +115,7 @@ TEST_CASE("app-posix-module's loader-path service dlopen()s a .so and calls its 
     REQUIRE_EQ(app_manager_add(&parent_manifest), ERROR_NONE);
 
     AppInstanceId parent_id = 0;
-    REQUIRE_EQ(app_manager_start("test.posix.parent", &parent_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.posix.parent", 0, nullptr, &parent_id), ERROR_NONE);
     REQUIRE(wait_for_state(parent_id, APP_INSTANCE_STATE_STOPPED, 3000));
 
     CHECK(g_fixture_result_received.load(std::memory_order_acquire));
@@ -110,4 +125,29 @@ TEST_CASE("app-posix-module's loader-path service dlopen()s a .so and calls its 
     CHECK_GT(g_fixture_result.load(std::memory_order_acquire), 0);
 
     app_manager_remove("test.posix.parent");
+}
+
+TEST_CASE("app_is_executable() accepts a real .so") {
+    ensure_path_loader_registered();
+
+    CHECK(is_executable_path(FIXTURE_APP_PATH));
+}
+
+TEST_CASE("app_is_executable() rejects a .so-named file with no ELF header") {
+    ensure_path_loader_registered();
+
+    CHECK_FALSE(is_executable_path(FIXTURE_NON_ELF_PATH));
+}
+
+TEST_CASE("app_is_executable() rejects a nonexistent path") {
+    ensure_path_loader_registered();
+
+    CHECK_FALSE(is_executable_path((FIXTURE_DIR + "/does-not-exist.so").c_str()));
+}
+
+TEST_CASE("app_is_executable() rejects an install-directory-shaped path missing its per-arch .so") {
+    ensure_path_loader_registered();
+
+    // FIXTURE_DIR itself has no elf/posix-<arch>.so under it, so resolution fails.
+    CHECK_FALSE(is_executable_path(FIXTURE_DIR.c_str()));
 }

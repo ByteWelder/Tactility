@@ -5,6 +5,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -206,7 +207,7 @@ int32_t appMain(int argc, char* argv[]) {
 
 uint32_t start() {
     uint32_t instanceId = 0;
-    app_manager_start(manifest.id, &instanceId);
+    app_start(manifest.id, 0, nullptr, &instanceId);
     return instanceId;
 }
 

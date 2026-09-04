@@ -4,6 +4,7 @@
 #include <app/event.h>
 #include <app/loader.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/scheduler.h>
 #include <app/stream.h>
 
@@ -75,7 +76,7 @@ AppInstanceId start_idle_app(const char* id) {
     AppManifest manifest { id, id, APP_CATEGORY_USER, { APP_LOCATION_MEMORY, reinterpret_cast<void*>(idle_app_main) } };
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
     AppInstanceId instance_id = 0;
-    REQUIRE_EQ(app_manager_start(id, &instance_id), ERROR_NONE);
+    REQUIRE_EQ(app_start(id, 0, nullptr, &instance_id), ERROR_NONE);
     REQUIRE(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
     return instance_id;
 }

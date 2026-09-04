@@ -3,6 +3,7 @@
 #include <app/event.h>
 #include <app/loader.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/scheduler.h>
 
 #include <service/manager.h>
@@ -53,7 +54,7 @@ void stash_received_arguments(int argc, char* argv[]) {
 // A minimal stand-in for a real app's main(): subscribes to its own app_event stream and exits
 // as soon as it's asked to close - exactly the contract every app instance (with its own
 // dedicated task for its whole lifetime) is expected to follow. If launched with a single
-// parameter (app_manager_start_for_result()), acts as a modal dialog instead: returns the
+// parameter (app_start_for_result()), acts as a modal dialog instead: returns the
 // requested result (argv[0], parsed as an int) immediately (the app's own return value IS the
 // delivered APP_EVENT_RESULT.result - see app_scheduler.cpp's thread_main()).
 int32_t fake_run(void*, uint32_t /*app_instance_id*/, int argc, char* argv[]) {
@@ -118,11 +119,13 @@ ServiceManifest fake_loader_manifest = {
     .on_stop = nullptr,
 };
 
+// Checks the registry directly rather than a per-translation-unit static bool, matching
+// ensure_memory_loader_registered() below - this is the only file that registers a fake path
+// loader, but a second one would silently win the race otherwise (see execute_test.cpp, which
+// deliberately avoids needing one at all for exactly this reason).
 void ensure_fake_loader_registered() {
-    static bool registered = false;
-    if (!registered) {
-        CHECK_EQ(service_manager_add(&fake_loader_manifest, /*auto_start=*/true), ERROR_NONE);
-        registered = true;
+    if (service_manager_find_instance(APP_LOADER_PATH_SERVICE_ID) == nullptr) {
+        service_manager_add(&fake_loader_manifest, /*auto_start=*/true);
     }
 }
 
@@ -175,14 +178,14 @@ bool wait_for_arguments_stashed(uint32_t timeout_ms) {
 
 } // namespace
 
-TEST_CASE("app_manager_start activates an app instance, app_manager_stop terminates it") {
+TEST_CASE("app_start activates an app instance, app_manager_stop terminates it") {
     ensure_fake_loader_registered();
 
     AppManifest manifest { "test.app.a", "Test App A", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t instance_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.a", &instance_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.a", 0, nullptr, &instance_id), ERROR_NONE);
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
@@ -191,7 +194,7 @@ TEST_CASE("app_manager_start activates an app instance, app_manager_stop termina
     app_manager_remove("test.app.a");
 }
 
-TEST_CASE("app_manager_start never touches another already-running app - every instance gets its own task") {
+TEST_CASE("app_start never touches another already-running app - every instance gets its own task") {
     ensure_fake_loader_registered();
 
     AppManifest manifest_b { "test.app.b", "Test App B", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
@@ -200,11 +203,11 @@ TEST_CASE("app_manager_start never touches another already-running app - every i
     REQUIRE_EQ(app_manager_add(&manifest_c), ERROR_NONE);
 
     uint32_t id_b = 0;
-    REQUIRE_EQ(app_manager_start("test.app.b", &id_b), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.b", 0, nullptr, &id_b), ERROR_NONE);
     CHECK(wait_for_state(id_b, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     uint32_t id_c = 0;
-    REQUIRE_EQ(app_manager_start("test.app.c", &id_c), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.c", 0, nullptr, &id_c), ERROR_NONE);
     CHECK(wait_for_state(id_c, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     // b is untouched by c starting - both stay Active at once, each with its own task.
@@ -216,18 +219,18 @@ TEST_CASE("app_manager_start never touches another already-running app - every i
     app_manager_remove("test.app.c");
 }
 
-TEST_CASE("app_manager_start always creates a fresh instance, even for the same manifest id twice") {
+TEST_CASE("app_start always creates a fresh instance, even for the same manifest id twice") {
     ensure_fake_loader_registered();
 
     AppManifest manifest { "test.app.twice", "Test App Twice", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t id_first = 0;
-    REQUIRE_EQ(app_manager_start("test.app.twice", &id_first), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.twice", 0, nullptr, &id_first), ERROR_NONE);
     CHECK(wait_for_state(id_first, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     uint32_t id_second = 0;
-    REQUIRE_EQ(app_manager_start("test.app.twice", &id_second), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.twice", 0, nullptr, &id_second), ERROR_NONE);
     CHECK(wait_for_state(id_second, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     CHECK_NE(id_first, id_second);
@@ -242,7 +245,7 @@ TEST_CASE("app_manager_get_state returns STOPPED for an unknown instance id") {
     CHECK_EQ(app_manager_get_state(999999), APP_INSTANCE_STATE_STOPPED);
 }
 
-TEST_CASE("app_manager_start_with_parameters deep-copies argv before the app instance receives it") {
+TEST_CASE("app_start_with_parameters deep-copies argv before the app instance receives it") {
     ensure_fake_loader_registered();
 
     AppManifest manifest { "test.app.args", "Test App Args", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
@@ -256,7 +259,7 @@ TEST_CASE("app_manager_start_with_parameters deep-copies argv before the app ins
         std::string ssid = "MyNetwork";
         std::string password = "hunter2";
         const char* argv[] = { ssid.c_str(), password.c_str() };
-        REQUIRE_EQ(app_manager_start_with_parameters("test.app.args", 2, argv, &instance_id), ERROR_NONE);
+        REQUIRE_EQ(app_start("test.app.args", 2, argv, &instance_id), ERROR_NONE);
     }
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
     REQUIRE(wait_for_arguments_stashed(1000));
@@ -301,12 +304,12 @@ TEST_CASE("app_manager_for_each_manifest visits every registered manifest, inclu
     CHECK(std::ranges::find(seen_ids, "test.app.foreach.x") == seen_ids.end());
 }
 
-TEST_CASE("app_manager_start fails for an unregistered manifest id") {
+TEST_CASE("app_start fails for an unregistered manifest id") {
     uint32_t instance_id = 0;
-    CHECK_EQ(app_manager_start("test.app.nonexistent", &instance_id), ERROR_NOT_FOUND);
+    CHECK_EQ(app_start("test.app.nonexistent", 0, nullptr, &instance_id), ERROR_NOT_FOUND);
 }
 
-TEST_CASE("app_manager_start runs an APP_LOCATION_MEMORY app via its function pointer, through the real internal loader") {
+TEST_CASE("app_start runs an APP_LOCATION_MEMORY app via its function pointer, through the real internal loader") {
     ensure_memory_loader_registered();
 
     AppManifest manifest {
@@ -318,7 +321,7 @@ TEST_CASE("app_manager_start runs an APP_LOCATION_MEMORY app via its function po
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t instance_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.memory", &instance_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.memory", 0, nullptr, &instance_id), ERROR_NONE);
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
@@ -327,7 +330,7 @@ TEST_CASE("app_manager_start runs an APP_LOCATION_MEMORY app via its function po
     app_manager_remove("test.app.memory");
 }
 
-TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent, which stays Active throughout") {
+TEST_CASE("app_start_for_result delivers APP_EVENT_RESULT to the parent, which stays Active throughout") {
     ensure_fake_loader_registered();
 
     AppManifest parent_manifest { "test.app.parent", "Parent", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
@@ -336,7 +339,7 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
     REQUIRE_EQ(app_manager_add(&child_manifest), ERROR_NONE);
 
     uint32_t parent_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.parent", &parent_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.parent", 0, nullptr, &parent_id), ERROR_NONE);
     CHECK(wait_for_state(parent_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     TaskEventGroup parent_event_group {};
@@ -347,7 +350,7 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
 
     const char* argv[] = { "42" };
     uint32_t child_id = 0;
-    REQUIRE_EQ(app_manager_start_for_result("test.app.child", parent_id, 1, argv, &child_id), ERROR_NONE);
+    REQUIRE_EQ(app_start_for_result("test.app.child", 1, argv, parent_id, &child_id), ERROR_NONE);
 
     // Launching a modal child never touches the parent's own task/state.
     CHECK_EQ(app_manager_get_state(parent_id), APP_INSTANCE_STATE_ACTIVE);
@@ -367,7 +370,7 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
     app_manager_remove("test.app.child");
 }
 
-TEST_CASE("app_manager_start_for_result delivers the child's own return value as the result") {
+TEST_CASE("app_start_for_result delivers the child's own return value as the result") {
     ensure_fake_loader_registered();
 
     AppManifest parent_manifest { "test.app.parent2", "Parent2", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
@@ -376,7 +379,7 @@ TEST_CASE("app_manager_start_for_result delivers the child's own return value as
     REQUIRE_EQ(app_manager_add(&child_manifest), ERROR_NONE);
 
     uint32_t parent_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.parent2", &parent_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.parent2", 0, nullptr, &parent_id), ERROR_NONE);
     CHECK(wait_for_state(parent_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     TaskEventGroup parent_event_group {};
@@ -388,7 +391,7 @@ TEST_CASE("app_manager_start_for_result delivers the child's own return value as
     uint32_t child_id = 0;
     // No parameters - fake_run falls through to its normal CLOSE loop instead of acting as a
     // dialog.
-    REQUIRE_EQ(app_manager_start_for_result("test.app.child2", parent_id, 0, nullptr, &child_id), ERROR_NONE);
+    REQUIRE_EQ(app_start_for_result("test.app.child2", 0, nullptr, parent_id, &child_id), ERROR_NONE);
     CHECK(wait_for_state(child_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     app_manager_stop(child_id); // force-close
@@ -418,14 +421,14 @@ TEST_CASE("app_manager_get_topmost_instance_id returns NOT_FOUND when nothing is
     REQUIRE_EQ(app_manager_add(&manifest_b), ERROR_NONE);
 
     uint32_t id_a = 0;
-    REQUIRE_EQ(app_manager_start("test.app.top_a", &id_a), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.top_a", 0, nullptr, &id_a), ERROR_NONE);
     CHECK(wait_for_state(id_a, APP_INSTANCE_STATE_ACTIVE, 1000));
     CHECK_EQ(topmost_instance_id(), id_a);
 
     // a stays Active - b just has a higher (more recently allocated) instance id, so it becomes
     // topmost without a superseding/saving.
     uint32_t id_b = 0;
-    REQUIRE_EQ(app_manager_start("test.app.top_b", &id_b), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.top_b", 0, nullptr, &id_b), ERROR_NONE);
     CHECK(wait_for_state(id_b, APP_INSTANCE_STATE_ACTIVE, 1000));
     CHECK_EQ(topmost_instance_id(), id_b);
 
@@ -438,7 +441,7 @@ TEST_CASE("app_manager_get_topmost_instance_id returns NOT_FOUND when nothing is
     // its persistent CLOSE loop branch instead of instantly resolving like a real dialog would -
     // needed here so there's a reliable window to observe it as topmost.
     uint32_t id_c = 0;
-    REQUIRE_EQ(app_manager_start_for_result("test.app.top_a", id_b, 0, nullptr, &id_c), ERROR_NONE);
+    REQUIRE_EQ(app_start_for_result("test.app.top_a", 0, nullptr, id_b, &id_c), ERROR_NONE);
     CHECK(wait_for_state(id_c, APP_INSTANCE_STATE_ACTIVE, 1000));
     CHECK_EQ(topmost_instance_id(), id_c);
 
@@ -451,7 +454,7 @@ TEST_CASE("app_manager_get_topmost_instance_id returns NOT_FOUND when nothing is
     app_manager_remove("test.app.top_b");
 }
 
-TEST_CASE("app_manager_start honors a custom AppManifest::stack.depth") {
+TEST_CASE("app_start honors a custom AppManifest::stack.depth") {
     ensure_fake_loader_registered();
 
     AppManifest manifest { "test.app.stack.custom", "Stack Custom", APP_CATEGORY_USER, { APP_LOCATION_PATH, nullptr } };
@@ -459,7 +462,7 @@ TEST_CASE("app_manager_start honors a custom AppManifest::stack.depth") {
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t instance_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.stack.custom", &instance_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.stack.custom", 0, nullptr, &instance_id), ERROR_NONE);
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
@@ -468,7 +471,7 @@ TEST_CASE("app_manager_start honors a custom AppManifest::stack.depth") {
     app_manager_remove("test.app.stack.custom");
 }
 
-TEST_CASE("app_manager_start still works when AppManifest::stack is left at its zero-value default") {
+TEST_CASE("app_start still works when AppManifest::stack is left at its zero-value default") {
     ensure_fake_loader_registered();
 
     // stack.depth == 0 - app_scheduler_start() must fall back to its own default stack depth
@@ -478,7 +481,7 @@ TEST_CASE("app_manager_start still works when AppManifest::stack is left at its 
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t instance_id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.stack.default", &instance_id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.stack.default", 0, nullptr, &instance_id), ERROR_NONE);
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     CHECK_EQ(app_manager_stop(instance_id), ERROR_NONE);
@@ -498,7 +501,7 @@ TEST_CASE("app_manager_get_topmost_app_id returns BUFFER_OVERFLOW for a too-smal
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t id = 0;
-    REQUIRE_EQ(app_manager_start("test.app.top_overflow", &id), ERROR_NONE);
+    REQUIRE_EQ(app_start("test.app.top_overflow", 0, nullptr, &id), ERROR_NONE);
     CHECK(wait_for_state(id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
     // "test.app.top_overflow" doesn't fit in a 4-byte buffer.

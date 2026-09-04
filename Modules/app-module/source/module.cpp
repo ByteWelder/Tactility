@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
+#include <app/execute.h>
 #include <app/install.h>
 #include <app/io.h>
 #include <app/manager.h>
@@ -7,11 +8,11 @@
 #include <app/metadata.h>
 #include <app/paths.h>
 #include <app/scheduler.h>
+#include <app/start.h>
 #include <app/stream.h>
 
 #include <service/manager.h>
 
-#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
 #include <tactility/module.h>
 
@@ -25,6 +26,12 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_event_subscribe_with_app_id),
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_poll),
+    // app/execute
+    DEFINE_MODULE_SYMBOL(app_execute),
+    DEFINE_MODULE_SYMBOL(app_execute_for_result),
+    DEFINE_MODULE_SYMBOL(app_execute_with_streams),
+    DEFINE_MODULE_SYMBOL(app_execute_for_result_with_streams),
+    DEFINE_MODULE_SYMBOL(app_is_executable),
     // app/install
     DEFINE_MODULE_SYMBOL(app_get_install_path),
     DEFINE_MODULE_SYMBOL(app_install),
@@ -34,11 +41,6 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_io_write),
     DEFINE_MODULE_SYMBOL(app_io_close),
     // app/manager
-    DEFINE_MODULE_SYMBOL(app_manager_start),
-    DEFINE_MODULE_SYMBOL(app_manager_start_with_parameters),
-    DEFINE_MODULE_SYMBOL(app_manager_start_for_result),
-    DEFINE_MODULE_SYMBOL(app_manager_start_with_streams),
-    DEFINE_MODULE_SYMBOL(app_manager_start_for_result_with_streams),
     DEFINE_MODULE_SYMBOL(app_manager_stop),
     DEFINE_MODULE_SYMBOL(app_manager_get_state),
     DEFINE_MODULE_SYMBOL(app_manager_find_manifest),
@@ -50,6 +52,11 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_uninstall),
+    // app/start
+    DEFINE_MODULE_SYMBOL(app_start),
+    DEFINE_MODULE_SYMBOL(app_start_for_result),
+    DEFINE_MODULE_SYMBOL(app_start_with_streams),
+    DEFINE_MODULE_SYMBOL(app_start_for_result_with_streams),
     // app/manifest
     DEFINE_MODULE_SYMBOL(app_id_is_valid),
     // app/metadata

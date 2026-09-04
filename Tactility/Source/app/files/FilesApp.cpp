@@ -31,11 +31,12 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
     auto state = std::make_shared<State>();
-    View view(state);
-    CreateContext createContext { &view, appInstanceId };
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+
+    View view(state, &event_group);
+    CreateContext createContext { &view, appInstanceId };
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);

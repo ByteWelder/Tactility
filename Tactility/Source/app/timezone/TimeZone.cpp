@@ -8,6 +8,7 @@
 
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -273,7 +274,7 @@ int32_t appMain(int argc, char* argv[]) {
 uint32_t start(uint32_t callerAppInstanceId, bool saveTimeZone) {
     const char* argv[] = { saveTimeZone ? "1" : "0" };
     uint32_t instanceId = 0;
-    app_manager_start_for_result(manifest.id, callerAppInstanceId, 1, argv, &instanceId);
+    app_start_for_result(manifest.id, 1, argv, callerAppInstanceId, &instanceId);
     return instanceId;
 }
 

@@ -1,5 +1,6 @@
 #include <app/event.h>
 #include <app/manager.h>
+#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 
@@ -45,7 +46,7 @@ int32_t computeButtonMargin(int32_t available_span, int32_t total_button_size) {
 void onAppPressed(lv_event_t* e) {
     auto* appId = static_cast<const char*>(lv_event_get_user_data(e));
     uint32_t instance_id = 0;
-    app_manager_start(appId, &instance_id);
+    app_start(appId, 0, nullptr, &instance_id);
 }
 
 lv_obj_t* createAppButton(lv_obj_t* parent, UiDensity uiDensity, const char* imageFile, const char* appId, int32_t itemMargin, bool isLandscape) {
@@ -214,7 +215,7 @@ void runAutoStart() {
     ) {
         LOG_I(TAG, "Starting %s", CONFIG_TT_AUTO_START_APP_ID);
         uint32_t app_launch_id;
-        app_manager_start(CONFIG_TT_AUTO_START_APP_ID, &app_launch_id);
+        app_start(CONFIG_TT_AUTO_START_APP_ID, 0, nullptr, &app_launch_id);
     } else if (
         // Auto-start due to user configuration
         settings::loadBootSettings(boot_properties) &&
@@ -223,7 +224,7 @@ void runAutoStart() {
     ) {
         LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
         uint32_t app_launch_id;
-        app_manager_start(boot_properties.autoStartAppId.c_str(), &app_launch_id);
+        app_start(boot_properties.autoStartAppId.c_str(), 0, nullptr, &app_launch_id);
     } else {
         // No auto-start, consider running system setup
         if (!setup::isCompleted()) {
@@ -282,7 +283,7 @@ extern const ::AppManifest manifest = {
 // used by the old, unconverted CrashDiagnostics app to return to the launcher after a crash).
 uint32_t start() {
     uint32_t instance_id = 0;
-    app_manager_start(manifest.id, &instance_id);
+    app_start(manifest.id, 0, nullptr, &instance_id);
     return instance_id;
 }
 

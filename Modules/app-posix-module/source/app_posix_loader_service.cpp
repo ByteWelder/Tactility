@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include <app/elf_check.h>
 #include <app/loader.h>
 #include <app/location.h>
 
@@ -25,6 +26,36 @@ struct PosixAppRuntime {
 bool is_regular_file(const std::string& path) {
     struct stat path_stat {};
     return ::stat(path.c_str(), &path_stat) == 0 && S_ISREG(path_stat.st_mode);
+}
+
+#ifndef __APPLE__
+constexpr ElfRequirements EXECUTABLE_REQUIREMENTS = {
+    .elf_class = ELF_CLASS_64,
+    .data = ELF_DATA_2LSB,
+    .type = ELF_TYPE_DYN,
+#if defined(__x86_64__)
+    .machine = ELF_MACHINE_X86_64,
+#elif defined(__aarch64__)
+    .machine = ELF_MACHINE_AARCH64,
+#else
+#error "Unsupported POSIX architecture for ELF machine check"
+#endif
+};
+#endif
+
+// Validates an already-resolved binary path (see resolve_app_path()) before it's handed to
+// dlopen(): the extension check is a cheap string comparison, so the file is only opened as a
+// last resort.
+bool is_executable_file(const std::string& resolved_path) {
+    if (!resolved_path.ends_with(".so")) {
+        return false;
+    }
+#ifdef __APPLE__
+    // The simulator's app binaries are Mach-O on macOS, not ELF, so there is no header to check.
+    return is_regular_file(resolved_path);
+#else
+    return elf_check_file(resolved_path.c_str(), &EXECUTABLE_REQUIREMENTS);
+#endif
 }
 
 // location.location can be either an app's install directory or the .so file directly; the
@@ -54,6 +85,11 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     if (error != ERROR_NONE) {
         LOG_E(TAG, "Failed to resolve app path: %s", location.location);
         return error;
+    }
+
+    if (!is_executable_file(app_path)) {
+        LOG_E(TAG, "Not executable: %s", app_path.c_str());
+        return ERROR_NOT_ALLOWED;
     }
 
     LOG_I(TAG, "Loading %s", app_path.c_str());
@@ -100,10 +136,24 @@ void api_unload(AppRuntime runtime_ptr) {
     delete runtime;
 }
 
+bool api_is_executable(AppLocation location) {
+    if (location.type != APP_LOCATION_PATH) {
+        return false;
+    }
+
+    std::string app_path;
+    if (resolve_app_path(static_cast<const char*>(location.location), app_path) != ERROR_NONE) {
+        return false;
+    }
+
+    return is_executable_file(app_path);
+}
+
 AppLoaderApi loader_api = {
     .load = api_load,
     .run = api_run,
     .unload = api_unload,
+    .is_executable = api_is_executable,
 };
 
 void* create_service(const ServiceManifest*) {
