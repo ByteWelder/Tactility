@@ -1,5 +1,3 @@
-#ifdef ESP_PLATFORM
-
 #include <Tactility/Tactility.h>
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/service/webserver/WebServerService.h>
@@ -18,9 +16,6 @@
 #include <lvgl.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
-
-#include <esp_netif.h>
-#include <esp_wifi.h>
 
 namespace tt::app::webserversettings {
 
@@ -169,16 +164,9 @@ void updateUrlDisplay(Context* ctx) {
         url += "192.168.4.1";
     } else {
         // Station mode - try to get actual IP
-        esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-        if (netif != nullptr) {
-            esp_netif_ip_info_t ip_info;
-            if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
-                char ip_str[16];
-                snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&ip_info.ip));
-                url += ip_str;
-            } else {
-                url = "Connecting...";
-            }
+        std::string ip = service::wifi::getIp();
+        if (!ip.empty()) {
+            url += ip;
         } else {
             url = "Not connected";
         }
@@ -440,5 +428,3 @@ extern const ::AppManifest manifest = {
 };
 
 }
-
-#endif

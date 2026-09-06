@@ -1,5 +1,3 @@
-#ifdef ESP_PLATFORM
-
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 #include <Tactility/lvgl/Style.h>
@@ -23,6 +21,7 @@
 #include <lvgl/widgets/toolbar.h>
 
 #include <cstring>
+#include <format>
 
 namespace tt::app::development {
 
@@ -235,5 +234,3 @@ extern const ::AppManifest manifest = {
 };
 
 } // namespace
-
-#endif // ESP_PLATFORM

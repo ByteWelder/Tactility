@@ -218,7 +218,7 @@ void View::runFile(const std::string& file_path) {
 
     if (!isExecutablePath(file_path)) {
         LOG_W(TAG, "Not executable: %s", file_path.c_str());
-        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+        alertdialog::start(appInstanceId, "Run failed", "\"" + file::getLastPathSegment(file_path) + "\" is not an executable.");
         return;
     }
 

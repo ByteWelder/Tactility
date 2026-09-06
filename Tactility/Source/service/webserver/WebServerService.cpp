@@ -1,5 +1,3 @@
-#ifdef ESP_PLATFORM
-
 #include <Tactility/service/webserver/WebServerService.h>
 #include <Tactility/service/ServiceManifest.h>
 
@@ -14,6 +12,7 @@
 #include <Tactility/StringUtils.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/lvgl/Lvgl.h>
+#include <Tactility/network/HttpServerReq.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
 #include <Tactility/service/wifi/Wifi.h>
@@ -32,11 +31,7 @@
 #include "app/install.h"
 #include "app/manager.h"
 
-
-#include <atomic>
-#include <cctype>
-#include <cerrno>
-#include <cstring>
+#ifdef ESP_PLATFORM
 #include <esp_chip_info.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
@@ -45,12 +40,17 @@
 #include <esp_vfs_fat.h>
 #include <esp_wifi.h>
 #include <esp_wifi_default.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <iomanip>
 #include <lwip/ip4_addr.h>
+#endif
+
+#include <atomic>
+#include <cctype>
+#include <cerrno>
+#include <cstring>
+#include <format>
+#include <iomanip>
+#include <iterator>
 #include <mbedtls/base64.h>
-#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -58,6 +58,7 @@ namespace tt::service::webserver {
 
 constexpr auto* TAG = "WebServerService";
 
+#ifdef ESP_PLATFORM
 // Helper to convert chip model enum to human-readable string
 static const char* getChipModelName(esp_chip_model_t model) {
     switch (model) {
@@ -74,6 +75,7 @@ static const char* getChipModelName(esp_chip_model_t model) {
         default:           return "Unknown";
     }
 }
+#endif
 
 // Cached settings to avoid SD card reads on every HTTP request
 static Mutex g_settingsMutex;
@@ -111,16 +113,16 @@ static bool secureCompare(const std::string& a, const std::string& b) {
 }
 
 // Helper to send 401 Unauthorized response with WWW-Authenticate header
-static esp_err_t sendUnauthorized(httpd_req_t* request, const char* message) {
-    httpd_resp_set_hdr(request, "WWW-Authenticate", "Basic realm=\"Tactility\"");
-    httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, message);
-    return ESP_OK;  // Response was sent successfully
+static error_t sendUnauthorized(HttpServerRequest* request, const char* message) {
+    http_server_request_set_header(request, "WWW-Authenticate", "Basic realm=\"Tactility\"");
+    http_server_request_send_error(request, 401, message);
+    return ERROR_NONE;  // Response was sent successfully
 }
 
 // Helper to validate HTTP Basic Auth on sensitive endpoints
-// Returns ESP_OK with authPassed=true if auth succeeded or is disabled
-// Returns ESP_OK with authPassed=false if auth failed (401 response already sent)
-static esp_err_t validateRequestAuth(httpd_req_t* request, bool& authPassed) {
+// Returns ERROR_NONE with authPassed=true if auth succeeded or is disabled
+// Returns ERROR_NONE with authPassed=false if auth failed (401 response already sent)
+static error_t validateRequestAuth(HttpServerRequest* request, bool& authPassed) {
     authPassed = false;
 
     // Copy settings under lock to avoid race with settings update callback
@@ -133,21 +135,16 @@ static esp_err_t validateRequestAuth(httpd_req_t* request, bool& authPassed) {
 
     if (!settings.webServerAuthEnabled) {
         authPassed = true;
-        return ESP_OK;  // Auth disabled, allow request
+        return ERROR_NONE;  // Auth disabled, allow request
     }
 
     // Get Authorization header
-    size_t auth_len = httpd_req_get_hdr_value_len(request, "Authorization");
+    size_t auth_len = http_server_request_get_header(request, "Authorization", nullptr, 0);
     if (auth_len == 0) {
         return sendUnauthorized(request, "Authorization required");
     }
-
-    std::string auth_header(auth_len + 1, '\0');
-    if (httpd_req_get_hdr_value_str(request, "Authorization", auth_header.data(), auth_len + 1) != ESP_OK) {
-        LOG_W(TAG, "Failed to read Authorization header");
-        return sendUnauthorized(request, "Authorization required");
-    }
-    auth_header.resize(auth_len);  // Remove null terminator from string length
+    std::string auth_header(auth_len, '\0');
+    http_server_request_get_header(request, "Authorization", auth_header.data(), auth_len + 1);
 
     // Check for "Basic " prefix
     if (auth_header.rfind("Basic ", 0) != 0) {
@@ -196,7 +193,7 @@ static esp_err_t validateRequestAuth(httpd_req_t* request, bool& authPassed) {
     }
 
     authPassed = true;
-    return ESP_OK;  // Auth successful
+    return ERROR_NONE;  // Auth successful
 }
 
 bool WebServerService::onStart(ServiceContext& service) {
@@ -262,11 +259,11 @@ void WebServerService::setEnabled(bool enabled) {
     lock.lock();
     
     if (enabled) {
-        if (!httpServer || !httpServer->isStarted()) {
+        if (httpServer == nullptr) {
             startServer();
         }
     } else {
-        if (httpServer && httpServer->isStarted()) {
+        if (httpServer != nullptr) {
             stopServer();
         }
     }
@@ -275,10 +272,12 @@ void WebServerService::setEnabled(bool enabled) {
 bool WebServerService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
-    return httpServer && httpServer->isStarted();
+    return httpServer != nullptr;
 }
 
 // region AP Mode WiFi Management
+
+#ifdef ESP_PLATFORM
 
 bool WebServerService::startApMode() {
     // Copy settings locally
@@ -416,6 +415,17 @@ void WebServerService::stopApMode() {
     }
 }
 
+#else
+
+bool WebServerService::startApMode() {
+    LOG_W(TAG, "AP mode WiFi is not supported on this platform");
+    return false;
+}
+
+void WebServerService::stopApMode() {}
+
+#endif // ESP_PLATFORM
+
 // endregion
 
 bool WebServerService::startServer() {
@@ -437,78 +447,81 @@ bool WebServerService::startServer() {
 
     // NOTE: If you see 'no slots left for registering handler', increase CONFIG_HTTPD_MAX_URI_HANDLERS in sdkconfig (default is 8, 16+ recommended for many endpoints)
     void* ctx = this;  // Avoid IDE warnings about 'this' in designated initializers
-    std::vector<httpd_uri_t> handlers = {
+    HttpServerRequestHandler handlers[] = {
         {
             .uri       = "/",
-            .method    = HTTP_GET,
-            .handler   = handleRoot,
+            .method    = HTTP_METHOD_GET,
+            .callback  = handleRoot,
             .user_ctx  = ctx
         },
         // Note: /upload removed in favor of POST /fs/upload handled by /fs/* dispatcher
         {
             .uri       = "/filebrowser",
-            .method    = HTTP_GET,
-            .handler   = handleFileBrowser,
+            .method    = HTTP_METHOD_GET,
+            .callback  = handleFileBrowser,
             .user_ctx  = ctx
         },
         // Consolidated /fs/* handlers (dispatch internally) to save uri handler slots
         {
             .uri       = "/fs/*",
-            .method    = HTTP_GET,
-            .handler   = handleFsGenericGet,
+            .method    = HTTP_METHOD_GET,
+            .callback  = handleFsGenericGet,
             .user_ctx  = ctx
         },
         {
             .uri       = "/fs/*",
-            .method    = HTTP_POST,
-            .handler   = handleFsGenericPost,
+            .method    = HTTP_METHOD_POST,
+            .callback  = handleFsGenericPost,
             .user_ctx  = ctx
         },
         // Consolidated admin POST endpoints to save handler slots
         {
             .uri       = "/admin/*",
-            .method    = HTTP_POST,
-            .handler   = handleAdminPost,
+            .method    = HTTP_METHOD_POST,
+            .callback  = handleAdminPost,
             .user_ctx  = ctx
         },
         // API endpoints for system info, apps, wifi, etc
         {
             .uri       = "/api/*",
-            .method    = HTTP_GET,
-            .handler   = handleApiGet,
+            .method    = HTTP_METHOD_GET,
+            .callback  = handleApiGet,
             .user_ctx  = ctx
         },
         {
             .uri       = "/api/*",
-            .method    = HTTP_POST,
-            .handler   = handleApiPost,
+            .method    = HTTP_METHOD_POST,
+            .callback  = handleApiPost,
             .user_ctx  = ctx
         },
         {
             .uri       = "/api/*",
-            .method    = HTTP_PUT,
-            .handler   = handleApiPut,
+            .method    = HTTP_METHOD_PUT,
+            .callback  = handleApiPut,
             .user_ctx  = ctx
         },
         {
             .uri       = "/*",  // Catch-all for dynamic assets
-            .method    = HTTP_GET,
-            .handler   = handleAssets,
+            .method    = HTTP_METHOD_GET,
+            .callback  = handleAssets,
             .user_ctx  = ctx
         }
     };
-    
-    httpServer = std::make_unique<network::HttpServer>(
-        settings.webServerPort,
-        "0.0.0.0",
-        handlers,
-        8192  // Stack size
-    );
-    
-    httpServer->start();
-    if (!httpServer->isStarted()) {
+
+    HttpServerConfig config {
+        .port = settings.webServerPort,
+        .address = "0.0.0.0",
+        .stack_size = 8192,
+        .handlers = handlers,
+        .handler_count = std::size(handlers),
+    };
+
+    httpServer = http_server_alloc(&config);
+    if (httpServer == nullptr || http_server_start(httpServer) != ERROR_NONE) {
         LOG_E(TAG, "Failed to start HTTP server on port %u", (unsigned)settings.webServerPort);
-        httpServer.reset();
+        http_server_free(httpServer);
+        httpServer = nullptr;
+        stopApMode();
         return false;
     }
 
@@ -527,15 +540,19 @@ bool WebServerService::startServer() {
 }
 
 void WebServerService::stopServer() {
-    if (!httpServer) {
+    if (httpServer == nullptr) {
         return;
     }
 
-    httpServer->stop();
-    httpServer.reset();
+    http_server_free(httpServer);
+    httpServer = nullptr;
 
     // Stop AP mode WiFi if we started it
-    if (apWifiInitialized || apNetif != nullptr) {
+    if (apWifiInitialized
+#ifdef ESP_PLATFORM
+        || apNetif != nullptr
+#endif
+    ) {
         stopApMode();
     }
 
@@ -547,15 +564,17 @@ void WebServerService::stopServer() {
     }
 }
 
+WebServerService::~WebServerService() {
+    http_server_free(httpServer);
+}
+
 // region Endpoints
 
-
-
-esp_err_t WebServerService::handleRoot(httpd_req_t* request) {
+error_t WebServerService::handleRoot(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET / -> redirecting to /dashboard.html");
-    httpd_resp_set_status(request, "302 Found");
-    httpd_resp_set_hdr(request, "Location", "/dashboard.html");
-    return httpd_resp_send(request, nullptr, 0);
+    http_server_request_set_status(request, 302);
+    http_server_request_set_header(request, "Location", "/dashboard.html");
+    return http_server_request_send(request, nullptr, 0);
 }
 
 // region File Browser helpers & handlers
@@ -704,16 +723,29 @@ static std::string escapeJson(const std::string& s) {
     return o.str();
 }
 
-static bool getQueryParam(httpd_req_t* req, const char* key, std::string& out) {
-    size_t len = httpd_req_get_url_query_len(req) + 1;
-    if (len <= 1) return false;
-    std::unique_ptr<char[]> buf(new char[len]);
-    if (httpd_req_get_url_query_str(req, buf.get(), len) != ESP_OK) return false;
-    // Allocate buffer large enough for the entire query string (worst case)
-    std::unique_ptr<char[]> value(new char[len]);
-    if (httpd_query_key_value(buf.get(), key, value.get(), len) == ESP_OK) {
-        out = value.get();
-        return true;
+// Raw (not URL-decoded) extraction, matching ESP-IDF's httpd_query_key_value() semantics -
+// callers that need decoding (e.g. normalizePath()) already do it themselves on the raw value.
+static bool getQueryParam(HttpServerRequest* request, const char* key, std::string& out) {
+    size_t length = http_server_request_get_query(request, nullptr, 0);
+    if (length == 0) {
+        return false;
+    }
+    std::string query(length, '\0');
+    http_server_request_get_query(request, query.data(), length + 1);
+
+    size_t pos = 0;
+    while (pos < query.size()) {
+        size_t amp = query.find('&', pos);
+        size_t pair_end = amp == std::string::npos ? query.size() : amp;
+        size_t eq = query.find('=', pos);
+        if (eq != std::string::npos && eq < pair_end && query.compare(pos, eq - pos, key) == 0) {
+            out = query.substr(eq + 1, pair_end - eq - 1);
+            return true;
+        }
+        if (amp == std::string::npos) {
+            break;
+        }
+        pos = amp + 1;
     }
     return false;
 }
@@ -723,22 +755,19 @@ static bool uriMatches(const char* uri, const char* route) {
     return strncmp(uri, route, n) == 0 && (uri[n] == '\0' || uri[n] == '?' || uri[n] == '/');
 }
 
-esp_err_t WebServerService::handleFileBrowser(httpd_req_t* request) {
+error_t WebServerService::handleFileBrowser(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET /filebrowser -> redirecting to /dashboard.html#files");
-    httpd_resp_set_status(request, "302 Found");
-    httpd_resp_set_hdr(request, "Location", "/dashboard.html#files");
-    return httpd_resp_send(request, nullptr, 0);
+    http_server_request_set_status(request, 302);
+    http_server_request_set_header(request, "Location", "/dashboard.html#files");
+    return http_server_request_send(request, nullptr, 0);
 }
 
-esp_err_t WebServerService::handleFsList(httpd_req_t* request) {
+error_t WebServerService::handleFsList(HttpServerRequest* request, void*) {
     std::string path;
     // Log raw query string for diagnostics
-    size_t qlen = httpd_req_get_url_query_len(request) + 1;
-    if (qlen > 1) {
-        std::unique_ptr<char[]> qbuf(new char[qlen]);
-        if (httpd_req_get_url_query_str(request, qbuf.get(), qlen) == ESP_OK) {
-            LOG_I(TAG, "GET /fs/list raw query: %s", qbuf.get());
-        }
+    char qbuf[256];
+    if (http_server_request_get_query(request, qbuf, sizeof(qbuf)) > 0) {
+        LOG_I(TAG, "GET /fs/list raw query: %s", qbuf);
     }
 
     if (!getQueryParam(request, "path", path) || path.empty()) path = "/";
@@ -748,9 +777,9 @@ esp_err_t WebServerService::handleFsList(httpd_req_t* request) {
     // Allow root path for listing mount points
     if (!isAllowedBasePath(norm, true)) {
         LOG_W(TAG, "GET /fs/list - invalid path requested: '%s' normalized: '%s'", path.c_str(), norm.c_str());
-        httpd_resp_set_type(request, "application/json");
-        httpd_resp_sendstr(request, "{\"error\":\"invalid path\"}");
-        return ESP_OK;
+        http_server_request_set_content_type(request, "application/json");
+        http_server_request_send_string(request, "{\"error\":\"invalid path\"}");
+        return ERROR_NONE;
     }
 
     std::ostringstream json;
@@ -778,9 +807,9 @@ esp_err_t WebServerService::handleFsList(httpd_req_t* request) {
         std::vector<dirent> entries;
         int res = file::scandir(norm, entries, file::direntFilterDotEntries, nullptr);
         if (res < 0) {
-            httpd_resp_set_type(request, "application/json");
-            httpd_resp_sendstr(request, "{\"error\":\"scan failed\"}");
-            return ESP_OK;
+            http_server_request_set_content_type(request, "application/json");
+            http_server_request_send_string(request, "{\"error\":\"scan failed\"}");
+            return ERROR_NONE;
         }
         bool first = true;
         for (auto& e : entries) {
@@ -800,24 +829,24 @@ esp_err_t WebServerService::handleFsList(httpd_req_t* request) {
         json << "]}";
     }
 
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_sendstr(request, json.str().c_str());
-    return ESP_OK;
+    http_server_request_set_content_type(request, "application/json");
+    http_server_request_send_string(request, json.str().c_str());
+    return ERROR_NONE;
 }
 
-esp_err_t WebServerService::handleFsDownload(httpd_req_t* request) {
+error_t WebServerService::handleFsDownload(HttpServerRequest* request, void*) {
     std::string path;
     if (!getQueryParam(request, "path", path) || path.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "path required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "path required");
+        return ERROR_UNDEFINED;
     }
     std::string norm = normalizePath(path);
     if (!isAllowedBasePath(norm) || !file::isFile(norm)) {
         LOG_W(TAG, "GET /fs/download - not found or invalid path: '%s' normalized: '%s'", path.c_str(), norm.c_str());
-        httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 404, "not found");
+        return ERROR_UNDEFINED;
     }
-    httpd_resp_set_type(request, getContentType(norm));
+    http_server_request_set_content_type(request, getContentType(norm));
     // Suggest download - build header into a local string so it remains valid
     std::string fname = file::getLastPathSegment(norm);
     std::string disposition = std::string("attachment; filename=\"") + fname + "\"";
@@ -841,231 +870,218 @@ esp_err_t WebServerService::handleFsDownload(httpd_req_t* request) {
         disposition += std::string("; filename*=UTF-8''") + pct;
     }
     // Set single Content-Disposition header (avoid adding duplicate headers)
-    httpd_resp_set_hdr(request, "Content-Disposition", disposition.c_str());
+    http_server_request_set_header(request, "Content-Disposition", disposition.c_str());
     FILE* fp = fopen(norm.c_str(), "rb");
-    if (!fp) { httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "open failed"); return ESP_FAIL; }
+    if (!fp) { http_server_request_send_error(request, 500, "open failed"); return ERROR_UNDEFINED; }
+    if (http_server_request_send_chunk_start(request) != ERROR_NONE) { fclose(fp); return ERROR_UNDEFINED; }
     char buf[512]; size_t n;
     while ((n = fread(buf,1,sizeof(buf),fp))>0) {
-        if (httpd_resp_send_chunk(request, buf, n) != ESP_OK) { fclose(fp); return ESP_FAIL; }
+        if (http_server_request_send_chunk(request, buf, n) != ERROR_NONE) { fclose(fp); return ERROR_UNDEFINED; }
     }
     fclose(fp);
-    httpd_resp_send_chunk(request, nullptr, 0);
-    return ESP_OK;
+    http_server_request_send_chunk_end(request);
+    return ERROR_NONE;
 }
 
-esp_err_t WebServerService::handleFsUpload(httpd_req_t* request) {
+error_t WebServerService::handleFsUpload(HttpServerRequest* request, void*) {
     std::string path;
 
     // Log raw query and decoded path for diagnostics
-    size_t qlen = httpd_req_get_url_query_len(request) + 1;
-    if (qlen > 1) {
-        std::unique_ptr<char[]> qbuf(new char[qlen]);
-        if (httpd_req_get_url_query_str(request, qbuf.get(), qlen) == ESP_OK) {
-            LOG_I(TAG, "POST /fs/upload raw query: %s", qbuf.get());
-        }
+    char qbuf[256];
+    if (http_server_request_get_query(request, qbuf, sizeof(qbuf)) > 0) {
+        LOG_I(TAG, "POST /fs/upload raw query: %s", qbuf);
     }
 
     if (!getQueryParam(request, "path", path) || path.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "path required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "path required");
+        return ERROR_UNDEFINED;
     }
 
     // Log decoded path and headers
     char content_type[64] = {0};
-    httpd_req_get_hdr_value_str(request, "Content-Type", content_type, sizeof(content_type));
+    http_server_request_get_header(request, "Content-Type", content_type, sizeof(content_type));
     std::string norm = normalizePath(path);
-    LOG_I(TAG, "POST /fs/upload decoded path: '%s' normalized: '%s' Content-Length: %d Content-Type: %s", path.c_str(), norm.c_str(), (int)request->content_len, content_type[0] ? content_type : "(null)");
+    uint64_t content_length = http_server_request_get_content_length(request);
+    LOG_I(TAG, "POST /fs/upload decoded path: '%s' normalized: '%s' Content-Length: %d Content-Type: %s", path.c_str(), norm.c_str(), (int)content_length, content_type[0] ? content_type : "(null)");
 
     if (!isAllowedBasePath(norm)) {
         LOG_W(TAG, "POST /fs/upload - invalid path requested: '%s' normalized: '%s'", path.c_str(), norm.c_str());
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "invalid path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "invalid path");
+        return ERROR_UNDEFINED;
     }
 
-    if (request->content_len > MAX_UPLOAD_SIZE) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "file too large");
-        return ESP_FAIL;
+    if (content_length > MAX_UPLOAD_SIZE) {
+        http_server_request_send_error(request, 400, "file too large");
+        return ERROR_UNDEFINED;
     }
 
     // Ensure parent directory exists (after size check to avoid creating dirs for rejected uploads)
     if (!file::findOrCreateParentDirectory(norm, 0755)) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "failed to create parent directory");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "failed to create parent directory");
+        return ERROR_UNDEFINED;
     }
     FILE* fp = fopen(norm.c_str(), "wb");
-    if (!fp) { httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "open failed"); return ESP_FAIL; }
-    char buf[512]; int remaining = request->content_len; int received=0;
-    constexpr int MAX_TIMEOUT_RETRIES = 5;
-    int timeout_retries = 0;
+    if (!fp) { http_server_request_send_error(request, 500, "open failed"); return ERROR_UNDEFINED; }
+    char buf[512]; int remaining = static_cast<int>(content_length); int received=0;
     while (remaining > 0) {
         int to_read = remaining > (int)sizeof(buf) ? (int)sizeof(buf) : remaining;
-        int ret = httpd_req_recv(request, buf, to_read);
-        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            // Timeout - retry with backoff
-            timeout_retries++;
-            if (timeout_retries >= MAX_TIMEOUT_RETRIES) {
-                LOG_E(TAG, "Upload recv timeout after %d retries", timeout_retries);
-                fclose(fp);
-                remove(norm.c_str());  // Clean up partial file
-                httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "recv timeout");
-                return ESP_FAIL;
-            }
-            LOG_W(TAG, "Upload recv timeout, retry %d/%d", timeout_retries, MAX_TIMEOUT_RETRIES);
-            vTaskDelay(pdMS_TO_TICKS(100 * timeout_retries)); // Linear backoff
-            continue;
-        }
+        int ret = http_server_request_receive(request, buf, to_read);
         if (ret <= 0) {
             LOG_E(TAG, "Upload recv failed with error %d", ret);
             fclose(fp);
             remove(norm.c_str());  // Clean up partial file
-            httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "recv failed");
-            return ESP_FAIL;
+            http_server_request_send_error(request, 500, "recv failed");
+            return ERROR_UNDEFINED;
         }
-        // Successful read - reset timeout counter
-        timeout_retries = 0;
         size_t written = fwrite(buf, 1, ret, fp);
         if (written != (size_t)ret) {
             fclose(fp);
             remove(norm.c_str());
-            httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "write failed");
-            return ESP_FAIL;
+            http_server_request_send_error(request, 500, "write failed");
+            return ERROR_UNDEFINED;
         }
         remaining -= ret;
         received += ret;
     }
     fclose(fp);
-    httpd_resp_set_type(request, "text/plain");
+    http_server_request_set_content_type(request, "text/plain");
     std::string msg = std::string("Uploaded ") + std::to_string(received) + " bytes";
-    httpd_resp_sendstr(request, msg.c_str());
-    return ESP_OK;
+    http_server_request_send_string(request, msg.c_str());
+    return ERROR_NONE;
 }
 
 // Generic GET dispatcher for /fs/* URIs
-esp_err_t WebServerService::handleFsGenericGet(httpd_req_t* request) {
+error_t WebServerService::handleFsGenericGet(HttpServerRequest* request, void* user_ctx) {
     // Auth check for all /fs/* endpoints (file system access is sensitive)
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
-    if (uriMatches(uri, "/fs/list")) return handleFsList(request);
-    if (uriMatches(uri, "/fs/download")) return handleFsDownload(request);
-    if (uriMatches(uri, "/fs/tree")) return handleFsTree(request);
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
+    if (uriMatches(uri, "/fs/list")) return handleFsList(request, user_ctx);
+    if (uriMatches(uri, "/fs/download")) return handleFsDownload(request, user_ctx);
+    if (uriMatches(uri, "/fs/tree")) return handleFsTree(request, user_ctx);
     LOG_W(TAG, "GET %s - not found in fs generic dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
 // Generic POST dispatcher for /fs/* URIs
-esp_err_t WebServerService::handleFsGenericPost(httpd_req_t* request) {
+error_t WebServerService::handleFsGenericPost(HttpServerRequest* request, void* user_ctx) {
     // Auth check for all /fs/* endpoints (file system access is sensitive)
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
-    if (uriMatches(uri, "/fs/mkdir")) return handleFsMkdir(request);
-    if (uriMatches(uri, "/fs/delete")) return handleFsDelete(request);
-    if (uriMatches(uri, "/fs/rename")) return handleFsRename(request);
-    if (uriMatches(uri, "/fs/upload")) return handleFsUpload(request);
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
+    if (uriMatches(uri, "/fs/mkdir")) return handleFsMkdir(request, user_ctx);
+    if (uriMatches(uri, "/fs/delete")) return handleFsDelete(request, user_ctx);
+    if (uriMatches(uri, "/fs/rename")) return handleFsRename(request, user_ctx);
+    if (uriMatches(uri, "/fs/upload")) return handleFsUpload(request, user_ctx);
     LOG_W(TAG, "POST %s - not found in fs generic dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
 // Admin dispatcher for consolidated small POST endpoints (e.g. sync, reboot)
-esp_err_t WebServerService::handleAdminPost(httpd_req_t* request) {
+error_t WebServerService::handleAdminPost(HttpServerRequest* request, void* user_ctx) {
     // Auth check for all /admin/* endpoints (admin actions are sensitive)
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
-    if (strncmp(uri, "/admin/reboot", 13) == 0) return handleReboot(request);
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
+    if (strncmp(uri, "/admin/reboot", 13) == 0) return handleReboot(request, user_ctx);
     LOG_I(TAG, "POST %s - not found in admin dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
 // API GET dispatcher - returns JSON system information
 // Note: /api/sysinfo is intentionally public for monitoring use cases
-esp_err_t WebServerService::handleApiGet(httpd_req_t* request) {
-    const char* uri = request->uri;
+error_t WebServerService::handleApiGet(HttpServerRequest* request, void* user_ctx) {
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
 
     // Public endpoint: sysinfo (basic device info for monitoring)
     if (strncmp(uri, "/api/sysinfo", 12) == 0) {
-        return handleApiSysinfo(request);
+        return handleApiSysinfo(request, user_ctx);
     }
 
     // Protected endpoints require authentication
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
     // Auth-protected endpoints
     if (strncmp(uri, "/api/apps", 9) == 0) {
-        return handleApiApps(request);
+        return handleApiApps(request, user_ctx);
     }
     if (strncmp(uri, "/api/wifi", 9) == 0) {
-        return handleApiWifi(request);
+        return handleApiWifi(request, user_ctx);
     }
     if (strncmp(uri, "/api/screenshot", 15) == 0) {
-        return handleApiScreenshot(request);
+        return handleApiScreenshot(request, user_ctx);
     }
 
     LOG_W(TAG, "GET %s - not found in api dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
 // API POST dispatcher - all POST endpoints require authentication
-esp_err_t WebServerService::handleApiPost(httpd_req_t* request) {
+error_t WebServerService::handleApiPost(HttpServerRequest* request, void* user_ctx) {
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
     if (strncmp(uri, "/api/apps/run", 13) == 0) {
-        return handleApiAppsRun(request);
+        return handleApiAppsRun(request, user_ctx);
     }
     if (strncmp(uri, "/api/apps/uninstall", 19) == 0) {
-        return handleApiAppsUninstall(request);
+        return handleApiAppsUninstall(request, user_ctx);
     }
 
     LOG_W(TAG, "POST %s - not found in api dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
 // API PUT dispatcher - all PUT endpoints require authentication
-esp_err_t WebServerService::handleApiPut(httpd_req_t* request) {
+error_t WebServerService::handleApiPut(HttpServerRequest* request, void* user_ctx) {
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
     if (strncmp(uri, "/api/apps/install", 17) == 0) {
-        return handleApiAppsInstall(request);
+        return handleApiAppsInstall(request, user_ctx);
     }
 
     LOG_W(TAG, "PUT %s - not found in api dispatcher", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "not found");
+    return ERROR_UNDEFINED;
 }
 
-esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
+error_t WebServerService::handleApiSysinfo(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET /api/sysinfo");
 
     std::ostringstream json;
@@ -1074,13 +1090,18 @@ esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
     // Firmware info
     json << "\"firmware\":{";
     json << "\"version\":\"" << TT_VERSION << "\",";
+#ifdef ESP_PLATFORM
     json << "\"idf_version\":\"" << ESP_IDF_VERSION_MAJOR << "." << ESP_IDF_VERSION_MINOR << "." << ESP_IDF_VERSION_PATCH << "\"";
+#else
+    json << "\"idf_version\":\"n/a\"";
+#endif
     json << "},";
 
     // Chip info
+    json << "\"chip\":{";
+#ifdef ESP_PLATFORM
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    json << "\"chip\":{";
     json << "\"model\":\"" << getChipModelName(chip_info.model) << "\",";
     json << "\"cores\":" << (int)chip_info.cores << ",";
     json << "\"revision\":" << (int)chip_info.revision << ",";
@@ -1122,37 +1143,51 @@ esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
     uint32_t flash_size = 0;
     esp_flash_get_size(nullptr, &flash_size);
     json << "\"flash_size\":" << flash_size;
+#else
+    json << "\"model\":\"" << CONFIG_TT_DEVICE_ID << "\",";
+    json << "\"cores\":0,";
+    json << "\"revision\":0,";
+    json << "\"features\":[],";
+    json << "\"flash_size\":0";
+#endif
     json << "},";
 
     // Memory - Internal heap
+    json << "\"heap\":{";
+#ifdef ESP_PLATFORM
     size_t heap_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     size_t heap_total = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
     size_t heap_min_free = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
     size_t heap_largest = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
 
-    json << "\"heap\":{";
     json << "\"free\":" << heap_free << ",";
     json << "\"total\":" << heap_total << ",";
     json << "\"min_free\":" << heap_min_free << ",";
     json << "\"largest_block\":" << heap_largest;
+#else
+    json << "\"free\":0,\"total\":0,\"min_free\":0,\"largest_block\":0";
+#endif
     json << "},";
 
     // Memory - PSRAM (external)
+    json << "\"psram\":{";
+#ifdef ESP_PLATFORM
     size_t psram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     size_t psram_total = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
     size_t psram_min_free = heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM);
     size_t psram_largest = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
 
-    json << "\"psram\":{";
     json << "\"free\":" << psram_free << ",";
     json << "\"total\":" << psram_total << ",";
     json << "\"min_free\":" << psram_min_free << ",";
     json << "\"largest_block\":" << psram_largest;
+#else
+    json << "\"free\":0,\"total\":0,\"min_free\":0,\"largest_block\":0";
+#endif
     json << "},";
 
     // Storage info
     json << "\"storage\":{";
-    uint64_t storage_total = 0, storage_free = 0;
 
     struct FsIterContext {
         std::ostringstream& json;
@@ -1173,6 +1208,7 @@ esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
         if (fs_iter_context->count != 1) json_context << ","; // add separator between json array entries
         json_context << "\"" << mount_path_cpp.substr(1) << "\":{";
 
+#ifdef ESP_PLATFORM
         uint64_t storage_total = 0, storage_free = 0;
         if (esp_vfs_fat_info(mount_path, &storage_total, &storage_free) == ESP_OK) {
             json_context << "\"free\":" << storage_free << ",";
@@ -1181,6 +1217,10 @@ esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
             json_context << "\"free\":0,";
             json_context << "\"total\":0,";
         }
+#else
+        json_context << "\"free\":0,";
+        json_context << "\"total\":0,";
+#endif
 
         json_context << "\"mounted\":" << (mounted ? "true" : "false") << "";
         json_context << "}";
@@ -1209,13 +1249,13 @@ esp_err_t WebServerService::handleApiSysinfo(httpd_req_t* request) {
 
     json << "}";
 
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_sendstr(request, json.str().c_str());
-    return ESP_OK;
+    http_server_request_set_content_type(request, "application/json");
+    http_server_request_send_string(request, json.str().c_str());
+    return ERROR_NONE;
 }
 
 // GET /api/apps - List installed apps
-esp_err_t WebServerService::handleApiApps(httpd_req_t* request) {
+error_t WebServerService::handleApiApps(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET /api/apps");
 
     std::vector<const ::AppManifest*> manifests;
@@ -1248,25 +1288,25 @@ esp_err_t WebServerService::handleApiApps(httpd_req_t* request) {
 
     json << "]}";
 
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_sendstr(request, json.str().c_str());
-    return ESP_OK;
+    http_server_request_set_content_type(request, "application/json");
+    http_server_request_send_string(request, json.str().c_str());
+    return ERROR_NONE;
 }
 
 // POST /api/apps/run?id=xxx - Run an app
-esp_err_t WebServerService::handleApiAppsRun(httpd_req_t* request) {
+error_t WebServerService::handleApiAppsRun(HttpServerRequest* request, void*) {
     LOG_I(TAG, "POST /api/apps/run");
 
     std::string appId;
     if (!getQueryParam(request, "id", appId) || appId.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id parameter required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "id parameter required");
+        return ERROR_UNDEFINED;
     }
 
     AppManifest manifest;
     if (app_manager_find_manifest(appId.c_str(), &manifest) != ERROR_NONE) {
-        httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "app not found");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 404, "app not found");
+        return ERROR_UNDEFINED;
     }
 
     // Every app instance gets its own task now, so there's no "stop the existing one first" -
@@ -1275,54 +1315,54 @@ esp_err_t WebServerService::handleApiAppsRun(httpd_req_t* request) {
     app_start(appId.c_str(), 0, nullptr, &instance_id);
 
     LOG_I(TAG, "[200] /api/apps/run %s", appId.c_str());
-    httpd_resp_sendstr(request, "ok");
-    return ESP_OK;
+    http_server_request_send_string(request, "ok");
+    return ERROR_NONE;
 }
 
 // POST /api/apps/uninstall?id=xxx - Uninstall an app
-esp_err_t WebServerService::handleApiAppsUninstall(httpd_req_t* request) {
+error_t WebServerService::handleApiAppsUninstall(HttpServerRequest* request, void*) {
     LOG_I(TAG, "POST /api/apps/uninstall");
 
     std::string appId;
     if (!getQueryParam(request, "id", appId) || appId.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id parameter required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "id parameter required");
+        return ERROR_UNDEFINED;
     }
 
     AppManifest manifest;
     if (app_manager_find_manifest(appId.c_str(), &manifest) != ERROR_NONE) {
         LOG_I(TAG, "[200] /api/apps/uninstall %s (app wasn't installed)", appId.c_str());
-        httpd_resp_sendstr(request, "ok");
-        return ESP_OK;
+        http_server_request_send_string(request, "ok");
+        return ERROR_NONE;
     }
 
     // Only allow uninstalling external (side-loaded) apps
     if (manifest.location.type != APP_LOCATION_PATH) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "cannot uninstall system apps");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "cannot uninstall system apps");
+        return ERROR_UNDEFINED;
     }
 
     if (app_uninstall(appId.c_str()) == ERROR_NONE) {
         LOG_I(TAG, "[200] /api/apps/uninstall %s", appId.c_str());
-        httpd_resp_sendstr(request, "ok");
-        return ESP_OK;
+        http_server_request_send_string(request, "ok");
+        return ERROR_NONE;
     } else {
         LOG_W(TAG, "[500] /api/apps/uninstall %s", appId.c_str());
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "uninstall failed");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "uninstall failed");
+        return ERROR_UNDEFINED;
     }
 }
 
 // PUT /api/apps/install - Install an app from multipart form upload
-esp_err_t WebServerService::handleApiAppsInstall(httpd_req_t* request) {
+error_t WebServerService::handleApiAppsInstall(HttpServerRequest* request, void*) {
     LOG_I(TAG, "PUT /api/apps/install");
 
     std::string boundary;
     if (!network::getMultiPartBoundaryOrSendError(request, boundary)) {
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
 
-    size_t content_left = request->content_len;
+    size_t content_left = http_server_request_get_content_length(request);
     constexpr size_t MAX_APP_UPLOAD_SIZE = 20 * 1024 * 1024;
 
     // Read headers until empty line (skip boundary line first)
@@ -1330,72 +1370,74 @@ esp_err_t WebServerService::handleApiAppsInstall(httpd_req_t* request) {
     content_left -= content_headers_data.length();
 
     // Split headers into lines and filter empty ones
-    auto content_headers = string::split(content_headers_data, "\r\n")
-        | std::views::filter([](const std::string& line) {
-            return line.length() > 0;
-        })
-        | std::ranges::to<std::vector>();
+    auto content_header_lines = string::split(content_headers_data, "\r\n");
+    std::vector<std::string> content_headers;
+    for (auto& line : content_header_lines) {
+        if (!line.empty()) {
+            content_headers.push_back(line);
+        }
+    }
 
     auto content_disposition_map = network::parseContentDisposition(content_headers);
     if (content_disposition_map.empty()) {
         LOG_W(TAG, "parseContentDisposition returned empty map for: %s", content_headers_data.c_str());
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid content disposition");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid content disposition");
+        return ERROR_UNDEFINED;
     }
 
     auto filename_entry = content_disposition_map.find("filename");
     if (filename_entry == content_disposition_map.end()) {
         LOG_W(TAG, "filename not found in content disposition map");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "filename parameter missing");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "filename parameter missing");
+        return ERROR_UNDEFINED;
     }
 
     // Calculate file size
     auto boundary_and_newlines_after_file = std::format("\r\n--{}--\r\n", boundary);
     if (content_left <= boundary_and_newlines_after_file.length()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid multipart payload");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid multipart payload");
+        return ERROR_UNDEFINED;
     }
 
     auto file_size = content_left - boundary_and_newlines_after_file.length();
     if (file_size == 0 || file_size > MAX_APP_UPLOAD_SIZE) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "file too large");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "file too large");
+        return ERROR_UNDEFINED;
     }
 
     // Create tmp directory
     const std::string tmp_path = getTempPath();
     if (!file::findOrCreateDirectory(tmp_path, 0777)) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "failed to create temp directory");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "failed to create temp directory");
+        return ERROR_UNDEFINED;
     }
 
     std::string safe_name = file::getLastPathSegment(filename_entry->second);
     if (safe_name.empty() || safe_name.find("..") != std::string::npos ||
         safe_name.find('/') != std::string::npos || safe_name.find('\\') != std::string::npos) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid filename");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid filename");
+        return ERROR_UNDEFINED;
     }
     auto file_path = std::format("{}/{}", tmp_path, safe_name);
 
     if (network::receiveFile(request, file_size, file_path) != file_size) {
         file::deleteFile(file_path);
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "failed to save file");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "failed to save file");
+        return ERROR_UNDEFINED;
     }
 
     content_left -= file_size;
 
     // Read and discard trailing boundary
     if (!network::readAndDiscardOrSendError(request, boundary_and_newlines_after_file)) {
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
 
     // Install the app
     if (app_install(file_path.c_str()) != ERROR_NONE) {
         file::deleteFile(file_path);
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "installation failed");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "installation failed");
+        return ERROR_UNDEFINED;
     }
 
     // Cleanup temp file
@@ -1404,8 +1446,8 @@ esp_err_t WebServerService::handleApiAppsInstall(httpd_req_t* request) {
     }
 
     LOG_I(TAG, "[200] /api/apps/install -> %s", file_path.c_str());
-    httpd_resp_sendstr(request, "ok");
-    return ESP_OK;
+    http_server_request_send_string(request, "ok");
+    return ERROR_NONE;
 }
 
 // Helper to convert radio state to string
@@ -1422,7 +1464,7 @@ static const char* radioStateToJsonString(wifi::RadioState state) {
 }
 
 // GET /api/wifi - WiFi status
-esp_err_t WebServerService::handleApiWifi(httpd_req_t* request) {
+error_t WebServerService::handleApiWifi(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET /api/wifi");
 
     auto state = wifi::getRadioState();
@@ -1440,14 +1482,14 @@ esp_err_t WebServerService::handleApiWifi(httpd_req_t* request) {
     json << "\"secure\":" << (secure ? "true" : "false");
     json << "}";
 
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_sendstr(request, json.str().c_str());
-    return ESP_OK;
+    http_server_request_set_content_type(request, "application/json");
+    http_server_request_send_string(request, json.str().c_str());
+    return ERROR_NONE;
 }
 
 // GET /api/screenshot - Capture and return screenshot as PNG
 // Screenshots are saved to SD card root (if available) or /data with incrementing numbers
-esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
+error_t WebServerService::handleApiScreenshot(HttpServerRequest* request, void*) {
     LOG_I(TAG, "GET /api/screenshot");
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
@@ -1465,8 +1507,8 @@ esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
         }
     }
     if (!found_slot) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "no available screenshot slots");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "no available screenshot slots");
+        return ERROR_UNDEFINED;
     }
 
     LOG_I(TAG, "Screenshot will be saved to: %s", screenshot_path.c_str());
@@ -1481,46 +1523,50 @@ esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
 
         if (!success) {
             LOG_E(TAG, "lv_screenshot_create failed for path: %s", lvgl_screenshot_path.c_str());
-            httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "screenshot capture failed");
-            return ESP_FAIL;
+            http_server_request_send_error(request, 500, "screenshot capture failed");
+            return ERROR_UNDEFINED;
         }
         LOG_I(TAG, "Screenshot captured successfully");
     } else {
         LOG_E(TAG, "Could not acquire LVGL lock within 100ms");
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "could not acquire LVGL lock");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "could not acquire LVGL lock");
+        return ERROR_UNDEFINED;
     }
 
     // Send the file (use regular path for fopen, not LVGL path)
-    httpd_resp_set_type(request, "image/png");
+    http_server_request_set_content_type(request, "image/png");
 
     FILE* fp = fopen(screenshot_path.c_str(), "rb");
     if (!fp) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "failed to open screenshot");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "failed to open screenshot");
+        return ERROR_UNDEFINED;
     }
 
+    if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
+        fclose(fp);
+        return ERROR_UNDEFINED;
+    }
     char buf[512];
     size_t n;
     while ((n = fread(buf, 1, sizeof(buf), fp)) > 0) {
-        if (httpd_resp_send_chunk(request, buf, n) != ESP_OK) {
+        if (http_server_request_send_chunk(request, buf, n) != ERROR_NONE) {
             fclose(fp);
-            return ESP_FAIL;
+            return ERROR_UNDEFINED;
         }
     }
     fclose(fp);
-    httpd_resp_send_chunk(request, nullptr, 0);
+    http_server_request_send_chunk_end(request);
 
     // File is kept on storage (not deleted) for user access
     LOG_I(TAG, "[200] /api/screenshot -> %s", screenshot_path.c_str());
-    return ESP_OK;
+    return ERROR_NONE;
 #else
-    httpd_resp_send_err(request, HTTPD_501_METHOD_NOT_IMPLEMENTED, "screenshot feature not enabled");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 501, "screenshot feature not enabled");
+    return ERROR_UNDEFINED;
 #endif
 }
 
-esp_err_t WebServerService::handleFsTree(httpd_req_t* request) {
+error_t WebServerService::handleFsTree(HttpServerRequest* request, void*) {
 
     LOG_I(TAG, "GET /fs/tree");
 
@@ -1554,28 +1600,28 @@ esp_err_t WebServerService::handleFsTree(httpd_req_t* request) {
     }
     json << "]}";
 
-    httpd_resp_set_type(request, "application/json");
-    httpd_resp_sendstr(request, json.str().c_str());
-    return ESP_OK;
+    http_server_request_set_content_type(request, "application/json");
+    http_server_request_send_string(request, json.str().c_str());
+    return ERROR_NONE;
 }
 
 // Create a directory at the specified path (POST /fs/mkdir?path=/data/newdir)
-esp_err_t WebServerService::handleFsMkdir(httpd_req_t* request) {
+error_t WebServerService::handleFsMkdir(HttpServerRequest* request, void*) {
     std::string path;
     if (!getQueryParam(request, "path", path) || path.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "path required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "path required");
+        return ERROR_UNDEFINED;
     }
     std::string norm = normalizePath(path);
     LOG_I(TAG, "POST /fs/mkdir requested: '%s' normalized: '%s'", path.c_str(), norm.c_str());
     if (!isAllowedBasePath(norm)) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "invalid path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "invalid path");
+        return ERROR_UNDEFINED;
     }
     bool ok = file::findOrCreateDirectory(norm, 0755);
-    if (!ok) { httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "mkdir failed"); return ESP_FAIL; }
-    httpd_resp_sendstr(request, "ok");
-    return ESP_OK;
+    if (!ok) { http_server_request_send_error(request, 500, "mkdir failed"); return ERROR_UNDEFINED; }
+    http_server_request_send_string(request, "ok");
+    return ERROR_NONE;
 }
 
 static bool isRootMountPoint(const std::string& path) {
@@ -1583,48 +1629,48 @@ static bool isRootMountPoint(const std::string& path) {
 }
 
 // Delete a file or directory (POST /fs/delete?path=/data/foo)
-esp_err_t WebServerService::handleFsDelete(httpd_req_t* request) {
+error_t WebServerService::handleFsDelete(HttpServerRequest* request, void*) {
     std::string path;
     if (!getQueryParam(request, "path", path) || path.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "path required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "path required");
+        return ERROR_UNDEFINED;
     }
     std::string norm = normalizePath(path);
     LOG_I(TAG, "POST /fs/delete requested: '%s' normalized: '%s'", path.c_str(), norm.c_str());
     if (!isAllowedBasePath(norm)) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "invalid path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "invalid path");
+        return ERROR_UNDEFINED;
     }
     if (isRootMountPoint(norm)) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "cannot delete mount point");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "cannot delete mount point");
+        return ERROR_UNDEFINED;
     }
     bool ok = true;
     if (file::isDirectory(norm)) ok = file::deleteRecursively(norm);
     else if (file::isFile(norm)) ok = file::deleteFile(norm);
     else ok = false;
-    if (!ok) { httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "delete failed"); return ESP_FAIL; }
-    httpd_resp_sendstr(request, "ok");
-    return ESP_OK;
+    if (!ok) { http_server_request_send_error(request, 500, "delete failed"); return ERROR_UNDEFINED; }
+    http_server_request_send_string(request, "ok");
+    return ERROR_NONE;
 }
 
 // Rename a file or folder (POST /fs/rename?path=/data/oldname&newName=newname)
-esp_err_t WebServerService::handleFsRename(httpd_req_t* request) {
+error_t WebServerService::handleFsRename(HttpServerRequest* request, void*) {
     std::string path;
     std::string newName;
     if (!getQueryParam(request, "path", path) || path.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "path required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "path required");
+        return ERROR_UNDEFINED;
     }
     if (!getQueryParam(request, "newName", newName) || newName.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "newName required");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "newName required");
+        return ERROR_UNDEFINED;
     }
     std::string norm = normalizePath(path);
     LOG_I(TAG, "POST /fs/rename requested: '%s' normalized: '%s' -> newName: '%s'", path.c_str(), norm.c_str(), newName.c_str());
     if (!isAllowedBasePath(norm)) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "invalid path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "invalid path");
+        return ERROR_UNDEFINED;
     }
 
     // Basic validation of newName: must not contain path separators or '..'
@@ -1632,8 +1678,8 @@ esp_err_t WebServerService::handleFsRename(httpd_req_t* request) {
     auto trim = [](std::string& s){ size_t st=0; while (st<s.size() && isspace((unsigned char)s[st])) ++st; size_t ed=s.size(); while (ed>st && isspace((unsigned char)s[ed-1])) --ed; s = s.substr(st, ed-st); };
     trim(newName);
     if (newName.empty() || newName.find('/') != std::string::npos || newName.find('\\') != std::string::npos || newName.find("..") != std::string::npos) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid newName");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid newName");
+        return ERROR_UNDEFINED;
     }
 
     // compute parent directory
@@ -1644,16 +1690,16 @@ esp_err_t WebServerService::handleFsRename(httpd_req_t* request) {
     }
 
     if (!isAllowedBasePath(parent)) {
-        httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "invalid target parent");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 403, "invalid target parent");
+        return ERROR_UNDEFINED;
     }
 
     std::string target = file::getChildPath(parent, newName);
 
     // Prevent overwrite: fail if target exists
     if (file::isFile(target) || file::isDirectory(target)) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "target exists");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "target exists");
+        return ERROR_UNDEFINED;
     }
 
     // perform rename
@@ -1663,132 +1709,146 @@ esp_err_t WebServerService::handleFsRename(httpd_req_t* request) {
         LOG_W(TAG, "rename failed errno=%d (%s) -> %s -> %s", e, strerror(e), norm.c_str(), target.c_str());
         // Return errno string to client to aid debugging
         std::string msg = std::string("rename failed: ") + strerror(e);
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, msg.c_str());
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, msg.c_str());
+        return ERROR_UNDEFINED;
     }
-    httpd_resp_sendstr(request, "ok");
-    return ESP_OK;
+    http_server_request_send_string(request, "ok");
+    return ERROR_NONE;
 }
 
 // endregion
 
-esp_err_t WebServerService::handleReboot(httpd_req_t* request) {
-    
+error_t WebServerService::handleReboot(HttpServerRequest* request, void*) {
+
     LOG_I(TAG, "POST /reboot");
-    httpd_resp_sendstr(request, "Rebooting...");
-    
+    http_server_request_send_string(request, "Rebooting...");
+
     // Reboot after a short delay to allow response to be sent
     vTaskDelay(pdMS_TO_TICKS(2000));
+#ifdef ESP_PLATFORM
     esp_restart();
+#else
+    LOG_W(TAG, "Reboot is not supported on this platform");
+#endif
 
-    return ESP_OK; // Unreachable, but satisfies function signature
+    return ERROR_NONE; // Unreachable on ESP_PLATFORM, but satisfies function signature
 }
 
-esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
+error_t WebServerService::handleAssets(HttpServerRequest* request, void*) {
     // Auth check for UI access control
     bool authPassed = false;
-    esp_err_t authResult = validateRequestAuth(request, authPassed);
+    error_t authResult = validateRequestAuth(request, authPassed);
     if (!authPassed) {
         return authResult;
     }
 
-    const char* uri = request->uri;
+    char uri[256];
+    http_server_request_get_uri(request, uri, sizeof(uri));
     LOG_I(TAG, "GET %s", uri);
 
     // Special case: serve favicon from system assets
     if (strcmp(uri, "/favicon.ico") == 0) {
-        const char* faviconPath = "/system/spinner.png";
+        std::string faviconPathStr = std::string(file::MOUNT_POINT_SYSTEM) + "/spinner.png";
+        const char* faviconPath = faviconPathStr.c_str();
         if (file::isFile(faviconPath)) {
-            httpd_resp_set_type(request, "image/png");
-            httpd_resp_set_hdr(request, "Cache-Control", "public, max-age=86400");
+            http_server_request_set_content_type(request, "image/png");
+            http_server_request_set_header(request, "Cache-Control", "public, max-age=86400");
 
             FILE* fp = fopen(faviconPath, "rb");
             if (fp) {
+                if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
+                    fclose(fp);
+                    return ERROR_UNDEFINED;
+                }
                 char buffer[512];
                 size_t bytesRead;
                 while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-                    if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
+                    if (http_server_request_send_chunk(request, buffer, bytesRead) != ERROR_NONE) {
                         fclose(fp);
-                        return ESP_FAIL;
+                        return ERROR_UNDEFINED;
                     }
                 }
                 fclose(fp);
-                httpd_resp_send_chunk(request, nullptr, 0);
+                http_server_request_send_chunk_end(request);
                 LOG_I(TAG, "[200] %s (favicon)", uri);
-                return ESP_OK;
+                return ERROR_NONE;
             }
         }
         // If favicon not found, return 404 silently (browsers handle this gracefully)
-        httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "Not found");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 404, "Not found");
+        return ERROR_UNDEFINED;
     }
 
     // Special case: if requesting dashboard.html but it doesn't exist, serve default.html
-    std::string requestedPath = uri;
-    if (auto qpos = requestedPath.find('?'); qpos != std::string::npos) {
-        requestedPath = requestedPath.substr(0, qpos);
-    }
-    requestedPath = normalizePath(requestedPath);
+    std::string requestedPath = normalizePath(uri);
     if (requestedPath == "/.." || requestedPath.ends_with("/..") || requestedPath.find("/../") != std::string::npos) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid path");
+        return ERROR_UNDEFINED;
     }
 
-    std::string dataPath = std::string("/system/app/WebServer") + requestedPath;
-    
+    std::string dataPath = std::string(file::MOUNT_POINT_SYSTEM) + "/app/WebServer" + requestedPath;
+
     if (requestedPath == "/dashboard.html" && !file::isFile(dataPath.c_str())) {
         LOG_I(TAG, "dashboard.html not found, serving default.html");
     }
-    
+
     // Try to serve from Data partition first
     if (file::isFile(dataPath.c_str())) {
-        httpd_resp_set_type(request, getContentType(dataPath));
+        http_server_request_set_content_type(request, getContentType(dataPath));
 
         FILE* fp = fopen(dataPath.c_str(), "rb");
         if (fp) {
+            if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
+                fclose(fp);
+                return ERROR_UNDEFINED;
+            }
             char buffer[512];
             size_t bytesRead;
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-                if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
+                if (http_server_request_send_chunk(request, buffer, bytesRead) != ERROR_NONE) {
                     fclose(fp);
-                    return ESP_FAIL;
+                    return ERROR_UNDEFINED;
                 }
             }
             fclose(fp);
 
-            httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
+            http_server_request_send_chunk_end(request);  // End of chunks
             LOG_I(TAG, "[200] %s (from Data)", uri);
-            return ESP_OK;
+            return ERROR_NONE;
         }
     }
 
     // Fallback to SD card
     std::string sdPath = std::string("/sdcard/tactility/webserver") + requestedPath;
     if (file::isFile(sdPath.c_str())) {
-        httpd_resp_set_type(request, getContentType(sdPath));
+        http_server_request_set_content_type(request, getContentType(sdPath));
 
         FILE* fp = fopen(sdPath.c_str(), "rb");
         if (fp) {
+            if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
+                fclose(fp);
+                return ERROR_UNDEFINED;
+            }
             char buffer[512];
             size_t bytesRead;
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-                if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
+                if (http_server_request_send_chunk(request, buffer, bytesRead) != ERROR_NONE) {
                     fclose(fp);
-                    return ESP_FAIL;
+                    return ERROR_UNDEFINED;
                 }
             }
             fclose(fp);
 
-            httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
+            http_server_request_send_chunk_end(request);  // End of chunks
             LOG_I(TAG, "[200] %s (from SD)", uri);
-            return ESP_OK;
+            return ERROR_NONE;
         }
     }
-    
+
     // File not found
     LOG_W(TAG, "[404] %s", uri);
-    httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "File not found");
-    return ESP_FAIL;
+    http_server_request_send_error(request, 404, "File not found");
+    return ERROR_UNDEFINED;
 }
 
 extern const ServiceManifest manifest = {
@@ -1812,5 +1872,3 @@ bool isWebServerEnabled() {
 }
 
 } // namespace
-
-#endif // ESP_PLATFORM

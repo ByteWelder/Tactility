@@ -5,6 +5,12 @@
 
 namespace tt::settings::webserver {
 
+#ifdef ESP_PLATFORM
+constexpr uint16_t DEFAULT_PORT = 80;
+#else
+constexpr uint16_t DEFAULT_PORT = 8080;
+#endif
+
 enum class WiFiMode : uint8_t {
     Station = 0,  // Connect to existing WiFi network
     AccessPoint = 1  // Create own WiFi network
@@ -23,7 +29,7 @@ struct WebServerSettings {
 
     // Web Server Settings
     bool webServerEnabled = false;
-    uint16_t webServerPort = 80;       // Default: 80
+    uint16_t webServerPort = DEFAULT_PORT;
 
     // Optional HTTP Basic Auth
     bool webServerAuthEnabled = false;
