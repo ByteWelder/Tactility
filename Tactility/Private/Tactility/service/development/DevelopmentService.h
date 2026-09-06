@@ -1,13 +1,10 @@
 #pragma once
-#ifdef ESP_PLATFORM
 
 #include <Tactility/service/Service.h>
 
 #include <Tactility/RecursiveMutex.h>
 
-#include <esp_event.h>
-#include <esp_http_server.h>
-#include <Tactility/network/HttpServer.h>
+#include <http/server.h>
 
 namespace tt::service::development {
 
@@ -15,46 +12,20 @@ class DevelopmentService final : public Service {
 
     RecursiveMutex mutex;
     std::string deviceResponse;
-    network::HttpServer httpServer = network::HttpServer(
-        6666,
-        "0.0.0.0",
-        std::vector<httpd_uri_t>{
-            {
-                .uri = "/info",
-                .method = HTTP_GET,
-                .handler = handleGetInfo,
-                .user_ctx = this
-            },
-            {
-                .uri = "/app/run",
-                .method = HTTP_POST,
-                .handler = handleAppRun,
-                .user_ctx = this
-            },
-            {
-                .uri = "/app/install",
-                .method = HTTP_PUT,
-                .handler = handleAppInstall,
-                .user_ctx = this
-            },
-            {
-                .uri = "/app/uninstall",
-                .method = HTTP_PUT,
-                .handler = handleAppUninstall,
-                .user_ctx = this
-            }
-        }
-    );
+    struct HttpServer* httpServer = nullptr;
 
     void startServer();
     void stopServer();
 
-    static esp_err_t handleGetInfo(httpd_req_t* request);
-    static esp_err_t handleAppRun(httpd_req_t* request);
-    static esp_err_t handleAppInstall(httpd_req_t* request);
-    static esp_err_t handleAppUninstall(httpd_req_t* request);
+    static error_t handleGetInfo(struct HttpServerRequest* request, void* user_ctx);
+    static error_t handleAppRun(struct HttpServerRequest* request, void* user_ctx);
+    static error_t handleAppInstall(struct HttpServerRequest* request, void* user_ctx);
+    static error_t handleAppUninstall(struct HttpServerRequest* request, void* user_ctx);
 
 public:
+
+    DevelopmentService();
+    ~DevelopmentService() override;
 
     // region Overrides
 
@@ -82,5 +53,3 @@ public:
 std::shared_ptr<DevelopmentService> findService();
 
 }
-
-#endif // ESP_PLATFORM

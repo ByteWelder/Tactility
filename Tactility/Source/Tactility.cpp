@@ -120,9 +120,7 @@ namespace service {
     // Primary
     namespace audio { extern const ServiceManifest manifest; }
     namespace wifi { extern const ServiceManifest manifest; }
-#ifdef ESP_PLATFORM
     namespace development { extern const ServiceManifest manifest; }
-#endif
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     namespace espnow { extern const ServiceManifest manifest; }
 #endif
@@ -137,9 +135,7 @@ namespace service {
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
-#ifdef ESP_PLATFORM
     namespace webserver { extern const ServiceManifest manifest; }
-#endif
 
 }
 
@@ -189,10 +185,10 @@ namespace app {
     namespace wificonnect { extern const ::AppManifest manifest; }
     namespace wifimanage { extern const ::AppManifest manifest; }
 
+    namespace webserversettings { extern const ::AppManifest manifest; }
 #ifdef ESP_PLATFORM
     namespace apwebserver { extern const ::AppManifest manifest; }
     namespace crashdiagnostics { extern const ::AppManifest manifest; }
-    namespace webserversettings { extern const ::AppManifest manifest; }
 #if CONFIG_TT_TDECK_WORKAROUND == 1
     namespace keyboardsettings { extern const ::AppManifest manifest; } // T-Deck only for now
 #endif
@@ -251,11 +247,11 @@ static void registerInternalApps() {
     app_manager_add(&app::wificonnect::manifest);
     app_manager_add(&app::wifimanage::manifest);
 
+    app_manager_add(&app::development::manifest);
+    app_manager_add(&app::webserversettings::manifest);
 #ifdef ESP_PLATFORM
     app_manager_add(&app::apwebserver::manifest);
-    app_manager_add(&app::webserversettings::manifest);
     app_manager_add(&app::crashdiagnostics::manifest);
-    app_manager_add(&app::development::manifest);
 #if defined(CONFIG_TT_TDECK_WORKAROUND)
         app_manager_add(&app::keyboardsettings::manifest);
 #endif
@@ -320,15 +316,11 @@ static void registerAndStartServices() {
         addService(service::audio::manifest);
     }
     addService(service::wifi::manifest);
-#ifdef ESP_PLATFORM
     addService(service::development::manifest);
-#endif
+    addService(service::webserver::manifest);
 
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     addService(service::espnow::manifest);
-#endif
-#ifdef ESP_PLATFORM
-    addService(service::webserver::manifest);
 #endif
 #if defined(ESP_PLATFORM)
     if (device_exists_of_type(&RTC_TYPE)) {

@@ -1,4 +1,3 @@
-#ifdef ESP_PLATFORM
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
@@ -72,5 +71,3 @@ bool shouldEnableOnBoot() {
     return settings.enableOnBoot;
 }
 }
-
-#endif // ESP_PLATFORM

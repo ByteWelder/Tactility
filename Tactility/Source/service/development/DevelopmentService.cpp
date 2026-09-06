@@ -1,5 +1,3 @@
-#ifdef ESP_PLATFORM
-
 #include <app/install.h>
 #include <app/manager.h>
 #include <app/start.h>
@@ -9,12 +7,16 @@
 #include <Tactility/DeprecatedPaths.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
+#include <Tactility/network/HttpServerReq.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/development/DevelopmentService.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 
+#include <cstring>
+#include <format>
+#include <iterator>
 #include <ranges>
 #include <sstream>
 
@@ -24,10 +26,35 @@ extern const ServiceManifest manifest;
 
 constexpr auto* TAG = "DevService";
 
+DevelopmentService::DevelopmentService() {
+    HttpServerRequestHandler handlers[] = {
+        { .uri = "/info", .method = HTTP_METHOD_GET, .callback = handleGetInfo, .user_ctx = this },
+        { .uri = "/app/run", .method = HTTP_METHOD_POST, .callback = handleAppRun, .user_ctx = this },
+        { .uri = "/app/install", .method = HTTP_METHOD_PUT, .callback = handleAppInstall, .user_ctx = this },
+        { .uri = "/app/uninstall", .method = HTTP_METHOD_PUT, .callback = handleAppUninstall, .user_ctx = this },
+    };
+    HttpServerConfig config {
+        .port = 6666,
+        .address = "0.0.0.0",
+        .stack_size = 5120,
+        .handlers = handlers,
+        .handler_count = std::size(handlers),
+    };
+    httpServer = http_server_alloc(&config);
+}
+
+DevelopmentService::~DevelopmentService() {
+    http_server_free(httpServer);
+}
+
 bool DevelopmentService::onStart(ServiceContext& service) {
     std::stringstream stream;
     stream << "{";
+#ifdef ESP_PLATFORM
     stream << "\"cpuFamily\":\"" << CONFIG_IDF_TARGET << "\", ";
+#else
+    stream << "\"cpuFamily\":\"" << CONFIG_TT_DEVICE_ID << "\", ";
+#endif
     stream << "\"osVersion\":\"" << TT_VERSION << "\", ";
     stream << "\"protocolVersion\":\"1.0.0\"";
     stream << "}";
@@ -49,12 +76,12 @@ void DevelopmentService::setEnabled(bool enabled) {
     lock.lock();
 
     if (enabled) {
-        if (!httpServer.isStarted()) {
-            httpServer.start();
+        if (!http_server_is_started(httpServer)) {
+            http_server_start(httpServer);
         }
     } else {
-        if (httpServer.isStarted()) {
-            httpServer.stop();
+        if (http_server_is_started(httpServer)) {
+            http_server_stop(httpServer);
         }
     }
 }
@@ -62,44 +89,39 @@ void DevelopmentService::setEnabled(bool enabled) {
 bool DevelopmentService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
-    return httpServer.isStarted();
+    return http_server_is_started(httpServer);
 }
 
 // region endpoints
 
-esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
+error_t DevelopmentService::handleGetInfo(HttpServerRequest* request, void* user_ctx) {
     LOG_I(TAG, "GET /device");
 
-    if (httpd_resp_set_type(request, "application/json") != ESP_OK) {
-        LOG_W(TAG, "Failed to send header");
-        return ESP_FAIL;
-    }
-
-    auto* service = static_cast<DevelopmentService*>(request->user_ctx);
-
-    if (httpd_resp_sendstr(request, service->deviceResponse.c_str()) != ESP_OK) {
+    auto* service = static_cast<DevelopmentService*>(user_ctx);
+    http_server_request_set_content_type(request, "application/json");
+    if (http_server_request_send_string(request, service->deviceResponse.c_str()) != ERROR_NONE) {
         LOG_W(TAG, "Failed to send response body");
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
 
     LOG_I(TAG, "[200] /device");
-    return ESP_OK;
+    return ERROR_NONE;
 }
 
-esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
+error_t DevelopmentService::handleAppRun(HttpServerRequest* request, void*) {
     LOG_I(TAG, "POST /app/run");
 
     std::string query;
     if (!network::getQueryOrSendError(request, query)) {
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
 
     auto parameters = network::parseUrlQuery(query);
     auto id_key_pos = parameters.find("id");
     if (id_key_pos == parameters.end()) {
         LOG_W(TAG, "[400] /app/run id not specified");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "id not specified");
+        return ERROR_UNDEFINED;
     }
 
     char app_id[32];
@@ -117,20 +139,20 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
     app_start(id_key_pos->second.c_str(), 0, nullptr, &instance_id);
 
     LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
-    httpd_resp_send(request, nullptr, 0);
+    http_server_request_send(request, nullptr, 0);
 
-    return ESP_OK;
+    return ERROR_NONE;
 }
 
-esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
+error_t DevelopmentService::handleAppInstall(HttpServerRequest* request, void*) {
     LOG_I(TAG, "PUT /app/install");
 
     std::string boundary;
     if (!network::getMultiPartBoundaryOrSendError(request, boundary)) {
-        return false;
+        return ERROR_UNDEFINED;
     }
 
-    size_t content_left = request->content_len;
+    size_t content_left = http_server_request_get_content_length(request);
 
     // Skip newline after reading boundary
     auto content_headers_data = network::receiveTextUntil(request, "\r\n\r\n");
@@ -143,8 +165,8 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
 
     auto content_disposition_map = network::parseContentDisposition(content_headers);
     if (content_disposition_map.empty()) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: invalid content disposition");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "Multipart form error: invalid content disposition");
+        return ERROR_UNDEFINED;
     }
 
     auto name_entry = content_disposition_map.find("name");
@@ -154,8 +176,8 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         filename_entry == content_disposition_map.end() ||
         name_entry->second != "elf"
     ) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: name or filename parameter missing or mismatching");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "Multipart form error: name or filename parameter missing or mismatching");
+        return ERROR_UNDEFINED;
     }
 
     // Receive boundary
@@ -165,28 +187,28 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     // Create tmp directory
     const std::string tmp_path = getTempPath();
     if (!file::findOrCreateDirectory(tmp_path, 0777)) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create temp path");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "Failed to create temp path");
+        return ERROR_UNDEFINED;
     }
 
     std::string safe_name = file::getLastPathSegment(filename_entry->second);
     if (safe_name.empty() || safe_name.find("..") != std::string::npos ||
         safe_name.find('/') != std::string::npos || safe_name.find('\\') != std::string::npos) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid filename");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "invalid filename");
+        return ERROR_UNDEFINED;
     }
     auto file_path = std::format("{}/{}", tmp_path, safe_name);
     if (network::receiveFile(request, file_size, file_path) != file_size) {
         file::deleteFile(file_path);
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive file");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "Failed to receive file");
+        return ERROR_UNDEFINED;
     }
 
     content_left -= file_size;
 
     // Read and verify part
     if (!network::readAndDiscardOrSendError(request, boundary_and_newlines_after_file)) {
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
     content_left -= boundary_and_newlines_after_file.length();
 
@@ -195,8 +217,8 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     }
 
     if (app_install(file_path.c_str()) != ERROR_NONE) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to install");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "Failed to install");
+        return ERROR_UNDEFINED;
     }
 
     if (!file::deleteFile(file_path)) {
@@ -205,42 +227,42 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
 
     LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
 
-    httpd_resp_send(request, nullptr, 0);
+    http_server_request_send(request, nullptr, 0);
 
-    return ESP_OK;
+    return ERROR_NONE;
 }
 
-esp_err_t DevelopmentService::handleAppUninstall(httpd_req_t* request) {
+error_t DevelopmentService::handleAppUninstall(HttpServerRequest* request, void*) {
     LOG_I(TAG, "PUT /app/uninstall");
 
     std::string query;
     if (!network::getQueryOrSendError(request, query)) {
-        return ESP_FAIL;
+        return ERROR_UNDEFINED;
     }
 
     auto parameters = network::parseUrlQuery(query);
     auto id_key_pos = parameters.find("id");
     if (id_key_pos == parameters.end()) {
         LOG_W(TAG, "[400] /app/uninstall id not specified");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 400, "id not specified");
+        return ERROR_UNDEFINED;
     }
 
     AppManifest manifest;
     if (app_manager_find_manifest(id_key_pos->second.c_str(), &manifest) != ERROR_NONE) {
         LOG_I(TAG, "[200] /app/uninstall %s (app wasn't installed)", id_key_pos->second.c_str());
-        httpd_resp_send(request, nullptr, 0);
-        return ESP_OK;
+        http_server_request_send(request, nullptr, 0);
+        return ERROR_NONE;
     }
 
     if (app_uninstall(id_key_pos->second.c_str()) == ERROR_NONE) {
         LOG_I(TAG, "[200] /app/uninstall %s", id_key_pos->second.c_str());
-        httpd_resp_send(request, nullptr, 0);
-        return ESP_OK;
+        http_server_request_send(request, nullptr, 0);
+        return ERROR_NONE;
     } else {
         LOG_W(TAG, "[500] /app/uninstall %s", id_key_pos->second.c_str());
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to uninstall");
-        return ESP_FAIL;
+        http_server_request_send_error(request, 500, "Failed to uninstall");
+        return ERROR_UNDEFINED;
     }
 }
 
@@ -258,5 +280,3 @@ extern const ServiceManifest manifest = {
 };
 
 }
-
-#endif // ESP_PLATFORM

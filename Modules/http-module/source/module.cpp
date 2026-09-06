@@ -2,6 +2,11 @@
 #include <http/download.h>
 #include <http/module.h>
 
+#include <tactility/error.h>
+
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #include <esp_http_client.h>
@@ -14,9 +19,42 @@
 #endif
 #endif
 
-
 #include <sys/select.h>
 extern "C" {
+
+enum HttpMethod : int;
+typedef uint16_t status_code_t;
+struct HttpServerRequest;
+struct HttpServer;
+struct HttpServerConfig;
+
+// Deliberately not #include <http/server.h> or <http/types.h>: their HttpMethod enum shares
+// enumerator names with esp_http_client.h's own, so this file forward-declares exactly the
+// functions it needs instead of including either header.
+struct HttpServer* http_server_alloc(const struct HttpServerConfig* config);
+void http_server_free(struct HttpServer* server);
+error_t http_server_start(struct HttpServer* server);
+void http_server_stop(struct HttpServer* server);
+bool http_server_is_started(struct HttpServer* server);
+uint16_t http_server_get_port(struct HttpServer* server);
+enum HttpMethod http_server_request_get_method(struct HttpServerRequest* request);
+size_t http_server_request_get_uri(struct HttpServerRequest* request, char* buffer, size_t buffer_size);
+size_t http_server_request_get_query(struct HttpServerRequest* request, char* buffer, size_t buffer_size);
+size_t http_server_request_get_header(struct HttpServerRequest* request, const char* name, char* buffer, size_t buffer_size);
+uint64_t http_server_request_get_content_length(struct HttpServerRequest* request);
+int http_server_request_receive(struct HttpServerRequest* request, void* buffer, size_t buffer_size);
+void http_server_request_set_status(struct HttpServerRequest* request, status_code_t status_code);
+void http_server_request_set_content_type(struct HttpServerRequest* request, const char* content_type);
+void http_server_request_set_header(struct HttpServerRequest* request, const char* name, const char* value);
+error_t http_server_request_send(struct HttpServerRequest* request, const void* data, size_t length);
+error_t http_server_request_send_string(struct HttpServerRequest* request, const char* text);
+error_t http_server_request_send_error(struct HttpServerRequest* request, int status_code, const char* message);
+error_t http_server_request_send_chunk_start(struct HttpServerRequest* request);
+error_t http_server_request_send_chunk(struct HttpServerRequest* request, const void* data, size_t length);
+error_t http_server_request_send_chunk_end(struct HttpServerRequest* request);
+const char* http_method_to_string(enum HttpMethod method);
+error_t http_method_from_string(const char* text, enum HttpMethod* out_method);
+error_t status_code_to_string(status_code_t code, const char** text);
 
 static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(http_download_subscribe),
@@ -24,6 +62,31 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(http_download_poll),
     DEFINE_MODULE_SYMBOL(http_download_start),
     DEFINE_MODULE_SYMBOL(http_download_cancel),
+    DEFINE_MODULE_SYMBOL(http_server_alloc),
+    DEFINE_MODULE_SYMBOL(http_server_free),
+    DEFINE_MODULE_SYMBOL(http_server_start),
+    DEFINE_MODULE_SYMBOL(http_server_stop),
+    DEFINE_MODULE_SYMBOL(http_server_is_started),
+    DEFINE_MODULE_SYMBOL(http_server_get_port),
+    DEFINE_MODULE_SYMBOL(http_server_request_get_method),
+    DEFINE_MODULE_SYMBOL(http_server_request_get_query),
+    DEFINE_MODULE_SYMBOL(http_server_request_get_header),
+    DEFINE_MODULE_SYMBOL(http_server_request_get_content_length),
+    DEFINE_MODULE_SYMBOL(http_server_request_receive),
+    DEFINE_MODULE_SYMBOL(http_server_request_set_status),
+    DEFINE_MODULE_SYMBOL(http_server_request_set_content_type),
+    DEFINE_MODULE_SYMBOL(http_server_request_send),
+    DEFINE_MODULE_SYMBOL(http_server_request_send_string),
+    DEFINE_MODULE_SYMBOL(http_server_request_send_error),
+    DEFINE_MODULE_SYMBOL(http_server_request_get_uri),
+    DEFINE_MODULE_SYMBOL(http_server_request_set_header),
+    DEFINE_MODULE_SYMBOL(http_server_request_send_chunk_start),
+    DEFINE_MODULE_SYMBOL(http_server_request_send_chunk),
+    DEFINE_MODULE_SYMBOL(http_server_request_send_chunk_end),
+    // types
+    DEFINE_MODULE_SYMBOL(http_method_to_string),
+    DEFINE_MODULE_SYMBOL(http_method_from_string),
+    DEFINE_MODULE_SYMBOL(status_code_to_string),
     // posix
     DEFINE_MODULE_SYMBOL(select),
 #ifdef ESP_PLATFORM
@@ -94,7 +157,7 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(esp_http_client_get_url),
     DEFINE_MODULE_SYMBOL(esp_http_client_get_chunk_length),
 #endif
-    MODULE_SYMBOL_TERMINATOR
+    MODULE_SYMBOL_TERMINATOR,
 };
 
 Module http_module = {
