@@ -199,7 +199,12 @@ void handle_connection(HttpServer* server, int client_fd) {
     const std::string& path = request.path;
 
     std::string header_line;
-    while (read_line(client_fd, header_line, deadline) && !header_line.empty()) {
+    bool headers_complete = false;
+    while (read_line(client_fd, header_line, deadline)) {
+        if (header_line.empty()) {
+            headers_complete = true;
+            break;
+        }
         if (request.headers.size() >= MAX_HEADER_COUNT) {
             continue; // Cap reached: known callers only need the first handful (Content-Type etc).
         }
@@ -211,6 +216,9 @@ void handle_connection(HttpServer* server, int client_fd) {
         size_t value_start = header_line.find_first_not_of(' ', colon + 1);
         std::string value = value_start == std::string::npos ? "" : header_line.substr(value_start);
         request.headers.emplace_back(std::move(name), std::move(value));
+    }
+    if (!headers_complete) {
+        return; // Connection closed/timed out before the terminating blank line: never dispatch.
     }
 
     if (const auto* content_length_header = find_header(&request, "Content-Length")) {

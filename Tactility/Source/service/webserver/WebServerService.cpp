@@ -521,6 +521,7 @@ bool WebServerService::startServer() {
         LOG_E(TAG, "Failed to start HTTP server on port %u", (unsigned)settings.webServerPort);
         http_server_free(httpServer);
         httpServer = nullptr;
+        stopApMode();
         return false;
     }
 
