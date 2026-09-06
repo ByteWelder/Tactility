@@ -17,7 +17,6 @@
 #include <cstring>
 #include <format>
 #include <iterator>
-#include <ranges>
 #include <sstream>
 
 namespace tt::service::development {
@@ -41,6 +40,9 @@ DevelopmentService::DevelopmentService() {
         .handler_count = std::size(handlers),
     };
     httpServer = http_server_alloc(&config);
+    if (httpServer == nullptr) {
+        LOG_E(TAG, "Failed to allocate http server");
+    }
 }
 
 DevelopmentService::~DevelopmentService() {
@@ -72,6 +74,10 @@ void DevelopmentService::onStop(ServiceContext& service) {
 // region Enable/disable
 
 void DevelopmentService::setEnabled(bool enabled) {
+    if (httpServer == nullptr) {
+        return;
+    }
+
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -87,6 +93,10 @@ void DevelopmentService::setEnabled(bool enabled) {
 }
 
 bool DevelopmentService::isEnabled() const {
+    if (httpServer == nullptr) {
+        return false;
+    }
+
     auto lock = mutex.asScopedLock();
     lock.lock();
     return http_server_is_started(httpServer);
@@ -156,12 +166,18 @@ error_t DevelopmentService::handleAppInstall(HttpServerRequest* request, void*) 
 
     // Skip newline after reading boundary
     auto content_headers_data = network::receiveTextUntil(request, "\r\n\r\n");
+    if (content_headers_data.empty()) {
+        http_server_request_send_error(request, 400, "Multipart form error: preamble too long or unterminated");
+        return ERROR_UNDEFINED;
+    }
     content_left -= content_headers_data.length();
-    auto content_headers = string::split(content_headers_data, "\r\n")
-        | std::views::filter([](const std::string& line) {
-            return line.length() > 0;
-        })
-        | std::ranges::to<std::vector>();
+    auto content_header_lines = string::split(content_headers_data, "\r\n");
+    std::vector<std::string> content_headers;
+    for (auto& line : content_header_lines) {
+        if (!line.empty()) {
+            content_headers.push_back(line);
+        }
+    }
 
     auto content_disposition_map = network::parseContentDisposition(content_headers);
     if (content_disposition_map.empty()) {

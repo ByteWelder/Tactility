@@ -57,7 +57,8 @@ std::string urlEncode(const std::string& input) {
 // Adapted from https://stackoverflow.com/a/29962178/3848666
 std::string urlDecode(const std::string& input) {
     std::string result;
-    size_t conversion_buffer, input_length = input.length();
+    unsigned int conversion_buffer;
+    size_t input_length = input.length();
 
     for (size_t i = 0; i < input_length; i++) {
         if (input[i] != '%') {

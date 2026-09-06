@@ -32,6 +32,11 @@ std::string send_request(uint16_t port, const std::string& request) {
     } while (connect_result != 0 && errno == EINTR);
     REQUIRE(connect_result == 0);
 
+    // Without this, a server bug that leaves the connection open makes this block in recv()
+    // until CTest's/CI's external job timeout, instead of failing this test.
+    struct timeval receive_timeout { .tv_sec = 5, .tv_usec = 0 };
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
+
     size_t total_sent = 0;
     while (total_sent < request.size()) {
         ssize_t sent = send(fd, request.data() + total_sent, request.size() - total_sent, 0);

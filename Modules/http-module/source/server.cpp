@@ -15,6 +15,7 @@
 
 #include <cctype>
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <new>
@@ -31,7 +32,11 @@ constexpr int LISTEN_BACKLOG = 8;
 // How often the accept loop wakes to re-check stop_requested; not a per-request timeout.
 constexpr int ACCEPT_POLL_TIMEOUT_MS = 200;
 // Applied to every accepted connection's socket, for both header/body reads.
-constexpr int CONNECTION_RECV_TIMEOUT_MS = 5000;
+constexpr int CONNECTION_RECEIVE_TIMEOUT_MS = 5000;
+// Total wall-clock budget for one connection's request line + headers, independent of the
+// per-recv timeout above: a client trickling one byte at a time never trips that timeout but
+// would otherwise stall the single-threaded accept loop (and http_server_stop()) indefinitely.
+constexpr int CONNECTION_TOTAL_TIMEOUT_MS = 10000;
 constexpr size_t MAX_LINE_LENGTH = 8192;
 constexpr size_t MAX_HEADER_COUNT = 32;
 
@@ -63,10 +68,13 @@ ssize_t send_retry(int socket_fd, const void* buffer, size_t size) {
 
 // Bounded, byte-at-a-time (same technique HttpdReq.cpp already uses for the ESP32 backend's own
 // multipart parsing) since request lines/headers are short and this isn't a hot path.
-bool read_line(int socket_fd, std::string& out_line) {
+bool read_line(int socket_fd, std::string& out_line, TickType_t deadline) {
     out_line.clear();
     char byte;
     while (out_line.size() < MAX_LINE_LENGTH) {
+        if (xTaskGetTickCount() >= deadline) {
+            return false; // Connection exceeded its total budget.
+        }
         ssize_t received = receive_retry(socket_fd, &byte, 1);
         if (received <= 0) {
             return false;
@@ -91,6 +99,7 @@ struct HttpServerRequest {
     std::string query; // still URL-encoded, without the leading '?'
     std::vector<std::pair<std::string, std::string>> headers;
     uint64_t content_length = 0;
+    uint64_t body_remaining = 0;
 
     status_code_t status_code = 200;
     std::string content_type = "text/plain";
@@ -117,6 +126,12 @@ struct HttpServer {
 };
 
 namespace {
+
+// A caller-supplied header name/value/content-type reaching here unfiltered (e.g. a decoded
+// upload filename) could otherwise inject extra header lines or split the response.
+bool contains_crlf(const char* text) {
+    return strpbrk(text, "\r\n") != nullptr;
+}
 
 const std::pair<std::string, std::string>* find_header(const HttpServerRequest* request, const char* name) {
     for (const auto& header : request->headers) {
@@ -150,14 +165,16 @@ std::string build_response_prologue(HttpServerRequest* request, bool chunked, si
 // built-in 404/400), and guarantees a response is sent even if the handler didn't send one.
 void handle_connection(HttpServer* server, int client_fd) {
     timeval receive_timeout {
-        .tv_sec = CONNECTION_RECV_TIMEOUT_MS / 1000,
-        .tv_usec = (CONNECTION_RECV_TIMEOUT_MS % 1000) * 1000,
+        .tv_sec = CONNECTION_RECEIVE_TIMEOUT_MS / 1000,
+        .tv_usec = (CONNECTION_RECEIVE_TIMEOUT_MS % 1000) * 1000,
     };
     setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
 
+    TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(CONNECTION_TOTAL_TIMEOUT_MS);
+
     std::string request_line;
-    if (!read_line(client_fd, request_line)) {
-        return; // Malformed/empty request: nothing to usefully respond with.
+    if (!read_line(client_fd, request_line, deadline)) {
+        return; // Malformed/empty request, or the connection's total budget ran out.
     }
 
     size_t first_space = request_line.find(' ');
@@ -182,7 +199,7 @@ void handle_connection(HttpServer* server, int client_fd) {
     const std::string& path = request.path;
 
     std::string header_line;
-    while (read_line(client_fd, header_line) && !header_line.empty()) {
+    while (read_line(client_fd, header_line, deadline) && !header_line.empty()) {
         if (request.headers.size() >= MAX_HEADER_COUNT) {
             continue; // Cap reached: known callers only need the first handful (Content-Type etc).
         }
@@ -197,7 +214,17 @@ void handle_connection(HttpServer* server, int client_fd) {
     }
 
     if (const auto* content_length_header = find_header(&request, "Content-Length")) {
-        request.content_length = strtoull(content_length_header->second.c_str(), nullptr, 10);
+        const std::string& raw = content_length_header->second;
+        errno = 0;
+        char* end = nullptr;
+        unsigned long long parsed = strtoull(raw.c_str(), &end, 10);
+        bool all_digits = !raw.empty() && raw.find_first_not_of("0123456789") == std::string::npos;
+        if (!all_digits || errno == ERANGE || end != raw.c_str() + raw.size()) {
+            http_server_request_send_error(&request, 400, "Invalid Content-Length");
+            return;
+        }
+        request.content_length = parsed;
+        request.body_remaining = parsed;
     }
 
     const HttpServerRequestHandler* matched = nullptr;
@@ -322,6 +349,12 @@ error_t http_server_start(HttpServer* server) {
     server->bound_port = ntohs(address.sin_port);
     server->stop_requested = false;
     server->stopped_semaphore = xSemaphoreCreateBinary();
+    if (server->stopped_semaphore == nullptr) {
+        close(fd);
+        server->listen_fd = -1;
+        mutex_unlock(&server->mutex);
+        return ERROR_RESOURCE;
+    }
 
     TaskHandle_t task_handle = nullptr;
     if (xTaskCreate(server_task_main, "http-server", server->stack_size / sizeof(StackType_t), server, tskIDLE_PRIORITY + 1, &task_handle) != pdPASS) {
@@ -409,7 +442,17 @@ uint64_t http_server_request_get_content_length(HttpServerRequest* request) {
 }
 
 int http_server_request_receive(HttpServerRequest* request, void* buffer, size_t buffer_size) {
-    return static_cast<int>(receive_retry(request->socket_fd, buffer, buffer_size));
+    if (request->body_remaining == 0) {
+        return 0; // End of the declared body.
+    }
+    if (buffer_size > request->body_remaining) {
+        buffer_size = static_cast<size_t>(request->body_remaining);
+    }
+    ssize_t received = receive_retry(request->socket_fd, buffer, buffer_size);
+    if (received > 0) {
+        request->body_remaining -= static_cast<uint64_t>(received);
+    }
+    return static_cast<int>(received);
 }
 
 void http_server_request_set_status(HttpServerRequest* request, status_code_t status_code) {
@@ -419,15 +462,25 @@ void http_server_request_set_status(HttpServerRequest* request, status_code_t st
 }
 
 void http_server_request_set_content_type(HttpServerRequest* request, const char* content_type) {
-    if (!request->response_sent) {
-        request->content_type = content_type;
+    if (request->response_sent) {
+        return;
     }
+    if (contains_crlf(content_type)) {
+        LOG_W(TAG, "Rejected content type containing CR/LF");
+        return;
+    }
+    request->content_type = content_type;
 }
 
 void http_server_request_set_header(HttpServerRequest* request, const char* name, const char* value) {
-    if (!request->response_sent) {
-        request->extra_headers.emplace_back(name, value);
+    if (request->response_sent) {
+        return;
     }
+    if (contains_crlf(name) || contains_crlf(value)) {
+        LOG_W(TAG, "Rejected header containing CR/LF: %s", name);
+        return;
+    }
+    request->extra_headers.emplace_back(name, value);
 }
 
 error_t http_server_request_send(HttpServerRequest* request, const void* data, size_t length) {

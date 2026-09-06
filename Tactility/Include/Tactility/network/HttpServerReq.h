@@ -13,6 +13,8 @@ bool getMultiPartBoundaryOrSendError(struct HttpServerRequest* request, std::str
 
 bool getQueryOrSendError(struct HttpServerRequest* request, std::string& query);
 
+/** @return the received text up to and including @a terminator, or "" if the connection failed
+ * or the preamble exceeded its bounded maximum length without finding @a terminator. */
 std::string receiveTextUntil(struct HttpServerRequest* request, const std::string& terminator);
 
 bool readAndDiscardOrSendError(struct HttpServerRequest* request, const std::string& toRead);

@@ -3,7 +3,6 @@
 #include <tactility/log.h>
 
 #include <algorithm>
-#include <sstream>
 
 namespace tt::network {
 
@@ -33,6 +32,14 @@ bool getMultiPartBoundaryOrSendError(struct HttpServerRequest* request, std::str
     }
 
     boundary = content_type.substr(boundary_index + 9);
+    boundary = boundary.substr(0, boundary.find(';'));
+    // Trim any whitespace left by the ';' cut above, then unquote (RFC 2231 allows a quoted value).
+    while (!boundary.empty() && boundary.back() == ' ') {
+        boundary.pop_back();
+    }
+    if (boundary.size() >= 2 && boundary.front() == '"' && boundary.back() == '"') {
+        boundary = boundary.substr(1, boundary.size() - 2);
+    }
     return true;
 }
 
@@ -61,16 +68,23 @@ static bool receiveExact(struct HttpServerRequest* request, void* buffer, size_t
     return true;
 }
 
+// Bounds a client's multipart preamble (boundary + part headers): without this, a client that
+// keeps sending bytes without the terminator would make this buffer, and re-scan, unboundedly.
+constexpr size_t MAX_PREAMBLE_LENGTH = 8192;
+
 std::string receiveTextUntil(struct HttpServerRequest* request, const std::string& terminator) {
-    std::stringstream result;
-    while (!result.str().ends_with(terminator)) {
+    std::string result;
+    while (!result.ends_with(terminator)) {
+        if (result.length() >= MAX_PREAMBLE_LENGTH) {
+            return "";
+        }
         char byte;
         if (!receiveExact(request, &byte, 1)) {
             return "";
         }
-        result << byte;
+        result += byte;
     }
-    return result.str();
+    return result;
 }
 
 bool readAndDiscardOrSendError(struct HttpServerRequest* request, const std::string& toRead) {
