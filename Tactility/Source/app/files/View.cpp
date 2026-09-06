@@ -12,7 +12,6 @@
 #include <Tactility/app/imageviewer/ImageViewer.h>
 #include <Tactility/app/inputdialog/InputDialog.h>
 #include <Tactility/app/notes/Notes.h>
-#include <Tactility/app/terminal/Terminal.h>
 #include <Tactility/file/File.h>
 #include <Tactility/Platform.h>
 #include <Tactility/StringUtils.h>
@@ -219,11 +218,16 @@ void View::runFile(const std::string& file_path) {
 
     if (!isExecutablePath(file_path)) {
         LOG_W(TAG, "Not executable: %s", file_path.c_str());
-        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+        alertdialog::start(appInstanceId, "Run failed", "\"" + file::getLastPathSegment(file_path) + "\" is not an executable.");
         return;
     }
 
-    terminal::start(file_path);
+    AppLocation location { APP_LOCATION_PATH, const_cast<char*>(file_path.c_str()) };
+    AppInstanceId instance_id = 0;
+    if (app_execute(location, AppStackConfig {}, 0, nullptr, &instance_id) != ERROR_NONE) {
+        LOG_W(TAG, "Failed to run %s", file_path.c_str());
+        alertdialog::start(appInstanceId, "Run failed", "Could not run \"" + file::getLastPathSegment(file_path) + "\".");
+    }
 }
 
 bool View::resolveDirentFromListIndex(int32_t list_index, dirent& out_entry) {
