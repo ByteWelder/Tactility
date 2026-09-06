@@ -47,10 +47,10 @@
 #include <cctype>
 #include <cerrno>
 #include <cstring>
+#include <format>
 #include <iomanip>
 #include <iterator>
 #include <mbedtls/base64.h>
-#include <ranges>
 #include <sstream>
 #include <vector>
 
@@ -1369,11 +1369,13 @@ error_t WebServerService::handleApiAppsInstall(HttpServerRequest* request, void*
     content_left -= content_headers_data.length();
 
     // Split headers into lines and filter empty ones
-    auto content_headers = string::split(content_headers_data, "\r\n")
-        | std::views::filter([](const std::string& line) {
-            return line.length() > 0;
-        })
-        | std::ranges::to<std::vector>();
+    auto content_header_lines = string::split(content_headers_data, "\r\n");
+    std::vector<std::string> content_headers;
+    for (auto& line : content_header_lines) {
+        if (!line.empty()) {
+            content_headers.push_back(line);
+        }
+    }
 
     auto content_disposition_map = network::parseContentDisposition(content_headers);
     if (content_disposition_map.empty()) {
