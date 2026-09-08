@@ -156,6 +156,8 @@ static bool should_use_quality_mode(Papers3DisplayInternal* internal, int32_t wi
         static_cast<float>(internal->panel_pixel_count) * FULL_AREA_QUALITY_THRESHOLD
     );
     const bool partial_count_exceeded = internal->partial_count_since_quality >= QUALITY_REFRESH_PARTIAL_COUNT;
+    // Idle refresh is too problematic to worth the possible gains. So it isn't done on purpose.
+    // Ghosting is very minimal now anyway (it's still around but way less bad)
     const bool idle_exceeded = now - internal->last_quality_refresh_tick >= seconds_to_ticks(QUALITY_REFRESH_IDLE_SECONDS);
     const bool within_hold = now < internal->quality_hold_until_tick;
 

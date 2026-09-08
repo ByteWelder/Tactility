@@ -53,9 +53,6 @@ static const char* TAG = "m5paper_s3";
 #define OE_PIN  GPIO_NUM_45   /* Output enable */
 
 
-/* Default VCOM voltage (mV) - may need calibration for your display */
-static int vcom = 1500;
-
 static lcd_bus_config_t lcd_config = {
     .clock = CKH,
     .ckv = CKV,
@@ -164,11 +161,6 @@ static float epd_board_ambient_temperature() {
     return 20.0f;
 }
 
-static void set_vcom(int value) {
-    vcom = value;
-    ESP_LOGI(TAG, "VCOM set to %d mV", vcom);
-}
-
 const EpdBoardDefinition epd_board_m5papers3 = {
     .init = epd_board_init,
     .deinit = epd_board_deinit,
@@ -176,7 +168,9 @@ const EpdBoardDefinition epd_board_m5papers3 = {
     .poweron = epd_board_poweron,
     .poweroff = epd_board_poweroff,
     .get_temperature = epd_board_ambient_temperature,
-    .set_vcom = set_vcom,
+    // No hardware VCOM control path on this board yet - a non-null callback that doesn't touch
+    // hardware would let epd_set_vcom() complete without changing anything on the panel.
+    .set_vcom = NULL,
     .gpio_set_direction = NULL,
     .gpio_read = NULL,
     .gpio_write = NULL,
