@@ -8,7 +8,8 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 
-#include <epd_board.h>
+#include "epd_board_m5papers3.h"
+
 #include <epdiy.h>
 
 #include <esp_heap_caps.h>
