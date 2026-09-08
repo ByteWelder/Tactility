@@ -7,11 +7,11 @@
 
 #include <app/event.h>
 #include <app/install.h>
-#include <app/metadata.h>
 #include <app/manager.h>
-#include <app/start.h>
 #include <app/manifest.h>
+#include <app/package_manifest.h>
 #include <app/scheduler.h>
+#include <app/start.h>
 
 #include <http/download.h>
 
@@ -204,9 +204,9 @@ void updateViews(Context* ctx) {
 
     if (is_installed) {
         std::string metadata_path = std::string(install_path) + "/manifest.properties";
-        AppMetadata metadata;
-        if (app_metadata_parse(metadata_path.c_str(), &metadata) == ERROR_NONE
-            && metadata.app_version_code < ctx->entry.appVersionCode) {
+        PackageManifest package;
+        if (app_package_manifest_parse(metadata_path.c_str(), &package, nullptr, 0) == ERROR_NONE
+            && package.version_code < ctx->entry.appVersionCode) {
             ctx->updateButton = lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, ctx);
             lv_obj_remove_flag(ctx->updateLabel, LV_OBJ_FLAG_HIDDEN);
         }

@@ -68,12 +68,12 @@ std::string getUserHomePath() {
 }
 
 std::string getAppInstallPath(const std::string& appId) {
-    assert(app_id_is_valid(appId.c_str()));
+    assert(app_manifest_id_is_valid(appId.c_str()));
     return std::format("{}/{}", getAppInstallPath(), appId);
 }
 
 std::string getAppUserPath(const std::string& appId) {
-    assert(app_id_is_valid(appId.c_str()));
+    assert(app_manifest_id_is_valid(appId.c_str()));
     return std::format("{}/app/{}", getUserHomePath(), appId);
 }
 

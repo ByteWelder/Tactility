@@ -5,7 +5,7 @@
 #include <app/io.h>
 #include <app/manager.h>
 #include <app/manifest.h>
-#include <app/metadata.h>
+#include <app/package_manifest.h>
 #include <app/paths.h>
 #include <app/scheduler.h>
 #include <app/start.h>
@@ -58,9 +58,9 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_start_with_streams),
     DEFINE_MODULE_SYMBOL(app_start_for_result_with_streams),
     // app/manifest
-    DEFINE_MODULE_SYMBOL(app_id_is_valid),
-    // app/metadata
-    DEFINE_MODULE_SYMBOL(app_metadata_parse),
+    DEFINE_MODULE_SYMBOL(app_manifest_id_is_valid),
+    // app/package_manifest
+    DEFINE_MODULE_SYMBOL(app_package_manifest_parse),
     // app/paths
     DEFINE_MODULE_SYMBOL(app_paths_get_user_data_directory),
     DEFINE_MODULE_SYMBOL(app_paths_get_user_data_path),

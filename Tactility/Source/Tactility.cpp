@@ -26,9 +26,9 @@
 
 #include <app/event.h>
 #include <app/manager.h>
-#include <app/start.h>
 #include <app/manifest.h>
 #include <app/module.h>
+#include <app/start.h>
 
 #include <Tactility/Tactility.h>
 

@@ -90,8 +90,8 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size);
 
 /**
  * Registers @a path as a directory to scan for app manifests - each direct subdirectory of
- * @a path is expected to hold a manifest.properties (see app/metadata.h), matching the layout
- * app_install() creates ({install dir}/{app_id}/manifest.properties), though this is not
+ * @a path is expected to hold a manifest.properties (see app/package_manifest.h), matching the
+ * layout app_install() creates ({install dir}/{package id}/manifest.properties), though this is not
  * install/uninstall - it only ever adds/removes manifest registrations, never touches files on
  * disk or running instances. No-op if @a path is already registered. Does not scan immediately -
  * call app_manager_install_path_scan() to do that.

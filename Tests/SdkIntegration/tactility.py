@@ -12,7 +12,7 @@ import tarfile
 from urllib.parse import urlparse
 
 ttbuild_path = ".tactility"
-ttbuild_version = "5.0.1"
+ttbuild_version = "6.0.0"
 ttbuild_cdn = "https://cdn.tactilityproject.org"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -21,7 +21,7 @@ use_local_sdk = False
 local_base_path = None
 http_timeout_seconds = 10
 # App install uploads the whole package over HTTP and the device only responds once it's
-# fully received, extracted and registered - large packages (e.g. bundled fonts/assets) can
+# fully received, extracted and registered; large packages (e.g. bundled fonts/assets) can
 # easily take well over http_timeout_seconds on a slow SD card, so give it a lot more room.
 install_timeout_seconds = 120
 
@@ -33,30 +33,55 @@ shell_color_cyan = "\033[36m"
 shell_color_reset = "\033[m"
 
 def print_help():
-    print("Usage: python tactility.py [app_path] [action] [options]")
+    print("Usage: python tactility.py [action] [options]")
     print("")
     print("Actions:")
-    print("  build [platform]               Build the app. Optionally specify a platform.")
+    print("")
+    print("  build                          Build the app. Optionally specify a platform.")
     print("    Supported platforms are lower case. Example: esp32s3")
     print("    Supported platforms are read from manifest.properties")
+    print("    Parameters:")
+    print("      (optional) --architecture [input], -a [input]")
+    print("")
     print("  clean                          Clean the build folders")
+    print("")
     print("  clearcache                     Clear the SDK cache")
+    print("")
     print("  updateself                     Update this tool")
-    print("  run [ip]                       Run the application")
-    print("  install [ip]                   Install the application")
-    print("  uninstall [ip]                 Uninstall the application")
-    print("  bir [ip] [platform]           Build, install then run. Optionally specify a platform.")
-    print("  brrr [ip] [platform]          Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
+    print("")
+    print("  run                            Run the application")
+    print("    Parameters:")
+    print("      (required) --host, -h [input]")
+    print("")
+    print("  install                        Install the application")
+    print("    Parameters:")
+    print("      (required) --host, -h [input]")
+    print("")
+    print("  uninstall                      Uninstall the application")
+    print("    Parameters:")
+    print("      (required) --host, -h [input]")
+    print("")
+    print("  bir                            Build, install then run.")
+    print("    Parameters:")
+    print("      (required) --host, -h [input]")
+    print("      (optional) --architecture, -a [input]")
+    print("")
+    print("  brrr                           Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
+    print("    Parameters:")
+    print("      (required) --host, -h [input]")
+    print("      (optional) --architecture, -a [input]")
     print("")
     print("Options:")
+    print("  -p, --path [input]             Path to the app directory (defaults to current directory)")
     print("  --help                         Show this commandline info")
     print("  --local-sdk                    Use SDK specified by environment variable TACTILITY_SDK_PATH with platform subfolders matching target platforms.")
     print("  --skip-build                   Run everything except the idf.py/CMake commands")
     print("  --verbose                      Show extra console output")
     print("")
     print("Examples:")
-    print("  python tactility.py Apps/Snake build esp32s3 --verbose")
-    print("  python tactility.py Apps/Snake bir 192.168.1.50 esp32s3")
+    print("  python tactility.py build")
+    print("  python tactility.py build --path Apps/Snake --architecture esp32s3 --verbose")
+    print("  python tactility.py bir --path Apps/Snake --host 192.168.1.50 --architecture esp32s3")
 
 # region Core
 
@@ -105,8 +130,8 @@ def exit_with_error(message):
     print_error(message)
     sys.exit(1)
 
-def get_url(ip, path):
-    return f"http://{ip}:{ttport}{path}"
+def get_url(host, path):
+    return f"http://{host}:{ttport}{path}"
 
 def read_properties_file(path):
     properties = {}
@@ -122,6 +147,126 @@ def read_properties_file(path):
     return properties
 
 #endregion Core
+
+#region Versioning
+
+class SemanticVersion:
+    def __init__(self, major, minor, patch, tag=None):
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+        self.tag = tag
+
+    @staticmethod
+    def parse(version_string):
+        match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$", version_string)
+        if match is None:
+            exit_with_error(f"Invalid version format: {version_string}")
+        major, minor, patch, tag = match.groups()
+        return SemanticVersion(int(major), int(minor), int(patch), tag)
+
+    def _numeric(self):
+        return (self.major, self.minor, self.patch)
+
+    def __eq__(self, other):
+        return self._numeric() == other._numeric() and self.tag == other.tag
+
+    def __lt__(self, other):
+        if self._numeric() != other._numeric():
+            return self._numeric() < other._numeric()
+        # Same major.minor.patch: an untagged version outranks any tagged (pre-release) one.
+        if self.tag == other.tag:
+            return False
+        if self.tag is None:
+            return False
+        if other.tag is None:
+            return True
+        return self.tag < other.tag
+
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}" + (f"-{self.tag}" if self.tag else "")
+
+    # Ignores tags: a "-dev"/"-rc1"-tagged pre-release build of a version is still that version,
+    # not an older one, unlike __lt__'s full ordering (which ranks pre-releases below releases).
+    def is_older_release_of(self, other):
+        return self._numeric() < other._numeric()
+
+# Append a new entry whenever the tool drops support for older SDKs.
+# The last entry is the currently effective minimum.
+SDK_COMPATIBILITY_LEDGER = [
+    SemanticVersion.parse("0.8.0"),
+]
+
+def minimum_supported_sdk_version():
+    return SDK_COMPATIBILITY_LEDGER[-1]
+
+def validate_sdk_compatibility(target_sdk_version):
+    minimum = minimum_supported_sdk_version()
+    if SemanticVersion.parse(target_sdk_version).is_older_release_of(minimum):
+        exit_with_error(
+            f"This tool requires SDK version {minimum} or newer "
+            f"(manifest.properties requests {target_sdk_version})"
+        )
+
+#endregion Versioning
+
+#region Argument parsing
+
+# canonical name -> (short flag or None, long flag, takes_value)
+ARG_SPECS = {
+    "path": ("-p", "--path", True),
+    "host": ("-h", "--host", True),
+    "platform": ("-a", "--architecture", True),
+    "verbose": (None, "--verbose", False),
+    "skip-build": (None, "--skip-build", False),
+    "local-sdk": (None, "--local-sdk", False),
+    "help": (None, "--help", False),
+}
+
+class Arguments:
+    def __init__(self, values):
+        self.values = values
+
+    def get(self, key, default=None):
+        return self.values.get(key, default)
+
+    def has(self, key):
+        return key in self.values
+
+class ParsedCommand:
+    def __init__(self, action, args):
+        self.action = action
+        self.arguments = args
+
+def parse_command_line(argv):
+    token_to_spec = {}
+    for canonical, (short, long, takes_value) in ARG_SPECS.items():
+        if short is not None:
+            token_to_spec[short] = (canonical, takes_value)
+        token_to_spec[long] = (canonical, takes_value)
+
+    action = None
+    args = {}
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if token in token_to_spec:
+            canonical, takes_value = token_to_spec[token]
+            if takes_value:
+                index += 1
+                if index >= len(argv):
+                    exit_with_error(f"Missing value for {token}")
+                args[canonical] = argv[index]
+            else:
+                args[canonical] = "true"
+        elif action is None:
+            action = token
+        else:
+            exit_with_error(f"Unexpected argument: {token}")
+        index += 1
+    return ParsedCommand(action, Arguments(args))
+
+#endregion Argument parsing
 
 #region SDK helpers
 
@@ -232,7 +377,7 @@ def validate_self(sdk_json):
         exit_with_error("Server returned invalid SDK data format (toolDownloadUrl not found)")
     tool_version = sdk_json["toolVersion"]
     tool_compatibility = sdk_json["toolCompatibility"]
-    if tool_version != ttbuild_version:
+    if SemanticVersion.parse(ttbuild_version) < SemanticVersion.parse(tool_version):
         print_warning(f"New version available: {tool_version} (currently using {ttbuild_version})")
         print_warning(f"Run 'tactility.py updateself' to update.")
     if re.search(tool_compatibility, ttbuild_version) is None:
@@ -247,10 +392,67 @@ def validate_self(sdk_json):
 def read_manifest():
     return read_properties_file("manifest.properties")
 
+def is_v3_manifest(manifest):
+    return manifest.get("manifest.version") == "0.3"
+
+# The package identifier: a v2 manifest has no package/app distinction, so its single "app.id"
+# doubles as both; a v3 manifest's package id is the bare "id" key, distinct from any of its
+# (possibly several) "app.N.id" app ids.
+def get_package_id(manifest):
+    return manifest["id"] if is_v3_manifest(manifest) else manifest["app.id"]
+
+# The id of the app "run"/"install" operate on. A v2 manifest has exactly one; a v3 manifest may
+# declare several, so this picks the first ("app.0.id") as the one a single-app dev workflow means.
+def get_primary_app_id(manifest):
+    return manifest["app.0.id"] if is_v3_manifest(manifest) else manifest["app.id"]
+
 def validate_manifest(manifest):
-    for key in ("manifest.version", "target.sdk", "target.platforms", "app.id", "app.version.name", "app.version.code", "app.name"):
+    for key in ("manifest.version", "target.sdk", "target.platforms"):
         if key not in manifest:
             exit_with_error(f"Invalid manifest format: {key} not found")
+    if manifest["manifest.version"] not in ("0.2", "0.3"):
+        exit_with_error(f"Unsupported manifest.version: {manifest['manifest.version']}")
+    if is_v3_manifest(manifest):
+        for key in ("id", "version.name", "version.code"):
+            if key not in manifest:
+                exit_with_error(f"Invalid manifest format: {key} not found")
+        if "app.0.id" not in manifest:
+            exit_with_error("Invalid manifest format: app.0.id not found")
+        index = 0
+        while f"app.{index}.id" in manifest:
+            for suffix in ("name", "binary"):
+                key = f"app.{index}.{suffix}"
+                if key not in manifest:
+                    exit_with_error(f"Invalid manifest format: {key} not found")
+            index += 1
+    else:
+        for key in ("app.id", "app.version.name", "app.version.code", "app.name"):
+            if key not in manifest:
+                exit_with_error(f"Invalid manifest format: {key} not found")
+    validate_sdk_compatibility(manifest["target.sdk"])
+
+# Maps each binary this app builds to the directory its own CMake project lives in. A v2
+# manifest always describes exactly one app, built at the app's own root (see
+# package_intermediate_binaries() for its fixed "app.{elf,so}" package filename, matching
+# package_manifest_parse_v2()'s single implicit binary). A v3 manifest declaring a single
+# "app.0.*" block is the same case: built at the app's own root. Only when a v3 manifest
+# declares more than one "app.N.*" block (0-indexed, contiguous - the first missing "app.N.id"
+# ends the list, mirroring package_manifest_parse_v3()) does each get its own subdirectory,
+# named after its own "app.N.binary" (the filename it installs as - see
+# package_manifest_parse_v3()'s doc).
+def get_binary_dirs(manifest):
+    if is_v3_manifest(manifest):
+        binaries = []
+        index = 0
+        while f"app.{index}.id" in manifest:
+            binary = manifest[f"app.{index}.binary"]
+            binaries.append((binary, binary))
+            index += 1
+        if len(binaries) == 1:
+            return [(binaries[0][0], ".")]
+        return binaries
+    else:
+        return [(manifest["app.id"], ".")]
 
 def is_valid_manifest_platform(manifest, platform):
     manifest_platforms = manifest["target.platforms"].split(",")
@@ -345,7 +547,7 @@ tactility_project_post(%(app_id)s)
 def cmakelists_version_marker():
     return f"# tactility-cmakelists-version: {CMAKELISTS_VERSION}"
 
-def ensure_cmakelists_up_to_date(manifest):
+def ensure_cmakelists_up_to_date(project_id):
     marker = cmakelists_version_marker()
     if os.path.exists("CMakeLists.txt"):
         with open("CMakeLists.txt", "r") as file:
@@ -353,7 +555,7 @@ def ensure_cmakelists_up_to_date(manifest):
         if first_line == marker:
             return
     print(f"Updating CMakeLists.txt to {marker}")
-    content = CMAKELISTS_TEMPLATE % {"version": CMAKELISTS_VERSION, "app_id": manifest["app.id"]}
+    content = CMAKELISTS_TEMPLATE % {"version": CMAKELISTS_VERSION, "app_id": project_id}
     with open("CMakeLists.txt", "w") as file:
         file.write(content)
 
@@ -532,43 +734,58 @@ def package_intermediate_manifest(target_path):
     shutil.copy("manifest.properties", os.path.join(target_path, "manifest.properties"))
     return True
 
-def package_intermediate_binaries(target_path, platforms):
-    elf_dir = os.path.join(target_path, "elf")
-    os.makedirs(elf_dir, exist_ok=True)
-    for platform in platforms:
-        elf_path = find_elf_file(platform)
-        if elf_path is None:
-            print_error(f"ELF file not found for {platform}")
-            return False
-        # app-posix-module's loader resolves an installed app to "elf/posix-<arch>.so", matching
-        # its own compile-time architecture, not "*.elf".
-        extension = ".so" if platform.startswith("posix") else ".elf"
-        shutil.copy(elf_path, os.path.join(elf_dir, f"{platform}{extension}"))
+def get_artifact_extension(platform):
+    # POSIX apps are dlopen()ed shared objects (app-posix-module), not idf.py/elf_loader
+    # relocatable images, so they land as a plain ".so" instead of ".elf".
+    return ".so" if platform.startswith("posix") else ".elf"
+
+def package_intermediate_binaries(target_path, platforms, manifest):
+    # Each binary is built in its own directory (get_binary_dirs()), with its own
+    # build/cmake-build-{platform} tree; chdir into it so find_elf_file()/get_cmake_path()
+    # (both CWD-relative) resolve against the right one, then restore CWD for the next binary.
+    original_cwd = os.getcwd()
+    for binary, directory in get_binary_dirs(manifest):
+        os.chdir(directory)
+        try:
+            for platform in platforms:
+                elf_path = find_elf_file(platform)
+                if elf_path is None:
+                    print_error(f"ELF file not found for '{binary}' on {platform}")
+                    return False
+                # v2's single app always installs at the fixed path bin/{platform}/app.{elf,so}
+                # (package_manifest_parse_v2()); v3 apps install under their own declared
+                # app.N.binary name (package_manifest_parse_v3()).
+                artifact_name = binary if is_v3_manifest(manifest) else "app"
+                platform_dir = os.path.join(target_path, "bin", platform)
+                os.makedirs(platform_dir, exist_ok=True)
+                shutil.copy(elf_path, os.path.join(platform_dir, f"{artifact_name}{get_artifact_extension(platform)}"))
+        finally:
+            os.chdir(original_cwd)
     return True
 
 def package_intermediate_assets(target_path):
     if os.path.isdir("assets"):
         shutil.copytree("assets", os.path.join(target_path, "assets"), dirs_exist_ok=True)
 
-def package_intermediate(platforms):
-    target_path = os.path.join("build", "package-intermediate")
+def package_intermediate(platforms, manifest):
+    target_path = os.path.abspath(os.path.join("build", "package-intermediate"))
     if os.path.isdir(target_path):
         shutil.rmtree(target_path)
     os.makedirs(target_path, exist_ok=True)
     if not package_intermediate_manifest(target_path):
         return False
-    if not package_intermediate_binaries(target_path, platforms):
+    if not package_intermediate_binaries(target_path, platforms, manifest):
         return False
     package_intermediate_assets(target_path)
     return True
 
 def package_name(manifest):
-    return os.path.join("build", f"{manifest['app.id']}.app")
+    return os.path.join("build", f"{get_package_id(manifest)}.app")
 
 def package_all(manifest, platforms):
     status = f"Building package with {platforms}"
     print_status_busy(status)
-    if not package_intermediate(platforms):
+    if not package_intermediate(platforms, manifest):
         print_status_error("Building package failed: missing inputs")
         return False
     # Create build/something.app
@@ -588,8 +805,9 @@ def setup_environment():
     global ttbuild_path
     os.makedirs(ttbuild_path, exist_ok=True)
 
-def build_action(manifest, platform_arg, skip_build):
-    ensure_cmakelists_up_to_date(manifest)
+def build_action(manifest, arguments):
+    platform_arg = arguments.get("platform")
+    skip_build = arguments.has("skip-build")
     platforms_to_build = get_manifest_target_platforms(manifest, platform_arg)
     # Environment validation
     validate_environment(platforms_to_build)
@@ -598,10 +816,10 @@ def build_action(manifest, platform_arg, skip_build):
         global local_base_path
         local_base_path = os.environ.get("TACTILITY_SDK_PATH")
         validate_local_sdks(platforms_to_build, manifest["target.sdk"])
-    
+
     if should_fetch_sdkconfig_files(platforms_to_build):
         fetch_sdkconfig_files(platforms_to_build)
-    
+
     if not use_local_sdk:
         sdk_json = read_sdk_json()
         validate_self(sdk_json)
@@ -610,19 +828,49 @@ def build_action(manifest, platform_arg, skip_build):
     if not use_local_sdk:
         if not sdk_download_all(sdk_version, platforms_to_build):
             exit_with_error("Failed to download one or more SDKs")
-    if not build_all(sdk_version, platforms_to_build, skip_build):  # Environment validation
-        return False
+
+    # A multi-binary app builds each of its binaries in its own subdirectory as an independent
+    # CMake project; a single-binary app has exactly one binary, built at the app root
+    # ("." from get_binary_dirs()), matching the tool's original single-binary behavior exactly.
+    original_cwd = os.getcwd()
+    for binary, directory in get_binary_dirs(manifest):
+        os.chdir(directory)
+        try:
+            ensure_cmakelists_up_to_date(binary if directory == "." else f"{get_package_id(manifest)}.{binary}")
+            if not build_all(sdk_version, platforms_to_build, skip_build):
+                return False
+        finally:
+            os.chdir(original_cwd)
+
     if not skip_build:
         if not package_all(manifest, platforms_to_build):
             return False
     return True
 
-def clean_action():
+def clean_action(manifest):
+    cleaned_any = False
+    # The app root always has its own build/ (package-intermediate + the final .app/.elf,
+    # regardless of binary count). A multi-binary app additionally has one build/ per binary
+    # subdirectory (get_binary_dirs()), which "." (the root, handled above) doesn't repeat.
     if os.path.exists("build"):
         print_status_busy("Removing build/")
         shutil.rmtree("build")
         print_status_success("Removed build/")
-    else:
+        cleaned_any = True
+    original_cwd = os.getcwd()
+    for _, directory in get_binary_dirs(manifest):
+        if directory == ".":
+            continue
+        os.chdir(directory)
+        try:
+            if os.path.exists("build"):
+                print_status_busy(f"Removing {directory}/build/")
+                shutil.rmtree("build")
+                print_status_success(f"Removed {directory}/build/")
+                cleaned_any = True
+        finally:
+            os.chdir(original_cwd)
+    if not cleaned_any:
         print("Nothing to clean")
 
 def clear_cache_action():
@@ -641,9 +889,9 @@ def update_self_action():
     else:
         exit_with_error("Update failed")
 
-def get_device_info(ip):
+def get_device_info(host):
     print_status_busy(f"Requesting device info")
-    url = get_url(ip, "/info")
+    url = get_url(host, "/info")
     try:
         response = requests.get(url, timeout=http_timeout_seconds)
         if response.status_code != 200:
@@ -654,10 +902,13 @@ def get_device_info(ip):
     except requests.RequestException as e:
         print_status_error(f"Device info request failed: {e}")
 
-def run_action(manifest, ip):
-    app_id = manifest["app.id"]
+def run_action(manifest, arguments):
+    host = arguments.get("host")
+    if host is None:
+        exit_with_error("Missing required argument: --host")
+    app_id = get_primary_app_id(manifest)
     print_status_busy("Running")
-    url = get_url(ip, "/app/run")
+    url = get_url(host, "/app/run")
     params = {'id': app_id}
     try:
         response = requests.post(url, params=params, timeout=http_timeout_seconds)
@@ -668,21 +919,21 @@ def run_action(manifest, ip):
     except requests.RequestException as e:
         print_status_error(f"Running request failed: {e}")
 
-def install_action(manifest, ip, platforms):
-    print_status_busy("Installing")
-    for platform in platforms:
-        elf_path = find_elf_file(platform)
-        if elf_path is None:
-            print_status_error(f"ELF file not built for {platform}")
-            return False
+def install_action(manifest, arguments):
+    host = arguments.get("host")
+    if host is None:
+        exit_with_error("Missing required argument: --host")
     package_path = package_name(manifest)
-    # print(f"Installing {package_path} to {ip}")
-    url = get_url(ip, "/app/install")
+    if not os.path.isfile(package_path):
+        print_status_error(f"Package not found: {package_path} (run 'build' first)")
+        return False
+    print_status_busy("Installing")
+    url = get_url(host, "/app/install")
     try:
         # Prepare multipart form data
         with open(package_path, 'rb') as file:
             files = {
-                'elf': file
+                'app': file
             }
             response = requests.put(url, files=files, timeout=install_timeout_seconds)
             if response.status_code != 200:
@@ -698,10 +949,13 @@ def install_action(manifest, ip, platforms):
         print_status_error(f"Install file error: {e}")
         return False
 
-def uninstall_action(manifest, ip):
-    app_id = manifest["app.id"]
+def uninstall_action(manifest, arguments):
+    host = arguments.get("host")
+    if host is None:
+        exit_with_error("Missing required argument: --host")
+    app_id = get_package_id(manifest)
     print_status_busy("Uninstalling")
-    url = get_url(ip, "/app/uninstall")
+    url = get_url(host, "/app/uninstall")
     params = {'id': app_id}
     try:
         response = requests.put(url, params=params, timeout=http_timeout_seconds)
@@ -716,38 +970,34 @@ def uninstall_action(manifest, ip):
 
 if __name__ == "__main__":
     print(f"Tactility Build System v{ttbuild_version}")
-    if "--help" in sys.argv:
+
+    # Anchor the cache to the invocation directory, before --path (below) can chdir into the app.
+    ttbuild_path = os.path.abspath(ttbuild_path)
+
+    argv = sys.argv[1:]
+    if len(argv) == 0:
+        print_help()
+        sys.exit(1)
+
+    parsed_command = parse_command_line(argv)
+
+    if parsed_command.arguments.has("help"):
         print_help()
         sys.exit()
-    # Argument validation
-    if len(sys.argv) == 1:
+    if parsed_command.action is None:
         print_help()
         sys.exit(1)
-    if "--verbose" in sys.argv:
-        verbose = True
-        sys.argv.remove("--verbose")
-    skip_build = False
-    if "--skip-build" in sys.argv:
-        skip_build = True
-        sys.argv.remove("--skip-build")
-    if "--local-sdk" in sys.argv:
-        use_local_sdk = True
-        sys.argv.remove("--local-sdk")
-    
-    # Check if the first argument is a path to an app directory
-    if len(sys.argv) > 2:
-        potential_app_dir = sys.argv[1]
-        if os.path.isdir(potential_app_dir) and os.path.isfile(os.path.join(potential_app_dir, "manifest.properties")):
-            if verbose:
-                print_status_success(f"Switching to app directory: {potential_app_dir}")
-            os.chdir(potential_app_dir)
-            sys.argv = [sys.argv[0]] + sys.argv[2:]
-    
-    if len(sys.argv) < 2:
-        print_help()
-        sys.exit(1)
-    
-    action_arg = sys.argv[1]
+
+    verbose = parsed_command.arguments.has("verbose")
+    use_local_sdk = parsed_command.arguments.has("local-sdk")
+
+    app_path = parsed_command.arguments.get("path")
+    if app_path is not None:
+        if not os.path.isdir(app_path) or not os.path.isfile(os.path.join(app_path, "manifest.properties")):
+            exit_with_error(f"App path not found or missing manifest.properties: {app_path}")
+        if verbose:
+            print_status_success(f"Switching to app directory: {app_path}")
+        os.chdir(app_path)
 
     # Environment setup
     setup_environment()
@@ -755,58 +1005,30 @@ if __name__ == "__main__":
         exit_with_error("manifest.properties not found")
     manifest = read_manifest()
     validate_manifest(manifest)
-    all_platform_targets = manifest["target.platforms"].split(",")
     # Update SDK cache (tool.json)
     if not use_local_sdk and should_update_tool_json() and not update_tool_json():
         exit_with_error("Failed to retrieve SDK info")
     # Actions
+    action_arg = parsed_command.action
     if action_arg == "build":
-        if len(sys.argv) < 2:
-            print_help()
-            exit_with_error("Commandline parameter missing")
-        platform = None
-        if len(sys.argv) > 2:
-            platform = sys.argv[2]
-        if not build_action(manifest, platform, skip_build):
+        if not build_action(manifest, parsed_command.arguments):
             sys.exit(1)
     elif action_arg == "clean":
-        clean_action()
+        clean_action(manifest)
     elif action_arg == "clearcache":
         clear_cache_action()
     elif action_arg == "updateself":
         update_self_action()
     elif action_arg == "run":
-        if len(sys.argv) < 3:
-            print_help()
-            exit_with_error("Commandline parameter missing")
-        run_action(manifest, sys.argv[2])
+        run_action(manifest, parsed_command.arguments)
     elif action_arg == "install":
-        if len(sys.argv) < 3:
-            print_help()
-            exit_with_error("Commandline parameter missing")
-        platform = None
-        platforms_to_install = all_platform_targets
-        if len(sys.argv) >= 4:
-            platform = sys.argv[3]
-            platforms_to_install = [platform]
-        install_action(manifest, sys.argv[2], platforms_to_install)
+        install_action(manifest, parsed_command.arguments)
     elif action_arg == "uninstall":
-        if len(sys.argv) < 3:
-            print_help()
-            exit_with_error("Commandline parameter missing")
-        uninstall_action(manifest, sys.argv[2])
+        uninstall_action(manifest, parsed_command.arguments)
     elif action_arg == "bir" or action_arg == "brrr":
-        if len(sys.argv) < 3:
-            print_help()
-            exit_with_error("Commandline parameter missing")
-        platform = None
-        platforms_to_install = all_platform_targets
-        if len(sys.argv) >= 4:
-            platform = sys.argv[3]
-            platforms_to_install = [platform]
-        if build_action(manifest, platform, skip_build):
-            if install_action(manifest, sys.argv[2], platforms_to_install):
-                run_action(manifest, sys.argv[2])
+        if build_action(manifest, parsed_command.arguments):
+            if install_action(manifest, parsed_command.arguments):
+                run_action(manifest, parsed_command.arguments)
     else:
         print_help()
         exit_with_error("Unknown commandline parameter")

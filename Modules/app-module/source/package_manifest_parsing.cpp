@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <app/metadata.h>
-#include <app/private/metadata_parsing_internal.h>
+#include <app/manifest.h>
+#include <app/package_manifest.h>
+#include <app/private/package_manifest_parsing.h>
 
 #include <tactility/log.h>
 
@@ -12,7 +13,7 @@
 
 constexpr auto* TAG = "app_metadata";
 
-bool app_metadata_validate_string(const std::string& value, bool (*is_valid_char)(char)) {
+bool app_package_manifest_validate_string(const std::string& value, bool (*is_valid_char)(char)) {
     for (char c: value) {
         if (!is_valid_char(c)) {
             return false;
@@ -23,7 +24,7 @@ bool app_metadata_validate_string(const std::string& value, bool (*is_valid_char
 
 namespace {
 
-#define validate_string app_metadata_validate_string
+#define validate_string app_package_manifest_validate_string
 
 std::string trim(const std::string& value) {
     constexpr auto* whitespace = " \t\r\n";
@@ -55,33 +56,21 @@ bool validate_csv_list(const std::string& value, bool (*is_valid_item)(const std
     }
 }
 
-/** manifest.properties format: "key=value" lines, "[section]" lines prefix every following key
- * until the next section, "#" lines are comments, blank lines are skipped. Deliberately a local,
- * minimal re-implementation rather than depending on Tactility's file::loadPropertiesFile() -
- * app-module (like every other kernel module) may not depend upward on the Tactility layer. */
-bool load_properties(const std::string& path, std::map<std::string, std::string>& out_properties, std::string& out_first_line) {
+/** manifest.properties format: flat "key=value" lines, "#" lines are comments, blank lines are
+ * skipped. Deliberately a local, minimal re-implementation rather than depending on Tactility's
+ * file::loadPropertiesFile() - app-module (like every other kernel module) may not depend upward
+ * on the Tactility layer. */
+bool load_properties(const std::string& path, std::map<std::string, std::string>& out_properties) {
     std::ifstream file(path);
     if (!file.is_open()) {
         return false;
     }
 
     std::string line;
-    std::string section_prefix;
-    bool got_first_line = false;
     while (std::getline(file, line)) {
         auto trimmed_line = trim(line);
 
         if (trimmed_line.empty() || trimmed_line.starts_with("#")) {
-            continue;
-        }
-
-        if (!got_first_line) {
-            out_first_line = trimmed_line;
-            got_first_line = true;
-        }
-
-        if (trimmed_line.starts_with("[")) {
-            section_prefix = trimmed_line;
             continue;
         }
 
@@ -91,7 +80,7 @@ bool load_properties(const std::string& path, std::map<std::string, std::string>
             continue;
         }
 
-        auto key = section_prefix + trim(trimmed_line.substr(0, separator_index));
+        auto key = trim(trimmed_line.substr(0, separator_index));
         auto value = trim(trimmed_line.substr(separator_index + 1));
         out_properties[key] = value;
     }
@@ -101,7 +90,7 @@ bool load_properties(const std::string& path, std::map<std::string, std::string>
 
 } // namespace
 
-bool app_metadata_get_value(const std::map<std::string, std::string>& properties, const std::string& key, std::string& out_value) {
+bool app_package_manifest_get_value(const std::map<std::string, std::string>& properties, const std::string& key, std::string& out_value) {
     const auto iterator = properties.find(key);
     if (iterator == properties.end()) {
         LOG_E(TAG, "Failed to find %s in manifest", key.c_str());
@@ -111,39 +100,30 @@ bool app_metadata_get_value(const std::map<std::string, std::string>& properties
     return true;
 }
 
-bool app_metadata_is_valid_format_version(const std::string& version) {
+bool app_package_manifest_is_valid_format_version(const std::string& version) {
     return !version.empty() && validate_string(version, [](char c) {
         return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '.';
     });
 }
 
-bool app_metadata_is_valid_name(const std::string& name) {
-    return name.size() >= 2 && name.size() <= APP_METADATA_APP_NAME_LENGTH && validate_string(name, [](char c) {
-        return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == ' ' || c == '-';
-    });
-}
-
-bool app_metadata_is_valid_version_name(const std::string& version) {
-    return !version.empty() && version.size() <= APP_METADATA_APP_VERSION_NAME_LENGTH && validate_string(version, [](char c) {
+bool app_package_manifest_is_valid_version_name(const std::string& version) {
+    return !version.empty() && version.size() <= PACKAGE_MANIFEST_VERSION_NAME_LENGTH && validate_string(version, [](char c) {
         return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '.' || c == '-' || c == '_';
     });
 }
 
-bool app_metadata_is_valid_version_code(const std::string& version) {
+bool app_package_manifest_is_valid_version_code(const std::string& version) {
     // 20 digits is the maximum decimal width of uint64_t.
     return !version.empty() && version.size() <= 20 && validate_string(version, [](char c) {
         return std::isdigit(static_cast<unsigned char>(c)) != 0;
     });
 }
 
-bool app_metadata_is_valid_stack_size(const std::string& value) {
-    // 10 digits is the maximum decimal width of uint32_t.
-    return !value.empty() && value.size() <= 10 && validate_string(value, [](char c) {
-        return std::isdigit(static_cast<unsigned char>(c)) != 0;
-    });
+bool app_package_manifest_is_valid_bool(const std::string& value) {
+    return value == "true" || value == "false";
 }
 
-bool app_metadata_is_valid_device_id_list(const std::string& value) {
+bool app_package_manifest_is_valid_device_id_list(const std::string& value) {
     return validate_csv_list(value, [](const std::string& item) {
         bool has_alnum = false;
         for (char c: item) {
@@ -157,7 +137,13 @@ bool app_metadata_is_valid_device_id_list(const std::string& value) {
     });
 }
 
-bool app_metadata_copy_bounded(char* dest, size_t dest_size, const std::string& value) {
+bool app_package_manifest_is_valid_binary_name(const std::string& value) {
+    return !value.empty() && value.size() <= APP_MANIFEST_BINARY_LENGTH && validate_string(value, [](char c) {
+        return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '.' || c == '_' || c == '-';
+    });
+}
+
+bool app_package_manifest_copy_bounded(char* dest, size_t dest_size, const std::string& value) {
     if (value.size() >= dest_size) {
         return false;
     }
@@ -165,26 +151,42 @@ bool app_metadata_copy_bounded(char* dest, size_t dest_size, const std::string& 
     return true;
 }
 
-error_t app_metadata_parse(const char* path, struct AppMetadata* out_metadata) {
+error_t app_package_manifest_parse(const char* path, struct PackageManifest* out_package, struct AppManifestBinding* out_bindings, size_t bindings_capacity) {
     LOG_I(TAG, "Parsing manifest %s", path);
 
-    // requires_device_id is optional in V2 and unwritten by V1; zeroing here (rather than relying
-    // on the caller) guarantees it reads back as empty ("unrestricted") either way.
-    *out_metadata = {};
+    // requires_device_id is optional; zeroing here (rather than relying on the caller) guarantees
+    // it reads back as empty ("unrestricted") when the manifest omits it.
+    *out_package = {};
+    for (size_t i = 0; i < bindings_capacity; i++) {
+        out_bindings[i] = {};
+    }
 
     std::map<std::string, std::string> properties;
-    std::string first_line;
-    if (!load_properties(path, properties, first_line)) {
+    if (!load_properties(path, properties)) {
         LOG_E(TAG, "Failed to load manifest at %s", path);
         return ERROR_NOT_FOUND;
     }
 
-    // The V1 format's first line is always the literal "[manifest]" section header; V2 files are
-    // flat from the first line onward.
-    bool is_v1_format = first_line == "[manifest]";
-    bool success = is_v1_format
-        ? app_metadata_parse_v1(properties, *out_metadata)
-        : app_metadata_parse_v2(properties, *out_metadata);
+    std::string format_version;
+    if (!app_package_manifest_get_value(properties, "manifest.version", format_version)) {
+        return ERROR_INVALID_ARGUMENT;
+    }
 
-    return success ? ERROR_NONE : ERROR_INVALID_ARGUMENT;
+    if (format_version == "0.2") {
+        return package_manifest_parse_v2(properties, *out_package, out_bindings, bindings_capacity);
+    } else if (format_version == "0.3") {
+        return package_manifest_parse_v3(properties, *out_package, out_bindings, bindings_capacity);
+    } else {
+        LOG_E(TAG, "Unsupported manifest.version: %s", format_version.c_str());
+        return ERROR_INVALID_ARGUMENT;
+    }
+}
+
+error_t app_package_manifest_parse_into(const char* path, PackageManifest& out_package, std::vector<AppManifestBinding, tt::OptExternalAllocator<AppManifestBinding>>& out_bindings) {
+    error_t result = app_package_manifest_parse(path, &out_package, nullptr, 0);
+    if (result != ERROR_NONE) {
+        return result;
+    }
+    out_bindings.resize(out_package.app_manifest_count);
+    return app_package_manifest_parse(path, &out_package, out_bindings.data(), out_bindings.size());
 }

@@ -58,19 +58,21 @@ bool is_executable_file(const std::string& resolved_path) {
 #endif
 }
 
-// location.location can be either an app's install directory or the .so file directly; the
-// former resolves to the per-architecture binary at {dir}/elf/posix-{TACTILITY_POSIX_ARCH}.so,
-// mirroring app_esp32_loader_service.cpp's resolve_elf_path().
+// location.location can be either an app's install directory or the .so file directly, mirroring
+// app_esp32_loader_service.cpp's resolve_elf_path(). A "packaged" app's install directory always
+// holds its single binary at the fixed path {dir}/bin/posix-{TACTILITY_POSIX_ARCH}/app.so - a
+// "terminal" app has no such file (its several binaries keep their own names), so this correctly
+// leaves it unresolvable - terminal apps aren't run through AppLoaderApi (see app/install.h).
 error_t resolve_app_path(const std::string& path, std::string& resolvedPath) {
     if (path.ends_with(".so")) {
         resolvedPath = path;
         return ERROR_NONE;
     }
-    std::string shared_object_path = path + "/elf/posix-" TACTILITY_POSIX_ARCH ".so";
-    if (!is_regular_file(shared_object_path)) {
+    std::string candidate = path + "/bin/posix-" TACTILITY_POSIX_ARCH "/app.so";
+    if (!is_regular_file(candidate)) {
         return ERROR_NOT_FOUND;
     }
-    resolvedPath = shared_object_path;
+    resolvedPath = candidate;
     return ERROR_NONE;
 }
 
@@ -94,9 +96,6 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
 
     LOG_I(TAG, "Loading %s", app_path.c_str());
 
-    // RTLD_NOW: a missing symbol fails here, not mid-run(). RTLD_LOCAL: this app's own exported
-    // symbols (if any beyond its entry point) don't leak into the process's global scope and
-    // clash with a different app's.
     void* handle = dlopen(app_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (handle == nullptr) {
         LOG_E(TAG, "dlopen(%s) failed: %s", app_path.c_str(), dlerror());
@@ -117,8 +116,8 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
 int32_t api_run(AppRuntime runtime_ptr, uint32_t /*app_instance_id*/, int argc, char* argv[]) {
     auto* runtime = static_cast<PosixAppRuntime*>(runtime_ptr);
 
-    dlerror(); // clear any pending error, per dlsym(3)'s own recommended idiom for telling a NULL
-               // symbol address apart from a real lookup failure
+    // Clear any pending error, per dlsym(3)'s own recommended idiom for telling a NULL symbol address apart from a real lookup failure
+    dlerror();
     void* symbol = dlsym(runtime->handle, "main");
     const char* lookup_error = dlerror();
     if (symbol == nullptr || lookup_error != nullptr) {

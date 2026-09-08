@@ -73,7 +73,11 @@ bool wait_for_state(AppInstanceId id, AppInstanceState target, uint32_t timeout_
 
 AppInstanceId start_idle_app(const char* id) {
     ensure_memory_loader_registered();
-    AppManifest manifest { id, id, APP_CATEGORY_USER, { APP_LOCATION_MEMORY, reinterpret_cast<void*>(idle_app_main) } };
+    AppManifest manifest {};
+    std::strncpy(manifest.id, id, sizeof(manifest.id) - 1);
+    std::strncpy(manifest.name, id, sizeof(manifest.name) - 1);
+    manifest.category = APP_CATEGORY_USER;
+    manifest.location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(idle_app_main) };
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
     AppInstanceId instance_id = 0;
     REQUIRE_EQ(app_start(id, 0, nullptr, &instance_id), ERROR_NONE);

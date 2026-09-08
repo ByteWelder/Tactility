@@ -190,7 +190,7 @@ error_t DevelopmentService::handleAppInstall(HttpServerRequest* request, void*) 
     if (
         name_entry == content_disposition_map.end() ||
         filename_entry == content_disposition_map.end() ||
-        name_entry->second != "elf"
+        name_entry->second != "app"
     ) {
         http_server_request_send_error(request, 400, "Multipart form error: name or filename parameter missing or mismatching");
         return ERROR_UNDEFINED;
