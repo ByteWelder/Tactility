@@ -10,7 +10,7 @@ extern "C" {
 
 struct Papers3DisplayConfig {
     int temperature_celsius;
-    enum EpdDrawMode draw_mode;
+    enum EpdDrawMode quality_draw_mode;
     enum EpdRotation rotation;
 };
 
