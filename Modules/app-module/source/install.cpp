@@ -2,10 +2,14 @@
 #include <app/install.h>
 
 #include <app/manager.h>
-#include <app/metadata.h>
+#include <app/package_manifest.h>
 
+#include <app/private/binary_path.h>
 #include <app/private/fs.h>
 #include <app/private/ledger.h>
+#include <app/private/package_manifest_parsing.h>
+
+#include <TactilityCpp/Allocator.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
@@ -29,7 +33,7 @@ constexpr auto* TAG = "app_install";
 
 namespace {
 
-// region Filesystem helpers (app-module may not depend upward on Tactility::file - see
+// region Filesystem helpers (app-module may not depend upward on Tactility::file; see
 // app_metadata_parsing.cpp for the same constraint applied to properties-file loading)
 
 std::string last_path_segment(const std::string& path) {
@@ -164,9 +168,9 @@ bool untar(const std::string& tar_path, const std::string& destination_path) {
 // endregion
 
 // region Staging-path lock: at most one caller may clean up/populate a given staging_path at a
-// time, keyed by source basename. The HTTP server and app tasks can call app_install()
-// concurrently, e.g. two uploads sharing a source basename - without this, one call's cleanup
-// can delete or overwrite the staging directory another call is still extracting into.
+// time, keyed by source basename. The HTTP server and app tasks can call app_install_package()
+// concurrently, e.g. two uploads sharing a source basename; without this lock, one call's
+// cleanup could delete or overwrite the staging directory another call is still extracting into.
 
 struct StagingLock {
     Mutex mutex {};
@@ -223,18 +227,19 @@ void release_staging_lock(const std::string& path) {
 
 // endregion
 
-// region Installed-app registry: owns the AppManifest (and its id/name/path strings) that
-// app_manager's ledger only keeps a non-owning pointer to (see app_manager_add()'s contract).
+// region Installed-package registry: owns the AppManifests (and their backing location-path
+// strings) that app_manager's ledger only keeps non-owning pointers to (see app_manager_add()'s
+// contract). AppManifest::id/name own their own storage directly (fixed arrays), so this doesn't
+// need to separately own those.
 
-struct InstalledAppRecord {
-    std::string id;
-    std::string name;
-    std::string path;
-    AppManifest manifest {};
+struct InstalledPackageRecord {
+    std::string path;                     // install directory
+    std::vector<AppManifest> manifests;   // one per AppManifest the package declared
+    std::vector<std::string> locations;   // backs manifests[i].location.location, same indices
 };
 
 struct InstallRegistry {
-    std::unordered_map<std::string, std::unique_ptr<InstalledAppRecord>> apps;
+    std::unordered_map<std::string, std::unique_ptr<InstalledPackageRecord>> apps;
     Mutex mutex {};
 
     InstallRegistry() { mutex_construct(&mutex); }
@@ -245,46 +250,68 @@ InstallRegistry& install_registry() {
     return registry;
 }
 
-// Registers @a app_dir_path (already confirmed to hold a valid manifest.properties, parsed into
-// @a metadata) with app_manager_add(), taking ownership of its id/name/path strings.
-// @warning Caller must hold install_registry().mutex, and must have already ensured
-// @a metadata.app_id isn't already registered (app_manager_add() rejects duplicates, but the
-// InstalledAppRecord for the earlier registration would leak since this always inserts fresh).
-error_t register_installed_app_locked(const std::string& app_dir_path, const AppMetadata& metadata) {
+// Registers every AppManifest in @a bindings (@a count of them) with app_manager_add(), taking
+// ownership of their backing location strings, then registers @a package itself.
+// @warning Caller must hold install_registry().mutex.
+error_t register_installed_package_locked(const PackageManifest& package, const std::string& install_path, const AppManifestBinding* bindings, size_t count) {
     auto& registry = install_registry();
 
-    auto record = std::make_unique<InstalledAppRecord>();
-    record->id = metadata.app_id;
-    record->name = metadata.app_name;
-    record->path = app_dir_path;
-    record->manifest = AppManifest {
-        .id = record->id.c_str(),
-        .name = record->name.c_str(),
-        .category = APP_CATEGORY_USER,
-        .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
-        .flags = 0,
-        .stack = { .depth = static_cast<uint16_t>(metadata.stack_depth), .desired_memory_capability = 0 },
-    };
+    auto record = std::make_unique<InstalledPackageRecord>();
+    record->path = install_path;
+    // Sized once, up front: manifests[i].location.location points into locations[i].c_str(),
+    // which would dangle if either vector reallocated afterward.
+    record->manifests.resize(count);
+    record->locations.resize(count);
 
-    // Belt-and-braces: app_install()'s earlier app_manager_remove() call is meant to have
-    // already cleared any stale registration for this id (e.g. left over from
-    // app_manager_install_path_scan()'s separate registry), but that call happens before the
-    // tarball is even extracted - remove once more, right before add, so a duplicate id can
-    // never turn a filesystem-level install success into a reported failure.
-    app_manager_remove(record->id.c_str());
-
-    error_t add_result = app_manager_add(&record->manifest);
-    if (add_result != ERROR_NONE) {
-        LOG_E(TAG, "Failed to register app '%s': %s", record->id.c_str(), error_to_string(add_result));
-        return add_result;
+    for (size_t i = 0; i < count; i++) {
+        record->manifests[i] = bindings[i].manifest;
+        record->locations[i] = app_resolve_binary_path(install_path, bindings[i].binary);
+        record->manifests[i].location = { APP_LOCATION_PATH, const_cast<char*>(record->locations[i].c_str()) };
     }
 
-    registry.apps[record->id] = std::move(record);
+    for (size_t i = 0; i < count; i++) {
+        // The caller's earlier uninstall_locked() call is meant to have already cleared any stale registration for this id
+        // (e.g. left over from app_manager_install_path_scan()'s separate registry),
+        // but that call happens before the package is even extracted / the binaries moved into place; remove once more
+        // right before add, so a duplicate id can never turn a filesystem-level install success into a reported failure.
+        // Only if installed (APP_LOCATION_PATH) - never steal a built-in's id.
+        AppManifest existing {};
+        if (app_manager_find_manifest(record->manifests[i].id, &existing) == ERROR_NONE && existing.location.type == APP_LOCATION_PATH) {
+            app_manager_remove(record->manifests[i].id);
+        }
+
+        error_t add_result = app_manager_add(&record->manifests[i]);
+        if (add_result != ERROR_NONE) {
+            LOG_E(TAG, "Failed to register app '%s': %s", record->manifests[i].id, error_to_string(add_result));
+            // All-or-nothing: unregister whatever this package already added before failing.
+            for (size_t j = 0; j < i; j++) {
+                app_manager_remove(record->manifests[j].id);
+            }
+            return add_result;
+        }
+    }
+
+    std::vector<const char*> app_id_ptrs;
+    app_id_ptrs.reserve(count);
+    for (size_t i = 0; i < count; i++) {
+        app_id_ptrs.push_back(record->manifests[i].id);
+    }
+    app_manager_remove_package(package.id);
+    error_t add_package_result = app_manager_add_package(&package, app_id_ptrs.data(), app_id_ptrs.size());
+    if (add_package_result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to register package '%s': %s", package.id, error_to_string(add_package_result));
+        for (size_t i = 0; i < count; i++) {
+            app_manager_remove(record->manifests[i].id);
+        }
+        return add_package_result;
+    }
+
+    registry.apps[package.id] = std::move(record);
     return ERROR_NONE;
 }
 
 // Stops every currently-running instance of @a manifest. Collects matching instance ids while
-// holding the ledger lock, then calls app_manager_stop() on each after releasing it - that call
+// holding the ledger lock, then calls app_manager_stop() on each after releasing it: that call
 // bound-joins the instance's thread, which must not happen while the ledger mutex (also taken by
 // the instance's own thread_main()) is held, or the two threads would deadlock each other.
 void stop_all_instances_of(const AppManifest* manifest) {
@@ -305,20 +332,22 @@ void stop_all_instances_of(const AppManifest* manifest) {
 }
 
 // Caller must already hold install_registry().mutex
-error_t uninstall_locked(const std::string& app_id) {
+error_t uninstall_locked(const std::string& package_id) {
     auto& registry = install_registry();
-    auto iterator = registry.apps.find(app_id);
+    auto iterator = registry.apps.find(package_id);
     if (iterator == registry.apps.end()) {
         return ERROR_NOT_FOUND;
     }
 
-    // Can't uninstall in-memory apps
-    if (iterator->second->manifest.location.type != APP_LOCATION_PATH) {
-        return ERROR_NOT_SUPPORTED;
+    for (const auto& manifest : iterator->second->manifests) {
+        // Can't uninstall in-memory apps
+        if (manifest.location.type != APP_LOCATION_PATH) {
+            continue;
+        }
+        stop_all_instances_of(&manifest);
+        app_manager_remove(manifest.id);
     }
-
-    stop_all_instances_of(&iterator->second->manifest);
-    app_manager_remove(app_id.c_str());
+    app_manager_remove_package(package_id.c_str());
     delete_recursively(iterator->second->path);
     registry.apps.erase(iterator);
 
@@ -352,7 +381,7 @@ error_t app_get_install_path(const char* app_id, char* path, size_t path_size) {
 }
 
 error_t app_install(const char* source_path) {
-    LOG_I(TAG, "Installing app from %s", source_path);
+    LOG_I(TAG, "Installing app package from %s", source_path);
 
     std::string app_parent_path;
     if (!get_app_install_directory(app_parent_path)) {
@@ -389,8 +418,9 @@ error_t app_install(const char* source_path) {
         return ERROR_INVALID_ARGUMENT;
     }
 
-    AppMetadata metadata {};
-    if (app_metadata_parse(manifest_path.c_str(), &metadata) != ERROR_NONE) {
+    PackageManifest package {};
+    std::vector<AppManifestBinding, tt::OptExternalAllocator<AppManifestBinding>> app_bindings;
+    if (app_package_manifest_parse_into(manifest_path.c_str(), package, app_bindings) != ERROR_NONE) {
         LOG_E(TAG, "Install failed: invalid manifest");
         delete_recursively(staging_path);
         release_staging_lock(staging_path);
@@ -400,24 +430,13 @@ error_t app_install(const char* source_path) {
     auto& registry = install_registry();
     mutex_lock(&registry.mutex);
 
-    // Replace any previous install of this app id (mirrors the old install()'s "already
-    // running/present" handling). uninstall_locked() only clears app_install.cpp's own
-    // registry - the same app id may instead be registered by app_manager_install_path_scan()
-    // (manager.cpp's separate registry, scanning this same directory tree), which
-    // uninstall_locked() doesn't know about. Clear the app-manager registration unconditionally
-    // too, or app_manager_add() below rejects the re-add as a duplicate.
-    uninstall_locked(metadata.app_id);
+    // Replace any previous installation of this package - this also handles the app_manager
+    // registrations of its old AppManifests, so there's no separate app_manager_remove() needed
+    // here (register_installed_package_locked() below still defends against a stale registration
+    // per individual id, e.g. one left by app_manager_install_path_scan()'s separate registry).
+    uninstall_locked(package.id);
 
-    error_t remove_result = app_manager_remove(metadata.app_id);
-    if (remove_result != ERROR_NONE && remove_result != ERROR_NOT_FOUND) {
-        LOG_E(TAG, "Install failed: failed to remove existing installation");
-        mutex_unlock(&registry.mutex);
-        delete_recursively(staging_path);
-        release_staging_lock(staging_path);
-        return ERROR_RESOURCE;
-    }
-
-    auto final_path = app_parent_path + "/" + metadata.app_id;
+    auto final_path = app_parent_path + "/" + package.id;
     delete_recursively(final_path);
 
     if (rename(staging_path.c_str(), final_path.c_str()) != 0) {
@@ -429,9 +448,8 @@ error_t app_install(const char* source_path) {
     }
     release_staging_lock(staging_path);
 
-    // Only remaining failure mode is a duplicate id - can't happen, uninstall_locked() above
-    // already removed any previous registration for this exact id.
-    error_t add_result = register_installed_app_locked(final_path, metadata);
+    // app_bindings.size(), not package.app_manifest_count - the safe bound to index by.
+    error_t add_result = register_installed_package_locked(package, final_path, app_bindings.data(), app_bindings.size());
     mutex_unlock(&registry.mutex);
 
     return add_result;

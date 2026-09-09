@@ -22,19 +22,17 @@ runs:
       run: python Buildscripts/release-sdk-posix.py release/TactilitySDK
     - name: 'Test Integration Prep'
       shell: bash
-      # The manifest.properties of our integration test uses version 0.0.0 to indicate that it is not using a normal SDK
-      # This way, it only works with our custom build. That means we have to create a copy of the SDK with the correct folder structure:
       env:
         TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
       run: |
-        TACTILITY_SDK_NAME="0.0.0-posix-$TACTILITY_ARCH"
+        TACTILITY_SDK_NAME="$(cat version.txt)-posix-$TACTILITY_ARCH"
         mkdir -p test_sdk/$TACTILITY_SDK_NAME
         cp -r release/TactilitySDK test_sdk/$TACTILITY_SDK_NAME
     - name: 'Test Integration'
       shell: bash
       env:
         TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
-      run: cd Tests/SdkIntegration && TACTILITY_SDK_PATH=../../test_sdk python tactility.py build posix-$TACTILITY_ARCH --local-sdk
+      run: cd Tests/SdkIntegration && TACTILITY_SDK_PATH=../../test_sdk python tactility.py build -a posix-$TACTILITY_ARCH --local-sdk
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:

@@ -11,7 +11,10 @@ extern "C" {
 #endif
 
 // Character count, excluding null terminator
-#define APP_ID_LENGTH 32
+#define APP_MANIFEST_ID_LENGTH 32
+
+// Character count, excluding null terminator
+#define APP_MANIFEST_NAME_LENGTH 32
 
 /** Broad classification of an app, used for grouping/launcher presentation. */
 enum AppCategory {
@@ -45,10 +48,10 @@ struct AppStackConfig {
 
 /** Describes a registrable app. One manifest exists per app id. */
 struct AppManifest {
-    /** Unique app identifier. Should never be NULL. */
-    const char* id;
-    /** Human-readable name. Should never be NULL. */
-    const char* name;
+    /** Unique app identifier. Must be NULL-terminated. */
+    char id[APP_MANIFEST_ID_LENGTH + 1];
+    /** Human-readable name. Must be NULL-terminated. */
+    char name[APP_MANIFEST_NAME_LENGTH + 1];
     enum AppCategory category;
     struct AppLocation location;
     /** Bitmask of AppManifestFlags. Most apps should leave this 0. */
@@ -57,7 +60,9 @@ struct AppManifest {
     struct AppStackConfig stack;
 };
 
-bool app_id_is_valid(const char* id);
+bool app_manifest_id_is_valid(const char* id);
+bool app_manifest_name_is_valid(const char* name);
+bool app_manifest_stack_size_is_valid(const char* value);
 
 #ifdef __cplusplus
 }

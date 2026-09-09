@@ -3,7 +3,10 @@
 
 #include <app/instance.h>
 #include <app/manifest.h>
+#include <app/package_manifest.h>
 #include <app/private/fd_table.h>
+
+#include <TactilityCpp/Allocator.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/freertos/freertos.h>
@@ -13,6 +16,7 @@
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 /**
  * A dedicated completion signal(1) for one app instance's task, given as the
@@ -57,8 +61,16 @@ struct AppInstanceRecord {
     AppFdTable fd_table {};
 };
 
+/** A registered installed package - see app_manager_add_package() (app/manager.h). */
+struct AppPackageRecord {
+    struct PackageManifest package;
+    std::vector<std::string> app_ids;
+};
+
 struct AppLedger {
     std::unordered_map<std::string, const AppManifest*> manifests;
+    // OptExternalAllocator: bigger entries than `manifests`, and unlike `instances` isn't on the app start/stop hot path.
+    std::unordered_map<std::string, AppPackageRecord, std::hash<std::string>, std::equal_to<std::string>, tt::OptExternalAllocator<std::pair<const std::string, AppPackageRecord>>> packages;
     std::unordered_map<uint32_t, AppInstanceRecord> instances;
     uint32_t next_instance_id = 1;
     Mutex mutex {};

@@ -1,9 +1,10 @@
 #include <app/event.h>
-#include <app/manager.h>
-#include <app/start.h>
-#include <app/manifest.h>
 #include <app/install.h>
+#include <app/manager.h>
+#include <app/manifest.h>
+#include <app/package_manifest.h>
 #include <app/scheduler.h>
+#include <app/start.h>
 
 #include <format>
 
@@ -12,17 +13,15 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
-#include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/file/File.h>
 #include <Tactility/lvgl/Style.h>
 
 #include <tactility/check.h>
 #include <tactility/log.h>
 
-constexpr auto* TAG = "AppDetails";
+constexpr auto* TAG = "AppPackageDetails";
 
-namespace tt::app::appdetails {
+namespace tt::app::apppackagedetails {
 
 extern const ::AppManifest manifest;
 
@@ -30,13 +29,34 @@ namespace {
 
 struct Context {
     uint32_t appInstanceId;
-    std::string targetAppId;
-    // findAppManifestById() returns the old-model registry's AppManifest type - AppDetails
-    // shows details for apps in that registry regardless of which system they run under.
-    AppManifest targetManifest = { };
+    std::string targetPackageId;
+    PackageManifest targetPackage = {};
+    std::vector<std::string> appIds;
     uint32_t pendingUninstallDialogId = 0;
 };
 
+struct FindPackageContext {
+    const std::string* packageId;
+    PackageManifest* outPackage;
+    std::vector<std::string>* outAppIds;
+    bool found = false;
+};
+
+void onVisitPackage(const ::AppPackage* pkg, void* context) {
+    auto* findContext = static_cast<FindPackageContext*>(context);
+    if (findContext->found || *findContext->packageId != pkg->package.id) {
+        return;
+    }
+    *findContext->outPackage = pkg->package;
+    findContext->outAppIds->assign(pkg->app_ids, pkg->app_ids + pkg->app_id_count);
+    findContext->found = true;
+}
+
+bool findPackage(const std::string& packageId, PackageManifest& outPackage, std::vector<std::string>& outAppIds) {
+    FindPackageContext findContext { &packageId, &outPackage, &outAppIds };
+    app_manager_for_each_package(onVisitPackage, &findContext);
+    return findContext.found;
+}
 
 void onPressUninstall(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
@@ -44,7 +64,7 @@ void onPressUninstall(lv_event_t* event) {
     ctx->pendingUninstallDialogId = alertdialog::start(
         ctx->appInstanceId,
         "Confirmation",
-        std::format("Uninstall {}?", ctx->targetManifest.name),
+        std::format("Uninstall {}?", ctx->targetPackage.id),
         choices
     );
 }
@@ -59,7 +79,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-    auto title = std::format("{} details", ctx->targetManifest.name);
+    auto title = std::format("{} details", ctx->targetPackage.id);
     auto* toolbar = lvgl_toolbar_create(parent, title.c_str());
     // The global toolbar nav callback only knows how to stop old-model apps.
     lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
@@ -71,35 +91,39 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
     lvgl::obj_set_style_bg_invisible(wrapper);
 
-    auto identifier = std::format("Identifier: {}", ctx->targetManifest.id);
+    auto identifier = std::format("Identifier: {}", ctx->targetPackage.id);
     auto* identifier_label = lv_label_create(wrapper);
     lv_label_set_text(identifier_label, identifier.c_str());
 
-    auto* location_label = lv_label_create(wrapper);
-    std::string location;
-    bool is_internal = ctx->targetManifest.location.type == APP_LOCATION_MEMORY;
-    bool is_external = ctx->targetManifest.location.type == APP_LOCATION_PATH;
-    if (is_internal) {
-        location = "internal";
-    } else if (is_external) {
-        if (!string::getPathParent(static_cast<const char*>(ctx->targetManifest.location.location), location)) {
-            location = "external";
-        }
-    } else {
-        LOG_E(TAG, "Unknown app location type %d", ctx->targetManifest.location.type);
-        return;
-    }
-    std::string location_label_text = std::format("Location: {}", location);
-    lv_label_set_text(location_label, location_label_text.c_str());
+    auto version = std::format("Version: {} ({})", ctx->targetPackage.version_name, ctx->targetPackage.version_code);
+    auto* version_label = lv_label_create(wrapper);
+    lv_label_set_text(version_label, version.c_str());
 
-    if (is_external) {
-        auto* uninstall_button = lv_button_create(wrapper);
-        lv_obj_set_width(uninstall_button, LV_PCT(100));
-        lv_obj_add_event_cb(uninstall_button, onPressUninstall, LV_EVENT_SHORT_CLICKED, ctx);
-        auto* uninstall_label = lv_label_create(uninstall_button);
-        lv_obj_align(uninstall_label, LV_ALIGN_CENTER, 0, 0);
-        lv_label_set_text(uninstall_label, "Uninstall");
+    char install_path[192];
+    std::string location = "unknown";
+    if (app_get_install_path(ctx->targetPackage.id, install_path, sizeof(install_path)) == ERROR_NONE) {
+        location = install_path;
     }
+    auto location_text = std::format("Location: {}", location);
+    auto* location_label = lv_label_create(wrapper);
+    lv_label_set_text(location_label, location_text.c_str());
+
+    std::string apps;
+    for (const auto& appId : ctx->appIds) {
+        AppManifest appManifest {};
+        const char* label = app_manager_find_manifest(appId.c_str(), &appManifest) == ERROR_NONE ? appManifest.name : appId.c_str();
+        apps += apps.empty() ? label : std::format(", {}", label);
+    }
+    auto apps_text = std::format("Apps: {}", apps);
+    auto* apps_label = lv_label_create(wrapper);
+    lv_label_set_text(apps_label, apps_text.c_str());
+
+    auto* uninstall_button = lv_button_create(wrapper);
+    lv_obj_set_width(uninstall_button, LV_PCT(100));
+    lv_obj_add_event_cb(uninstall_button, onPressUninstall, LV_EVENT_SHORT_CLICKED, ctx);
+    auto* uninstall_label = lv_label_create(uninstall_button);
+    lv_obj_align(uninstall_label, LV_ALIGN_CENTER, 0, 0);
+    lv_label_set_text(uninstall_label, "Uninstall");
 }
 
 int32_t appMain(int argc, char* argv[]) {
@@ -107,9 +131,9 @@ int32_t appMain(int argc, char* argv[]) {
 
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
-    ctx.targetAppId = (argc > 0) ? argv[0] : std::string();
-    if (app_manager_find_manifest(ctx.targetAppId.c_str(), &ctx.targetManifest) != ERROR_NONE) {
-        LOG_W(TAG, "App %s not found", ctx.targetAppId.c_str());
+    ctx.targetPackageId = (argc > 0) ? argv[0] : std::string();
+    if (!findPackage(ctx.targetPackageId, ctx.targetPackage, ctx.appIds)) {
+        LOG_W(TAG, "Package %s not found", ctx.targetPackageId.c_str());
         return 0;
     }
 
@@ -134,7 +158,7 @@ int32_t appMain(int argc, char* argv[]) {
                 case APP_EVENT_RESULT:
                     if (event.result.launch_id == ctx.pendingUninstallDialogId) {
                         if (event.result.result == 0) { // 0 = Yes
-                            app_uninstall(ctx.targetManifest.id);
+                            app_uninstall(ctx.targetPackage.id);
                             shouldClose = true;
                         }
                         app_manager_stop(event.result.launch_id);
@@ -156,15 +180,15 @@ int32_t appMain(int argc, char* argv[]) {
 
 } // namespace
 
-void start(const std::string& appId) {
-    const char* argv[] = { appId.c_str() };
+void start(const std::string& packageId) {
+    const char* argv[] = { packageId.c_str() };
     uint32_t instanceId = 0;
     app_start(manifest.id, 1, argv, &instanceId);
 }
 
 extern const ::AppManifest manifest = {
-    .id = "tactility.appdetails",
-    .name = "App Details",
+    .id = "tactility.apppackagedetails",
+    .name = "Package Details",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,

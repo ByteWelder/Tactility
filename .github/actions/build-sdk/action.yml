@@ -35,7 +35,7 @@ runs:
       # The manifest.properties of our integration test uses version 0.0.0 to indicate that it is not using a normal SDK
       # This way, it only works with our custom build. That means we have to create a copy of the SDK with the correct folder structure:
       run: |
-        TACTILITY_SDK_NAME="0.0.0-${{ inputs.arch }}"
+        TACTILITY_SDK_NAME="$(cat version.txt)-${{ inputs.arch }}"
         mkdir -p test_sdk/$TACTILITY_SDK_NAME
         cp -r release/TactilitySDK test_sdk/$TACTILITY_SDK_NAME
     - name: 'Test Integration'
@@ -43,7 +43,7 @@ runs:
       with:
         esp_idf_version: v5.5.2
         target: ${{ inputs.arch }}
-        command: export TACTILITY_SDK_PATH=../../test_sdk && cd Tests/SdkIntegration && python tactility.py build ${{ inputs.arch }} --local-sdk
+        command: export TACTILITY_SDK_PATH=../../test_sdk && cd Tests/SdkIntegration && python tactility.py build -a ${{ inputs.arch }} --local-sdk
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:

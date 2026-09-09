@@ -8,9 +8,9 @@
 
 #include <app/event.h>
 #include <app/manager.h>
-#include <app/start.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
+#include <app/start.h>
 
 #include <lvgl_window_manager/window_manager.h>
 

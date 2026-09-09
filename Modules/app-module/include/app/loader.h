@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "location.h"
 #include <app/manifest.h>
-#include <tactility/error.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "location.h"
+#include <tactility/error.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -15,14 +15,27 @@ set_target_properties(app_posix_module_test_fixture PROPERTIES POSITION_INDEPEND
 set(NON_ELF_FIXTURE_PATH "${CMAKE_CURRENT_BINARY_DIR}/not-elf.so")
 file(WRITE "${NON_ELF_FIXTURE_PATH}" "not an elf file")
 
+# An install-directory-shaped fixture: {dir}/bin/posix-{arch}/app.so, matching where
+# app_posix_loader_service.cpp's resolve_app_path() looks for a "packaged" app's single binary.
+set(INSTALL_DIR_FIXTURE_PATH "${CMAKE_CURRENT_BINARY_DIR}/install-dir-fixture")
+set(INSTALL_DIR_FIXTURE_BIN_DIR "${INSTALL_DIR_FIXTURE_PATH}/bin/posix-${CMAKE_SYSTEM_PROCESSOR}")
+add_custom_command(
+    OUTPUT "${INSTALL_DIR_FIXTURE_BIN_DIR}/app.so"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${INSTALL_DIR_FIXTURE_BIN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:app_posix_module_test_fixture>" "${INSTALL_DIR_FIXTURE_BIN_DIR}/app.so"
+    DEPENDS app_posix_module_test_fixture
+)
+add_custom_target(install_dir_fixture DEPENDS "${INSTALL_DIR_FIXTURE_BIN_DIR}/app.so")
+
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/source/*.cpp)
 add_executable(AppPosixModuleTests EXCLUDE_FROM_ALL ${TEST_SOURCES})
-add_dependencies(AppPosixModuleTests app_posix_module_test_fixture)
+add_dependencies(AppPosixModuleTests app_posix_module_test_fixture install_dir_fixture)
 
 target_include_directories(AppPosixModuleTests PRIVATE ${DOCTESTINC})
 target_compile_definitions(AppPosixModuleTests PRIVATE
     FIXTURE_APP_PATH="$<TARGET_FILE:app_posix_module_test_fixture>"
     FIXTURE_NON_ELF_PATH="${NON_ELF_FIXTURE_PATH}"
+    FIXTURE_INSTALL_DIR_PATH="${INSTALL_DIR_FIXTURE_PATH}"
 )
 
 add_test(NAME AppPosixModuleTests COMMAND AppPosixModuleTests)

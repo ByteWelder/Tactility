@@ -5,7 +5,7 @@
 #include <app/io.h>
 #include <app/manager.h>
 #include <app/manifest.h>
-#include <app/metadata.h>
+#include <app/package_manifest.h>
 #include <app/paths.h>
 #include <app/scheduler.h>
 #include <app/start.h>
@@ -47,20 +47,21 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_manager_for_each_manifest),
     DEFINE_MODULE_SYMBOL(app_manager_add),
     DEFINE_MODULE_SYMBOL(app_manager_remove),
+    DEFINE_MODULE_SYMBOL(app_manager_add_package),
+    DEFINE_MODULE_SYMBOL(app_manager_remove_package),
+    DEFINE_MODULE_SYMBOL(app_manager_find_package),
+    DEFINE_MODULE_SYMBOL(app_manager_for_each_package),
     DEFINE_MODULE_SYMBOL(app_manager_get_topmost_instance_id),
     DEFINE_MODULE_SYMBOL(app_manager_get_topmost_app_id),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_uninstall),
-    // app/start
-    DEFINE_MODULE_SYMBOL(app_start),
-    DEFINE_MODULE_SYMBOL(app_start_for_result),
-    DEFINE_MODULE_SYMBOL(app_start_with_streams),
-    DEFINE_MODULE_SYMBOL(app_start_for_result_with_streams),
     // app/manifest
-    DEFINE_MODULE_SYMBOL(app_id_is_valid),
-    // app/metadata
-    DEFINE_MODULE_SYMBOL(app_metadata_parse),
+    DEFINE_MODULE_SYMBOL(app_manifest_id_is_valid),
+    DEFINE_MODULE_SYMBOL(app_manifest_name_is_valid),
+    DEFINE_MODULE_SYMBOL(app_manifest_stack_size_is_valid),
+    // app/package_manifest
+    DEFINE_MODULE_SYMBOL(app_package_manifest_parse),
     // app/paths
     DEFINE_MODULE_SYMBOL(app_paths_get_user_data_directory),
     DEFINE_MODULE_SYMBOL(app_paths_get_user_data_path),
@@ -68,6 +69,11 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_paths_get_assets_path),
     // app/scheduler
     DEFINE_MODULE_SYMBOL(app_scheduler_current_app_id),
+    // app/start
+    DEFINE_MODULE_SYMBOL(app_start),
+    DEFINE_MODULE_SYMBOL(app_start_for_result),
+    DEFINE_MODULE_SYMBOL(app_start_with_streams),
+    DEFINE_MODULE_SYMBOL(app_start_for_result_with_streams),
     // app/stream
     DEFINE_MODULE_SYMBOL(app_stream_subscribe),
     DEFINE_MODULE_SYMBOL(app_stream_unsubscribe),

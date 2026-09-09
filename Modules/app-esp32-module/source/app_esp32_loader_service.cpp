@@ -16,6 +16,8 @@
 #include <esp_elf.h>
 #include <esp_err.h>
 
+#include <sys/stat.h>
+
 #include <cstdio>
 #include <new>
 #include <string>
@@ -64,13 +66,22 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
     return ERROR_NONE;
 }
 
-// location.location can be either an app's install directory or the .elf file directly; the
-// former resolves to the per-target binary at {dir}/elf/{CONFIG_IDF_TARGET}.elf.
+bool is_regular_file(const std::string& path) {
+    struct stat path_stat {};
+    return ::stat(path.c_str(), &path_stat) == 0 && S_ISREG(path_stat.st_mode);
+}
+
+// location.location can be either an app's install directory or the .elf file directly. A
+// "packaged" app's install directory always holds its single binary at the fixed path
+// {dir}/bin/{CONFIG_IDF_TARGET}/app.elf - a "terminal" app has no such file (its several
+// binaries keep their own names), so this correctly leaves it unresolvable - terminal apps
+// aren't run through AppLoaderApi (see app/install.h).
 std::string resolve_elf_path(const std::string& path) {
     if (path.ends_with(".elf")) {
         return path;
     }
-    return path + "/elf/" + CONFIG_IDF_TARGET + ".elf";
+    std::string candidate = path + "/bin/" CONFIG_IDF_TARGET "/app.elf";
+    return is_regular_file(candidate) ? candidate : "";
 }
 
 constexpr ElfRequirements EXECUTABLE_REQUIREMENTS = {

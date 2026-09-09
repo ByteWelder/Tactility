@@ -303,7 +303,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         return ERROR_OUT_OF_MEMORY;
     }
 
-    // Same bound app_metadata_parse() enforces on manifest.properties-declared depths - a
+    // Same bound package_manifest_parse() enforces on manifest.properties-declared depths - a
     // manifest built directly in C++ (not parsed from a file) must be held to it too.
     if (stack.depth > APP_STACK_SIZE_MAX) {
         LOG_E(TAG, "[instance %lu] stack depth %u exceeds APP_STACK_SIZE_MAX(%u)", app_instance_id, stack.depth, APP_STACK_SIZE_MAX);
