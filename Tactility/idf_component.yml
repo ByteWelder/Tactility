@@ -71,7 +71,7 @@ dependencies:
       - if: "target in [esp32p4]"
   espressif/esp_lcd_panel_io_additions: "1.0.1"
   espressif/esp_tinyusb:
-    version: "1.7.6~1"
+    version: "2.2.1"
     rules:
       - if: "target in [esp32s3, esp32p4]"
   espressif/esp_lvgl_port: "2.7.2"
