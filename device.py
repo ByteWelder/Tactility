@@ -150,6 +150,13 @@ def write_core_variables(output_file, device_properties: dict):
     idf_target = get_property_or_exit(device_properties, "hardware.target").lower()
     output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target}\"\n")
+    # ESP-IDF 6.x defaults default warnings (incl. -Wmissing-field-initializers) to errors;
+    # this codebase's designated initializers rely on the old warn-only behavior.
+    output_file.write("CONFIG_COMPILER_DISABLE_DEFAULT_ERRORS=y\n")
+    # ESP-IDF 6.x defaults to Picolibc, which drops per-task stdio redirection and some
+    # newlib-internal symbols (_ctype_, __getreent) this repo's ELF-loader ABI exports.
+    # Stay on Newlib rather than re-auditing every per-task stdio assumption.
+    output_file.write("CONFIG_LIBC_NEWLIB=y\n")
     output_file.write("# CPU\n")
     output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
     output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
@@ -157,8 +164,8 @@ def write_core_variables(output_file, device_properties: dict):
     output_file.write(f"CONFIG_{idf_target.upper()}_DEFAULT_CPU_FREQ_MHZ=240\n")
     if idf_target != "esp32": # Not available on original ESP32
         output_file.write("# Enable usage of MALLOC_CAP_EXEC on IRAM:\n")
-        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE=n\n")
-        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE_LOCK=n\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT=n\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_PMS_LOCK=n\n")
     else:
         # Original ESP32 has very limited IRAM (~328KB shared with Wi-Fi/BT).
         # Disable Wi-Fi IRAM optimizations to free ~27KB; throughput impact is
@@ -181,6 +188,13 @@ def write_flash_variables(output_file, device_properties: dict):
     esptool_flash_freq = get_property_or_none(device_properties, "hardware.esptoolFlashFreq")
     if esptool_flash_freq is not None:
         output_file.write(f"CONFIG_ESPTOOLPY_FLASHFREQ_{esptool_flash_freq}=y\n")
+    if esptool_flash_freq == "120M":
+        # >80MHz flash needs HPM; HPM-DC (dummy-cycle auto-tuning) requires a bootloader
+        # built with BOOTLOADER_FLASH_DC_AWARE, which existing units in the field don't have -
+        # disable it rather than force a bootloader reflash.
+        output_file.write("CONFIG_SPI_FLASH_HPM_ENA=y\n")
+        output_file.write("# CONFIG_SPI_FLASH_HPM_AUTO is not set\n")
+        output_file.write("CONFIG_SPI_FLASH_HPM_DC_DISABLE=y\n")
 
 def write_spiram_variables(output_file, device_properties: dict):
     idf_target = get_property_or_exit(device_properties, "hardware.target").lower()

@@ -20,7 +20,7 @@
 
 #include <TactilityCpp/Allocator.h>
 
-#if defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_ESP_HOSTED_ENABLED)
 #include <tactility/drivers/esp32_esp_hosted_ota.h>
 #endif
 
@@ -81,8 +81,6 @@ WifiAuthenticationType to_wifi_authentication_type(wifi_auth_mode_t mode) {
         case WIFI_AUTH_WAPI_PSK: return WIFI_AUTHENTICATION_TYPE_WAPI_PSK;
         case WIFI_AUTH_OWE: return WIFI_AUTHENTICATION_TYPE_OWE;
         case WIFI_AUTH_WPA3_ENT_192: return WIFI_AUTHENTICATION_TYPE_WPA3_ENT_192;
-        case WIFI_AUTH_WPA3_EXT_PSK: return WIFI_AUTHENTICATION_TYPE_WPA3_EXT_PSK;
-        case WIFI_AUTH_WPA3_EXT_PSK_MIXED_MODE: return WIFI_AUTHENTICATION_TYPE_WPA3_EXT_PSK_MIXED_MODE;
         default: return WIFI_AUTHENTICATION_TYPE_OPEN;
     }
 }
@@ -585,7 +583,7 @@ error_t api_get_firmware_ops(Device* /*device*/, const FirmwareOps** ops, void**
     if (ops == nullptr || ctx == nullptr) {
         return ERROR_INVALID_ARGUMENT;
     }
-#if defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_ESP_HOSTED_ENABLED)
     // Only meaningful on a hosted board (P4+C6/C5 etc.) - this wifi device is backed by a real
     // co-processor with its own updatable firmware there. On a native (non-hosted) chip, this
     // device's "radio" is the chip's own built-in WiFi, nothing to update via this interface.
