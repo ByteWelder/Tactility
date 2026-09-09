@@ -76,6 +76,67 @@ void app_manager_for_each_manifest(AppManifestVisitorFn visitor, void* context) 
     mutex_unlock(&ledger.mutex);
 }
 
+error_t app_manager_add_package(const PackageManifest* package, const char* const* app_ids, size_t app_id_count) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    if (ledger.packages.contains(package->id)) {
+        mutex_unlock(&ledger.mutex);
+        LOG_E(TAG, "Package with id '%s' is already registered", package->id);
+        return ERROR_INVALID_ARGUMENT;
+    }
+    AppPackageRecord record { .package = *package };
+    record.app_ids.reserve(app_id_count);
+    for (size_t i = 0; i < app_id_count; i++) {
+        record.app_ids.emplace_back(app_ids[i]);
+    }
+    ledger.packages[package->id] = std::move(record);
+    mutex_unlock(&ledger.mutex);
+
+    return ERROR_NONE;
+}
+
+error_t app_manager_remove_package(const char* package_id) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.packages.find(package_id);
+    if (iterator == ledger.packages.end()) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_NOT_FOUND;
+    }
+    ledger.packages.erase(iterator);
+    mutex_unlock(&ledger.mutex);
+
+    return ERROR_NONE;
+}
+
+error_t app_manager_find_package(const char* package_id, PackageManifest* out_package) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.packages.find(package_id);
+    if (iterator == ledger.packages.end()) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_NOT_FOUND;
+    }
+    *out_package = iterator->second.package;
+    mutex_unlock(&ledger.mutex);
+    return ERROR_NONE;
+}
+
+void app_manager_for_each_package(AppPackageVisitorFn visitor, void* context) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    for (auto& [id, record] : ledger.packages) {
+        std::vector<const char*> app_id_ptrs;
+        app_id_ptrs.reserve(record.app_ids.size());
+        for (const auto& app_id : record.app_ids) {
+            app_id_ptrs.push_back(app_id.c_str());
+        }
+        AppPackage pkg { .package = record.package, .app_id_count = app_id_ptrs.size(), .app_ids = app_id_ptrs.data() };
+        visitor(&pkg, context);
+    }
+    mutex_unlock(&ledger.mutex);
+}
+
 error_t app_manager_start_internal(const AppManifest* manifest, AppLocation location, AppStackConfig stack, AppInstanceId parent_instance_id, int argc, const char* const argv_in[], const AppStreamBinding* bindings, size_t binding_count, AppInstanceId* out_app_instance_id) {
     char** argv = app_arguments_copy(argc, argv_in);
     if (argc > 0 && argv == nullptr) {
@@ -274,6 +335,7 @@ void app_manager_install_path_scan(void) {
     // Parses without registry.mutex held; filesystem IO is slow.
     std::vector<std::unique_ptr<ScannedPackageManifest>> new_records;
     std::vector<std::string> new_package_ids;
+    std::vector<PackageManifest> new_packages;
     for (const auto& app_dir : found_app_dirs) {
         auto manifest_path = app_dir + "/manifest.properties";
         if (!app_fs_is_file(manifest_path)) {
@@ -300,14 +362,15 @@ void app_manager_install_path_scan(void) {
         record->path = app_dir;
         // Sized once, up front: manifests[i].location.location points into locations[i].c_str(),
         // which would dangle if either vector reallocated afterward.
-        record->manifests.resize(package.app_manifest_count);
-        record->locations.resize(package.app_manifest_count);
-        for (size_t i = 0; i < package.app_manifest_count; i++) {
+        record->manifests.resize(app_bindings.size());
+        record->locations.resize(app_bindings.size());
+        for (size_t i = 0; i < app_bindings.size(); i++) {
             record->manifests[i] = app_bindings[i].manifest;
             record->locations[i] = app_resolve_binary_path(app_dir, app_bindings[i].binary);
             record->manifests[i].location = { APP_LOCATION_PATH, const_cast<char*>(record->locations[i].c_str()) };
         }
         new_package_ids.emplace_back(package.id);
+        new_packages.push_back(package);
         new_records.push_back(std::move(record));
     }
 
@@ -325,11 +388,19 @@ void app_manager_install_path_scan(void) {
         for (const auto& manifest_id : known_packages.at(id).manifest_ids) {
             app_manager_remove(manifest_id.c_str());
         }
+        app_manager_remove_package(id.c_str());
     }
     std::vector<std::unique_ptr<ScannedPackageManifest>> added_records;
     std::vector<std::string> added_package_ids;
     for (size_t r = 0; r < new_records.size(); r++) {
         auto& record = new_records[r];
+
+        // known_packages is only a pre-scan snapshot - two new directories can still share an id.
+        if (std::ranges::find(added_package_ids, new_package_ids[r]) != added_package_ids.end()) {
+            LOG_W(TAG, "Skipping duplicate package id %s found in this scan", new_package_ids[r].c_str());
+            continue;
+        }
+
         size_t added_count = 0;
         for (; added_count < record->manifests.size(); added_count++) {
             if (app_manager_add(&record->manifests[added_count]) != ERROR_NONE) {
@@ -337,15 +408,29 @@ void app_manager_install_path_scan(void) {
                 break;
             }
         }
-        if (added_count == record->manifests.size()) {
-            added_package_ids.push_back(new_package_ids[r]);
-            added_records.push_back(std::move(record));
-        } else {
+        if (added_count != record->manifests.size()) {
             // All-or-nothing: unregister whatever this package already added before failing.
             for (size_t j = 0; j < added_count; j++) {
                 app_manager_remove(record->manifests[j].id);
             }
+            continue;
         }
+
+        std::vector<const char*> app_id_ptrs;
+        app_id_ptrs.reserve(record->manifests.size());
+        for (const auto& app_manifest : record->manifests) {
+            app_id_ptrs.push_back(app_manifest.id);
+        }
+        if (app_manager_add_package(&new_packages[r], app_id_ptrs.data(), app_id_ptrs.size()) != ERROR_NONE) {
+            LOG_E(TAG, "Failed to register package %s (duplicate id?)", new_packages[r].id);
+            for (const auto& app_manifest : record->manifests) {
+                app_manager_remove(app_manifest.id);
+            }
+            continue;
+        }
+
+        added_package_ids.push_back(new_package_ids[r]);
+        added_records.push_back(std::move(record));
     }
 
     mutex_lock(&registry.mutex);
@@ -399,6 +484,7 @@ error_t app_manager_install_path_uninstall(const char* app_id) {
     for (const auto& manifest : *manifests) {
         app_manager_remove(manifest.id);
     }
+    app_manager_remove_package(app_id);
 
     // Delete before erasing the scan record, so a failed deletion still leaves the
     // entry discoverable for a retry.

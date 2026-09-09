@@ -7,12 +7,34 @@
 
 #include <charconv>
 #include <format>
+#include <optional>
 
 #include <tactility/log.h>
 
 constexpr auto* TAG = "app_metadata_v3";
 
 namespace {
+
+// Numeric index out of an "app.<index>.<rest>" key, or nullopt if it doesn't match that shape.
+std::optional<size_t> parse_app_key_index(const std::string& key) {
+    constexpr auto* prefix = "app.";
+    constexpr size_t prefix_len = 4;
+    if (!key.starts_with(prefix)) {
+        return std::nullopt;
+    }
+    auto dot = key.find('.', prefix_len);
+    if (dot == std::string::npos || dot == prefix_len) {
+        return std::nullopt;
+    }
+    size_t index = 0;
+    const auto* first = key.data() + prefix_len;
+    const auto* last = key.data() + dot;
+    auto result = std::from_chars(first, last, index);
+    if (result.ec != std::errc {} || result.ptr != last) {
+        return std::nullopt;
+    }
+    return index;
+}
 
 // Parses one "app.<index>.*" block into @a out_binding.
 error_t parse_app_manifest(const std::map<std::string, std::string>& properties, size_t index, AppManifestBinding& out_binding) {
@@ -187,6 +209,16 @@ error_t package_manifest_parse_v3(const std::map<std::string, std::string>& prop
     }
 
     out_package.app_manifest_count = static_cast<uint32_t>(count);
+
+    // Catch a gap the count loop above would otherwise silently drop, e.g. app.0.* + app.3.*.
+    for (const auto& [key, value] : properties) {
+        auto index = parse_app_key_index(key);
+        if (index.has_value() && *index >= count) {
+            LOG_E(TAG, "Manifest declares %s but only %zu contiguous app(s) starting at app.0 were found", key.c_str(), count);
+            return ERROR_INVALID_ARGUMENT;
+        }
+    }
+
     if (count == 0 || bindings_capacity == 0) {
         return ERROR_NONE;
     }

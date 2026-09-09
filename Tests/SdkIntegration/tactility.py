@@ -450,6 +450,9 @@ def get_binary_dirs(manifest):
             index += 1
         if len(binaries) == 1:
             return [(binaries[0][0], ".")]
+        for binary, directory in binaries:
+            if not os.path.isdir(directory):
+                exit_with_error(f"Binary directory not found for '{binary}': {directory}")
         return binaries
     else:
         return [(manifest["app.id"], ".")]

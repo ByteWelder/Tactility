@@ -1,11 +1,12 @@
 #include <lvgl/icons/shared.h>
 #include <lvgl/fonts.h>
 
-#include <Tactility/app/appdetails/AppDetails.h>
+#include <Tactility/app/apppackagedetails/AppPackageDetails.h>
 
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/package_manifest.h>
 #include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
@@ -18,7 +19,7 @@
 #include <cstring>
 #include <vector>
 
-namespace tt::app::appsettings {
+namespace tt::app::apppackagelist {
 
 extern const ::AppManifest manifest;
 
@@ -26,11 +27,13 @@ namespace {
 
 struct Context {
     uint32_t appInstanceId;
+    // Must outlive the widgets - button user-data points into this, not a createWidgets()-local vector.
+    std::vector<std::string> packageIds;
 };
 
-void onAppPressed(lv_event_t* e) {
-    const auto* target_manifest = static_cast<const ::AppManifest*>(lv_event_get_user_data(e));
-    appdetails::start(target_manifest->id);
+void onPackagePressed(lv_event_t* e) {
+    auto* packageId = static_cast<char*>(lv_event_get_user_data(e));
+    apppackagedetails::start(packageId);
 }
 
 void onBackPressed(lv_event_t* event) {
@@ -38,18 +41,16 @@ void onBackPressed(lv_event_t* event) {
     app_event_emit_close(ctx->appInstanceId);
 }
 
-void createAppWidget(const ::AppManifest* target_manifest, lv_obj_t* list) {
-    // The new AppManifest has no per-app icon - use a shared generic one for every entry, same
-    // fallback AppList.cpp uses.
-    lv_obj_t* btn = lv_list_add_button(list, LVGL_ICON_SHARED_TOOLBAR, target_manifest->name);
+void createPackageWidget(const char* packageId, lv_obj_t* list) {
+    lv_obj_t* btn = lv_list_add_button(list, LVGL_ICON_SHARED_TOOLBAR, packageId);
     lv_obj_t* image = lv_obj_get_child(btn, 0);
     lv_obj_set_style_text_font(image, lvgl_get_shared_icon_font(), LV_PART_MAIN);
-    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, const_cast<::AppManifest*>(target_manifest));
+    lv_obj_add_event_cb(btn, &onPackagePressed, LV_EVENT_SHORT_CLICKED, const_cast<char*>(packageId));
 }
 
-void collectManifest(const ::AppManifest* manifest, void* context) {
-    auto* manifests = static_cast<std::vector<const ::AppManifest*>*>(context);
-    manifests->push_back(manifest);
+void collectPackageId(const ::AppPackage* pkg, void* context) {
+    auto* packageIds = static_cast<std::vector<std::string>*>(context);
+    packageIds->emplace_back(pkg->package.id);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -68,21 +69,16 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
 
-    std::vector<const ::AppManifest*> manifests;
-    app_manager_for_each_manifest(collectManifest, &manifests);
-    std::ranges::sort(manifests, [](const ::AppManifest* a, const ::AppManifest* b) {
-        return strcmp(a->name, b->name) < 0;
-    });
+    // createWidgets() can rerun for this same Context (window rebuild-on-remove).
+    ctx->packageIds.clear();
+    app_manager_for_each_package(collectPackageId, &ctx->packageIds);
+    std::ranges::sort(ctx->packageIds);
 
-    size_t app_count = 0;
-    for (const auto* target_manifest: manifests) {
-        if (target_manifest->location.type == APP_LOCATION_PATH) {
-            app_count++;
-            createAppWidget(target_manifest, list);
-        }
+    for (const auto& packageId : ctx->packageIds) {
+        createPackageWidget(packageId.c_str(), list);
     }
 
-    if (app_count == 0) {
+    if (ctx->packageIds.empty()) {
         // lv_obj_align() is ignored for children of a flex-managed parent, so the empty-state
         // label needs its own flex-growing wrapper to center within; the (empty) list is hidden
         // rather than deleted so the wrapper can just take its place in the flex flow.
@@ -139,7 +135,7 @@ int32_t appMain(int argc, char* argv[]) {
 } // namespace
 
 extern const ::AppManifest manifest = {
-    .id = "tactility.appsettings",
+    .id = "tactility.apppackagelist",
     .name = "Apps",
     .category = APP_CATEGORY_SETTINGS,
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },

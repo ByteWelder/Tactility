@@ -188,5 +188,14 @@ error_t app_package_manifest_parse_into(const char* path, PackageManifest& out_p
         return result;
     }
     out_bindings.resize(out_package.app_manifest_count);
-    return app_package_manifest_parse(path, &out_package, out_bindings.data(), out_bindings.size());
+    result = app_package_manifest_parse(path, &out_package, out_bindings.data(), out_bindings.size());
+    if (result != ERROR_NONE) {
+        return result;
+    }
+    // Manifest could have changed between the two parses above.
+    if (out_package.app_manifest_count != out_bindings.size()) {
+        LOG_E(TAG, "Manifest at %s changed while being parsed", path);
+        return ERROR_INVALID_ARGUMENT;
+    }
+    return ERROR_NONE;
 }

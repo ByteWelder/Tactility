@@ -251,9 +251,9 @@ InstallRegistry& install_registry() {
 }
 
 // Registers every AppManifest in @a bindings (@a count of them) with app_manager_add(), taking
-// ownership of their backing location strings.
+// ownership of their backing location strings, then registers @a package itself.
 // @warning Caller must hold install_registry().mutex.
-error_t register_installed_package_locked(const std::string& package_id, const std::string& install_path, const AppManifestBinding* bindings, size_t count) {
+error_t register_installed_package_locked(const PackageManifest& package, const std::string& install_path, const AppManifestBinding* bindings, size_t count) {
     auto& registry = install_registry();
 
     auto record = std::make_unique<InstalledPackageRecord>();
@@ -274,7 +274,11 @@ error_t register_installed_package_locked(const std::string& package_id, const s
         // (e.g. left over from app_manager_install_path_scan()'s separate registry),
         // but that call happens before the package is even extracted / the binaries moved into place; remove once more
         // right before add, so a duplicate id can never turn a filesystem-level install success into a reported failure.
-        app_manager_remove(record->manifests[i].id);
+        // Only if installed (APP_LOCATION_PATH) - never steal a built-in's id.
+        AppManifest existing {};
+        if (app_manager_find_manifest(record->manifests[i].id, &existing) == ERROR_NONE && existing.location.type == APP_LOCATION_PATH) {
+            app_manager_remove(record->manifests[i].id);
+        }
 
         error_t add_result = app_manager_add(&record->manifests[i]);
         if (add_result != ERROR_NONE) {
@@ -287,7 +291,22 @@ error_t register_installed_package_locked(const std::string& package_id, const s
         }
     }
 
-    registry.apps[package_id] = std::move(record);
+    std::vector<const char*> app_id_ptrs;
+    app_id_ptrs.reserve(count);
+    for (size_t i = 0; i < count; i++) {
+        app_id_ptrs.push_back(record->manifests[i].id);
+    }
+    app_manager_remove_package(package.id);
+    error_t add_package_result = app_manager_add_package(&package, app_id_ptrs.data(), app_id_ptrs.size());
+    if (add_package_result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to register package '%s': %s", package.id, error_to_string(add_package_result));
+        for (size_t i = 0; i < count; i++) {
+            app_manager_remove(record->manifests[i].id);
+        }
+        return add_package_result;
+    }
+
+    registry.apps[package.id] = std::move(record);
     return ERROR_NONE;
 }
 
@@ -321,15 +340,14 @@ error_t uninstall_locked(const std::string& package_id) {
     }
 
     for (const auto& manifest : iterator->second->manifests) {
-        // Can't uninstall in-memory apps - always false in practice (every manifest here was
-        // built by register_installed_package_locked(), always APP_LOCATION_PATH), kept as a
-        // guard rather than an assumption.
+        // Can't uninstall in-memory apps
         if (manifest.location.type != APP_LOCATION_PATH) {
             continue;
         }
         stop_all_instances_of(&manifest);
         app_manager_remove(manifest.id);
     }
+    app_manager_remove_package(package_id.c_str());
     delete_recursively(iterator->second->path);
     registry.apps.erase(iterator);
 
@@ -401,10 +419,6 @@ error_t app_install(const char* source_path) {
     }
 
     PackageManifest package {};
-    // Heap-allocated (not a stack array - too large for a typical app task's stack, e.g. Boot's,
-    // which calls this indirectly via registerInstalledAppsFromFileSystems()) and sized to fit
-    // exactly, not pre-allocated to some fixed maximum (see app_package_manifest_parse_into()).
-    // OptExternalAllocator prefers PSRAM for this transient buffer, freeing up scarce internal RAM.
     std::vector<AppManifestBinding, tt::OptExternalAllocator<AppManifestBinding>> app_bindings;
     if (app_package_manifest_parse_into(manifest_path.c_str(), package, app_bindings) != ERROR_NONE) {
         LOG_E(TAG, "Install failed: invalid manifest");
@@ -434,7 +448,8 @@ error_t app_install(const char* source_path) {
     }
     release_staging_lock(staging_path);
 
-    error_t add_result = register_installed_package_locked(package.id, final_path, app_bindings.data(), package.app_manifest_count);
+    // app_bindings.size(), not package.app_manifest_count - the safe bound to index by.
+    error_t add_result = register_installed_package_locked(package, final_path, app_bindings.data(), app_bindings.size());
     mutex_unlock(&registry.mutex);
 
     return add_result;

@@ -14,7 +14,7 @@ extern "C" {
 #define APP_MANIFEST_ID_LENGTH 32
 
 // Character count, excluding null terminator
-#define APP_MANIFEST_NAME_LENGTH 24
+#define APP_MANIFEST_NAME_LENGTH 32
 
 /** Broad classification of an app, used for grouping/launcher presentation. */
 enum AppCategory {
