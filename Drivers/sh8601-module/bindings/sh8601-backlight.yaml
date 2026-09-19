@@ -1,0 +1,16 @@
+description: >
+  Backlight for an SH8601 AMOLED panel. The panel has no dedicated backlight pin: brightness is
+  controlled over the panel's own QSPI command interface (command 0x51), so this driver sends
+  that command through the display device's panel IO rather than driving a GPIO/PWM.
+
+compatible: "sh8601-backlight"
+
+properties:
+  display:
+    type: phandle
+    required: true
+    description: The SH8601 display device whose brightness this controls
+  brightness-default:
+    type: int
+    default: 255
+    description: Default brightness level (0-255), applied by set_brightness_default()

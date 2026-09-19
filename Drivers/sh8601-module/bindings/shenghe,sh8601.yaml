@@ -1,0 +1,43 @@
+description: Shenghe SH8601 AMOLED display panel (SPI/QSPI)
+
+bus: spi
+
+compatible: "shenghe,sh8601"
+
+properties:
+  horizontal-resolution:
+    type: int
+    required: true
+    description: Horizontal resolution in pixels
+  vertical-resolution:
+    type: int
+    required: true
+    description: Vertical resolution in pixels
+  gap-x:
+    type: int
+    default: 0
+    description: X offset applied to all draw operations
+  gap-y:
+    type: int
+    default: 0
+    description: Y offset applied to all draw operations
+  invert-color:
+    type: boolean
+    default: false
+    description: Invert the panel's color output
+  pixel-clock-hz:
+    type: int
+    default: 40000000
+    description: QSPI pixel clock frequency in Hz
+  transaction-queue-depth:
+    type: int
+    default: 10
+    description: Size of the internal SPI transaction queue
+  pin-reset:
+    type: phandles
+    default: GPIO_PIN_SPEC_NONE
+    description: Reset GPIO pin
+  backlight:
+    type: phandle
+    default: "NULL"
+    description: Optional reference to this display's backlight device

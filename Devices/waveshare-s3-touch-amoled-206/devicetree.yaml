@@ -1,0 +1,11 @@
+dependencies:
+  - Platforms/platform-esp32
+  - Drivers/sh8601-module
+  - Drivers/axp2101-module
+  - Drivers/bm8563-module
+  - Drivers/qmi8658-module
+  - Drivers/ft5x06-module
+  - Drivers/es8311-module
+  - Drivers/es7210-module
+  - Drivers/audio-stream-module
+dts: waveshare,s3-touch-amoled-206.dts

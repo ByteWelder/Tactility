@@ -35,3 +35,10 @@ properties:
     type: phandles
     default: GPIO_PIN_SPEC_NONE
     description: Interrupt GPIO pin
+  disable-monitor-timeout:
+    type: boolean
+    default: false
+    description: >
+      Write 0 to the controller's monitor/sleep timeout register (0x87) so it never enters monitor
+      mode. Some boards read the controller infrequently enough (e.g. apps that bypass LVGL's
+      periodic read) that it otherwise sleeps and NAKs subsequent I2C reads.
