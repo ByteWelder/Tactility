@@ -157,10 +157,32 @@ static error_t start(Device* device) {
     }
     std::memset(internal->shadow, 0, frame_buffer_size);
 
-    esp_lcd_panel_io_spi_config_t io_config = SH8601_PANEL_IO_QSPI_CONFIG(
-        static_cast<gpio_num_t>(pin_or_unused(cs_pin)), on_color_trans_done, internal);
-    io_config.pclk_hz = config->pixel_clock_hz;
-    io_config.trans_queue_depth = config->transaction_queue_depth;
+    // Built manually rather than with SH8601_PANEL_IO_QSPI_CONFIG(): the component's macro assigns
+    // the plain int -1 to dc_gpio_num (gpio_num_t), which C++ rejects (unlike C).
+    esp_lcd_panel_io_spi_config_t io_config = {
+        .cs_gpio_num = static_cast<gpio_num_t>(pin_or_unused(cs_pin)),
+        .dc_gpio_num = static_cast<gpio_num_t>(-1),
+        .spi_mode = 0,
+        .pclk_hz = config->pixel_clock_hz,
+        .trans_queue_depth = config->transaction_queue_depth,
+        .on_color_trans_done = on_color_trans_done,
+        .user_ctx = internal,
+        .lcd_cmd_bits = 32,
+        .lcd_param_bits = 8,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
+        .flags = {
+            .dc_high_on_cmd = 0,
+            .dc_low_on_data = 0,
+            .dc_low_on_param = 0,
+            .octal_mode = 0,
+            .quad_mode = 1,
+            .sio_mode = 0,
+            .psram_dma_direct = 0,
+            .lsb_first = 0,
+            .cs_high_active = 0,
+        },
+    };
 
     esp_err_t ret = esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)spi_config->host, &io_config, &internal->io_handle);
     if (ret != ESP_OK) {
@@ -420,12 +442,33 @@ static uint8_t sh8601_get_frame_buffer_count(Device*) {
     return 0;
 }
 
+struct BacklightSearch {
+    Device* found;
+};
+
+static bool find_backlight_child(Device* child, void* context) {
+    auto* search = static_cast<BacklightSearch*>(context);
+    if (device_get_type(child) == &BACKLIGHT_TYPE) {
+        search->found = child;
+        return false;
+    }
+    return true;
+}
+
+// The backlight is a child node of the display (see the sh8601-backlight binding). A phandle
+// between the two would be a cycle the devicetree compiler can't emit in either order.
+static Device* find_backlight(Device* device) {
+    BacklightSearch search = { nullptr };
+    device_for_each_child(device, &search, find_backlight_child);
+    return search.found;
+}
+
 static error_t sh8601_get_backlight(Device* device, Device** backlight) {
-    auto* configured_backlight = GET_CONFIG(device)->backlight;
-    if (configured_backlight == nullptr) {
+    auto* found = find_backlight(device);
+    if (found == nullptr) {
         return ERROR_NOT_SUPPORTED;
     }
-    *backlight = configured_backlight;
+    *backlight = found;
     return ERROR_NONE;
 }
 
@@ -433,7 +476,7 @@ static error_t sh8601_get_backlight(Device* device, Device** backlight) {
 // brightness command), so it can't live in the driver-wide static capability mask.
 static bool sh8601_has_capability(Device* device, uint32_t capability) {
     uint32_t capabilities = SH8601_STATIC_CAPABILITIES;
-    if (GET_CONFIG(device)->backlight != nullptr) {
+    if (find_backlight(device) != nullptr) {
         capabilities |= DISPLAY_CAPABILITY_BACKLIGHT;
     }
     return (capabilities & capability) == capability;
@@ -486,10 +529,10 @@ struct Sh8601BacklightInternal {
 };
 
 static error_t sh8601_backlight_set_brightness(Device* device, uint8_t brightness) {
-    const auto* config = GET_BACKLIGHT_CONFIG(device);
-    auto* display = config->display;
+    // The backlight is a child of the display it dims.
+    auto* display = device_get_parent(device);
     if (display == nullptr) {
-        return ERROR_INVALID_ARGUMENT;
+        return ERROR_INVALID_STATE;
     }
 
     auto* display_internal = static_cast<Sh8601Internal*>(device_get_driver_data(display));
@@ -540,9 +583,8 @@ static const BacklightApi SH8601_BACKLIGHT_API = {
 };
 
 static error_t sh8601_backlight_start(Device* device) {
-    const auto* config = GET_BACKLIGHT_CONFIG(device);
-    if (config->display == nullptr) {
-        return ERROR_INVALID_ARGUMENT;
+    if (device_get_parent(device) == nullptr) {
+        return ERROR_INVALID_STATE;
     }
 
     auto* internal = new(std::nothrow) Sh8601BacklightInternal { .brightness = 0 };

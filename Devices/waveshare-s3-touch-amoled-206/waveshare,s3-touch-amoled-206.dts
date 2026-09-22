@@ -137,12 +137,11 @@
 			gap-y = <0>;
 			pixel-clock-hz = <40000000>;
 			pin-reset = <&gpio0 8 GPIO_FLAG_NONE>;
-			backlight = <&display_backlight>;
 
-			// The SH8601 has no backlight pin; brightness is a panel command.
+			// The SH8601 has no backlight pin; brightness is a panel command. The driver finds
+			// this child device via the display's children, and the backlight uses its parent.
 			display_backlight {
 				compatible = "sh8601-backlight";
-				display = <&display0>;
 				brightness-default = <255>;
 			};
 		};

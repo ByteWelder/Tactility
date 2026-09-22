@@ -29,8 +29,9 @@ class DisplayIdleService final : public Service {
     // Active screensaver instance
     std::unique_ptr<Screensaver> screensaver;
 
-    // Screensaver auto-off: turn off backlight after 5 minutes of screensaver
-    static constexpr uint32_t TICK_INTERVAL_MS = 50;
+    // Drives the screensaver animation (each tick moves the balls), so it must be at least as fast
+    // as the panel's refresh rate to reach 60fps. Also the backlight-timeout poll granularity.
+    static constexpr uint32_t TICK_INTERVAL_MS = 16;
     static constexpr uint32_t SCREENSAVER_AUTO_OFF_MS = 5 * 60 * 1000;  // 5 minutes
     static constexpr int SCREENSAVER_AUTO_OFF_TICKS = SCREENSAVER_AUTO_OFF_MS / TICK_INTERVAL_MS;
     int screensaverActiveCounter = 0;

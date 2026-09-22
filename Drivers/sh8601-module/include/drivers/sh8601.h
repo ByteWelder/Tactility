@@ -20,8 +20,6 @@ struct Sh8601Config {
     uint32_t pixel_clock_hz;
     uint8_t transaction_queue_depth;
     struct GpioPinSpec pin_reset;
-    // Optional reference to this display's backlight device, NULL if none.
-    struct Device* backlight;
 };
 
 #ifdef __cplusplus
