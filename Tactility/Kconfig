@@ -92,4 +92,13 @@ menu "Tactility App"
         bool "Set true when a touch screen calibration is required before the device is usable"
         default n
         depends on TT_TOUCH_CALIBRATION_SUPPORTED
+    config TT_AUTOROTATE_MOUNT_ROTATION
+        int "Default IMU-to-panel sensor mounting (-1 = generic default)"
+        default -1
+        range -1 3
+        help
+            Per-board default for the display's "Sensor mounting" setting (auto-rotate). Values map
+            to the display app's dropdown: 0=Landscape, 1=Portrait Right, 2=Landscape Flipped,
+            3=Portrait Left. Set this to the value that makes IMU auto-rotate orient the UI
+            correctly, so it works without manual calibration. -1 keeps the generic default.
 endmenu

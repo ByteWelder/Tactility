@@ -7,6 +7,7 @@
 
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
+#include <sdkconfig.h>
 
 #include <map>
 #include <string>
@@ -194,6 +195,12 @@ bool load(DisplaySettings& settings) {
 }
 
 DisplaySettings getDefault() {
+    // Boards with a known IMU mounting can pin the sensor-mounting default via Kconfig so
+    // auto-rotate works without the user calibrating it by hand. -1 = generic default.
+    auto mount_rotation = Orientation::Landscape;
+#if defined(CONFIG_TT_AUTOROTATE_MOUNT_ROTATION) && CONFIG_TT_AUTOROTATE_MOUNT_ROTATION >= 0
+    mount_rotation = static_cast<Orientation>(CONFIG_TT_AUTOROTATE_MOUNT_ROTATION);
+#endif
     return DisplaySettings {
         .orientation = getDefaultOrientation(),
         .gammaCurve = 1,
@@ -202,7 +209,7 @@ DisplaySettings getDefault() {
         .backlightTimeoutMs = 60000,
         .screensaverType = ScreensaverType::BouncingBalls,
         .autoRotateEnabled = false,
-        .autoRotateMountRotation = Orientation::Landscape
+        .autoRotateMountRotation = mount_rotation
     };
 }
 
