@@ -178,7 +178,11 @@ static error_t start(Device* device) {
             .octal_mode = 0,
             .quad_mode = 1,
             .sio_mode = 0,
-            .psram_dma_direct = 0,
+            // The LVGL color buffer lives in PSRAM (see PREFER_EXTERNAL_RAM). Without this the SPI
+            // driver bounces every chunk through a freshly-allocated internal DMA buffer (up to the
+            // bus's 64KB max-transfer-size), which fails with "Failed to allocate priv TX buffer"
+            // once internal RAM is tight (e.g. during Wi-Fi). ESP32-S3 can DMA from PSRAM directly.
+            .psram_dma_direct = 1,
             .lsb_first = 0,
             .cs_high_active = 0,
         },
@@ -434,14 +438,6 @@ static uint16_t sh8601_get_resolution_y(Device* device) {
     return GET_CONFIG(device)->vertical_resolution;
 }
 
-static void sh8601_get_frame_buffer(Device*, uint8_t, void** out_buffer) {
-    *out_buffer = nullptr;
-}
-
-static uint8_t sh8601_get_frame_buffer_count(Device*) {
-    return 0;
-}
-
 struct BacklightSearch {
     Device* found;
 };
@@ -503,8 +499,9 @@ static const DisplayApi sh8601_display_api = {
     .get_color_format = sh8601_get_color_format,
     .get_resolution_x = sh8601_get_resolution_x,
     .get_resolution_y = sh8601_get_resolution_y,
-    .get_frame_buffer = sh8601_get_frame_buffer,
-    .get_frame_buffer_count = sh8601_get_frame_buffer_count,
+    // No direct frame buffer access: the panel streams from an LVGL-owned buffer.
+    .get_frame_buffer = nullptr,
+    .get_frame_buffer_count = nullptr,
     .get_backlight = sh8601_get_backlight,
     .has_capability = sh8601_has_capability,
 };
