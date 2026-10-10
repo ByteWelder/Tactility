@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ili9488.h>
-#include <ili9488_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -382,6 +381,5 @@ Driver ili9488_driver = {
     .stop_device = stop,
     .api = &ili9488_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &ili9488_module,
     .internal = nullptr
 };

@@ -144,7 +144,6 @@ Driver papers3_power_supply_driver = {
     .stop_device = nullptr,
     .api = &PAPERS3_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &m5stack_papers3_module,
     .internal = nullptr
 };
 
@@ -259,9 +258,9 @@ Driver papers3_power_driver = {
     .compatible = (const char*[]) { "m5stack,papers3-power", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = nullptr,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &m5stack_papers3_module,
     .internal = nullptr
 };
 

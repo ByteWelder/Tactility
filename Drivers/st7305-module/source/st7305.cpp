@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/st7305.h>
-#include <st7305_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -416,6 +415,5 @@ Driver st7305_driver = {
     .stop_device = stop,
     .api = &st7305_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7305_module,
     .internal = nullptr
 };

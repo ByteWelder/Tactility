@@ -35,8 +35,6 @@ struct Driver {
     const void* api;
     /** Which type of devices this driver creates (can be NULL) */
     const struct DeviceType* device_type;
-    /** The module that owns this driver. When it is NULL, the system owns the driver and it cannot be removed from registration. */
-    const struct Module* owner;
     /**
      * Internal state managed by the kernel.
      * Driver implementers should initialize this to NULL.
@@ -100,6 +98,16 @@ error_t driver_construct_add(struct Driver* driver);
  * @return ERROR_NONE if successful, or an error code otherwise.
  */
 error_t driver_remove_destruct(struct Driver* driver);
+
+/**
+ * @brief Get the module that owns a driver.
+ *
+ * A module sets itself as owner of the drivers it registers in module_start().
+ *
+ * @param driver The constructed driver.
+ * @return The owning module, or NULL when the driver has no owner.
+ */
+const struct Module* driver_get_owner(const struct Driver* driver);
 
 /**
  * @brief Bind a driver to a device.

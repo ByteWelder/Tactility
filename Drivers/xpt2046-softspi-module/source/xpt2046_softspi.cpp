@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/xpt2046_softspi.h>
 
-#include <xpt2046_softspi_module.h>
-
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -245,7 +243,6 @@ Driver xpt2046_softspi_power_supply_driver = {
     .stop_device = nullptr,
     .api = &XPT2046_SOFTSPI_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &xpt2046_softspi_module,
     .internal = nullptr
 };
 
@@ -434,6 +431,5 @@ Driver xpt2046_softspi_driver = {
     .stop_device = stop,
     .api = &xpt2046_softspi_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &xpt2046_softspi_module,
     .internal = nullptr
 };

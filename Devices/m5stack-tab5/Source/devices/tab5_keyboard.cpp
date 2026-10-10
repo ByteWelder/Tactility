@@ -672,7 +672,6 @@ Driver tab5_keyboard_driver = {
     .probe = probe,
     .api = &tab5_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &m5stack_tab5_module,
     .internal = nullptr
 };
 

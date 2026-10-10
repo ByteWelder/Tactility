@@ -321,8 +321,6 @@ static constexpr KeyboardApi GPIO_ENCODER_API = {
     .read_key = gpio_encoder_read_key,
 };
 
-extern Module gpio_encoder_module;
-
 Driver gpio_encoder_driver = {
     .name = "gpio_encoder",
     .compatible = (const char*[]) { "tactility,gpio-encoder", nullptr },
@@ -330,7 +328,6 @@ Driver gpio_encoder_driver = {
     .stop_device = stop,
     .api = &GPIO_ENCODER_API,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &gpio_encoder_module,
     .internal = nullptr
 };
 

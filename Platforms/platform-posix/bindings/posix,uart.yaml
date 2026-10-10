@@ -1,0 +1,11 @@
+description: POSIX UART Controller that wraps a serial device file (e.g. /dev/ttyUSB0)
+
+include: ["uart-controller.yaml"]
+
+compatible: "posix,uart"
+
+properties:
+  path:
+    type: string
+    required: true
+    description: Path to the serial device file

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/hx8357.h>
-#include <hx8357_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -467,6 +466,5 @@ Driver hx8357_driver = {
     .stop_device = stop,
     .api = &hx8357_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &hx8357_module,
     .internal = nullptr
 };

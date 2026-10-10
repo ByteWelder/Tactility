@@ -326,8 +326,6 @@ static const struct LoraApi sx1262_lora_api = {
 
 // endregion
 
-extern Module sx126x_module;
-
 Driver sx1262_driver = {
     .name = "sx1262",
     .compatible = (const char*[]) { "semtech,sx1262", nullptr },
@@ -335,7 +333,6 @@ Driver sx1262_driver = {
     .stop_device = stop,
     .api = &sx1262_lora_api,
     .device_type = &LORA_TYPE,
-    .owner = &sx126x_module,
     .internal = nullptr
 };
 

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/axs5106.h>
 
-#include <axs5106_module.h>
-
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -235,6 +233,5 @@ Driver axs5106_driver = {
     .stop_device = stop,
     .api = &axs5106_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &axs5106_module,
     .internal = nullptr
 };

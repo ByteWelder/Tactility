@@ -44,8 +44,8 @@ Driver sdl_keyboard_driver = {
     .compatible = (const char*[]) { "tactility,sdl-keyboard", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = nullptr,
     .api = &sdl_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &simulator_module,
-    .internal = nullptr
+    .internal = nullptr,
 };

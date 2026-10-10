@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/bmi270.h>
-#include <bmi270_module.h>
 #include <drivers/bmi270_config_data.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
@@ -234,7 +233,6 @@ Driver bmi270_driver = {
     .stop_device = stop,
     .api = &bmi270_imu_api,
     .device_type = &IMU_TYPE,
-    .owner = &bmi270_module,
     .internal = nullptr
 };
 

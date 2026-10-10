@@ -422,7 +422,6 @@ Driver papers3_display_driver = {
     .stop_device = stop,
     .api = &papers3_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &m5stack_papers3_module,
     .internal = nullptr
 };
 

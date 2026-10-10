@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/sc2356.h>
-#include <sc2356_module.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/esp32_i2c_master.h>
@@ -596,7 +595,6 @@ Driver sc2356_driver = {
     .stop_device = stop,
     .api = &sc2356_camera_api,
     .device_type = &CAMERA_TYPE,
-    .owner = &sc2356_module,
     .internal = nullptr
 };
 

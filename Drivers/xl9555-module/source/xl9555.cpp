@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/xl9555.h>
-#include <xl9555_module.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -187,7 +186,6 @@ Driver xl9555_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&xl9555_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &xl9555_module,
     .internal = nullptr
 };
 

@@ -172,8 +172,6 @@ error_t esp32_i8080_get_bus_handle(Device* child_device, esp_lcd_i80_bus_handle_
     return ERROR_NONE;
 }
 
-extern struct Module platform_esp32_module;
-
 Driver esp32_i8080_driver = {
     .name = "esp32_i8080",
     .compatible = (const char*[]) { "espressif,esp32-i8080", nullptr },
@@ -181,7 +179,6 @@ Driver esp32_i8080_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = &I8080_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

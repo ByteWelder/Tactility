@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ssd1306.h>
-#include <ssd1306_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -346,6 +345,5 @@ Driver ssd1306_driver = {
     .stop_device = stop,
     .api = &ssd1306_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &ssd1306_module,
     .internal = nullptr
 };

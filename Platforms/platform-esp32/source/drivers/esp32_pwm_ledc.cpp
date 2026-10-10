@@ -245,8 +245,6 @@ static const PwmApi esp32_pwm_ledc_api = {
     .is_enabled = esp32_pwm_ledc_is_enabled,
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_pwm_ledc_driver = {
     .name = "esp32_pwm_ledc",
     .compatible = (const char*[]) { "espressif,esp32-pwm-ledc", nullptr },
@@ -254,6 +252,5 @@ Driver esp32_pwm_ledc_driver = {
     .stop_device = stop,
     .api = &esp32_pwm_ledc_api,
     .device_type = &PWM_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };

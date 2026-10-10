@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ads1115.h>
-#include <ads1115_module.h>
 
 #include <tactility/check.h>
 #include <tactility/delay.h>
@@ -131,7 +130,6 @@ Driver ads1115_driver = {
     .probe = nullptr,
     .api = &ADS1115_API,
     .device_type = &ADC_CONTROLLER_TYPE,
-    .owner = &ads1115_module,
     .internal = nullptr
 };
 

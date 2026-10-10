@@ -137,7 +137,6 @@ static Driver mock_codec_driver = {
     .stop_device = mock_stop,
     .api = &MOCK_API,
     .device_type = &AUDIO_CODEC_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 

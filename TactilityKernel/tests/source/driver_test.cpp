@@ -1,17 +1,9 @@
 #include "doctest.h"
 
 #include <tactility/driver.h>
-#include <tactility/module.h>
-
-static Module module = {
-    .name = "test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
 
 TEST_CASE("driver_construct and driver_destruct should set and unset the correct fields") {
     Driver driver = { 0 };
-    driver.owner = &module;
 
     CHECK_EQ(driver_construct(&driver), ERROR_NONE);
     CHECK_EQ(driver_add(&driver), ERROR_NONE);
@@ -21,12 +13,21 @@ TEST_CASE("driver_construct and driver_destruct should set and unset the correct
     CHECK_EQ(driver.internal, nullptr);
 }
 
-TEST_CASE("a driver without a module should not be destructible") {
+TEST_CASE("a driver without a module can be added, removed and destructed") {
     Driver driver = { 0 };
 
     CHECK_EQ(driver_construct(&driver), ERROR_NONE);
-    CHECK_EQ(driver_destruct(&driver), ERROR_NOT_ALLOWED);
-    driver.owner = &module;
+    CHECK_EQ(driver_add(&driver), ERROR_NONE);
+    CHECK_EQ(driver_remove(&driver), ERROR_NONE);
+    CHECK_EQ(driver_destruct(&driver), ERROR_NONE);
+    CHECK_EQ(driver.internal, nullptr);
+}
+
+TEST_CASE("a constructed driver should have no owner") {
+    Driver driver = { 0 };
+
+    CHECK_EQ(driver_construct(&driver), ERROR_NONE);
+    CHECK_EQ(driver_get_owner(&driver), nullptr);
     CHECK_EQ(driver_destruct(&driver), ERROR_NONE);
 }
 
@@ -39,7 +40,6 @@ TEST_CASE("driver_is_compatible should return true if a compatible value is foun
         .stop_device = nullptr,
         .api = nullptr,
         .device_type = nullptr,
-        .owner = &module,
         .internal = nullptr
     };
     CHECK_EQ(driver_is_compatible(&driver, "test_compatible"), true);
@@ -56,7 +56,6 @@ TEST_CASE("driver_find should only find a compatible driver when the driver was 
         .stop_device = nullptr,
         .api = nullptr,
         .device_type = nullptr,
-        .owner = &module,
         .internal = nullptr
     };
 

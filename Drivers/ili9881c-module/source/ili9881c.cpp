@@ -3,7 +3,6 @@
 #if SOC_MIPI_DSI_SUPPORTED
 
 #include <drivers/ili9881c.h>
-#include <ili9881c_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -594,7 +593,6 @@ Driver ili9881c_driver = {
     .stop_device = stop,
     .api = &ili9881c_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &ili9881c_module,
     .internal = nullptr
 };
 

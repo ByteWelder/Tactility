@@ -327,7 +327,6 @@ Driver esp32_usbhost_midi_driver = {
     .stop_device  = midi_device_stop,
     .api          = nullptr,
     .device_type  = &USB_HOST_MIDI_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

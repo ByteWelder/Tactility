@@ -192,8 +192,6 @@ const static GpioControllerApi esp32_gpio_api  = {
     .disable_interrupt = disable_interrupt
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_gpio_driver = {
     .name = "esp32_gpio",
     .compatible = (const char*[]) { "espressif,esp32-gpio", nullptr },
@@ -201,7 +199,6 @@ Driver esp32_gpio_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&esp32_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

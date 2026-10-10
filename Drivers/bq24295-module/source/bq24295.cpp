@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/bq24295.h>
-#include <bq24295_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -26,8 +25,6 @@ static constexpr uint8_t REG_VERSION = 0x0AU;            // Datasheet page 38: V
 static constexpr TickType_t TIMEOUT = pdMS_TO_TICKS(50);
 
 extern "C" {
-
-extern Module bq24295_module;
 
 static error_t read_charge_termination(Device* device, uint8_t* out) {
     auto* parent = device_get_parent(device);
@@ -178,7 +175,6 @@ Driver bq24295_power_supply_driver = {
     .stop_device = nullptr,
     .api = &BQ24295_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &bq24295_module,
     .internal = nullptr
 };
 
@@ -263,7 +259,6 @@ Driver bq24295_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &bq24295_module,
     .internal = nullptr
 };
 

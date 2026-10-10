@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/button_control.h>
 
-#include <button_control_module.h>
-
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio.h>
@@ -217,6 +215,5 @@ Driver button_control_driver = {
     .stop_device = stop,
     .api = &button_control_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &button_control_module,
     .internal = nullptr
 };

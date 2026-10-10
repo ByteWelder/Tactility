@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/aw9523b.h>
-#include <aw9523b_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -181,7 +180,6 @@ Driver aw9523b_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&aw9523b_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &aw9523b_module,
     .internal = nullptr
 };
 

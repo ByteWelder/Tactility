@@ -107,6 +107,7 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(driver_remove),
     DEFINE_MODULE_SYMBOL(driver_construct_add),
     DEFINE_MODULE_SYMBOL(driver_remove_destruct),
+    DEFINE_MODULE_SYMBOL(driver_get_owner),
     DEFINE_MODULE_SYMBOL(driver_bind),
     DEFINE_MODULE_SYMBOL(driver_unbind),
     DEFINE_MODULE_SYMBOL(driver_is_compatible),

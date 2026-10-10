@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ina226.h>
-#include <ina226_module.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
@@ -108,7 +107,6 @@ Driver ina226_power_supply_driver = {
     .stop_device = nullptr,
     .api = &INA226_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &ina226_module,
     .internal = nullptr
 };
 
@@ -280,7 +278,6 @@ Driver ina226_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &ina226_module,
     .internal = nullptr
 };
 

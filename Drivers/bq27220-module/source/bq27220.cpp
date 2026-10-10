@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/bq27220.h>
-#include <bq27220_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -118,7 +117,6 @@ Driver bq27220_power_supply_driver = {
     .stop_device = nullptr,
     .api = &BQ27220_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &bq27220_module,
     .internal = nullptr
 };
 
@@ -205,7 +203,6 @@ Driver bq27220_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &bq27220_module,
     .internal = nullptr
 };
 

@@ -6,15 +6,8 @@
 #include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
-#include <tactility/module.h>
 
 namespace {
-
-Module module = {
-    .name = "device_get_put_test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
 
 int start(Device*) { return ERROR_NONE; }
 int stop(Device*) { return ERROR_NONE; }
@@ -26,7 +19,6 @@ Driver test_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &module,
     .internal = nullptr,
 };
 

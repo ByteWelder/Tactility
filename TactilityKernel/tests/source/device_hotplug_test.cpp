@@ -1,13 +1,6 @@
 #include "doctest.h"
 #include <tactility/device.h>
 #include <tactility/driver.h>
-#include <tactility/module.h>
-
-static Module hotplug_test_module = {
-    .name = "hotplug_test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
 
 static bool probe_present = false;
 static int probe_driver_start_called = 0;
@@ -25,7 +18,6 @@ static Driver probe_driver = {
     .probe = probe_driver_probe,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &hotplug_test_module,
     .internal = nullptr,
 };
 
@@ -96,7 +88,6 @@ static Driver mandatory_driver = {
     .probe = nullptr,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &hotplug_test_module,
     .internal = nullptr,
 };
 

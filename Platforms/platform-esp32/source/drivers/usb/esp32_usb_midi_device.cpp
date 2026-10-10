@@ -186,7 +186,6 @@ Driver esp32_usb_midi_device_driver = {
     .stop_device  = stop_device,
     .api          = &esp32_usb_midi_device_api,
     .device_type  = &USB_MIDI_DEVICE_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 
