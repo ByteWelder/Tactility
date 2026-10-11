@@ -28,7 +28,8 @@ macro(tactility_project_post project_name)
     # (e.g. std::shared_ptr internals) keep default visibility despite -fvisibility=hidden, so without this
     # the linker leaves symbol relocations for them, which the ELF loader only resolves against the
     # firmware's exported symbols. On RISC-V that fails to load the app with "Can't find common <symbol>".
-    idf_build_set_property(COMPILE_OPTIONS "-Wl,-Bsymbolic" APPEND)
+    # project_elf() links with its own flags plus ELF_LIBS, so the option goes there.
+    list(APPEND ELF_LIBS "-Wl,-Bsymbolic")
 
     # ESP-IDF's own <sys/ioctl.h> (esp_libc/platform_include) is found before app-module's, which adds
     # the terminal ioctls (TIOCGWINSZ) Tactility's ioctl() supports for app fds.
