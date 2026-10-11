@@ -535,7 +535,6 @@ Driver esp32_usbhost_driver = {
     .probe        = nullptr,
     .api          = &usb_host_api,
     .device_type  = &USB_HOST_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

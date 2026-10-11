@@ -225,8 +225,8 @@ Driver sdl_display_driver = {
     .compatible = (const char*[]) { "tactility,sdl-display", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = nullptr,
     .api = &sdl_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &simulator_module,
-    .internal = nullptr
+    .internal = nullptr,
 };

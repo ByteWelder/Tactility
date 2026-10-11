@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ili9341.h>
-#include <ili9341_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -457,6 +456,5 @@ Driver ili9341_driver = {
     .stop_device = stop,
     .api = &ili9341_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &ili9341_module,
     .internal = nullptr
 };

@@ -115,6 +115,11 @@ static error_t write_configurations(const std::vector<GpsConfiguration>& configu
 error_t gps_settings_add_configuration(const GpsConfiguration* configuration) {
     std::vector<GpsConfiguration> configurations;
     load_configurations(configurations);
+    for (const auto& existing : configurations) {
+        if (strcmp(existing.uart_name, configuration->uart_name) == 0) {
+            return ERROR_ALREADY_EXISTS;
+        }
+    }
     configurations.push_back(*configuration);
 
     error_t error = write_configurations(configurations);

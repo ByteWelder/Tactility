@@ -406,7 +406,6 @@ Driver esp32_usb_device_controller_driver = {
     .stop_device  = stop_device,
     .api          = &usb_device_controller_api,
     .device_type  = &USB_DEVICE_CONTROLLER_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

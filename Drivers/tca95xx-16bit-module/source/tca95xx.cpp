@@ -182,7 +182,6 @@ Driver tca95xx_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&tca95xx_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &tca95xx_16bit_module,
     .internal = nullptr
 };
 

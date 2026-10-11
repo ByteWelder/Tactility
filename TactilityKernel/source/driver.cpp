@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <tactility/driver.h>
+#include <tactility/driver_internal.h>
 #include <tactility/concurrent/mutex.h>
 #include <tactility/device.h>
 #include <tactility/error.h>
@@ -18,6 +19,7 @@ constexpr TickType_t SLOW_START_WARNING_TICKS = pdMS_TO_TICKS(100);
 struct DriverInternal {
     int use_count = 0;
     bool destroying = false;
+    const Module* owner = nullptr;
 };
 
 struct DriverLedger {
@@ -46,9 +48,6 @@ error_t driver_construct(Driver* driver) {
 error_t driver_destruct(Driver* driver) {
     auto* internal = driver->internal;
 
-    if (driver->owner == nullptr) {
-        return ERROR_NOT_ALLOWED;
-    }
     if (internal->use_count != 0 || internal->destroying) {
         return ERROR_INVALID_STATE;
     }
@@ -72,8 +71,6 @@ error_t driver_add(Driver* driver) {
 error_t driver_remove(Driver* driver) {
     LOG_D(TAG, "remove %s", driver->name);
 
-    if (driver->owner == nullptr) return ERROR_NOT_ALLOWED;
-
     ledger.lock();
     const auto iterator = std::ranges::find(ledger.drivers, driver);
     if (iterator == ledger.drivers.end()) {
@@ -96,6 +93,14 @@ error_t driver_remove_destruct(struct Driver* driver) {
     if (driver_remove(driver) != ERROR_NONE) return ERROR_RESOURCE;
     if (driver_destruct(driver) != ERROR_NONE) return ERROR_RESOURCE;
     return ERROR_NONE;
+}
+
+void driver_set_owner(Driver* driver, const Module* owner) {
+    driver->internal->owner = owner;
+}
+
+const Module* driver_get_owner(const Driver* driver) {
+    return driver->internal->owner;
 }
 
 bool driver_is_compatible(Driver* driver, const char* compatible) {

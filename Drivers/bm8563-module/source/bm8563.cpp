@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/bm8563.h>
-#include <bm8563_module.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
@@ -116,7 +115,6 @@ Driver bm8563_driver = {
     .stop_device = stop,
     .api = &bm8563_rtc_api,
     .device_type = &RTC_TYPE,
-    .owner = &bm8563_module,
     .internal = nullptr
 };
 

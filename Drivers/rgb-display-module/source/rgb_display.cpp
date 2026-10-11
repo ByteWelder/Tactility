@@ -3,7 +3,6 @@
 #if SOC_LCD_RGB_SUPPORTED
 
 #include <drivers/rgb_display.h>
-#include <rgb_display_module.h>
 #include <drivers/software_pixel_mapper.h>
 
 #include <tactility/delay.h>
@@ -508,7 +507,6 @@ Driver rgb_display_driver = {
     .stop_device = stop,
     .api = &rgb_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &rgb_display_module,
     .internal = nullptr
 };
 

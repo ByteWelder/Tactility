@@ -176,7 +176,14 @@ static void registerInternalApps() {
         app_manager_add(&app::grovesettings::manifest);
     }
 
-    if (device_exists_of_type(&UART_CONTROLLER_TYPE) || device_exists_of_type(&GROVE_TYPE)) {
+    auto enable_gps =
+#if defined(__linux__) || defined(__APPLE__)
+    true;
+#else
+    device_exists_of_type(&UART_CONTROLLER_TYPE) || device_exists_of_type(&GROVE_TYPE);
+#endif
+
+    if (enable_gps) {
         app_manager_add(&app::addgps::manifest);
         app_manager_add(&app::gpssettings::manifest);
     }

@@ -1,4 +1,5 @@
 #include "doctest.h"
+#include <tactility/driver.h>
 #include <tactility/module.h>
 
 static void symbol_test_function() { /* NO-OP */ }
@@ -113,6 +114,22 @@ TEST_CASE("Module lifecycle") {
     test_stop_result = ERROR_NONE;
     CHECK_EQ(module_stop(&module), ERROR_NONE);
 
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_start sets itself as owner of its drivers") {
+    Driver driver = { .name = "owned_driver" };
+    Driver* const drivers[] = { &driver, nullptr };
+    struct Module module = {
+        .name = "owner_test",
+        .drivers = drivers
+    };
+
+    CHECK_EQ(module_construct(&module), ERROR_NONE);
+    CHECK_EQ(module_start(&module), ERROR_NONE);
+    CHECK_EQ(driver_get_owner(&driver), &module);
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(driver.internal, nullptr);
     CHECK_EQ(module_destruct(&module), ERROR_NONE);
 }
 

@@ -5,6 +5,7 @@
 #include <tactility/module.h>
 
 #include "tactility/driver.h"
+#include <tactility/driver_internal.h>
 
 #include <vector>
 
@@ -88,7 +89,9 @@ error_t module_start(Module* module) {
         auto* driver_location = module->drivers;
         while (*driver_location != nullptr) {
             auto driver = *driver_location;
-            check(driver_construct_add(driver) == ERROR_NONE);
+            check(driver_construct(driver) == ERROR_NONE);
+            driver_set_owner(driver, module);
+            check(driver_add(driver) == ERROR_NONE);
             driver_location++;
         }
         internal->drivers_ready = true;

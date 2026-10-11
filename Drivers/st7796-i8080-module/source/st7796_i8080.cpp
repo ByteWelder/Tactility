@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/st7796_i8080.h>
-#include <st7796_i8080_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -328,6 +327,5 @@ Driver st7796_i8080_driver = {
     .stop_device = stop,
     .api = &st7796_i8080_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7796_i8080_module,
     .internal = nullptr
 };

@@ -995,7 +995,6 @@ Driver audio_stream_driver = {
     .stop_device = stop_device,
     .api = &API,
     .device_type = &AUDIO_STREAM_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 

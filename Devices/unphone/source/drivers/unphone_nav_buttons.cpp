@@ -199,7 +199,6 @@ Driver unphone_nav_buttons_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &unphone_module,
     .internal = nullptr
 };
 

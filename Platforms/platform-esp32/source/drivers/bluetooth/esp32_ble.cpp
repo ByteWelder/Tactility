@@ -1280,7 +1280,6 @@ Driver esp32_bluetooth_driver = {
     .stop_device  = esp32_ble_stop_device,
     .api          = &nimble_bluetooth_api,
     .device_type  = &BLUETOOTH_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

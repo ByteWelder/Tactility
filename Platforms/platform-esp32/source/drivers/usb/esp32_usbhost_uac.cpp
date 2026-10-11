@@ -580,7 +580,6 @@ Driver usb_uac_codec_driver = {
     .stop_device = codec_stop_device,
     .api = &codec_api,
     .device_type = &AUDIO_CODEC_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 

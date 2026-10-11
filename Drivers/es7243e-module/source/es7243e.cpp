@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/es7243e.h>
-#include <es7243e_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -321,7 +320,6 @@ Driver es7243e_driver = {
     .probe = nullptr,
     .api = &API,
     .device_type = &AUDIO_CODEC_TYPE,
-    .owner = &es7243e_module,
     .internal = nullptr,
 };
 

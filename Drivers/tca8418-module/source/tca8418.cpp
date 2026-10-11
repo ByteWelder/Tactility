@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/tca8418.h>
 
-#include <tca8418_module.h>
-
 #include <tactility/check.h>
 #include <tactility/delay.h>
 #include <tactility/device.h>
@@ -290,6 +288,5 @@ Driver tca8418_driver = {
     .stop_device = stop,
     .api = &tca8418_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &tca8418_module,
     .internal = nullptr
 };

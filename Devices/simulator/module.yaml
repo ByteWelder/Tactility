@@ -1,3 +1,4 @@
 dependencies:
   - Platforms/platform-posix
+  - Drivers/mock-drivers-module
 dts: simulator.dts

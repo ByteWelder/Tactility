@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/sy6970.h>
-#include <sy6970_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -152,7 +151,6 @@ Driver sy6970_power_supply_driver = {
     .stop_device = nullptr,
     .api = &SY6970_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &sy6970_module,
     .internal = nullptr
 };
 
@@ -242,7 +240,6 @@ Driver sy6970_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &sy6970_module,
     .internal = nullptr
 };
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/axp2101_backlight.h>
-#include <axp2101_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -126,7 +125,6 @@ Driver axp2101_backlight_driver = {
     .probe = nullptr,
     .api = &AXP2101_BACKLIGHT_API,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &axp2101_module,
     .internal = nullptr,
 };
 

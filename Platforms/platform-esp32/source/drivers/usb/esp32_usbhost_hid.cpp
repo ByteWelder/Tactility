@@ -510,7 +510,6 @@ Driver esp32_usbhost_hid_keyboard_driver = {
     .probe = nullptr,
     .api = &esp32_usbhost_hid_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 
@@ -712,7 +711,6 @@ Driver esp32_usbhost_hid_driver = {
     .stop_device  = hid_device_stop,
     .api          = &hid_api,
     .device_type  = &USB_HOST_HID_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

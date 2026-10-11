@@ -1,0 +1,11 @@
+description: POSIX I2C Controller that wraps a Linux i2c-dev device file (e.g. /dev/i2c-1)
+
+include: ["i2c-controller.yaml"]
+
+compatible: "posix,i2c"
+
+properties:
+  path:
+    type: string
+    required: true
+    description: Path to the i2c-dev device file

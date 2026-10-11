@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/gdeq031t10.h>
-#include <gdeq031t10_module.h>
 
 #include <tactility/check.h>
 #include <tactility/delay.h>
@@ -722,7 +721,6 @@ Driver gdeq031t10_driver = {
     .stop_device = stop,
     .api = &gdeq031t10_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &gdeq031t10_module,
     .internal = nullptr
 };
 

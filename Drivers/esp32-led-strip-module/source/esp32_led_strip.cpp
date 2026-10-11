@@ -3,7 +3,6 @@
 #include <tactility/driver.h>
 #include <tactility/log.h>
 #include <tactility/module.h>
-#include <esp32_led_strip_module.h>
 #include <tactility/drivers/led_strip.h>
 #include <tactility/drivers/gpio.h>
 
@@ -241,8 +240,6 @@ static constexpr LedStripApi LED_STRIP_API = {
     .get_length = esp32_led_strip_get_length,
 };
 
-extern Module esp32_led_strip_module;
-
 Driver esp32_led_strip_driver = {
     .name = "esp32_led_strip",
     .compatible = (const char*[]) { "espressif,esp32-led-strip", nullptr },
@@ -251,7 +248,6 @@ Driver esp32_led_strip_driver = {
     .probe = nullptr,
     .api = &LED_STRIP_API,
     .device_type = &LED_STRIP_TYPE,
-    .owner = &esp32_led_strip_module,
     .internal = nullptr,
 };
 

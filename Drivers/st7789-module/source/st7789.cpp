@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/st7789.h>
-#include <st7789_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -384,6 +383,5 @@ Driver st7789_driver = {
     .stop_device = stop,
     .api = &st7789_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7789_module,
     .internal = nullptr
 };

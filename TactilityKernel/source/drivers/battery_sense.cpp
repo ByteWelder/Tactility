@@ -90,7 +90,6 @@ Driver battery_sense_power_supply_driver = {
     .stop_device = nullptr,
     .api = &BATTERY_SENSE_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 
@@ -178,7 +177,6 @@ Driver battery_sense_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = nullptr,
     .internal = nullptr
 };
 

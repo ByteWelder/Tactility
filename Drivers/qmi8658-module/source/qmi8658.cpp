@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/qmi8658.h>
-#include <qmi8658_module.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
@@ -175,7 +174,6 @@ Driver qmi8658_driver = {
     .stop_device = stop,
     .api = &qmi8658_imu_api,
     .device_type = &IMU_TYPE,
-    .owner = &qmi8658_module,
     .internal = nullptr
 };
 

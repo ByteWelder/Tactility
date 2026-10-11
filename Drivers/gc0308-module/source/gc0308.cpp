@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/gc0308.h>
-#include <gc0308_module.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/esp32_i2c_master.h>
@@ -545,7 +544,6 @@ Driver gc0308_driver = {
     .stop_device = stop,
     .api = &gc0308_camera_api,
     .device_type = &CAMERA_TYPE,
-    .owner = &gc0308_module,
     .internal = nullptr
 };
 

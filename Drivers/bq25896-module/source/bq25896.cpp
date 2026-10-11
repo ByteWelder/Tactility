@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/bq25896.h>
-#include <bq25896_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -72,7 +71,6 @@ Driver bq25896_power_supply_driver = {
     .stop_device = nullptr,
     .api = &BQ25896_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &bq25896_module,
     .internal = nullptr
 };
 
@@ -166,7 +164,6 @@ Driver bq25896_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &bq25896_module,
     .internal = nullptr
 };
 

@@ -5,10 +5,12 @@ error_t platform_posix_start_partitions();
 
 extern "C" {
 
-extern Driver posix_wifi_driver;
+extern Driver posix_uart_driver;
+extern Driver posix_i2c_driver;
 
 static Driver* const platform_posix_drivers[] = {
-    &posix_wifi_driver,
+    &posix_uart_driver,
+    &posix_i2c_driver,
     nullptr
 };
 

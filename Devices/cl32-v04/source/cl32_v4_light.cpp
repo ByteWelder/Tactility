@@ -70,6 +70,5 @@ Driver cl32_v4_light_driver = {
     .probe = nullptr,
     .api = &CL32_V4_LIGHT_API,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &cl32_v04_module,
     .internal = nullptr,
 };

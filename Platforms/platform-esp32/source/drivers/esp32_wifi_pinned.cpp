@@ -351,8 +351,6 @@ error_t stop_device(Device* device) {
 
 extern "C" {
 
-extern Module platform_esp32_module;
-
 Driver esp32_wifi_pinned_driver = {
     .name = "esp32_wifi_pinned",
     .compatible = (const char*[]) { "espressif,esp32-wifi-pinned", nullptr },
@@ -360,7 +358,6 @@ Driver esp32_wifi_pinned_driver = {
     .stop_device = stop_device,
     .api = (const void*)&esp32_wifi_pinned_api,
     .device_type = &WIFI_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

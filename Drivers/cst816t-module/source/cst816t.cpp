@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/cst816t.h>
 
-#include <cst816t_module.h>
-
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -247,6 +245,5 @@ Driver cst816t_driver = {
     .stop_device = stop,
     .api = &cst816t_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &cst816t_module,
     .internal = nullptr
 };

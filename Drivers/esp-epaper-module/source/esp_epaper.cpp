@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/esp_epaper.h>
-#include <esp_epaper_module.h>
 #include "esp_epaper_rotate.h"
 
 #include <tactility/check.h>
@@ -428,6 +427,5 @@ Driver esp_epaper_driver = {
     .stop_device = stop,
     .api = &esp_epaper_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &esp_epaper_module,
     .internal = nullptr
 };

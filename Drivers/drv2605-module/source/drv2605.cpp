@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/drv2605.h>
-#include <drv2605_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -144,7 +143,6 @@ Driver drv2605_driver = {
     .stop_device = stop,
     .api = &DRV2605_HAPTIC_API,
     .device_type = &HAPTIC_TYPE,
-    .owner = &drv2605_module,
     .internal = nullptr
 };
 

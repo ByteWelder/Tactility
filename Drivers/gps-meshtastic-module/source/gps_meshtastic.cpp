@@ -340,6 +340,5 @@ Driver meshtastic_gps_driver = {
     .stop_device = stop,
     .api = &generic_gps_api,
     .device_type = &GPS_TYPE,
-    .owner = &gps_meshtastic_module,
     .internal = nullptr
 };

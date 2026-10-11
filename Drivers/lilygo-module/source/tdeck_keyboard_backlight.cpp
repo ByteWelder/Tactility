@@ -98,8 +98,6 @@ static const BacklightApi tdeck_keyboard_backlight_api = {
     .get_max_brightness = nullptr,
 };
 
-extern struct Module lilygo_module;
-
 Driver tdeck_keyboard_backlight_driver = {
     .name = "tdeck_keyboard_backlight",
     .compatible = (const char*[]) { "lilygo,tdeck-keyboard-backlight", nullptr },
@@ -108,6 +106,5 @@ Driver tdeck_keyboard_backlight_driver = {
     .probe = nullptr,
     .api = &tdeck_keyboard_backlight_api,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &lilygo_module,
     .internal = nullptr
 };

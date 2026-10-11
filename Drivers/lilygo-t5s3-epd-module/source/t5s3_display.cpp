@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/t5s3_display.h>
-#include <lilygo_t5s3_epd_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -302,7 +301,6 @@ Driver t5s3_display_driver = {
     .probe = nullptr,
     .api = &t5s3_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &lilygo_t5s3_epd_module,
     .internal = nullptr
 };
 

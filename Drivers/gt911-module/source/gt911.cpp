@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/gt911.h>
-#include <gt911_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -380,6 +379,5 @@ Driver gt911_driver = {
     .stop_device = stop,
     .api = &gt911_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &gt911_module,
     .internal = nullptr
 };

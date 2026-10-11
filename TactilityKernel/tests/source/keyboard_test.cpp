@@ -3,7 +3,6 @@
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/keyboard.h>
-#include <tactility/module.h>
 
 TEST_CASE("keyboard_key_from_hid_usage maps letters and digits") {
     CHECK_EQ(keyboard_key_from_hid_usage(0, 0x04, false, false), (uint32_t)'a');
@@ -60,12 +59,6 @@ TEST_CASE("keyboard_key_from_hid_usage returns 0 for unmapped keys") {
     CHECK_EQ(keyboard_key_from_hid_usage(0, 0xE0, false, false), 0u); // Left Ctrl itself
 }
 
-static Module keyboard_test_module = {
-    .name = "keyboard_test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
-
 static int read_key_call_count = 0;
 
 // First call reports a key press, every call after that reports nothing pending (key == 0),
@@ -97,7 +90,6 @@ static Driver fake_keyboard_driver = {
     .stop_device = nullptr,
     .api = &fake_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &keyboard_test_module,
     .internal = nullptr,
 };
 
@@ -115,7 +107,6 @@ static Driver fake_emit_only_keyboard_driver = {
     .stop_device = nullptr,
     .api = &fake_emit_only_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &keyboard_test_module,
     .internal = nullptr,
 };
 

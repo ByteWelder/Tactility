@@ -57,8 +57,6 @@ static error_t stop(Device* device) {
     return ERROR_NONE;
 }
 
-extern Module kernel_module;
-
 Driver gpio_hog_driver = {
     .name = "gpio_hog",
     .compatible = (const char*[]) { "gpio-hog", nullptr },
@@ -66,6 +64,5 @@ Driver gpio_hog_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = &GPIO_HOG_TYPE,
-    .owner = &kernel_module,
     .internal = nullptr
 };

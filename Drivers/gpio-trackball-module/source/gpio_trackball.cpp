@@ -167,8 +167,6 @@ static constexpr TrackballApi GPIO_TRACKBALL_API = {
     .get_button_pressed = get_button_pressed,
 };
 
-extern Module gpio_trackball_module;
-
 Driver gpio_trackball_driver = {
     .name = "gpio_trackball",
     .compatible = (const char*[]) { "tactility,gpio-trackball", nullptr },
@@ -176,7 +174,6 @@ Driver gpio_trackball_driver = {
     .stop_device = stop,
     .api = &GPIO_TRACKBALL_API,
     .device_type = &TRACKBALL_TYPE,
-    .owner = &gpio_trackball_module,
     .internal = nullptr
 };
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/axp192.h>
-#include <axp192_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -40,8 +39,6 @@ static constexpr uint8_t BIT_POWER_OFF = 1U << 7U;
 static constexpr TickType_t TIMEOUT = pdMS_TO_TICKS(50);
 
 extern "C" {
-
-extern Module axp192_module;
 
 // region Register helpers
 
@@ -354,7 +351,6 @@ Driver axp192_power_supply_driver = {
     .stop_device = nullptr,
     .api = &AXP192_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &axp192_module,
     .internal = nullptr
 };
 
@@ -502,7 +498,6 @@ Driver axp192_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &axp192_module,
     .internal = nullptr
 };
 

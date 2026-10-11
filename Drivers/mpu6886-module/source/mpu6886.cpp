@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/mpu6886.h>
-#include <mpu6886_module.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
@@ -207,7 +206,6 @@ Driver mpu6886_driver = {
     .stop_device = stop,
     .api = &mpu6886_imu_api,
     .device_type = &IMU_TYPE,
-    .owner = &mpu6886_module,
     .internal = nullptr
 };
 

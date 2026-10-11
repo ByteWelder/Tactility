@@ -429,7 +429,6 @@ Driver esp32_usbhost_msc_driver = {
     .stop_device  = msc_device_stop,
     .api          = &msc_api,
     .device_type  = &USB_HOST_MSC_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

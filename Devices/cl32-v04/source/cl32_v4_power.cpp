@@ -101,7 +101,6 @@ Driver cl32_v4_power_supply_driver = {
     .stop_device = nullptr,
     .api = &CL32_V4_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &cl32_v04_module,
     .internal = nullptr
 };
 
@@ -192,6 +191,5 @@ Driver cl32_v4_power_driver = {
     .probe = nullptr,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &cl32_v04_module,
     .internal = nullptr,
 };

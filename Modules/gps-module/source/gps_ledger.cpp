@@ -3,6 +3,7 @@
 
 #include <gps/gps.h>
 #include <gps/gps_settings.h>
+#include <tactility/concurrent/mutex.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/log.h>
@@ -30,6 +31,15 @@ struct GpsLedgerEntry {
     char name[16] {};
 };
 
+// Syncs run on the app thread when settings change, and on the thread that starts or stops a UART
+struct LedgerMutex {
+    Mutex mutex {};
+    LedgerMutex() { mutex_construct(&mutex); }
+    ~LedgerMutex() { mutex_destruct(&mutex); }
+};
+
+static LedgerMutex ledger_mutex;
+
 // Unique across every device the ledger creates, so device names ("gpsN") never collide.
 static uint32_t next_device_index = 0;
 
@@ -47,7 +57,7 @@ static bool device_matches_configuration(Device* device, const GpsConfiguration&
 static bool create_device(const GpsConfiguration& configuration) {
     Device* uart = nullptr;
     if (device_get_by_name(configuration.uart_name, &uart) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to find device %s", configuration.uart_name);
+        LOG_W(TAG, "Device %s is not available", configuration.uart_name);
         return false;
     }
 
@@ -125,6 +135,8 @@ static std::vector<Device*> collect_owned_devices() {
 }
 
 void gps_ledger_sync() {
+    mutex_lock(&ledger_mutex.mutex);
+
     std::vector<GpsConfiguration> configurations;
     gps_settings_for_each_configuration(&configurations, [](const GpsConfiguration* configuration, size_t, void* context) {
         static_cast<std::vector<GpsConfiguration>*>(context)->push_back(*configuration);
@@ -158,10 +170,24 @@ void gps_ledger_sync() {
             create_device(configurations[i]);
         }
     }
+
+    mutex_unlock(&ledger_mutex.mutex);
 }
 
 void gps_ledger_clear() {
+    mutex_lock(&ledger_mutex.mutex);
     for (auto* device : collect_owned_devices()) {
         destroy_device(device);
     }
+    mutex_unlock(&ledger_mutex.mutex);
+}
+
+void gps_ledger_remove_children_of(Device* parent) {
+    mutex_lock(&ledger_mutex.mutex);
+    for (auto* device : collect_owned_devices()) {
+        if (device_get_parent(device) == parent) {
+            destroy_device(device);
+        }
+    }
+    mutex_unlock(&ledger_mutex.mutex);
 }

@@ -182,6 +182,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Modules/lvgl-window-manager-module)
     add_subdirectory(Drivers/gps-generic-module)
     add_subdirectory(Drivers/gps-meshtastic-module)
+    add_subdirectory(Drivers/mock-drivers-module)
     # Kernel-only software aggregate; built on sim so its device-lifecycle behavior
     # is covered by Drivers/audio-stream-module/tests.
     add_subdirectory(Drivers/audio-stream-module)

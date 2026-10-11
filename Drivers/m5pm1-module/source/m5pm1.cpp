@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/m5pm1.h>
-#include <m5pm1_module.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -138,7 +137,6 @@ Driver m5pm1_power_supply_driver = {
     .stop_device = nullptr,
     .api = &M5PM1_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &m5pm1_module,
     .internal = nullptr
 };
 
@@ -468,7 +466,6 @@ Driver m5pm1_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &m5pm1_module,
     .internal = nullptr
 };
 
