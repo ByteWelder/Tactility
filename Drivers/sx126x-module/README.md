@@ -1,8 +1,8 @@
 # SX126x driver module
 
 Kernel driver for the Semtech SX1262 sub-GHz LoRa and (G)FSK transceiver, built on
-[RadioLib](https://github.com/jgromes/RadioLib). It registers a `lora` device
-(see `<tactility/drivers/lora.h>`) that supports LoRa and FSK for TX/RX and LR-FHSS for TX.
+[RadioLib](https://github.com/jgromes/RadioLib). It registers a `radio` device
+(see `<tactility/drivers/radio.h>`) that supports LoRa and FSK for TX/RX and LR-FHSS for TX.
 
 The device is a child of an SPI controller. The chip-select line comes from the parent's
 `cs-gpios` entry matching the node's unit address; the `reg` property must match that
@@ -40,7 +40,7 @@ Notes:
 - Starting the device selects the antenna path, powers the module and runs a GPIO-only
   probe (reset pulse, then wait for the chip to drive BUSY low), so an absent or
   unpowered module fails at device start. The modem itself is initialized when the
-  radio is enabled via `lora_set_enabled()`, which requires a modulation to be set first.
+  radio is enabled via `radio_set_enabled()`, which requires a modulation to be set first.
 - Bus sharing: RadioLib drives the chip-select manually across multiple transfers, so
   each exchange must be atomic on the bus. It runs inside two nested locks — the kernel
   SPI controller lock (`spi_controller_lock`, the arbiter other kernel drivers on the
@@ -52,14 +52,14 @@ Notes:
 - Over-current protection defaults to RadioLib's fail-safe 60 mA, which caps the PA
   current into a bad or disconnected antenna but also caps output below +22 dBm. A
   board-aware consumer that knows its antenna and PA can raise it via
-  `LORA_PARAMETER_CURRENT_LIMIT` (up to 140 mA) to reach full output power.
+  `RADIO_PARAMETER_CURRENT_LIMIT` (up to 140 mA) to reach full output power.
 - Radio activity is logged at INFO level (state changes, modem config, TX/RX events);
   per-call detail sits at DEBUG, which is compiled out unless the sdkconfig log level
   is raised.
 
 ## Roadmap / not yet implemented
 
-- FSK addressed transmission is not exposed through the lora API yet.
+- FSK addressed transmission is not exposed through the radio API yet.
 - Antenna-presence detection. The SX1262 has no hardware antenna-detect pin (unlike, e.g.,
   the u-blox SARA modules' dedicated ANT_DET ADC circuit), and the T-Deck Max antenna
   connector is not hot-swap-rated. The intended approach is a software heuristic on the

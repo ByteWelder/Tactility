@@ -7,7 +7,7 @@
 #include <tactility/drivers/esp32_spi.h>
 #include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
-#include <tactility/drivers/lora.h>
+#include <tactility/drivers/radio.h>
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/log.h>
 #include <tactility/module.h>
@@ -251,14 +251,14 @@ static error_t stop(Device* device) {
     return ERROR_NONE;
 }
 
-// region LoraApi
+// region RadioApi
 
 static Sx1262Radio* get_radio(Device* device) {
     auto* data = GET_DATA(device);
     return (data != nullptr) ? data->radio : nullptr;
 }
 
-static error_t api_get_radio_state(Device* device, enum LoraRadioState* state) {
+static error_t api_get_radio_state(Device* device, enum RadioState* state) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     *state = radio->getState();
@@ -271,48 +271,48 @@ static error_t api_set_enabled(Device* device, bool enabled) {
     return radio->setEnabled(enabled);
 }
 
-static error_t api_set_modulation(Device* device, enum LoraModulation modulation) {
+static error_t api_set_modulation(Device* device, enum RadioModulation modulation) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->setModulation(modulation);
 }
 
-static error_t api_get_modulation(Device* device, enum LoraModulation* modulation) {
+static error_t api_get_modulation(Device* device, enum RadioModulation* modulation) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     *modulation = radio->getModulation();
     return ERROR_NONE;
 }
 
-static bool api_can_transmit(Device* device, enum LoraModulation modulation) {
+static bool api_can_transmit(Device* device, enum RadioModulation modulation) {
     auto* radio = get_radio(device);
     return (radio != nullptr) && radio->canTransmit(modulation);
 }
 
-static bool api_can_receive(Device* device, enum LoraModulation modulation) {
+static bool api_can_receive(Device* device, enum RadioModulation modulation) {
     auto* radio = get_radio(device);
     return (radio != nullptr) && radio->canReceive(modulation);
 }
 
-static error_t api_set_parameter(Device* device, enum LoraParameter parameter, int32_t value) {
+static error_t api_set_parameter(Device* device, enum RadioParameter parameter, int32_t value) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->setParameter(parameter, value);
 }
 
-static error_t api_get_parameter(Device* device, enum LoraParameter parameter, int32_t* value) {
+static error_t api_get_parameter(Device* device, enum RadioParameter parameter, int32_t* value) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->getParameter(parameter, value);
 }
 
-static error_t api_transmit(Device* device, const uint8_t* data, size_t length, LoraTxId* id) {
+static error_t api_transmit(Device* device, const uint8_t* data, size_t length, RadioTxId* id) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->transmit(data, length, id);
 }
 
-static const struct LoraApi sx1262_lora_api = {
+static const struct RadioApi sx1262_radio_api = {
     .get_radio_state = api_get_radio_state,
     .set_enabled = api_set_enabled,
     .set_modulation = api_set_modulation,
@@ -331,8 +331,8 @@ Driver sx1262_driver = {
     .compatible = (const char*[]) { "semtech,sx1262", nullptr },
     .start_device = start,
     .stop_device = stop,
-    .api = &sx1262_lora_api,
-    .device_type = &LORA_TYPE,
+    .api = &sx1262_radio_api,
+    .device_type = &RADIO_TYPE,
     .internal = nullptr
 };
 

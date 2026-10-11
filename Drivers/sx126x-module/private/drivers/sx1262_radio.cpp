@@ -29,63 +29,63 @@ constexpr auto SX1262_IRQ_FLAGS = RADIOLIB_IRQ_RX_DEFAULT_FLAGS;
 // RX callbacks run on the radio thread and may do non-trivial work (e.g. packet decryption)
 constexpr size_t SX1262_THREAD_STACK_SIZE = 8192;
 
-const char* toString(enum LoraRadioState state) {
+const char* toString(enum RadioState state) {
     switch (state) {
-        case LORA_RADIO_STATE_OFF:
+        case RADIO_STATE_OFF:
             return "off";
-        case LORA_RADIO_STATE_ON_PENDING:
+        case RADIO_STATE_ON_PENDING:
             return "on-pending";
-        case LORA_RADIO_STATE_ON:
+        case RADIO_STATE_ON:
             return "on";
-        case LORA_RADIO_STATE_OFF_PENDING:
+        case RADIO_STATE_OFF_PENDING:
             return "off-pending";
-        case LORA_RADIO_STATE_ERROR:
+        case RADIO_STATE_ERROR:
             return "error";
         default:
             return "unknown";
     }
 }
 
-const char* toString(enum LoraModulation modulation) {
+const char* toString(enum RadioModulation modulation) {
     switch (modulation) {
-        case LORA_MODULATION_NONE:
+        case RADIO_MODULATION_NONE:
             return "none";
-        case LORA_MODULATION_FSK:
+        case RADIO_MODULATION_FSK:
             return "FSK";
-        case LORA_MODULATION_LORA:
+        case RADIO_MODULATION_LORA:
             return "LoRa";
-        case LORA_MODULATION_LR_FHSS:
+        case RADIO_MODULATION_LR_FHSS:
             return "LR-FHSS";
         default:
             return "unknown";
     }
 }
 
-const char* toString(enum LoraParameter parameter) {
+const char* toString(enum RadioParameter parameter) {
     switch (parameter) {
-        case LORA_PARAMETER_POWER:
+        case RADIO_PARAMETER_POWER:
             return "power";
-        case LORA_PARAMETER_BOOSTED_GAIN:
+        case RADIO_PARAMETER_BOOSTED_GAIN:
             return "boosted gain";
-        case LORA_PARAMETER_FREQUENCY:
+        case RADIO_PARAMETER_FREQUENCY:
             return "frequency";
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             return "bandwidth";
-        case LORA_PARAMETER_SPREADING_FACTOR:
+        case RADIO_PARAMETER_SPREADING_FACTOR:
             return "spreading factor";
-        case LORA_PARAMETER_CODING_RATE:
+        case RADIO_PARAMETER_CODING_RATE:
             return "coding rate";
-        case LORA_PARAMETER_SYNC_WORD:
+        case RADIO_PARAMETER_SYNC_WORD:
             return "sync word";
-        case LORA_PARAMETER_PREAMBLE_LENGTH:
+        case RADIO_PARAMETER_PREAMBLE_LENGTH:
             return "preamble length";
-        case LORA_PARAMETER_FREQUENCY_DEVIATION:
+        case RADIO_PARAMETER_FREQUENCY_DEVIATION:
             return "frequency deviation";
-        case LORA_PARAMETER_DATA_RATE:
+        case RADIO_PARAMETER_DATA_RATE:
             return "data rate";
-        case LORA_PARAMETER_NARROW_GRID:
+        case RADIO_PARAMETER_NARROW_GRID:
             return "narrow grid";
-        case LORA_PARAMETER_CURRENT_LIMIT:
+        case RADIO_PARAMETER_CURRENT_LIMIT:
             return "current limit";
         default:
             return "unknown";
@@ -223,7 +223,7 @@ int32_t Sx1262Radio::threadMain() {
     if (rc != 0) {
         return rc;
     }
-    setState(LORA_RADIO_STATE_ON);
+    setState(RADIO_STATE_ON);
 
     while (!isThreadInterrupted()) {
         // Re-arm DIO1: the ISR masks the HIGH_LEVEL interrupt on each fire, so the
@@ -265,7 +265,7 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
             return ERROR_NONE;
         }
 
-        if (modulation == LORA_MODULATION_NONE) {
+        if (modulation == RADIO_MODULATION_NONE) {
             LOG_E(TAG, "Cannot enable without a modulation set");
             unlock();
             return ERROR_INVALID_STATE;
@@ -277,11 +277,11 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
         }
 
         threadInterrupted = false;
-        setState(LORA_RADIO_STATE_ON_PENDING);
+        setState(RADIO_STATE_ON_PENDING);
 
         thread = thread_alloc_full("SX1262", SX1262_THREAD_STACK_SIZE, threadMainStatic, this, tskNO_AFFINITY);
         if (thread == nullptr) {
-            setState(LORA_RADIO_STATE_ERROR);
+            setState(RADIO_STATE_ERROR);
             unlock();
             return ERROR_OUT_OF_MEMORY;
         }
@@ -290,7 +290,7 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
         if (thread_start(thread) != ERROR_NONE) {
             thread_free(thread);
             thread = nullptr;
-            setState(LORA_RADIO_STATE_ERROR);
+            setState(RADIO_STATE_ERROR);
             unlock();
             return ERROR_UNDEFINED;
         }
@@ -298,7 +298,7 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
         unlock();
         return ERROR_NONE;
     } else {
-        setState(LORA_RADIO_STATE_OFF_PENDING);
+        setState(RADIO_STATE_OFF_PENDING);
 
         if (thread != nullptr) {
             threadInterrupted = true;
@@ -319,7 +319,7 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
             thread_free(oldThread);
         }
 
-        setState(LORA_RADIO_STATE_OFF);
+        setState(RADIO_STATE_OFF);
         unlock();
         return ERROR_NONE;
     }
@@ -329,14 +329,14 @@ error_t Sx1262Radio::setEnabled(bool enabled) {
 
 // region State, modulation and callbacks
 
-enum LoraRadioState Sx1262Radio::getState() const {
+enum RadioState Sx1262Radio::getState() const {
     lock();
     const auto result = state;
     unlock();
     return result;
 }
 
-void Sx1262Radio::setState(enum LoraRadioState newState) {
+void Sx1262Radio::setState(enum RadioState newState) {
     lock();
     if (state == newState) {
         unlock();
@@ -346,16 +346,16 @@ void Sx1262Radio::setState(enum LoraRadioState newState) {
     state = newState;
     unlock();
 
-    lora_state_event_emit(settings.device, newState);
+    radio_state_event_emit(settings.device, newState);
 }
 
-error_t Sx1262Radio::setModulation(enum LoraModulation newModulation) {
+error_t Sx1262Radio::setModulation(enum RadioModulation newModulation) {
     const auto currentState = getState();
-    if ((currentState == LORA_RADIO_STATE_ON_PENDING) || (currentState == LORA_RADIO_STATE_ON)) {
+    if ((currentState == RADIO_STATE_ON_PENDING) || (currentState == RADIO_STATE_ON)) {
         return ERROR_INVALID_STATE;
     }
 
-    if (!((newModulation == LORA_MODULATION_NONE) || canTransmit(newModulation) || canReceive(newModulation))) {
+    if (!((newModulation == RADIO_MODULATION_NONE) || canTransmit(newModulation) || canReceive(newModulation))) {
         return ERROR_NOT_SUPPORTED;
     }
 
@@ -366,7 +366,7 @@ error_t Sx1262Radio::setModulation(enum LoraModulation newModulation) {
     return ERROR_NONE;
 }
 
-enum LoraModulation Sx1262Radio::getModulation() const {
+enum RadioModulation Sx1262Radio::getModulation() const {
     lock();
     const auto result = modulation;
     unlock();
@@ -374,11 +374,11 @@ enum LoraModulation Sx1262Radio::getModulation() const {
 }
 
 error_t Sx1262Radio::publishRx(const uint8_t* data, size_t length, float rssi, float snr) {
-    return lora_rx_event_emit(settings.device, data, length, rssi, snr);
+    return radio_rx_event_emit(settings.device, data, length, rssi, snr);
 }
 
-error_t Sx1262Radio::publishTx(LoraTxId id, enum LoraTransmissionState txState) {
-    return lora_tx_event_emit(settings.device, id, txState);
+error_t Sx1262Radio::publishTx(RadioTxId id, enum RadioTransmissionState txState) {
+    return radio_tx_event_emit(settings.device, id, txState);
 }
 
 // endregion
@@ -400,7 +400,7 @@ Sx1262Radio::TxItem Sx1262Radio::popNextQueuedTx() {
     return tx;
 }
 
-error_t Sx1262Radio::transmit(const uint8_t* data, size_t length, LoraTxId* id) {
+error_t Sx1262Radio::transmit(const uint8_t* data, size_t length, RadioTxId* id) {
     lock();
     const auto txId = lastTxId;
     lastTxId++;
@@ -408,7 +408,7 @@ error_t Sx1262Radio::transmit(const uint8_t* data, size_t length, LoraTxId* id) 
     LOG_D(TAG, "TX id=%d queued: %u bytes (queue depth %u)", (int)txId, (unsigned)length, (unsigned)txQueue.size());
     unlock();
 
-    publishTx(txId, LORA_TRANSMISSION_STATE_QUEUED);
+    publishTx(txId, RADIO_TRANSMISSION_STATE_QUEUED);
     event_group_set(events, SX1262_QUEUED_TX_BIT);
 
     if (id != nullptr) {
@@ -421,13 +421,13 @@ error_t Sx1262Radio::transmit(const uint8_t* data, size_t length, LoraTxId* id) 
 
 // region Parameters
 
-error_t Sx1262Radio::setBaseParameter(enum LoraParameter parameter, int32_t value) {
+error_t Sx1262Radio::setBaseParameter(enum RadioParameter parameter, int32_t value) {
     switch (parameter) {
-        case LORA_PARAMETER_POWER:
+        case RADIO_PARAMETER_POWER:
             return checkLimitsAndApply(power, value, -9, 22);
-        case LORA_PARAMETER_BOOSTED_GAIN:
+        case RADIO_PARAMETER_BOOSTED_GAIN:
             return checkLimitsAndApply(boostedGain, value, 0, 1, 1);
-        case LORA_PARAMETER_CURRENT_LIMIT:
+        case RADIO_PARAMETER_CURRENT_LIMIT:
             // SX1262 OCP range is 0..140 mA (RadioLib clamps to a 2.5 mA step internally).
             return checkLimitsAndApply(currentLimit, value, 0, 140);
         default:
@@ -435,21 +435,21 @@ error_t Sx1262Radio::setBaseParameter(enum LoraParameter parameter, int32_t valu
     }
 }
 
-error_t Sx1262Radio::setLoraParameter(enum LoraParameter parameter, int32_t value) {
+error_t Sx1262Radio::setLoraParameter(enum RadioParameter parameter, int32_t value) {
     switch (parameter) {
         // Frequency in Hz (150..960 MHz)
-        case LORA_PARAMETER_FREQUENCY:
+        case RADIO_PARAMETER_FREQUENCY:
             return checkLimitsAndApply(frequency, value, 150000000, 960000000);
         // Bandwidth in Hz (RadioLib's supported LoRa bandwidths, expressed in Hz)
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             return checkValuesAndApply(bandwidth, value, {7800, 10400, 15600, 20800, 31250, 41700, 62500, 125000, 250000, 500000});
-        case LORA_PARAMETER_SPREADING_FACTOR:
+        case RADIO_PARAMETER_SPREADING_FACTOR:
             return checkLimitsAndApply(spreadingFactor, value, 7, 12, 1);
-        case LORA_PARAMETER_CODING_RATE:
+        case RADIO_PARAMETER_CODING_RATE:
             return checkLimitsAndApply(codingRate, value, 5, 8, 1);
-        case LORA_PARAMETER_SYNC_WORD:
+        case RADIO_PARAMETER_SYNC_WORD:
             return checkLimitsAndApply(syncWord, value, 0, 255);
-        case LORA_PARAMETER_PREAMBLE_LENGTH:
+        case RADIO_PARAMETER_PREAMBLE_LENGTH:
             return checkLimitsAndApply(preambleLength, value, 0, 65535);
         default:
             break;
@@ -459,21 +459,21 @@ error_t Sx1262Radio::setLoraParameter(enum LoraParameter parameter, int32_t valu
     return ERROR_NOT_SUPPORTED;
 }
 
-error_t Sx1262Radio::setFskParameter(enum LoraParameter parameter, int32_t value) {
+error_t Sx1262Radio::setFskParameter(enum RadioParameter parameter, int32_t value) {
     switch (parameter) {
         // Frequency in Hz (150..960 MHz)
-        case LORA_PARAMETER_FREQUENCY:
+        case RADIO_PARAMETER_FREQUENCY:
             return checkLimitsAndApply(frequency, value, 150000000, 960000000);
         // RX bandwidth in Hz (RadioLib's supported FSK bandwidths, expressed in Hz)
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             return checkValuesAndApply(bandwidth, value, {4800, 5800, 7300, 9700, 11700, 14600, 19500, 23400, 29300, 39000, 46900, 58600, 78200});
-        case LORA_PARAMETER_PREAMBLE_LENGTH:
+        case RADIO_PARAMETER_PREAMBLE_LENGTH:
             return checkLimitsAndApply(preambleLength, value, 0, 65535);
         // Bit rate in bit/s (0.6..300 kbps)
-        case LORA_PARAMETER_DATA_RATE:
+        case RADIO_PARAMETER_DATA_RATE:
             return checkLimitsAndApply(bitRate, value, 600, 300000);
         // Frequency deviation in Hz (0..200 kHz)
-        case LORA_PARAMETER_FREQUENCY_DEVIATION:
+        case RADIO_PARAMETER_FREQUENCY_DEVIATION:
             return checkLimitsAndApply(frequencyDeviation, value, 0, 200000);
         default:
             break;
@@ -483,14 +483,14 @@ error_t Sx1262Radio::setFskParameter(enum LoraParameter parameter, int32_t value
     return ERROR_NOT_SUPPORTED;
 }
 
-error_t Sx1262Radio::setLrFhssParameter(enum LoraParameter parameter, int32_t value) {
+error_t Sx1262Radio::setLrFhssParameter(enum RadioParameter parameter, int32_t value) {
     switch (parameter) {
         // Bandwidth in Hz (RadioLib's supported LR-FHSS bandwidths, expressed in Hz)
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             return checkValuesAndApply(bandwidth, value, {39060, 85940, 136720, 183590, 335940, 386720, 722660, 773440, 1523400, 1574200});
-        case LORA_PARAMETER_CODING_RATE:
+        case RADIO_PARAMETER_CODING_RATE:
             return checkValuesAndApply(codingRate, value, {RADIOLIB_SX126X_LR_FHSS_CR_5_6, RADIOLIB_SX126X_LR_FHSS_CR_2_3, RADIOLIB_SX126X_LR_FHSS_CR_1_2, RADIOLIB_SX126X_LR_FHSS_CR_1_3});
-        case LORA_PARAMETER_NARROW_GRID:
+        case RADIO_PARAMETER_NARROW_GRID:
             return checkLimitsAndApply(narrowGrid, value, 0, 1, 1);
         default:
             break;
@@ -500,19 +500,19 @@ error_t Sx1262Radio::setLrFhssParameter(enum LoraParameter parameter, int32_t va
     return ERROR_NOT_SUPPORTED;
 }
 
-error_t Sx1262Radio::setParameter(enum LoraParameter parameter, int32_t value) {
+error_t Sx1262Radio::setParameter(enum RadioParameter parameter, int32_t value) {
     lock();
 
     error_t result = setBaseParameter(parameter, value);
     if (result == ERROR_NOT_SUPPORTED) {
         switch (modulation) {
-            case LORA_MODULATION_LORA:
+            case RADIO_MODULATION_LORA:
                 result = setLoraParameter(parameter, value);
                 break;
-            case LORA_MODULATION_FSK:
+            case RADIO_MODULATION_FSK:
                 result = setFskParameter(parameter, value);
                 break;
-            case LORA_MODULATION_LR_FHSS:
+            case RADIO_MODULATION_LR_FHSS:
                 result = setLrFhssParameter(parameter, value);
                 break;
             default:
@@ -528,15 +528,15 @@ error_t Sx1262Radio::setParameter(enum LoraParameter parameter, int32_t value) {
     return result;
 }
 
-error_t Sx1262Radio::getBaseParameter(enum LoraParameter parameter, int32_t* value) const {
+error_t Sx1262Radio::getBaseParameter(enum RadioParameter parameter, int32_t* value) const {
     switch (parameter) {
-        case LORA_PARAMETER_POWER:
+        case RADIO_PARAMETER_POWER:
             *value = power;
             return ERROR_NONE;
-        case LORA_PARAMETER_BOOSTED_GAIN:
+        case RADIO_PARAMETER_BOOSTED_GAIN:
             *value = boostedGain;
             return ERROR_NONE;
-        case LORA_PARAMETER_CURRENT_LIMIT:
+        case RADIO_PARAMETER_CURRENT_LIMIT:
             *value = currentLimit;
             return ERROR_NONE;
         default:
@@ -544,24 +544,24 @@ error_t Sx1262Radio::getBaseParameter(enum LoraParameter parameter, int32_t* val
     }
 }
 
-error_t Sx1262Radio::getLoraParameter(enum LoraParameter parameter, int32_t* value) const {
+error_t Sx1262Radio::getLoraParameter(enum RadioParameter parameter, int32_t* value) const {
     switch (parameter) {
-        case LORA_PARAMETER_FREQUENCY:
+        case RADIO_PARAMETER_FREQUENCY:
             *value = frequency;
             return ERROR_NONE;
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             *value = bandwidth;
             return ERROR_NONE;
-        case LORA_PARAMETER_SPREADING_FACTOR:
+        case RADIO_PARAMETER_SPREADING_FACTOR:
             *value = spreadingFactor;
             return ERROR_NONE;
-        case LORA_PARAMETER_CODING_RATE:
+        case RADIO_PARAMETER_CODING_RATE:
             *value = codingRate;
             return ERROR_NONE;
-        case LORA_PARAMETER_SYNC_WORD:
+        case RADIO_PARAMETER_SYNC_WORD:
             *value = syncWord;
             return ERROR_NONE;
-        case LORA_PARAMETER_PREAMBLE_LENGTH:
+        case RADIO_PARAMETER_PREAMBLE_LENGTH:
             *value = preambleLength;
             return ERROR_NONE;
         default:
@@ -569,18 +569,18 @@ error_t Sx1262Radio::getLoraParameter(enum LoraParameter parameter, int32_t* val
     }
 }
 
-error_t Sx1262Radio::getFskParameter(enum LoraParameter parameter, int32_t* value) const {
+error_t Sx1262Radio::getFskParameter(enum RadioParameter parameter, int32_t* value) const {
     switch (parameter) {
-        case LORA_PARAMETER_FREQUENCY:
+        case RADIO_PARAMETER_FREQUENCY:
             *value = frequency;
             return ERROR_NONE;
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             *value = bandwidth;
             return ERROR_NONE;
-        case LORA_PARAMETER_DATA_RATE:
+        case RADIO_PARAMETER_DATA_RATE:
             *value = bitRate;
             return ERROR_NONE;
-        case LORA_PARAMETER_FREQUENCY_DEVIATION:
+        case RADIO_PARAMETER_FREQUENCY_DEVIATION:
             *value = frequencyDeviation;
             return ERROR_NONE;
         default:
@@ -588,15 +588,15 @@ error_t Sx1262Radio::getFskParameter(enum LoraParameter parameter, int32_t* valu
     }
 }
 
-error_t Sx1262Radio::getLrFhssParameter(enum LoraParameter parameter, int32_t* value) const {
+error_t Sx1262Radio::getLrFhssParameter(enum RadioParameter parameter, int32_t* value) const {
     switch (parameter) {
-        case LORA_PARAMETER_BANDWIDTH:
+        case RADIO_PARAMETER_BANDWIDTH:
             *value = bandwidth;
             return ERROR_NONE;
-        case LORA_PARAMETER_CODING_RATE:
+        case RADIO_PARAMETER_CODING_RATE:
             *value = codingRate;
             return ERROR_NONE;
-        case LORA_PARAMETER_NARROW_GRID:
+        case RADIO_PARAMETER_NARROW_GRID:
             *value = narrowGrid;
             return ERROR_NONE;
         default:
@@ -604,20 +604,20 @@ error_t Sx1262Radio::getLrFhssParameter(enum LoraParameter parameter, int32_t* v
     }
 }
 
-error_t Sx1262Radio::getParameter(enum LoraParameter parameter, int32_t* value) const {
+error_t Sx1262Radio::getParameter(enum RadioParameter parameter, int32_t* value) const {
     lock();
 
     // No warnings are emitted to be able to discover parameters by return status
     error_t result = getBaseParameter(parameter, value);
     if (result == ERROR_NOT_SUPPORTED) {
         switch (modulation) {
-            case LORA_MODULATION_LORA:
+            case RADIO_MODULATION_LORA:
                 result = getLoraParameter(parameter, value);
                 break;
-            case LORA_MODULATION_FSK:
+            case RADIO_MODULATION_FSK:
                 result = getFskParameter(parameter, value);
                 break;
-            case LORA_MODULATION_LR_FHSS:
+            case RADIO_MODULATION_LR_FHSS:
                 result = getLrFhssParameter(parameter, value);
                 break;
             default:
@@ -653,7 +653,7 @@ void Sx1262Radio::unregisterDio1Isr() {
     gpio_descriptor_remove_callback(settings.dio1);
 }
 
-int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
+int Sx1262Radio::doBegin(enum RadioModulation beginModulation) {
     int16_t rc = RADIOLIB_ERR_NONE;
     auto& radio = parts->radio;
 
@@ -661,7 +661,7 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
     const float frequencyMhz = static_cast<float>(frequency) / 1000000.0f;
     const float bandwidthKhz = static_cast<float>(bandwidth) / 1000.0f;
 
-    if (beginModulation == LORA_MODULATION_LORA) {
+    if (beginModulation == RADIO_MODULATION_LORA) {
         LOG_I(
             TAG,
             "Starting LoRa: %.3f MHz, BW %.2f kHz, SF%u, CR 4/%u, sync 0x%02X, preamble %u, %d dBm, TCXO %.1f V",
@@ -685,7 +685,7 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
             settings.tcxo_voltage,
             settings.use_regulator_ldo
         );
-    } else if (beginModulation == LORA_MODULATION_FSK) {
+    } else if (beginModulation == RADIO_MODULATION_FSK) {
         const float bitRateKbps = static_cast<float>(bitRate) / 1000.0f;
         const float frequencyDeviationKhz = static_cast<float>(frequencyDeviation) / 1000.0f;
         LOG_I(
@@ -708,7 +708,7 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
             settings.tcxo_voltage,
             settings.use_regulator_ldo
         );
-    } else if (beginModulation == LORA_MODULATION_LR_FHSS) {
+    } else if (beginModulation == RADIO_MODULATION_LR_FHSS) {
         // NOTE: LR-FHSS is unvalidated. RadioLib's beginLRFHSS() takes
         // (freq, bw-index, cr, narrowGrid, ...) where bw is a RADIOLIB_SX126X_LR_FHSS_BW_*
         // index, not a frequency; this call passes the stored bandwidth into the freq slot
@@ -724,23 +724,23 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
         );
     } else {
         LOG_E(TAG, "SX1262 not capable of modulation \"%s\"", toString(beginModulation));
-        setState(LORA_RADIO_STATE_ERROR);
+        setState(RADIO_STATE_ERROR);
         return -1;
     }
 
     if (rc != RADIOLIB_ERR_NONE) {
         LOG_E(TAG, "RadioLib initialization failed with code %hi", rc);
-        setState(LORA_RADIO_STATE_ERROR);
+        setState(RADIO_STATE_ERROR);
         return -1;
     }
 
     // Apply the PA over-current protection limit. RadioLib's begin() already set its
     // fail-safe default (60 mA), so this is only meaningful when a consumer raised it
-    // via LORA_PARAMETER_CURRENT_LIMIT to reach higher output power.
+    // via RADIO_PARAMETER_CURRENT_LIMIT to reach higher output power.
     rc = radio.setCurrentLimit(static_cast<float>(currentLimit));
     if (rc != RADIOLIB_ERR_NONE) {
         LOG_E(TAG, "Setting current limit to %d mA failed with code %hi", (int)currentLimit, rc);
-        setState(LORA_RADIO_STATE_ERROR);
+        setState(RADIO_STATE_ERROR);
         return -1;
     }
 
@@ -750,7 +750,7 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
         rc = radio.setDio2AsRfSwitch(true);
         if (rc != RADIOLIB_ERR_NONE) {
             LOG_E(TAG, "Setting DIO2 as RF switch failed with code %hi", rc);
-            setState(LORA_RADIO_STATE_ERROR);
+            setState(RADIO_STATE_ERROR);
             return -1;
         }
     }
@@ -758,7 +758,7 @@ int Sx1262Radio::doBegin(enum LoraModulation beginModulation) {
     rc = radio.setRxBoostedGainMode(boostedGain, true);
     if (rc != RADIOLIB_ERR_NONE) {
         LOG_E(TAG, "Setting RX boosted gain to %s failed with code %hi", boostedGain ? "true" : "false", rc);
-        setState(LORA_RADIO_STATE_ERROR);
+        setState(RADIO_STATE_ERROR);
         return -1;
     }
 
@@ -791,7 +791,7 @@ void Sx1262Radio::doTransmit() {
     rc = radio.startTransmit(currentTx.data.data(), currentTx.data.size());
 
     if (rc == RADIOLIB_ERR_NONE) {
-        publishTx(currentTx.id, LORA_TRANSMISSION_STATE_TRANSMIT_PENDING);
+        publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_TRANSMIT_PENDING);
 
         // Time-on-air (microseconds) for the current modem config; 0 if RadioLib can't
         // compute it, in which case fall back to a fixed timeout.
@@ -818,28 +818,28 @@ void Sx1262Radio::doTransmit() {
         // caller that queued this TX still gets a final callback for its id when
         // setEnabled(false) races with an in-flight transmit.
         if (isThreadInterrupted()) {
-            publishTx(currentTx.id, LORA_TRANSMISSION_STATE_ERROR);
+            publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_ERROR);
             return;
         }
 
         // If the DIO1 bit is unset, this means the wait timed out
         if (txEventFlags & SX1262_DIO1_EVENT_BIT) {
             LOG_I(TAG, "TX id=%d: done", (int)currentTx.id);
-            publishTx(currentTx.id, LORA_TRANSMISSION_STATE_TRANSMITTED);
+            publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_TRANSMITTED);
         } else {
             LOG_W(TAG, "TX id=%d: no TX-done IRQ within %u ms", (int)currentTx.id, (unsigned)txTimeoutMillis);
-            publishTx(currentTx.id, LORA_TRANSMISSION_STATE_TIMEOUT);
+            publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_TIMEOUT);
         }
     } else {
         LOG_E(TAG, "Error transmitting id=%d, rc=%hi", (int)currentTx.id, rc);
-        publishTx(currentTx.id, LORA_TRANSMISSION_STATE_ERROR);
+        publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_ERROR);
     }
 }
 
 bool Sx1262Radio::doListen() {
     auto& radio = parts->radio;
 
-    if (getModulation() != LORA_MODULATION_LR_FHSS) {
+    if (getModulation() != RADIO_MODULATION_LR_FHSS) {
         int16_t rc = radio.startReceiveDutyCycleAuto(preambleLength, 0, SX1262_IRQ_FLAGS);
         if (rc == RADIOLIB_ERR_NONE) {
             uint32_t flags = 0;
@@ -872,7 +872,7 @@ bool Sx1262Radio::doListen() {
 
 void Sx1262Radio::doReceive() {
     // LR-FHSS modem only supports TX
-    if (getModulation() == LORA_MODULATION_LR_FHSS) return;
+    if (getModulation() == RADIO_MODULATION_LR_FHSS) return;
 
     auto& radio = parts->radio;
 

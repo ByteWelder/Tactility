@@ -3,7 +3,7 @@
 
 #include <tactility/concurrent/recursive_mutex.h>
 #include <tactility/concurrent/thread.h>
-#include <tactility/drivers/lora.h>
+#include <tactility/drivers/radio.h>
 #include <tactility/error.h>
 #include <tactility/freertos/event_groups.h>
 
@@ -20,7 +20,7 @@ struct GpioDescriptor;
 
 /**
  * SX1262 radio engine: owns the radio thread and the TX queue. The public methods are
- * thread-safe. State/RX/TX events are published via lora_event_emit(), either from the radio
+ * thread-safe. State/RX/TX events are published via radio_event_emit(), either from the radio
  * thread (RX, TX progress, state) or from the caller of transmit() (QUEUED).
  *
  * The RadioLib types live behind the RadioParts indirection: RadioLib declares a global
@@ -54,7 +54,7 @@ private:
     struct RadioParts;
 
     struct TxItem {
-        LoraTxId id = 0;
+        RadioTxId id = 0;
         std::vector<uint8_t> data;
     };
 
@@ -66,12 +66,12 @@ private:
     Thread* thread = nullptr;
     bool threadInterrupted = false;
 
-    enum LoraRadioState state = LORA_RADIO_STATE_OFF;
-    enum LoraModulation modulation = LORA_MODULATION_NONE;
+    enum RadioState state = RADIO_STATE_OFF;
+    enum RadioModulation modulation = RADIO_MODULATION_NONE;
 
     std::deque<TxItem> txQueue;
     TxItem currentTx;
-    LoraTxId lastTxId = 0;
+    RadioTxId lastTxId = 0;
 
     // Parameter store, applied on the next doBegin(). Frequencies/rates are held in base SI
     // units (Hz, bit/s) and converted to RadioLib's MHz/kHz/kbps floats in doBegin().
@@ -99,9 +99,9 @@ private:
     bool isThreadInterrupted() const;
     int32_t threadMain();
 
-    void setState(enum LoraRadioState newState);
+    void setState(enum RadioState newState);
     error_t publishRx(const uint8_t* data, size_t length, float rssi, float snr);
-    error_t publishTx(LoraTxId id, enum LoraTransmissionState txState);
+    error_t publishTx(RadioTxId id, enum RadioTransmissionState txState);
 
     size_t getTxQueueSize() const;
     TxItem popNextQueuedTx();
@@ -109,16 +109,16 @@ private:
     void registerDio1Isr();
     void unregisterDio1Isr();
 
-    error_t setBaseParameter(enum LoraParameter parameter, int32_t value);
-    error_t setLoraParameter(enum LoraParameter parameter, int32_t value);
-    error_t setFskParameter(enum LoraParameter parameter, int32_t value);
-    error_t setLrFhssParameter(enum LoraParameter parameter, int32_t value);
-    error_t getBaseParameter(enum LoraParameter parameter, int32_t* value) const;
-    error_t getLoraParameter(enum LoraParameter parameter, int32_t* value) const;
-    error_t getFskParameter(enum LoraParameter parameter, int32_t* value) const;
-    error_t getLrFhssParameter(enum LoraParameter parameter, int32_t* value) const;
+    error_t setBaseParameter(enum RadioParameter parameter, int32_t value);
+    error_t setLoraParameter(enum RadioParameter parameter, int32_t value);
+    error_t setFskParameter(enum RadioParameter parameter, int32_t value);
+    error_t setLrFhssParameter(enum RadioParameter parameter, int32_t value);
+    error_t getBaseParameter(enum RadioParameter parameter, int32_t* value) const;
+    error_t getLoraParameter(enum RadioParameter parameter, int32_t* value) const;
+    error_t getFskParameter(enum RadioParameter parameter, int32_t* value) const;
+    error_t getLrFhssParameter(enum RadioParameter parameter, int32_t* value) const;
 
-    int doBegin(enum LoraModulation beginModulation);
+    int doBegin(enum RadioModulation beginModulation);
     void doEnd();
     void doTransmit();
     bool doListen();
@@ -135,23 +135,23 @@ public:
      */
     error_t probe() const;
 
-    enum LoraRadioState getState() const;
+    enum RadioState getState() const;
     error_t setEnabled(bool enabled);
-    error_t setModulation(enum LoraModulation newModulation);
-    enum LoraModulation getModulation() const;
+    error_t setModulation(enum RadioModulation newModulation);
+    enum RadioModulation getModulation() const;
 
-    bool canTransmit(enum LoraModulation withModulation) const {
-        return (withModulation == LORA_MODULATION_FSK) ||
-               (withModulation == LORA_MODULATION_LORA) ||
-               (withModulation == LORA_MODULATION_LR_FHSS);
+    bool canTransmit(enum RadioModulation withModulation) const {
+        return (withModulation == RADIO_MODULATION_FSK) ||
+               (withModulation == RADIO_MODULATION_LORA) ||
+               (withModulation == RADIO_MODULATION_LR_FHSS);
     }
 
-    bool canReceive(enum LoraModulation withModulation) const {
-        return (withModulation == LORA_MODULATION_FSK) || (withModulation == LORA_MODULATION_LORA);
+    bool canReceive(enum RadioModulation withModulation) const {
+        return (withModulation == RADIO_MODULATION_FSK) || (withModulation == RADIO_MODULATION_LORA);
     }
 
-    error_t setParameter(enum LoraParameter parameter, int32_t value);
-    error_t getParameter(enum LoraParameter parameter, int32_t* value) const;
+    error_t setParameter(enum RadioParameter parameter, int32_t value);
+    error_t getParameter(enum RadioParameter parameter, int32_t* value) const;
 
-    error_t transmit(const uint8_t* data, size_t length, LoraTxId* id);
+    error_t transmit(const uint8_t* data, size_t length, RadioTxId* id);
 };
