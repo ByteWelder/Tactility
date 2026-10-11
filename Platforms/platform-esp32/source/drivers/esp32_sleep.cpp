@@ -130,8 +130,6 @@ static const SleepControllerApi esp32_sleep_api = {
     .deep_sleep = deep_sleep
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_sleep_driver = {
     .name = "esp32_sleep",
     .compatible = (const char*[]) { "espressif,esp32-sleep", nullptr },
@@ -139,7 +137,6 @@ Driver esp32_sleep_driver = {
     .stop_device = nullptr,
     .api = &esp32_sleep_api,
     .device_type = &SLEEP_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

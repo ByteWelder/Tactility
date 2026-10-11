@@ -3,14 +3,7 @@
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/sleep_controller.h>
-#include <tactility/module.h>
 #include <tactility/system_event.h>
-
-static Module sleep_controller_test_module = {
-    .name = "sleep_controller_test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
 
 static int call_order = 0;
 static int prepare_event_order = 0;
@@ -36,7 +29,6 @@ static Driver fake_sleep_controller_driver = {
     .stop_device = nullptr,
     .api = &fake_sleep_controller_api,
     .device_type = &SLEEP_CONTROLLER_TYPE,
-    .owner = &sleep_controller_test_module,
     .internal = nullptr,
 };
 

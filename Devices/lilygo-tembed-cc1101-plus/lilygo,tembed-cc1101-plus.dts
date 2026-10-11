@@ -7,7 +7,6 @@
 #include <tactility/bindings/esp32_i2s.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/esp32_sdspi.h>
-#include <tactility/bindings/esp32_sleep.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_usbdevice.h>
@@ -161,11 +160,6 @@
 		pin-enter = <&gpio0 0 GPIO_FLAG_NONE>;
 		pulses-per-detent = <2>;
 		pending-capacity = <8>;
-	};
-
-	sleep {
-		compatible = "espressif,esp32-sleep";
-		wakeup-gpios = <&gpio0 6 WAKEUP_BUTTON_FLAGS>;
 	};
 
 	usbdevice0 {
