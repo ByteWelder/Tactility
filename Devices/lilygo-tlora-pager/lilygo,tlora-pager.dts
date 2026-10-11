@@ -19,6 +19,8 @@
 #include <bindings/bq25896.h>
 #include <bindings/drv2605.h>
 #include <bindings/gpio_encoder.h>
+#include <bindings/sx1262.h>
+#include <bindings/xl9555.h>
 
 // Reference: https://wiki.lilygo.cc/get_started/en/LoRa_GPS/T-LoraPager/T-LoraPager.html
 / {
@@ -48,6 +50,11 @@
 		bq27220 {
 			compatible = "ti,bq27220";
 			reg = <0x55>;
+		};
+
+		xl9555 {
+			compatible = "xlsemi,xl9555";
+			reg = <0x20>;
 		};
 
 		// ALT (shift) is row 2 col 8; SYM (symbol layer) is row 2 col 0.
@@ -161,6 +168,19 @@
 			transaction-queue-depth = <2>;
 			pin-dc = <&gpio0 37 GPIO_FLAG_NONE>;
 			backlight = <&display_backlight>;
+		};
+
+		// SX1262 LoRa transceiver: CS/RST/DIO1/BUSY = GPIO 36/47/14/48, TCXO 3.0 V,
+		// DIO2 drives the antenna TX/RX switch. Module power is gated by XL9555 GPIO3.
+		radio@2 {
+			compatible = "semtech,sx1262";
+			reg = <2>;
+			pin-reset = <&gpio0 47 GPIO_FLAG_NONE>;
+			pin-dio1 = <&gpio0 14 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 48 GPIO_FLAG_NONE>;
+			pin-enable = <&xl9555 3 GPIO_FLAG_NONE>;
+			tcxo-millivolts = <3000>;
+			dio2-as-rf-switch;
 		};
 	};
 

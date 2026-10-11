@@ -14,6 +14,7 @@
 #include <bindings/gdeq031t10.h>
 #include <bindings/tca8418.h>
 #include <bindings/bq25896.h>
+#include <bindings/sx1262.h>
 
 // Reference for V1.0 (not V1.1!): https://github.com/Xinyuan-LilyGO/T-Deck-Pro/tree/HD-V1-250326
 // lib/TDeckMaxBoard/src/TDeckMaxBoard.h, docs/pinmap.md
@@ -111,7 +112,7 @@
 		host = <SPI2_HOST>;
 		cs-gpios = <&gpio0 34 GPIO_FLAG_NONE>, // 0: EPD display
 		           <&gpio0 48 GPIO_FLAG_NONE>, // 1: SD card
-		           <&gpio0 3 GPIO_FLAG_NONE>;  // 2: LoRa radio (SX1262, not wired up yet)
+		           <&gpio0 3 GPIO_FLAG_NONE>;  // 2: LoRa radio (SX1262)
 		pin-mosi = <&gpio0 33 GPIO_FLAG_NONE>;
 		pin-miso = <&gpio0 47 GPIO_FLAG_NONE>;
 		pin-sclk = <&gpio0 36 GPIO_FLAG_NONE>;
@@ -133,6 +134,19 @@
 			compatible = "espressif,esp32-sdspi";
 			status = "disabled";
 			frequency-khz = <20000>;
+		};
+
+		// SX1262 LoRa transceiver: CS/RST/DIO1/BUSY = GPIO 3/4/5/6, TCXO 2.4 V,
+		// DIO2 drives the antenna TX/RX switch. Module power is gated by LORA_EN (GPIO 46).
+		radio@2 {
+			compatible = "semtech,sx1262";
+			reg = <2>;
+			pin-reset = <&gpio0 4 GPIO_FLAG_NONE>;
+			pin-dio1 = <&gpio0 5 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 6 GPIO_FLAG_NONE>;
+			pin-enable = <&gpio0 46 GPIO_FLAG_NONE>;
+			tcxo-millivolts = <2400>;
+			dio2-as-rf-switch;
 		};
 	};
 

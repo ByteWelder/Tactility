@@ -20,6 +20,7 @@
 #include <bindings/bq27220.h>
 #include <bindings/gpio_encoder.h>
 #include <bindings/esp32_led_strip.h>
+#include <bindings/cc1101.h>
 
 // Reference:
 // https://wiki.lilygo.cc/products/t-embed-series/t-embed-cc1101/
@@ -146,7 +147,19 @@
 			frequency-khz = <20000>;
 		};
 
-		// TODO - Add CC1101 Radio - CS GPIO 12, SCK GPIO 11, MOSI GPIO 9, MISO GPIO 10, IO2 GPIO 38, IO0 GPIO 3, SW1 GPIO 47, SW0 GPIO 48 - driver needed
+		// CC1101 transceiver: CS/GDO0 = GPIO 12/3. SW1/SW0 (GPIO 47/48) select the
+		// antenna matching network: 315 MHz = 1/0, 433 MHz = 1/1, 868/915 MHz = 0/1.
+		// Module power comes from the peripheral power hog (GPIO 15).
+		radio@2 {
+			compatible = "ti,cc1101";
+			reg = <2>;
+			pin-gdo0 = <&gpio0 3 GPIO_FLAG_NONE>;
+			pin-band-switch-0 = <&gpio0 48 GPIO_FLAG_NONE>;
+			pin-band-switch-1 = <&gpio0 47 GPIO_FLAG_NONE>;
+			band-switch-low = <2>;
+			band-switch-mid = <3>;
+			band-switch-high = <1>;
+		};
 		// TODO - Add nRF24L01 Radio - CS GPIO 44, CE GPIO 43, IQR -1/NC, SCK GPIO 11, MOSI GPIO 9, MISO GPIO 10 - driver needed
 	};
 

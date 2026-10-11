@@ -8,4 +8,5 @@ dependencies:
   - Drivers/pdm-mic-module
   - Drivers/audio-stream-module
   - Drivers/esp32-led-strip-module
+  - Drivers/cc1101-module
 dts: lilygo,tembed-cc1101.dts
