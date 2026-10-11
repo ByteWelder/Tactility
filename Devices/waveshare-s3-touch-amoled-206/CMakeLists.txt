@@ -3,7 +3,7 @@ file(GLOB_RECURSE SOURCE_FILES source/*.c*)
 idf_component_register(
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS "source"
-    REQUIRES TactilityKernel lvgl-module lvgl-window-manager-module
+    REQUIRES TactilityKernel Tactility TactilityFreeRtos lvgl-module lvgl-window-manager-module
 )
 
 # Board-local link-time hooks (see source/lvgl_scaling.cpp and source/lvgl_insets.cpp): keep the
