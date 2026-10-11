@@ -12,6 +12,7 @@
 #include <tactility/bindings/gpio_hog.h>
 #include <bindings/qmi8658.h>
 #include <bindings/axp2101.h>
+#include <bindings/pcf85063.h>
 #include <bindings/ft5x06.h>
 #include <bindings/es8311.h>
 #include <bindings/sh8601.h>
@@ -71,6 +72,13 @@
 		axp2101: axp2101 {
 			compatible = "x-powers,axp2101";
 			reg = <0x34>;
+		};
+
+		// PCF85063A RTC at 0x51. This board's RTC is not the 2.06's BM8563: the PCF85063
+		// keeps its time registers at 0x04-0x0A (not 0x02-0x08), so it needs the pcf85063 driver.
+		pcf85063: pcf85063 {
+			compatible = "nxp,pcf85063a";
+			reg = <0x51>;
 		};
 
 		// FT3168, register-compatible with the FT5x06. There is no dedicated reset pin.
