@@ -11,12 +11,16 @@
 #include <lvgl.h>
 #include <lvgl/devices/indev.h>
 #include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/sleep_controller.h>
+#include <tactility/log.h>
 
 namespace tt::app::poweroff {
+
+constexpr auto* TAG = "PowerOff";
 
 extern const ::AppManifest manifest;
 
@@ -27,7 +31,7 @@ struct Context {
 };
 
 
-void showPoweredOffScreen(const char* subtitleText) {
+lv_obj_t* showPoweredOffScreen(const char* subtitleText) {
     auto* screen = lv_obj_create(nullptr);
     lv_obj_set_style_bg_color(screen, lv_color_white(), 0);
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
@@ -43,6 +47,7 @@ void showPoweredOffScreen(const char* subtitleText) {
     lv_obj_set_style_text_color(subtitle, lv_color_black(), 0);
 
     lv_screen_load(screen);
+    return screen;
 }
 
 bool anyDeviceSupportsPowerOff() {
@@ -69,23 +74,37 @@ Device* findSleepController() {
     return found;
 }
 
-void powerOffAll() {
-    device_for_each_of_type(&POWER_SUPPLY_TYPE, nullptr, [](Device* device, void* /*context*/) {
+bool powerOffAll() {
+    bool any_succeeded = false;
+    device_for_each_of_type(&POWER_SUPPLY_TYPE, &any_succeeded, [](Device* device, void* context) {
         if (device_is_ready(device) && power_supply_supports_power_off(device)) {
-            power_supply_power_off(device);
+            error_t error = power_supply_power_off(device);
+            if (error == ERROR_NONE) {
+                *static_cast<bool*>(context) = true;
+            } else {
+                LOG_E(TAG, "Power off failed for %s: %s", device->name, error_to_string(error));
+            }
         }
         return true;
     });
+    return any_succeeded;
 }
 
-void deepSleep() {
+bool deepSleep() {
     auto* sleep_controller = findSleepController();
-    if (sleep_controller != nullptr) {
-        sleep_controller_deep_sleep(sleep_controller);
+    if (sleep_controller == nullptr) {
+        LOG_E(TAG, "Sleep controller not found");
+        return false;
     }
+    error_t error = sleep_controller_deep_sleep(sleep_controller);
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Deep sleep failed: %s", error_to_string(error));
+        return false;
+    }
+    return true;
 }
 
-void runWithShutdownScreen(const char* subtitle, void (*action)()) {
+void runWithShutdownScreen(const char* subtitle, bool (*action)()) {
     Device* display;
     error_t error = device_get_first_by_type(&DISPLAY_TYPE, &display);
     // TODO: remove this logic path when all displays have been migrated to kernel display drivers
@@ -95,20 +114,28 @@ void runWithShutdownScreen(const char* subtitle, void (*action)()) {
     }
 
     bool is_slow_refresh = display_has_capability(display, DISPLAY_CAPABILITY_SLOW_REFRESH);
+    lv_obj_t* previous_screen = nullptr;
+    lv_obj_t* shutdown_screen = nullptr;
     if (is_slow_refresh) {
         auto* lvgl_display = lv_display_get_default();
-        showPoweredOffScreen(subtitle);
+        previous_screen = lv_screen_active();
+        shutdown_screen = showPoweredOffScreen(subtitle);
         if (lvgl_display != nullptr) {
             lv_refr_now(lvgl_display);
         }
     }
 
-    getMainDispatcher().dispatch([is_slow_refresh, action] {
+    getMainDispatcher().dispatch([is_slow_refresh, action, previous_screen, shutdown_screen] {
         // Not necessary for LilyGO Paper S3, but other drivers with async rendering might need us to wait a bit.
         if (is_slow_refresh) {
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
-        action();
+        if (!action() && shutdown_screen != nullptr) {
+            lvgl_lock();
+            lv_screen_load(previous_screen);
+            lv_obj_delete(shutdown_screen);
+            lvgl_unlock();
+        }
     });
 }
 

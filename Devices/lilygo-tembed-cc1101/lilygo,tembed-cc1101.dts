@@ -139,7 +139,6 @@
 			invert-color;
 			pixel-clock-hz = <80000000>;
 			pin-dc = <&gpio0 16 GPIO_FLAG_NONE>;
-			pin-reset = <&gpio0 40 GPIO_FLAG_NONE>;
 			backlight = <&display_backlight>;
 		};
 

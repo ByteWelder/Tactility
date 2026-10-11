@@ -21,8 +21,6 @@
 #include <bindings/gpio_encoder.h>
 #include <bindings/esp32_led_strip.h>
 
-#define WAKEUP_BUTTON_FLAGS (GPIO_FLAG_ACTIVE_LOW | GPIO_FLAG_PULL_UP)
-
 // Reference:
 // https://wiki.lilygo.cc/products/t-embed-series/t-embed-cc1101/
 // https://github.com/Xinyuan-LilyGO/T-Embed-CC1101
@@ -139,7 +137,6 @@
 			invert-color;
 			pixel-clock-hz = <80000000>;
 			pin-dc = <&gpio0 16 GPIO_FLAG_NONE>;
-			pin-reset = <&gpio0 40 GPIO_FLAG_NONE>;
 			backlight = <&display_backlight>;
 		};
 
