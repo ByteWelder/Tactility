@@ -23,9 +23,8 @@
 
 namespace {
 
-// Fixed insets, in pixels: horizontal on the left/right, vertical on the top/bottom.
-constexpr int32_t INSET_HORIZONTAL_PX = 50;
-constexpr int32_t INSET_VERTICAL_PX = 30;
+// Fixed inset, in pixels, applied on all four edges.
+constexpr int32_t INSET_PX = 22;
 
 // The callback passed to window_manager_configure(), invoked later to build the window tree.
 WindowManagerScreenInitFn original_screen_init = nullptr;
@@ -35,8 +34,7 @@ WindowManagerScreenInitFn original_screen_init = nullptr;
 extern "C" {
 
 static lv_obj_t* wrapping_screen_init(lv_obj_t* root_widget) {
-    lv_obj_set_style_pad_hor(root_widget, INSET_HORIZONTAL_PX, LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_ver(root_widget, INSET_VERTICAL_PX, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(root_widget, INSET_PX, LV_STATE_DEFAULT);
     return original_screen_init != nullptr ? original_screen_init(root_widget) : root_widget;
 }
 
