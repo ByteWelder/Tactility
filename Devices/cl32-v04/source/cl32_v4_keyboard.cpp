@@ -324,6 +324,5 @@ Driver cl32_v4_keyboard_driver = {
     .probe = nullptr,
     .api = &cl32_v4_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &cl32_v04_module,
     .internal = nullptr,
 };

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/st7735.h>
-#include <st7735_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -384,6 +383,5 @@ Driver st7735_driver = {
     .stop_device = stop,
     .api = &st7735_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7735_module,
     .internal = nullptr
 };

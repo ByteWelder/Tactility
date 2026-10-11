@@ -1,13 +1,6 @@
 #include "doctest.h"
 #include <tactility/driver.h>
 #include <tactility/device.h>
-#include <tactility/module.h>
-
-static Module module = {
-    .name = "test_module",
-    .start = nullptr,
-    .stop = nullptr
-};
 
 struct IntegrationDriverConfig {
     int startResult;
@@ -37,7 +30,6 @@ static Driver integration_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &module,
     .internal = nullptr,
 };
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/jd9853.h>
-#include <jd9853_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -371,6 +370,5 @@ Driver jd9853_driver = {
     .stop_device = stop,
     .api = &jd9853_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &jd9853_module,
     .internal = nullptr
 };

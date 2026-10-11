@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/cst328.h>
 
-#include <cst328_module.h>
-
 #include <tactility/check.h>
 #include <tactility/delay.h>
 #include <tactility/device.h>
@@ -289,6 +287,5 @@ Driver cst328_driver = {
     .stop_device = stop,
     .api = &cst328_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &cst328_module,
     .internal = nullptr
 };

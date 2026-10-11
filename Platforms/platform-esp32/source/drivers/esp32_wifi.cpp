@@ -712,8 +712,6 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
     mutex_unlock(&g_radioMutex);
 }
 
-extern Module platform_esp32_module;
-
 Driver esp32_wifi_driver = {
     .name = "esp32_wifi",
     .compatible = (const char*[]) { "espressif,esp32-wifi", nullptr },
@@ -721,7 +719,6 @@ Driver esp32_wifi_driver = {
     .stop_device = stop_device,
     .api = (const void*)&esp32_wifi_api,
     .device_type = &WIFI_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

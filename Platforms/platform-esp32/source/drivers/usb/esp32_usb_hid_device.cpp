@@ -343,7 +343,6 @@ Driver esp32_usb_hid_device_driver = {
     .stop_device  = stop_device,
     .api          = &esp32_usb_hid_device_api,
     .device_type  = &USB_HID_DEVICE_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

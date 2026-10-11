@@ -4,7 +4,6 @@
 // Drivers/TCA8418/Source/Tca8418.cpp (itself ported from
 // https://github.com/adafruit/Adafruit_TCA8418, MIT licensed).
 #include <drivers/cardputer_adv_keyboard.h>
-#include <m5stack_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -276,6 +275,5 @@ Driver cardputer_adv_keyboard_driver = {
     .stop_device = stop,
     .api = &cardputer_adv_keyboard_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = &m5stack_module,
     .internal = nullptr
 };

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/tca9534.h>
-#include <tca9534_module.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -162,7 +161,6 @@ Driver tca9534_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&tca9534_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &tca9534_module,
     .internal = nullptr
 };
 

@@ -544,8 +544,6 @@ const static I2sControllerApi esp32_i2s_api = {
     .disable_direction = disable_direction,
 };
 
-extern struct Module platform_esp32_module;
-
 Driver esp32_i2s_driver = {
     .name = "esp32_i2s",
     .compatible = (const char*[]) { "espressif,esp32-i2s", nullptr },
@@ -553,7 +551,6 @@ Driver esp32_i2s_driver = {
     .stop_device = stop,
     .api = (void*)&esp32_i2s_api,
     .device_type = &I2S_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

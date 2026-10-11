@@ -176,7 +176,6 @@ Driver esp32_usb_cdc_device_driver = {
     .stop_device  = stop_device,
     .api          = &esp32_usb_cdc_device_api,
     .device_type  = &USB_CDC_DEVICE_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

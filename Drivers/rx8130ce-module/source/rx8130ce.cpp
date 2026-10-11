@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/rx8130ce.h>
-#include <rx8130ce_module.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
@@ -163,7 +162,6 @@ Driver rx8130ce_driver = {
     .stop_device = stop,
     .api = &rx8130ce_rtc_api,
     .device_type = &RTC_TYPE,
-    .owner = &rx8130ce_module,
     .internal = nullptr
 };
 

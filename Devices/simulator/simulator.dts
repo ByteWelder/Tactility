@@ -1,8 +1,13 @@
 /dts-v1/;
 
 #include <tactility/bindings/root.h>
+#include <bindings/mock_wifi.h>
 
 / {
 	model = "Simulator";
 	compatible = "root";
+
+	wifi0 {
+		compatible = "mock,wifi";
+	};
 };

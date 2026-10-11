@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+struct Device;
+
 /**
  * @brief Reconciles the device tree against the persisted GPS configurations (see
  * gps/gps_settings.h): constructs+adds (but does not start) a GPS_TYPE device for every
@@ -18,3 +20,9 @@ void gps_ledger_sync();
  * are left untouched.
  */
 void gps_ledger_clear();
+
+/**
+ * @brief Stops+destructs+removes the ledger-owned devices that are children of @a parent.
+ * The ledger recreates them with gps_ledger_sync() when the parent is available again.
+ */
+void gps_ledger_remove_children_of(struct Device* parent);

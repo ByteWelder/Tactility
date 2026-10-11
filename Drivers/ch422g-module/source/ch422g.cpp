@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ch422g.h>
-#include <ch422g_module.h>
 #include <tactility/check.h>
 #include <tactility/concurrent/mutex.h>
 #include <tactility/device.h>
@@ -156,7 +155,6 @@ Driver ch422g_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&ch422g_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &ch422g_module,
     .internal = nullptr
 };
 

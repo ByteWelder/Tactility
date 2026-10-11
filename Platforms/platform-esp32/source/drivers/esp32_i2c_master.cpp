@@ -272,8 +272,6 @@ static constexpr I2cControllerApi ESP32_I2C_MASTER_API = {
     .probe = probe,
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_i2c_master_driver = {
     .name = "esp32_i2c_master",
     .compatible = (const char*[]) { "espressif,esp32-i2c-master", nullptr },
@@ -281,7 +279,6 @@ Driver esp32_i2c_master_driver = {
     .stop_device = stop,
     .api = &ESP32_I2C_MASTER_API,
     .device_type = &I2C_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr,
 };
 

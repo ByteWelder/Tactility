@@ -211,8 +211,6 @@ static const GroveApi esp32_grove_api = {
     .get_mode = esp32_grove_get_mode
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_grove_driver = {
     .name = "esp32_grove",
     .compatible = (const char*[]) { "espressif,esp32-grove", nullptr },
@@ -220,7 +218,6 @@ Driver esp32_grove_driver = {
     .stop_device = stop_device,
     .api = &esp32_grove_api,
     .device_type = &GROVE_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

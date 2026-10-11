@@ -3,7 +3,6 @@
 #if SOC_MIPI_DSI_SUPPORTED
 
 #include <drivers/st7121.h>
-#include <st7121_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -593,7 +592,6 @@ Driver st7121_driver = {
     .stop_device = stop,
     .api = &st7121_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7121_module,
     .internal = nullptr
 };
 

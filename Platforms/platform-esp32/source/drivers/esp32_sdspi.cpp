@@ -177,8 +177,6 @@ sdmmc_card_t* esp32_sdspi_get_card(Device* device) {
     return card;
 }
 
-extern Module platform_esp32_module;
-
 Driver esp32_sdspi_driver = {
     .name = "esp32_sdspi",
     .compatible = (const char*[]) { "espressif,esp32-sdspi", nullptr },
@@ -186,7 +184,6 @@ Driver esp32_sdspi_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = &SDCARD_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

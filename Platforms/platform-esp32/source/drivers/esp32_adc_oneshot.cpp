@@ -86,8 +86,6 @@ static constexpr AdcControllerApi ESP32_ADC_ONESHOT_API = {
     .read_raw = read_raw
 };
 
-extern Module platform_esp32_module;
-
 Driver esp32_adc_oneshot_driver = {
     .name = "esp32_adc_oneshot",
     .compatible = (const char*[]) { "espressif,esp32-adc-oneshot", nullptr },
@@ -95,7 +93,6 @@ Driver esp32_adc_oneshot_driver = {
     .stop_device = stop,
     .api = &ESP32_ADC_ONESHOT_API,
     .device_type = &ADC_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

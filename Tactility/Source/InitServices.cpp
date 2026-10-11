@@ -9,6 +9,10 @@
 
 #include <wifi/module.h>
 
+#if defined(__linux__) || defined(__APPLE__)
+#include <tactility/posix_services.h>
+#endif
+
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/audio_stream.h>
@@ -41,6 +45,9 @@ void registerAndStartServices() {
     check(module_ensure_started(&wifi_module) == ERROR_NONE);
     addService(service::development::manifest);
     addService(service::webserver::manifest);
+#if defined(__linux__) || defined(__APPLE__)
+    check(posix_services_start() == ERROR_NONE);
+#endif
 
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
     addService(service::espnow::manifest);

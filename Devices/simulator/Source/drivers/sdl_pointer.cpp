@@ -59,8 +59,8 @@ Driver sdl_pointer_driver = {
     .compatible = (const char*[]) { "tactility,sdl-pointer", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = nullptr,
     .api = &sdl_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &simulator_module,
-    .internal = nullptr
+    .internal = nullptr,
 };

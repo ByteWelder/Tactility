@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/st7123_touch.h>
-#include <st7123_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -201,6 +200,5 @@ Driver st7123_touch_driver = {
     .stop_device = stop,
     .api = &st7123_touch_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &st7123_module,
     .internal = nullptr
 };

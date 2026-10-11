@@ -8,7 +8,7 @@
 ## Higher Priority
 
 - esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
-- Improve posix support: use user home path and system /tmp folder. implement uart/i2c drivers properly.
+- Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot
 - Pick different font to improve monochrome screen readability (or change the weight). 
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.

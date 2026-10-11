@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/pi4ioe5v6408.h>
-#include <pi4ioe5v6408_module.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -210,7 +209,6 @@ Driver pi4ioe5v6408_driver = {
     .stop_device = stop,
     .api = static_cast<const void*>(&pi4_gpio_api),
     .device_type = &GPIO_CONTROLLER_TYPE,
-    .owner = &pi4ioe5v6408_module,
     .internal = nullptr
 };
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/lp5814.h>
-#include <lp5814_module.h>
 
 #include <tactility/check.h>
 #include <tactility/delay.h>
@@ -150,7 +149,6 @@ Driver lp5814_driver = {
     .probe = nullptr,
     .api = &LP5814_BACKLIGHT_API,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &lp5814_module,
     .internal = nullptr,
 };
 

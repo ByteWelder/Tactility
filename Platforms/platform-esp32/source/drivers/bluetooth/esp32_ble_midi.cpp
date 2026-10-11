@@ -263,7 +263,6 @@ Driver esp32_ble_midi_driver = {
     .stop_device  = esp32_ble_midi_stop_device,
     .api          = &nimble_midi_api,
     .device_type  = &BLUETOOTH_MIDI_TYPE,
-    .owner        = nullptr,
     .internal     = nullptr,
 };
 

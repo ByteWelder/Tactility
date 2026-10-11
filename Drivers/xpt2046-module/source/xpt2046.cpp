@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/xpt2046.h>
-#include <xpt2046_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -117,7 +116,6 @@ Driver xpt2046_power_supply_driver = {
     .stop_device = nullptr,
     .api = &XPT2046_POWER_SUPPLY_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &xpt2046_module,
     .internal = nullptr
 };
 
@@ -368,6 +366,5 @@ Driver xpt2046_driver = {
     .stop_device = stop,
     .api = &xpt2046_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &xpt2046_module,
     .internal = nullptr
 };

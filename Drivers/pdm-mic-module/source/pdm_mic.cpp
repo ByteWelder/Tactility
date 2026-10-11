@@ -330,7 +330,6 @@ Driver pdm_mic_driver = {
     .stop_device = stop_device,
     .api = &API,
     .device_type = &AUDIO_CODEC_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 

@@ -141,8 +141,6 @@ static error_t stop(Device* device) {
 
 // endregion
 
-extern Module kernel_module;
-
 Driver rgb_led_pwm_driver = {
     .name = "rgb_led_pwm",
     .compatible = (const char*[]) { "rgb-led-pwm", nullptr },
@@ -150,7 +148,6 @@ Driver rgb_led_pwm_driver = {
     .stop_device = stop,
     .api = &RGB_LED_PWM_API,
     .device_type = &RGB_LED_TYPE,
-    .owner = &kernel_module,
     .internal = nullptr
 };
 

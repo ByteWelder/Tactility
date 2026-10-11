@@ -1,5 +1,5 @@
-#include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/app/selectiondialog/SelectionDialog.h>
 #include <Tactility/lvgl/Style.h>
 
 #include <app/event.h>
@@ -9,7 +9,10 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
+#include <lvgl/fonts.h>
 #include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/card.h>
 #include <lvgl/widgets/toolbar.h>
 #include <tactility/check.h>
 #include <tactility/drivers/uart_controller.h>
@@ -18,8 +21,11 @@
 #include <gps/gps.h>
 #include <gps/gps_settings.h>
 
+#include <array>
 #include <cstring>
 #include <lvgl.h>
+#include <string>
+#include <vector>
 
 namespace tt::app::addgps {
 
@@ -31,25 +37,56 @@ namespace {
 
 struct Context {
     uint32_t appInstanceId;
-    lv_obj_t* uartDropdown = nullptr;
-    lv_obj_t* modelDropdown = nullptr;
-    lv_obj_t* baudDropdown = nullptr;
+    TaskEventGroup* eventGroup = nullptr;
+    uint32_t selectUartBit = 0;
+    uint32_t selectModelBit = 0;
+    uint32_t selectBaudBit = 0;
+    uint32_t uartSelectLaunchId = 0;
+    uint32_t modelSelectLaunchId = 0;
+    uint32_t baudSelectLaunchId = 0;
 
-    std::vector<::Device*> devices;
+    // Committed state, which survives widget rebuilds
+    std::string uartName;
+    size_t modelIndex = 0;
+    size_t baudIndex = 0;
 
-    // Store as string instead of int, so app startup doesn't require parsing all entries.
-    // We only need to parse back to int when adding the new GPS entry
+    // Valid while the window is shown
+    lv_obj_t* uartValueLabel = nullptr;
+    lv_obj_t* modelValueLabel = nullptr;
+    lv_obj_t* baudValueLabel = nullptr;
+
+    // The bus names that the open bus selection dialog shows
+    std::vector<std::string> uartNames;
+
     std::array<uint32_t, 6> baudRates = { 9600, 19200, 28800, 38400, 57600, 115200 };
-    const char* baudRatesDropdownValues = "9600\n19200\n28800\n38400\n57600\n115200";
 };
 
 
 std::vector<std::string> getModelNames() {
     std::vector<std::string> result;
     for (int model = GpsModel::GPS_MODEL_UNKNOWN; model <= GpsModel::GPS_MODEL_UC6580; model++) {
-        result.emplace_back(gps_model_to_string(static_cast<GpsModel>(model)));
+        // GPS_MODEL_UNKNOWN makes the driver probe for the model
+        result.emplace_back(model == GPS_MODEL_UNKNOWN ? "Auto-detect" : gps_model_to_string(static_cast<GpsModel>(model)));
     }
     return result;
+}
+
+std::vector<std::string> getBaudNames(Context* ctx) {
+    std::vector<std::string> result;
+    for (auto baud_rate : ctx->baudRates) {
+        result.push_back(std::to_string(baud_rate));
+    }
+    return result;
+}
+
+/** Requires the LVGL lock */
+void updateViews(Context* ctx) {
+    if (ctx->modelValueLabel == nullptr) {
+        return;
+    }
+    lv_label_set_text(ctx->uartValueLabel, ctx->uartName.empty() ? "None" : ctx->uartName.c_str());
+    lv_label_set_text(ctx->modelValueLabel, getModelNames()[ctx->modelIndex].c_str());
+    lv_label_set_text(ctx->baudValueLabel, std::to_string(ctx->baudRates[ctx->baudIndex]).c_str());
 }
 
 void onBackPressed(lv_event_t* event) {
@@ -57,47 +94,98 @@ void onBackPressed(lv_event_t* event) {
     app_event_emit_close(ctx->appInstanceId);
 }
 
+void onSelectUartPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->selectUartBit);
+}
+
+void onSelectModelPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->selectModelBit);
+}
+
+void onSelectBaudPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->selectBaudBit);
+}
+
 void onAddGpsPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    auto selected_baud_index = lv_dropdown_get_selected(ctx->baudDropdown);
 
     GpsConfiguration new_configuration = {
         .uart_name = { 0x00 },
-        .baud_rate = ctx->baudRates[selected_baud_index],
+        .baud_rate = ctx->baudRates[ctx->baudIndex],
         // Warning: This assumes that the enum is a regularly indexed one that starts at 0
-        .model = (GpsModel)lv_dropdown_get_selected(ctx->modelDropdown)
+        .model = (GpsModel)ctx->modelIndex
     };
 
-    lv_dropdown_get_selected_str(ctx->uartDropdown, new_configuration.uart_name, sizeof(new_configuration.uart_name));
+    strncpy(new_configuration.uart_name, ctx->uartName.c_str(), sizeof(new_configuration.uart_name) - 1);
     if (new_configuration.uart_name[0] == 0x00) {
         alertdialog::start(ctx->appInstanceId, "Error", "You must select a bus/uart.");
         return;
     }
 
     LOG_I(TAG, "Saving: uart=%s, model=%d, baud=%u", new_configuration.uart_name, (int)new_configuration.model, (unsigned)new_configuration.baud_rate);
-    if (gps_settings_add_configuration(&new_configuration) != ERROR_NONE) {
+    error_t error = gps_settings_add_configuration(&new_configuration);
+    if (error == ERROR_ALREADY_EXISTS) {
+        alertdialog::start(ctx->appInstanceId, "Error", "A GPS is already configured for this bus.");
+    } else if (error != ERROR_NONE) {
         alertdialog::start(ctx->appInstanceId, "Error", "Failed to add configuration");
     } else {
         onBackPressed(event);
     }
 }
 
-void updateUartDevices(Context* ctx) {
-    ctx->devices.clear();
-    device_for_each_of_type(&UART_CONTROLLER_TYPE, &ctx->devices, [](auto* device, auto* context) {
-        auto* vector_ptr = static_cast<std::vector<::Device*>*>(context);
-        vector_ptr->push_back(device);
+std::vector<std::string> getUartNames() {
+    std::vector<std::string> names;
+    device_for_each_of_type(&UART_CONTROLLER_TYPE, &names, [](auto* device, auto* context) {
+        static_cast<std::vector<std::string>*>(context)->emplace_back(device->name);
         return true;
     });
+    return names;
 }
 
-std::string getUartDropdownNames(Context* ctx) {
-    std::vector<std::string> names;
-    names.push_back("");
-    for (auto* device: ctx->devices) {
-        names.push_back(device->name);
-    }
-    return string::join(names, "\n");
+/**
+ * Creates a row with a title, the selected value below it, and a "Select" button.
+ * @return the label of the selected value
+ */
+lv_obj_t* createSelectRow(lv_obj_t* parent, const char* title, lv_event_cb_t onSelectPressed, Context* ctx) {
+    // Transparent, so the card provides the background
+    auto* row = lv_obj_create(parent);
+    lv_obj_set_size(row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(row, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_border_width(row, 0, LV_STATE_DEFAULT);
+    lv_obj_set_scrollable(row, false);
+
+    // The texts take the width that the button leaves. Texts that don't fit scroll.
+    auto* texts = lv_obj_create(row);
+    lv_obj_set_height(texts, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(texts, 1);
+    lv_obj_set_flex_flow(texts, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_row(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(texts, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+    lv_obj_set_scrollable(texts, false);
+
+    auto* title_label = lv_label_create(texts);
+    lv_obj_set_width(title_label, LV_PCT(100));
+    lv_label_set_long_mode(title_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
+    lv_label_set_text(title_label, title);
+
+    auto* value_label = lv_label_create(texts);
+    lv_obj_set_width(value_label, LV_PCT(100));
+    lv_label_set_long_mode(value_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
+    lv_obj_set_style_text_font(value_label, lvgl_get_text_font(FONT_SIZE_SMALL), LV_STATE_DEFAULT);
+
+    auto* select_button = lv_button_create(row);
+    lv_label_set_text(lv_label_create(select_button), "Select");
+    lv_obj_add_event_cb(select_button, onSelectPressed, LV_EVENT_SHORT_CLICKED, ctx);
+
+    return value_label;
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -114,86 +202,47 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_width(main_wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(main_wrapper, 1);
     lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(main_wrapper, 0, 0);
+    lv_obj_set_flex_align(main_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_border_width(main_wrapper, 0, 0);
     lvgl::obj_set_style_bg_invisible(main_wrapper);
 
-    // region Uart
+    auto* card = lvgl_card_create(main_wrapper);
+    lv_obj_set_size(card, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
 
-    auto* uart_wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_size(uart_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_ver(uart_wrapper, 0, 0);
-    lv_obj_set_style_border_width(uart_wrapper, 0, 0);
-    lvgl::obj_set_style_bg_invisible(uart_wrapper);
-
-    ctx->uartDropdown = lv_dropdown_create(uart_wrapper);
-
-    updateUartDevices(ctx);
-
-    auto uart_options = getUartDropdownNames(ctx);
-    lv_dropdown_set_options(ctx->uartDropdown, uart_options.c_str());
-    lv_obj_align(ctx->uartDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_set_width(ctx->uartDropdown, LV_PCT(50));
-
-    auto* uart_label = lv_label_create(uart_wrapper);
-    lv_obj_align(uart_label, LV_ALIGN_TOP_LEFT, 0, 10);
-    lv_label_set_text(uart_label, "Bus");
-
-    // region Model
-
-    auto* model_wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_size(model_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_ver(model_wrapper, 0, 0);
-    lv_obj_set_style_border_width(model_wrapper, 0, 0);
-    lvgl::obj_set_style_bg_invisible(model_wrapper);
-
-    ctx->modelDropdown = lv_dropdown_create(model_wrapper);
-
-    auto model_names = getModelNames();
-    auto model_options = string::join(model_names, "\n");
-    lv_dropdown_set_options(ctx->modelDropdown, model_options.c_str());
-    lv_obj_align(ctx->modelDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_set_width(ctx->modelDropdown, LV_PCT(50));
-
-    auto* model_label = lv_label_create(model_wrapper);
-    lv_obj_align(model_label, LV_ALIGN_TOP_LEFT, 0, 10);
-    lv_label_set_text(model_label, "Model");
-
-    // endregion
-
-    // region Baud
-    auto* baud_wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_size(baud_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_ver(baud_wrapper, 0, 0);
-    lv_obj_set_style_border_width(baud_wrapper, 0, 0);
-    lvgl::obj_set_style_bg_invisible(baud_wrapper);
-
-    ctx->baudDropdown = lv_dropdown_create(baud_wrapper);
-    lv_dropdown_set_options(ctx->baudDropdown, ctx->baudRatesDropdownValues);
-    lv_obj_align(ctx->baudDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_set_width(ctx->baudDropdown, LV_PCT(50));
-
-    auto* baud_rate_label = lv_label_create(baud_wrapper);
-    lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 10);
-    lv_label_set_text(baud_rate_label, "Baud");
-
-    // endregion
+    ctx->uartValueLabel = createSelectRow(card, "Bus", onSelectUartPressed, ctx);
+    ctx->modelValueLabel = createSelectRow(card, "Model", onSelectModelPressed, ctx);
+    ctx->baudValueLabel = createSelectRow(card, "Baud", onSelectBaudPressed, ctx);
 
     // region Button
 
-    auto* button_wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_size(button_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_ver(button_wrapper, 0, 0);
-    lv_obj_set_style_border_width(button_wrapper, 0, 0);
-    lvgl::obj_set_style_bg_invisible(button_wrapper);
-
-    auto* add_button = lv_button_create(button_wrapper);
-    lv_obj_align(add_button, LV_ALIGN_TOP_MID, 0, 0);
-    auto* add_label = lv_label_create(add_button);
-    lv_label_set_text(add_label, "Add");
+    auto* add_button = lv_button_create(main_wrapper);
+    lv_label_set_text(lv_label_create(add_button), "Add");
     lv_obj_add_event_cb(add_button, onAddGpsPressed, LV_EVENT_SHORT_CLICKED, ctx);
 
     // endregion
+
+    updateViews(ctx);
+}
+
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->uartValueLabel = nullptr;
+    ctx->modelValueLabel = nullptr;
+    ctx->baudValueLabel = nullptr;
+}
+
+void startSelection(Context* ctx, uint32_t& launchId, const char* title, const std::vector<std::string>& items) {
+    if (launchId != 0) {
+        return;
+    }
+    launchId = selectiondialog::start(ctx->appInstanceId, title, items);
+}
+
+/** @return the selected index, or -1 when the dialog was dismissed */
+int32_t getSelectionResult(const AppEvent& event, size_t itemCount) {
+    const int32_t selected = event.result.result;
+    return (selected >= 0 && selected < static_cast<int32_t>(itemCount)) ? selected : -1;
 }
 
 int32_t appMain(int argc, char* argv[]) {
@@ -203,15 +252,35 @@ int32_t appMain(int argc, char* argv[]) {
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+    ctx.eventGroup = &event_group;
+    check(task_event_group_claim_bit(&event_group, &ctx.selectUartBit) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.selectModelBit) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.selectBaudBit) == ERROR_NONE);
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
-        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+        uint32_t flags = 0;
+        task_event_group_wait_any(&event_group, &flags, portMAX_DELAY);
+
+        if (flags & ctx.selectUartBit && ctx.uartSelectLaunchId == 0) {
+            ctx.uartNames = getUartNames();
+            if (ctx.uartNames.empty()) {
+                alertdialog::start(ctx.appInstanceId, "Error", "No bus/uart found.");
+            } else {
+                startSelection(&ctx, ctx.uartSelectLaunchId, "Bus", ctx.uartNames);
+            }
+        }
+        if (flags & ctx.selectModelBit) {
+            startSelection(&ctx, ctx.modelSelectLaunchId, "Model", getModelNames());
+        }
+        if (flags & ctx.selectBaudBit) {
+            startSelection(&ctx, ctx.baudSelectLaunchId, "Baud", getBaudNames(&ctx));
+        }
 
         AppEvent event {};
         while (app_event_poll(&sub, &event) == ERROR_NONE) {
@@ -220,6 +289,22 @@ int32_t appMain(int argc, char* argv[]) {
                     shouldClose = true;
                     break;
                 case APP_EVENT_RESULT:
+                    if (event.result.launch_id == ctx.uartSelectLaunchId) {
+                        ctx.uartSelectLaunchId = 0;
+                        auto selected = getSelectionResult(event, ctx.uartNames.size());
+                        if (selected >= 0) ctx.uartName = ctx.uartNames[selected];
+                    } else if (event.result.launch_id == ctx.modelSelectLaunchId) {
+                        ctx.modelSelectLaunchId = 0;
+                        auto selected = getSelectionResult(event, getModelNames().size());
+                        if (selected >= 0) ctx.modelIndex = selected;
+                    } else if (event.result.launch_id == ctx.baudSelectLaunchId) {
+                        ctx.baudSelectLaunchId = 0;
+                        auto selected = getSelectionResult(event, ctx.baudRates.size());
+                        if (selected >= 0) ctx.baudIndex = selected;
+                    }
+                    lvgl_lock();
+                    updateViews(&ctx);
+                    lvgl_unlock();
                     app_manager_stop(event.result.launch_id);
                     break;
                 default:

@@ -1,0 +1,8 @@
+description: Mock WiFi driver with a fixed list of access points
+
+compatible: "mock,wifi"
+
+properties:
+  _unused:
+    type: int
+    default: 0

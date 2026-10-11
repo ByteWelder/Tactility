@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/gc9a01.h>
-#include <gc9a01_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -358,6 +357,5 @@ Driver gc9a01_driver = {
     .stop_device = stop,
     .api = &gc9a01_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &gc9a01_module,
     .internal = nullptr
 };

@@ -140,7 +140,6 @@ static Driver s_ble_kb_driver = {
     .stop_device = bleKbDeviceStop,
     .api = &s_ble_kb_api,
     .device_type = &KEYBOARD_TYPE,
-    .owner = nullptr,
     .internal = nullptr,
 };
 

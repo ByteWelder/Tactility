@@ -3,7 +3,6 @@
 #if SOC_MIPI_DSI_SUPPORTED
 
 #include <drivers/jd9165.h>
-#include <jd9165_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -527,7 +526,6 @@ Driver jd9165_driver = {
     .stop_device = stop,
     .api = &jd9165_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &jd9165_module,
     .internal = nullptr
 };
 

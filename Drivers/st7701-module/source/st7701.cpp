@@ -3,7 +3,6 @@
 #if SOC_LCD_RGB_SUPPORTED
 
 #include <drivers/st7701.h>
-#include <st7701_module.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -553,7 +552,6 @@ Driver st7701_driver = {
     .stop_device = stop,
     .api = &st7701_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &st7701_module,
     .internal = nullptr
 };
 

@@ -191,8 +191,6 @@ const static struct SpiControllerApi esp32_spi_api = {
     .unlock = unlock
 };
 
-extern struct Module platform_esp32_module;
-
 Driver esp32_spi_driver = {
     .name = "esp32_spi",
     .compatible = (const char*[]) { "espressif,esp32-spi", nullptr },
@@ -200,7 +198,6 @@ Driver esp32_spi_driver = {
     .stop_device = stop,
     .api = (void*)&esp32_spi_api,
     .device_type = &SPI_CONTROLLER_TYPE,
-    .owner = &platform_esp32_module,
     .internal = nullptr
 };
 

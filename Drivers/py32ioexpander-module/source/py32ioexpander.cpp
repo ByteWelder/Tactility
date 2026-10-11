@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Reference: https://github.com/m5stack/StackChan/tree/main/firmware/main/hal/drivers/PY32IOExpander_Class
 #include <drivers/py32ioexpander.h>
-#include <py32ioexpander_module.h>
 #include <tactility/device.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
@@ -147,7 +146,6 @@ Driver py32ioexpander_driver = {
     .stop_device = stop,
     .api = nullptr,
     .device_type = nullptr,
-    .owner = &py32ioexpander_module,
     .internal = nullptr
 };
 

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/nv3031b.h>
-#include <nv3031b_module.h>
 
 #include <tactility/check.h>
 #include <tactility/delay.h>
@@ -374,6 +373,5 @@ Driver nv3031b_driver = {
     .probe = nullptr,
     .api = &nv3031b_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &nv3031b_module,
     .internal = nullptr
 };

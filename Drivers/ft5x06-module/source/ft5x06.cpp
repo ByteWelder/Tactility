@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <drivers/ft5x06.h>
-#include <ft5x06_module.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -266,6 +265,5 @@ Driver ft5x06_driver = {
     .stop_device = stop,
     .api = &ft5x06_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &ft5x06_module,
     .internal = nullptr
 };

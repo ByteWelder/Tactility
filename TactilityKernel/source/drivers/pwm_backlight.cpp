@@ -126,8 +126,6 @@ static error_t stop(Device* device) {
 
 // endregion
 
-extern Module kernel_module;
-
 Driver pwm_backlight_driver = {
     .name = "pwm_backlight",
     .compatible = (const char*[]) { "pwm-backlight", nullptr },
@@ -135,7 +133,6 @@ Driver pwm_backlight_driver = {
     .stop_device = stop,
     .api = &PWM_BACKLIGHT_API,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &kernel_module,
     .internal = nullptr
 };
 

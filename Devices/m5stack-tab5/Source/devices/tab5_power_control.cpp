@@ -190,6 +190,5 @@ Driver tab5_power_control_driver = {
     .stop_device = stop,
     .api = &TAB5_POWER_CONTROL_API,
     .device_type = &POWER_SUPPLY_TYPE,
-    .owner = &m5stack_tab5_module,
     .internal = nullptr
 };

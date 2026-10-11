@@ -26,6 +26,7 @@ struct GpsConfiguration {
  * @brief Persists a new GPS configuration and triggers the ledger to materialize a (not started)
  * GPS_TYPE device for it in the device tree. Use device_start()/device_stop() on the resulting
  * device to control whether it's actually running.
+ * @retval ERROR_ALREADY_EXISTS if a configuration for the same UART exists
  * @retval ERROR_RESOURCE if the configuration file could not be opened/written
  */
 error_t gps_settings_add_configuration(const struct GpsConfiguration* configuration);

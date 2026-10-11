@@ -38,7 +38,7 @@ constexpr size_t MOCK_SCAN_RESULT_COUNT = sizeof(MOCK_SCAN_RESULTS) / sizeof(MOC
 constexpr int8_t MOCK_CONNECTED_RSSI = -30;
 constexpr const char* MOCK_IPV4_ADDRESS = "192.168.1.2";
 
-struct PosixWifiCtx {
+struct MockWifiCtx {
     Device* device = nullptr;
 
     Mutex mutex {};
@@ -51,9 +51,9 @@ struct PosixWifiCtx {
     WifiEventSubscription* subscriptions = nullptr;
 };
 
-#define GET_CTX(device) (static_cast<PosixWifiCtx*>(device_get_driver_data(device)))
+#define GET_CTX(device) (static_cast<MockWifiCtx*>(device_get_driver_data(device)))
 
-void fireEvent(PosixWifiCtx* ctx, WifiEvent event) {
+void fireEvent(MockWifiCtx* ctx, WifiEvent event) {
     mutex_lock(&ctx->subscriptionsMutex);
     for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr; sub = sub->internal.next) {
         mutex_lock(&sub->internal.ring_mutex);
@@ -339,7 +339,7 @@ error_t apiEventUnsubscribe(Device* device, WifiEventSubscription* sub) {
     return result;
 }
 
-const WifiApi posix_wifi_api = {
+const WifiApi mock_wifi_api = {
     .set_radio_on = apiSetRadioOn,
     .set_radio_off = apiSetRadioOff,
     .get_radio_state = apiGetRadioState,
@@ -363,7 +363,7 @@ const WifiApi posix_wifi_api = {
 // itself is only touched by apiSetRadioOn()/apiSetRadioOff().
 
 error_t startDevice(Device* device) {
-    auto* ctx = new(std::nothrow) PosixWifiCtx();
+    auto* ctx = new(std::nothrow) MockWifiCtx();
     if (ctx == nullptr) return ERROR_OUT_OF_MEMORY;
 
     ctx->device = device;
@@ -411,16 +411,13 @@ error_t stopDevice(Device* device) {
 
 extern "C" {
 
-extern Module platform_posix_module;
-
-Driver posix_wifi_driver = {
+Driver mock_wifi_driver = {
     .name = "mock_wifi",
-    .compatible = (const char*[]) { "posix,mock-wifi", nullptr },
+    .compatible = (const char*[]) { "mock,wifi", nullptr },
     .start_device = startDevice,
     .stop_device = stopDevice,
-    .api = (const void*)&posix_wifi_api,
+    .api = (const void*)&mock_wifi_api,
     .device_type = &WIFI_TYPE,
-    .owner = &platform_posix_module,
     .internal = nullptr
 };
 
