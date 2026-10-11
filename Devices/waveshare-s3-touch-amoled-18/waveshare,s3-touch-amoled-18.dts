@@ -1,0 +1,147 @@
+/dts-v1/;
+
+#include <tactility/bindings/root.h>
+#include <tactility/bindings/esp32_ble.h>
+#include <tactility/bindings/esp32_wifi_pinned.h>
+#include <tactility/bindings/esp32_gpio.h>
+#include <tactility/bindings/esp32_i2c_master.h>
+#include <tactility/bindings/esp32_i2s.h>
+#include <tactility/bindings/esp32_spi.h>
+#include <tactility/bindings/esp32_sdmmc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
+#include <tactility/bindings/gpio_hog.h>
+#include <bindings/qmi8658.h>
+#include <bindings/axp2101.h>
+#include <bindings/ft5x06.h>
+#include <bindings/es8311.h>
+#include <bindings/sh8601.h>
+#include <bindings/sh8601_backlight.h>
+#include <bindings/tca9534.h>
+
+// Reference: https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.8
+/ {
+	compatible = "root";
+	model = "Waveshare S3 Touch AMOLED 1.8";
+
+	wifi0 {
+		compatible = "espressif,esp32-wifi-pinned";
+	};
+
+	ble0 {
+		compatible = "espressif,esp32-ble";
+	};
+
+	gpio0 {
+		compatible = "espressif,esp32-gpio";
+		gpio-count = <49>;
+	};
+
+	// ES8311 speaker amplifier enable, active-high on GPIO46.
+	amp_enable {
+		compatible = "gpio-hog";
+		pin = <&gpio0 46 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_HIGH>;
+	};
+
+	// i2s0 must be before i2c0 so the codec can reference it.
+	i2s0 {
+		compatible = "espressif,esp32-i2s";
+		port = <I2S_NUM_1>;
+		pin-bclk = <&gpio0 9 GPIO_FLAG_NONE>;
+		pin-ws = <&gpio0 45 GPIO_FLAG_NONE>;
+		pin-data-out = <&gpio0 8 GPIO_FLAG_NONE>;
+		pin-data-in = <&gpio0 10 GPIO_FLAG_NONE>;
+		pin-mclk = <&gpio0 16 GPIO_FLAG_NONE>;
+	};
+
+	i2c0 {
+		compatible = "espressif,esp32-i2c-master";
+		port = <I2C_NUM_0>;
+		clock-frequency = <400000>;
+		pin-sda = <&gpio0 15 GPIO_FLAG_PULL_UP>;
+		pin-scl = <&gpio0 14 GPIO_FLAG_PULL_UP>;
+
+		qmi8658 {
+			compatible = "qst,qmi8658";
+			reg = <0x6B>;
+		};
+
+		// AXP2101 PMIC. The board runs on the chip's own power-up rail defaults: Waveshare's
+		// BSP and examples never reconfigure the LDOs, so no rail overrides are set here.
+		axp2101: axp2101 {
+			compatible = "x-powers,axp2101";
+			reg = <0x34>;
+		};
+
+		// FT3168, register-compatible with the FT5x06. There is no dedicated reset pin.
+		touch0 {
+			compatible = "focaltech,ft5x06";
+			reg = <0x38>;
+			x-max = <368>;
+			y-max = <448>;
+			pin-interrupt = <&gpio0 21 GPIO_FLAG_NONE>;
+			disable-monitor-timeout;
+		};
+
+		es8311: es8311 {
+			compatible = "everest,es8311";
+			reg = <0x18>;
+			i2s = <&i2s0>;
+		};
+
+		// TCA9554 8-bit I/O expander, register-compatible with the TCA9534 driver.
+		tca9554: tca9554 {
+			compatible = "ti,tca9534";
+			reg = <0x20>;
+		};
+	};
+
+	// AMOLED display on QSPI: CS=12, PCLK=11, D0..D3=4..7. No hardware reset pin.
+	spi2 {
+		compatible = "espressif,esp32-spi";
+		host = <SPI2_HOST>;
+		cs-gpios = <&gpio0 12 GPIO_FLAG_NONE>;
+		pin-mosi = <&gpio0 4 GPIO_FLAG_NONE>;
+		pin-miso = <&gpio0 5 GPIO_FLAG_NONE>;
+		pin-wp = <&gpio0 6 GPIO_FLAG_NONE>;
+		pin-hd = <&gpio0 7 GPIO_FLAG_NONE>;
+		pin-sclk = <&gpio0 11 GPIO_FLAG_NONE>;
+		max-transfer-size = <65536>;
+
+		display0: display@0 {
+			compatible = "shenghe,sh8601";
+			horizontal-resolution = <368>;
+			vertical-resolution = <448>;
+			gap-x = <0>;
+			gap-y = <0>;
+			pixel-clock-hz = <40000000>;
+
+			// The SH8601 has no backlight pin; brightness is a panel command. The driver finds
+			// this child device via the display's children, and the backlight uses its parent.
+			display_backlight {
+				compatible = "sh8601-backlight";
+				brightness-default = <255>;
+			};
+		};
+	};
+
+	// TF card on SDMMC (1-bit): CLK=2, CMD=1, D0=3.
+	sdmmc0 {
+		compatible = "espressif,esp32-sdmmc";
+		pin-clk = <&gpio0 2 GPIO_FLAG_NONE>;
+		pin-cmd = <&gpio0 1 GPIO_FLAG_NONE>;
+		pin-d0 = <&gpio0 3 GPIO_FLAG_NONE>;
+		slot = <SDMMC_HOST_SLOT_1>;
+		bus-width = <1>;
+		max-freq-khz = <20000>;
+		pullups;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
+	};
+};
