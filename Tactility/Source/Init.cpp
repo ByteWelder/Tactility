@@ -6,11 +6,7 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityPrivate.h>
 
-#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/file/File.h>
-#include <Tactility/hal/SdCard.h>
-#include <Tactility/network/NtpPrivate.h>
-#include <Tactility/settings/TimePrivate.h>
 
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>

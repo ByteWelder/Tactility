@@ -1,5 +1,7 @@
+#include <lvgl/fonts.h>
 #include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
+#include <lvgl/widgets/card.h>
 #include <lvgl/widgets/toolbar.h>
 
 #include <Tactility/Tactility.h>
@@ -26,6 +28,7 @@
 
 #include <gps/gps.h>
 #include <gps/gps_settings.h>
+#include <gps_generic/gps_generic.h>
 
 namespace tt::app::addgps {
 extern const ::AppManifest manifest;
@@ -138,15 +141,45 @@ void onDeleteButtonPressed(lv_event_t* event) {
     }
 }
 
+/** @return the bus name and speed, e.g. "ttyACM0 9600 bps" */
+std::string getConnectionDescription(Device* device) {
+    auto* parent = device_get_parent(device);
+    std::string result = parent != nullptr ? parent->name : "";
+    if (device_is_compatible(device, "tactility,gps-generic")) {
+        const auto* config = static_cast<const GpsConfig*>(device->config);
+        result += " " + std::to_string(config->baud_rate) + " bps";
+    }
+    return result;
+}
+
 void createDeviceRow(Context* ctx, Device* device) {
-    auto* wrapper = lv_obj_create(ctx->deviceListWrapper);
+    auto* card = lvgl_card_create(ctx->deviceListWrapper);
+    lv_obj_set_size(card, LV_PCT(100), LV_SIZE_CONTENT);
+
+    // Transparent, so the card provides the background
+    auto* wrapper = lv_obj_create(card);
     lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(wrapper, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_flex_align(wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_border_width(wrapper, 0, 0);
     lv_obj_set_style_pad_all(wrapper, 0, 0);
+    lv_obj_set_style_bg_opa(wrapper, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+    lv_obj_set_scrollable(wrapper, false);
 
-    auto* name_label = lv_label_create(wrapper);
+    // The texts take the width that the buttons leave. Texts that don't fit scroll.
+    auto* texts = lv_obj_create(wrapper);
+    lv_obj_set_height(texts, LV_SIZE_CONTENT);
+    lv_obj_set_flex_grow(texts, 1);
+    lv_obj_set_flex_flow(texts, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_row(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(texts, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(texts, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+    lv_obj_set_scrollable(texts, false);
+
+    auto* name_label = lv_label_create(texts);
+    lv_obj_set_width(name_label, LV_PCT(100));
+    lv_label_set_long_mode(name_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
     char model_name[64];
     if (gps_get_model_name(device, model_name, sizeof(model_name)) == ERROR_NONE) {
         lv_label_set_text(name_label, model_name);
@@ -154,12 +187,19 @@ void createDeviceRow(Context* ctx, Device* device) {
         lv_label_set_text(name_label, device->name);
     }
 
+    auto* connection_label = lv_label_create(texts);
+    lv_obj_set_width(connection_label, LV_PCT(100));
+    lv_label_set_long_mode(connection_label, LV_LABEL_LONG_MODE_SCROLL_CIRCULAR);
+    lv_obj_set_style_text_font(connection_label, lvgl_get_text_font(FONT_SIZE_SMALL), LV_STATE_DEFAULT);
+    lv_label_set_text(connection_label, getConnectionDescription(device).c_str());
+
     auto* actions_wrapper = lv_obj_create(wrapper);
     lv_obj_set_size(actions_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(actions_wrapper, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_border_width(actions_wrapper, 0, 0);
     lv_obj_set_style_pad_all(actions_wrapper, 0, 0);
     lv_obj_set_style_pad_column(actions_wrapper, 4, 0);
+    lv_obj_set_style_bg_opa(actions_wrapper, LV_OPA_TRANSP, LV_STATE_DEFAULT);
 
     auto* button = lv_button_create(actions_wrapper);
     lv_obj_add_event_cb(button, onDeviceButtonPressed, LV_EVENT_SHORT_CLICKED, ctx);
@@ -176,6 +216,7 @@ void createDeviceRow(Context* ctx, Device* device) {
         lv_obj_add_event_cb(delete_button, onDeleteButtonPressed, LV_EVENT_SHORT_CLICKED, ctx);
         lv_obj_set_user_data(delete_button, device);
         auto* delete_label = lv_label_create(delete_button);
+        lv_obj_set_style_text_font(delete_label, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
         lv_label_set_text(delete_label, LVGL_ICON_SHARED_DELETE);
 
         row.hasConfiguration = true;
@@ -199,6 +240,13 @@ void rebuildDeviceList(Context* ctx) {
         createDeviceRow(static_cast<Context*>(context), device);
         return true;
     });
+
+    if (ctx->deviceRows.empty()) {
+        auto* card = lvgl_card_create(ctx->deviceListWrapper);
+        lv_obj_set_size(card, LV_PCT(100), LV_SIZE_CONTENT);
+        auto* label = lv_label_create(card);
+        lv_label_set_text(label, "No devices configured");
+    }
 }
 
 void updateDeviceStates(Context* ctx) {
