@@ -14,6 +14,7 @@
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
+#include <tactility/drivers/sleep_controller.h>
 
 namespace tt::app::poweroff {
 
@@ -26,7 +27,7 @@ struct Context {
 };
 
 
-void showPoweredOffScreen() {
+void showPoweredOffScreen(const char* subtitleText) {
     auto* screen = lv_obj_create(nullptr);
     lv_obj_set_style_bg_color(screen, lv_color_white(), 0);
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
@@ -38,7 +39,7 @@ void showPoweredOffScreen() {
     lv_obj_set_style_text_color(title, lv_color_black(), 0);
 
     auto* subtitle = lv_label_create(screen);
-    lv_label_set_text(subtitle, "Powered off");
+    lv_label_set_text(subtitle, subtitleText);
     lv_obj_set_style_text_color(subtitle, lv_color_black(), 0);
 
     lv_screen_load(screen);
@@ -56,46 +57,73 @@ bool anyDeviceSupportsPowerOff() {
     return any_supported;
 }
 
-void onYesPressed(lv_event_t* /*event*/) {
-    if (!anyDeviceSupportsPowerOff()) {
-        return;
-    }
+Device* findSleepController() {
+    Device* found = nullptr;
+    device_for_each_of_type(&SLEEP_CONTROLLER_TYPE, &found, [](Device* device, void* context) {
+        if (device_is_ready(device)) {
+            *static_cast<Device**>(context) = device;
+            return false;
+        }
+        return true;
+    });
+    return found;
+}
 
+void powerOffAll() {
+    device_for_each_of_type(&POWER_SUPPLY_TYPE, nullptr, [](Device* device, void* /*context*/) {
+        if (device_is_ready(device) && power_supply_supports_power_off(device)) {
+            power_supply_power_off(device);
+        }
+        return true;
+    });
+}
+
+void deepSleep() {
+    auto* sleep_controller = findSleepController();
+    if (sleep_controller != nullptr) {
+        sleep_controller_deep_sleep(sleep_controller);
+    }
+}
+
+void runWithShutdownScreen(const char* subtitle, void (*action)()) {
     Device* display;
     error_t error = device_get_first_by_type(&DISPLAY_TYPE, &display);
     // TODO: remove this logic path when all displays have been migrated to kernel display drivers
     if (error != ERROR_NONE) {
-        // No display, power off now
-        device_for_each_of_type(&POWER_SUPPLY_TYPE, nullptr, [](Device* device, void* /*context*/) {
-            if (device_is_ready(device) && power_supply_supports_power_off(device)) {
-                power_supply_power_off(device);
-            }
-            return true;
-        });
+        action();
         return;
     }
 
     bool is_slow_refresh = display_has_capability(display, DISPLAY_CAPABILITY_SLOW_REFRESH);
     if (is_slow_refresh) {
         auto* lvgl_display = lv_display_get_default();
-        showPoweredOffScreen();
+        showPoweredOffScreen(subtitle);
         if (lvgl_display != nullptr) {
             lv_refr_now(lvgl_display);
         }
     }
 
-    getMainDispatcher().dispatch([is_slow_refresh] {
+    getMainDispatcher().dispatch([is_slow_refresh, action] {
         // Not necessary for LilyGO Paper S3, but other drivers with async rendering might need us to wait a bit.
         if (is_slow_refresh) {
             vTaskDelay(pdMS_TO_TICKS(2000));
         }
-        device_for_each_of_type(&POWER_SUPPLY_TYPE, nullptr, [](Device* device, void* /*context*/) {
-            if (device_is_ready(device) && power_supply_supports_power_off(device)) {
-                power_supply_power_off(device);
-            }
-            return true;
-        });
+        action();
     });
+}
+
+void onYesPressed(lv_event_t* /*event*/) {
+    if (!anyDeviceSupportsPowerOff()) {
+        return;
+    }
+    runWithShutdownScreen("Powered off", powerOffAll);
+}
+
+void onSleepPressed(lv_event_t* /*event*/) {
+    if (findSleepController() == nullptr) {
+        return;
+    }
+    runWithShutdownScreen("Sleeping", deepSleep);
 }
 
 void onNoPressed(lv_event_t* event) {
@@ -109,8 +137,11 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(parent, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
+    bool supports_power_off = anyDeviceSupportsPowerOff();
+    bool supports_sleep = findSleepController() != nullptr;
+
     auto* label = lv_label_create(parent);
-    lv_label_set_text(label, "Power off?");
+    lv_label_set_text(label, supports_power_off ? "Power off?" : "Sleep?");
     lv_obj_set_style_text_font(label, lvgl_get_text_font(FONT_SIZE_LARGE), 0);
 
     auto* button_wrapper = lv_obj_create(parent);
@@ -125,19 +156,33 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_pad_ver(button_wrapper, 6, LV_STATE_DEFAULT);
     lv_obj_set_style_pad_hor(button_wrapper, 6, LV_STATE_DEFAULT);
 
-    auto* yes_button = lv_button_create(button_wrapper);
-    auto* yes_label = lv_label_create(yes_button);
-    lv_label_set_text(yes_label, "Yes");
-    lv_obj_add_event_cb(yes_button, onYesPressed, LV_EVENT_SHORT_CLICKED, nullptr);
+    lv_obj_t* first_button = nullptr;
+    if (supports_power_off) {
+        auto* yes_button = lv_button_create(button_wrapper);
+        auto* yes_label = lv_label_create(yes_button);
+        lv_label_set_text(yes_label, "Yes");
+        lv_obj_add_event_cb(yes_button, onYesPressed, LV_EVENT_SHORT_CLICKED, nullptr);
+        first_button = yes_button;
+    }
+
+    if (supports_sleep) {
+        auto* sleep_button = lv_button_create(button_wrapper);
+        auto* sleep_label = lv_label_create(sleep_button);
+        lv_label_set_text(sleep_label, "Sleep");
+        lv_obj_add_event_cb(sleep_button, onSleepPressed, LV_EVENT_SHORT_CLICKED, nullptr);
+        if (first_button == nullptr) {
+            first_button = sleep_button;
+        }
+    }
 
     auto* no_button = lv_button_create(button_wrapper);
     auto* no_label = lv_label_create(no_button);
     lv_label_set_text(no_label, "No");
     lv_obj_add_event_cb(no_button, onNoPressed, LV_EVENT_SHORT_CLICKED, ctx);
 
-    if (!lvgl_indev_exists(LV_INDEV_TYPE_POINTER)) {
-        lv_group_focus_obj(yes_button);
-        lv_obj_add_state(yes_button, LV_STATE_FOCUS_KEY);
+    if (first_button != nullptr && !lvgl_indev_exists(LV_INDEV_TYPE_POINTER)) {
+        lv_group_focus_obj(first_button);
+        lv_obj_add_state(first_button, LV_STATE_FOCUS_KEY);
     }
 }
 

@@ -23,6 +23,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/bluetooth.h>
 #include <tactility/drivers/power_supply.h>
+#include <tactility/drivers/sleep_controller.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
@@ -179,6 +180,13 @@ static bool supportsPowerOff() {
     bool supported = false;
     device_for_each_of_type(&POWER_SUPPLY_TYPE, &supported, [](Device* device, void* context) {
         if (device_is_ready(device) && power_supply_supports_power_off(device)) {
+            *static_cast<bool*>(context) = true;
+            return false;
+        }
+        return true;
+    });
+    device_for_each_of_type(&SLEEP_CONTROLLER_TYPE, &supported, [](Device* device, void* context) {
+        if (device_is_ready(device)) {
             *static_cast<bool*>(context) = true;
             return false;
         }

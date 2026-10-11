@@ -1,0 +1,16 @@
+description: >
+  ESP32 deep sleep controller. Wakes the system from deep sleep when any of the wakeup pins
+  becomes active. All pins must be RTC/LP capable and share the same active level. On the
+  ESP32 only a single active-low pin is supported. The pins are not claimed, so they can
+  be owned by another driver (e.g. a button) while the system is awake.
+
+include: ["sleep-controller.yaml"]
+
+compatible: "espressif,esp32-sleep"
+
+properties:
+  wakeup-gpios:
+    type: phandle-array
+    element-type: "struct GpioPinSpec"
+    required: true
+    description: GPIO pins that wake the system. Use GPIO_FLAG_ACTIVE_LOW for buttons that pull to ground.

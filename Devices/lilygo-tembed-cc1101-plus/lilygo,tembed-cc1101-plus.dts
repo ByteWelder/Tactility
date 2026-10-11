@@ -1,14 +1,13 @@
 /dts-v1/;
 
-#include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/root.h>
-#include <tactility/bindings/esp32_adc_oneshot.h>
 #include <tactility/bindings/esp32_ble.h>
 #include <tactility/bindings/esp32_gpio.h>
 #include <tactility/bindings/esp32_i2c_master.h>
 #include <tactility/bindings/esp32_i2s.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/esp32_sdspi.h>
+#include <tactility/bindings/esp32_sleep.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_usbdevice.h>
@@ -23,6 +22,8 @@
 #include <bindings/gpio_encoder.h>
 #include <bindings/esp32_led_strip.h>
 
+#define WAKEUP_BUTTON_FLAGS (GPIO_FLAG_ACTIVE_LOW | GPIO_FLAG_PULL_UP)
+
 // Reference:
 // https://wiki.lilygo.cc/products/t-embed-series/t-embed-cc1101/
 // https://github.com/Xinyuan-LilyGO/T-Embed-CC1101
@@ -30,20 +31,6 @@
 / {
 	compatible = "root";
 	model = "T-Embed CC1101 Plus";
-
-	adc0 {
-		compatible = "espressif,esp32-adc-oneshot";
-		unit-id = <ADC_UNIT_1>;
-		clk-src = <ADC_RTC_CLK_SRC_DEFAULT>;
-		channels = <ADC_CHANNEL_3 ADC_ATTEN_DB_12 ADC_BITWIDTH_DEFAULT>;
-	};
-
-	battery-sense {
-		compatible = "battery-sense";
-		io-channel = <&adc0 0>;
-		reference-voltage-mv = <3300>;
-		multiplier = <2110>;
-	};
 
 	wifi0 {
 		compatible = "espressif,esp32-wifi-pinned";
@@ -174,6 +161,11 @@
 		pin-enter = <&gpio0 0 GPIO_FLAG_NONE>;
 		pulses-per-detent = <2>;
 		pending-capacity = <8>;
+	};
+
+	sleep {
+		compatible = "espressif,esp32-sleep";
+		wakeup-gpios = <&gpio0 6 WAKEUP_BUTTON_FLAGS>;
 	};
 
 	usbdevice0 {
