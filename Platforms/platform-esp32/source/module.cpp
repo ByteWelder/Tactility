@@ -339,6 +339,7 @@ extern Driver esp32_pwm_ledc_driver;
 extern Driver esp32_sdmmc_driver;
 #endif
 extern Driver esp32_sdspi_driver;
+extern Driver esp32_sleep_driver;
 extern Driver esp32_spi_driver;
 extern Driver esp32_uart_driver;
 extern Driver esp32_grove_driver;
@@ -391,6 +392,7 @@ static Driver* const platform_esp32_drivers[] = {
     &esp32_sdmmc_driver,
 #endif
     &esp32_sdspi_driver,
+    &esp32_sleep_driver,
     &esp32_spi_driver,
     &esp32_uart_driver,
     &esp32_grove_driver,

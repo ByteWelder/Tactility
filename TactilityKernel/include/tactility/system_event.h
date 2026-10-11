@@ -25,6 +25,7 @@ enum SystemEventType {
     KERNEL_EVENT_SERVICE_STARTED, // ServiceStartedEvent
     KERNEL_EVENT_SERVICE_STOPPED, // ServiceStoppedEvent
     KERNEL_EVENT_TIME_CHANGED, // No data - fired whenever system time is set (NTP sync, RTC restore, manual change)
+    KERNEL_EVENT_DEEP_SLEEP_PREPARE, // No data - fired synchronously right before the system enters deep sleep
 };
 
 /** Data for KERNEL_EVENT_NETWORK_CONNECTED. */

@@ -78,10 +78,6 @@ void setPropertyLabelText(lv_obj_t* label, PowerSupplyProperty property, const P
 }
 
 void updateUi(Context* ctx) {
-    if (ctx->entries.empty()) {
-        return;
-    }
-
     lvgl_lock();
 
     for (auto& entry : ctx->entries) {
@@ -268,6 +264,11 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
 }
 
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->entries.clear();
+}
+
 int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
     Context ctx {};
@@ -286,7 +287,7 @@ int32_t appMain(int argc, char* argv[]) {
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
     ctx.timer->start();
 
     bool shouldClose = false;
