@@ -44,6 +44,7 @@ list(APPEND REQUIRES_LIST
     mbedtls-module
     mesh-module
     mesh-meshcore-module
+    mesh-meshtastic-module
     posix-symbols-module
     pthread-module
     gps-generic-module

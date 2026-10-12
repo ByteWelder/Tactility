@@ -12,6 +12,7 @@
 #if TT_FEATURE_MESH
 #include <mesh/module.h>
 #include <mesh_meshcore/module.h>
+#include <mesh_meshtastic/module.h>
 #endif
 
 #if defined(__linux__) || defined(__APPLE__)
@@ -53,6 +54,7 @@ void registerAndStartServices() {
 #if TT_FEATURE_MESH
     check(module_ensure_started(&mesh_module) == ERROR_NONE);
     check(module_ensure_started(&mesh_meshcore_module) == ERROR_NONE);
+    check(module_ensure_started(&mesh_meshtastic_module) == ERROR_NONE);
 #endif
     addService(service::development::manifest);
     addService(service::webserver::manifest);
