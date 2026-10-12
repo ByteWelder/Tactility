@@ -88,6 +88,16 @@ void thread_set_name(Thread* thread, const char* name);
 void thread_set_stack_size(Thread* thread, size_t stack_size);
 
 /**
+ * @brief Sets whether the stack should be allocated in external memory (PSRAM) when available.
+ * The stack is allocated in internal memory when there is no external memory.
+ * @warning A thread with its stack in external memory must not access flash (e.g. write to the internal filesystem or NVS).
+ * @param[in] thread The thread instance.
+ * @param[in] external true to prefer external memory
+ * @note Can only be called when the thread is in the STOPPED state.
+ */
+void thread_set_stack_external(Thread* thread, bool external);
+
+/**
  * @brief Sets the CPU core affinity for the thread.
  * @param[in] thread The thread instance.
  * @param[in] affinity The CPU core affinity.

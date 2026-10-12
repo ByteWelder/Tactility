@@ -1,0 +1,221 @@
+#include "doctest.h"
+
+#include <location/location.h>
+#include <location/location_service.h>
+#include <location/provider.h>
+
+#include <service/manager.h>
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+
+namespace {
+
+LocationHost* fakeHost = nullptr;
+int createCount = 0;
+int destroyCount = 0;
+
+void* fakeCreate(LocationHost* host) {
+    fakeHost = host;
+    createCount++;
+    return host;
+}
+
+void fakeDestroy(void*) {
+    fakeHost = nullptr;
+    destroyCount++;
+}
+
+const LocationProviderApi fakeProvider = {
+    .id = "fake",
+    .fallback = false,
+    .create = fakeCreate,
+    .destroy = fakeDestroy,
+};
+
+Location makeLocation(double latitude, double longitude) {
+    return Location {
+        .latitude = latitude,
+        .longitude = longitude,
+        .horizontal_accuracy = 3.0f,
+        .altitude = NAN,
+        .ellipsoidal_altitude = NAN,
+        .vertical_accuracy = NAN,
+        .speed = NAN,
+        .speed_accuracy = NAN,
+        .course = NAN,
+        .course_accuracy = NAN,
+        .satellites = 0,
+        .time_ms = 1000,
+        .uptime_ms = 0,
+        .provider = {},
+    };
+}
+
+}
+
+TEST_CASE("location service reports fixes of its providers") {
+    createCount = 0;
+    destroyCount = 0;
+    REQUIRE(location_provider_register(&fakeProvider) == ERROR_NONE);
+    CHECK(location_provider_register(&fakeProvider) == ERROR_ALREADY_EXISTS);
+
+    // Providers don't run without subscriptions
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+    CHECK(createCount == 0);
+
+    Location location;
+    CHECK(location_get(&location) == ERROR_NOT_FOUND);
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    CHECK(location_subscribe(&sub, &group) == ERROR_INVALID_STATE);
+    CHECK(createCount == 1);
+    REQUIRE(fakeHost != nullptr);
+
+    const Location reported = makeLocation(51.05, 3.72);
+    location_host_report(fakeHost, &reported);
+
+    uint32_t flags = 0;
+    CHECK(task_event_group_wait(&group, sub.bit, false, &flags, 0) == ERROR_NONE);
+    CHECK(flags == sub.bit);
+
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(location.latitude == doctest::Approx(51.05));
+    CHECK(location.longitude == doctest::Approx(3.72));
+    CHECK(location.horizontal_accuracy == doctest::Approx(3.0));
+    CHECK(location.time_ms == 1000);
+    CHECK(strcmp(location.provider, "fake") == 0);
+
+    // The last known fix remains available after the last subscription is removed
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    CHECK(location_unsubscribe(&sub) == ERROR_NOT_FOUND);
+    CHECK(destroyCount == 1);
+    CHECK(location_get(&location) == ERROR_NONE);
+
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    CHECK(createCount == 2);
+
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(destroyCount == 2);
+    CHECK(location_get(&location) == ERROR_NOT_FOUND);
+
+    REQUIRE(service_manager_start(location_service_manifest.id) == ERROR_NONE);
+    CHECK(createCount == 3);
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
+    CHECK(destroyCount == 3);
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NOT_FOUND);
+
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(destroyCount == 3);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
+}
+
+TEST_CASE("location provider registration is limited") {
+    LocationProviderApi providers[LOCATION_PROVIDER_MAX_COUNT + 1];
+    char ids[LOCATION_PROVIDER_MAX_COUNT + 1][8];
+    for (size_t i = 0; i <= LOCATION_PROVIDER_MAX_COUNT; i++) {
+        snprintf(ids[i], sizeof(ids[i]), "p%zu", i);
+        providers[i] = { .id = ids[i], .fallback = false, .create = fakeCreate, .destroy = fakeDestroy };
+    }
+    for (size_t i = 0; i < LOCATION_PROVIDER_MAX_COUNT; i++) {
+        REQUIRE(location_provider_register(&providers[i]) == ERROR_NONE);
+    }
+    CHECK(location_provider_register(&providers[LOCATION_PROVIDER_MAX_COUNT]) == ERROR_RESOURCE);
+    for (size_t i = 0; i < LOCATION_PROVIDER_MAX_COUNT; i++) {
+        CHECK(location_provider_unregister(&providers[i]) == ERROR_NONE);
+    }
+}
+
+namespace {
+
+LocationHost* fallbackHost = nullptr;
+
+void* fallbackCreate(LocationHost* host) {
+    fallbackHost = host;
+    return host;
+}
+
+void fallbackDestroy(void*) {
+    fallbackHost = nullptr;
+}
+
+const LocationProviderApi fakeFallbackProvider = {
+    .id = "fakefallback",
+    .fallback = true,
+    .create = fallbackCreate,
+    .destroy = fallbackDestroy,
+};
+
+}
+
+TEST_CASE("location service prefers fixes of providers that aren't a fallback") {
+    REQUIRE(location_provider_register(&fakeProvider) == ERROR_NONE);
+    REQUIRE(location_provider_register(&fakeFallbackProvider) == ERROR_NONE);
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    REQUIRE(fakeHost != nullptr);
+    REQUIRE(fallbackHost != nullptr);
+
+    CHECK(location_host_needs_fallback());
+    const Location fallback = makeLocation(10.0, 20.0);
+    location_host_report(fallbackHost, &fallback);
+    CHECK(task_event_group_wait(&group, sub.bit, false, nullptr, 0) == ERROR_NONE);
+
+    Location location;
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(strcmp(location.provider, "fakefallback") == 0);
+
+    const Location primary = makeLocation(51.05, 3.72);
+    location_host_report(fakeHost, &primary);
+    CHECK(task_event_group_wait(&group, sub.bit, false, nullptr, 0) == ERROR_NONE);
+    CHECK_FALSE(location_host_needs_fallback());
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(strcmp(location.provider, "fake") == 0);
+
+    // A fallback fix doesn't replace a fresh fix, so subscribers aren't signalled
+    location_host_report(fallbackHost, &fallback);
+    CHECK(task_event_group_wait(&group, sub.bit, false, nullptr, 0) == ERROR_TIMEOUT);
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(strcmp(location.provider, "fake") == 0);
+
+    // Without the primary provider, the fallback fix is used again
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
+    CHECK(location_host_needs_fallback());
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(strcmp(location.provider, "fakefallback") == 0);
+
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(location_provider_unregister(&fakeFallbackProvider) == ERROR_NONE);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
+}
+
+TEST_CASE("location_make_approximate keeps only a coarse position") {
+    Location location = makeLocation(51.054321, 3.721234);
+    location.altitude = 12.0f;
+    location.speed = 1.5f;
+    location.satellites = 7;
+    location_make_approximate(&location);
+    CHECK(location.latitude == doctest::Approx(51.06));
+    CHECK(location.longitude == doctest::Approx(3.72));
+    CHECK(location.horizontal_accuracy == doctest::Approx(LOCATION_APPROXIMATE_ACCURACY_METERS));
+    CHECK(std::isnan(location.altitude));
+    CHECK(std::isnan(location.speed));
+    CHECK(location.satellites == 0);
+    CHECK(location.time_ms == 1000);
+
+    location.horizontal_accuracy = 25000.0f;
+    location_make_approximate(&location);
+    CHECK(location.horizontal_accuracy == doctest::Approx(25000.0));
+}

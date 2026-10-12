@@ -58,6 +58,7 @@ namespace app {
     namespace launcher { extern const ::AppManifest manifest; }
     namespace ledstripsettings { extern const ::AppManifest manifest; }
     namespace localesettings { extern const ::AppManifest manifest; }
+    namespace locationsettings { extern const ::AppManifest manifest; }
     namespace notes { extern const ::AppManifest manifest; }
     namespace power { extern const ::AppManifest manifest; }
     namespace poweroff { extern const ::AppManifest manifest; }
@@ -130,6 +131,7 @@ static void registerInternalApps() {
     app_manager_add(&app::inputdialog::manifest);
     app_manager_add(&app::launcher::manifest);
     app_manager_add(&app::localesettings::manifest);
+    app_manager_add(&app::locationsettings::manifest);
     app_manager_add(&app::notes::manifest);
     if (device_exists_of_type(&POWER_SUPPLY_TYPE)) {
         app_manager_add(&app::poweroff::manifest);

@@ -51,6 +51,7 @@ target_link_libraries(TactilityTests PRIVATE
     gps-module
     graphics-module
     http-module
+    location-module
     mbedtls-module
     posix-symbols-module
     pthread-module

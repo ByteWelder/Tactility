@@ -16,6 +16,8 @@
 #include <app/scheduler.h>
 #include <app/start.h>
 
+#include <location/location.h>
+
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
@@ -258,6 +260,23 @@ int32_t appMain(int argc, char* argv[]) {
             }
         });
     }
+
+    ctx.steps.push_back({
+        .title = "Location Services",
+        .description = "Location services let apps use your location. It comes from GPS, or from your IP address via ip-api.com when there is no GPS fix.",
+        .run = [&ctx] {
+            const std::vector<std::string> items = { "Allow precise location", "Allow approximate location", "Don't allow" };
+            ctx.pendingStepDialogId = selectiondialog::start(ctx.appInstanceId, "Location", items);
+        },
+        .onResult = [](int32_t selected) {
+            if (selected == 0 || selected == 1) {
+                location_set_precision(selected == 0 ? LOCATION_PRECISION_PRECISE : LOCATION_PRECISION_APPROXIMATE);
+                location_set_enabled(true);
+            } else if (selected == 2) {
+                location_set_enabled(false);
+            }
+        }
+    });
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
