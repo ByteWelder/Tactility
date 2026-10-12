@@ -19,6 +19,7 @@
 #include <tactility/log.h>
 
 #include <lvgl/fonts.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/card.h>
 #include <lvgl/widgets/toolbar.h>
@@ -307,7 +308,9 @@ lv_obj_t* createTitleAndValue(lv_obj_t* row, const char* title) {
 
 void createChangeButton(lv_obj_t* row, lv_event_cb_t callback, Context* ctx) {
     auto* button = lv_button_create(row);
-    lv_label_set_text(lv_label_create(button), "Change");
+    auto* icon = lv_label_create(button);
+    lv_obj_set_style_text_font(icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(button, callback, LV_EVENT_SHORT_CLICKED, ctx);
 }
 

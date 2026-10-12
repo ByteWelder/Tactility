@@ -33,6 +33,7 @@ const char* const lvgl_icon_shared_names[] = {
     "lightbulb",
     "language",
     "lists",
+    "list_alt",
     "mail",
     "menu",
     "memory",

@@ -339,7 +339,9 @@ lv_obj_t* createValueRow(lv_obj_t* card, const char* title, lv_event_cb_t onChan
     auto* value_label = lv_label_create(row);
 
     auto* button = lv_button_create(row);
-    lv_label_set_text(lv_label_create(button), "Change");
+    auto* icon = lv_label_create(button);
+    lv_obj_set_style_text_font(icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(button, onChange, LV_EVENT_SHORT_CLICKED, ctx);
     return value_label;
 }

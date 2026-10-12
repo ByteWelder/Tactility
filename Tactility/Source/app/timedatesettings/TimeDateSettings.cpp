@@ -17,6 +17,7 @@
 #include <tactility/log.h>
 
 #include <lvgl/fonts.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/card.h>
 #include <lvgl/widgets/toolbar.h>
@@ -191,7 +192,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_label_set_text(ctx->dateFormatLabel, getDateFormat().c_str());
 
     auto* date_format_button = lv_button_create(date_format_row);
-    lv_label_set_text(lv_label_create(date_format_button), "Change");
+    auto* date_format_icon = lv_label_create(date_format_button);
+    lv_obj_set_style_text_font(date_format_icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(date_format_icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(date_format_button, onSelectDateFormatPressed, LV_EVENT_SHORT_CLICKED, ctx);
 
     // "Timezone           Europe/Brussels [Change]"
@@ -213,7 +216,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_label_set_text(ctx->timeZoneLabel, timeZoneName.c_str());
 
     auto* timezone_button = lv_button_create(timezone_row);
-    lv_label_set_text(lv_label_create(timezone_button), "Change");
+    auto* timezone_icon = lv_label_create(timezone_button);
+    lv_obj_set_style_text_font(timezone_icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(timezone_icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(timezone_button, onTimeZonePressed, LV_EVENT_SHORT_CLICKED, ctx);
 }
 

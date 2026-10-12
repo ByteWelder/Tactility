@@ -158,6 +158,7 @@ shared_symbol_code_point_names = [
     "lightbulb",
     "language", # Globe
     "lists", # Chat app toolbar
+    "list_alt", # Settings apps: opens a selection dialog
     "mail",
     "menu",
     "memory", # System Info
