@@ -32,20 +32,20 @@ lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent);
  * @brief Add an icon to all statusbars. Does not need the LVGL lock.
  * @param[in] image the icon (e.g. a statusbar icon font symbol) or NULL for none, at most LVGL_STATUSBAR_IMAGE_MAX_LENGTH bytes
  * @param[in] visible whether the icon is shown
- * @return the icon id, or -1 when LVGL_STATUSBAR_ICON_LIMIT icons were added already
+ * @return the icon id, or -1 when LVGL_STATUSBAR_ICON_LIMIT icons were added already. The other icon functions ignore id -1.
  */
 int8_t lvgl_statusbar_icon_add(const char* image, bool visible);
 
-/** @brief Remove an icon. Does not need the LVGL lock. */
+/** @brief Remove an icon. Does not need the LVGL lock. Does nothing for id -1. */
 void lvgl_statusbar_icon_remove(int8_t id);
 
 /**
- * @brief Update an icon's image. Does not need the LVGL lock.
+ * @brief Update an icon's image. Does not need the LVGL lock. Does nothing for id -1.
  * @param[in] image the icon or NULL for none, at most LVGL_STATUSBAR_IMAGE_MAX_LENGTH bytes
  */
 void lvgl_statusbar_icon_set_image(int8_t id, const char* image);
 
-/** @brief Update an icon's visibility. Does not need the LVGL lock. */
+/** @brief Update an icon's visibility. Does not need the LVGL lock. Does nothing for id -1. */
 void lvgl_statusbar_icon_set_visibility(int8_t id, bool visible);
 
 /** @return the height of the statusbar in the split layout */

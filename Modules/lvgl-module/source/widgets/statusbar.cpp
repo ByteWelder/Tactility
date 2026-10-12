@@ -496,12 +496,18 @@ int8_t lvgl_statusbar_icon_add(const char* image, bool visible) {
         }
     }
     recursive_mutex_unlock(&statusbar_data.mutex);
+    if (result < 0) {
+        LOG_W(TAG, "No icon slot left, the icon isn't shown");
+    }
     notify_instances();
     return result;
 }
 
 void lvgl_statusbar_icon_remove(int8_t id) {
     LOG_D(TAG, "id %d: remove", (int)id);
+    if (id == -1) {
+        return;
+    }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -514,6 +520,9 @@ void lvgl_statusbar_icon_remove(int8_t id) {
 
 void lvgl_statusbar_icon_set_image(int8_t id, const char* image) {
     LOG_D(TAG, "id %d: set image %s", (int)id, image != nullptr ? image : "(none)");
+    if (id == -1) {
+        return;
+    }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -525,6 +534,9 @@ void lvgl_statusbar_icon_set_image(int8_t id, const char* image) {
 
 void lvgl_statusbar_icon_set_visibility(int8_t id, bool visible) {
     LOG_D(TAG, "id %d: set visibility %d", (int)id, (int)visible);
+    if (id == -1) {
+        return;
+    }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
