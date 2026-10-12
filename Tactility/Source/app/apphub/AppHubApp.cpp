@@ -117,6 +117,15 @@ void showNoInternet(Context* ctx) {
     showRefreshFailedError(ctx, "No Internet Connection");
 }
 
+bool isInContentWrapper(Context* ctx, lv_obj_t* obj) {
+    for (auto* parent = lv_obj_get_parent(obj); parent != nullptr; parent = lv_obj_get_parent(parent)) {
+        if (parent == ctx->contentWrapper) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void showApps(Context* ctx) {
     // Refresh rebuilds the list from scratch (cached copy, then again once the network fetch
     // lands), which would otherwise reset the user's scroll position each time.
@@ -127,8 +136,20 @@ void showApps(Context* ctx) {
     } else {
         scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
     }
-    lv_obj_clean(ctx->contentWrapper);
     ctx->mutex.lock();
+    // Rebuilding deletes the focused entry button, so the same app is focused again afterwards
+    std::string focused_app_id;
+    bool focused_by_key = false;
+    auto* group = lv_group_get_default();
+    auto* focused = group != nullptr ? lv_group_get_focused(group) : nullptr;
+    if (focused != nullptr && isInContentWrapper(ctx, focused)) {
+        const auto index = reinterpret_cast<intptr_t>(lv_obj_get_user_data(focused));
+        if (index < ctx->entries.size()) {
+            focused_app_id = ctx->entries[index].appId;
+            focused_by_key = lv_obj_has_state(focused, LV_STATE_FOCUS_KEY);
+        }
+    }
+    lv_obj_clean(ctx->contentWrapper);
     if (parseJson(ctx->cachedAppsJsonFile, ctx->entries)) {
         std::erase_if(ctx->entries, [](const AppHubEntry& entry) {
             return !isCompatible(entry);
@@ -149,6 +170,7 @@ void showApps(Context* ctx) {
         lv_obj_set_size(list, LV_PCT(100), LV_SIZE_CONTENT);
         lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(list, 0, LV_STATE_DEFAULT);
+        lv_obj_t* focus_target = nullptr;
         for (int i = 0; i < ctx->entries.size(); i++) {
             auto& entry = ctx->entries[i];
             LOG_I(TAG, "Adding %s", entry.appName.c_str());
@@ -158,9 +180,18 @@ void showApps(Context* ctx) {
             auto int_as_voidptr = reinterpret_cast<void*>(i);
             lv_obj_set_user_data(entry_button, int_as_voidptr);
             lv_obj_add_event_cb(entry_button, onAppPressed, LV_EVENT_SHORT_CLICKED, ctx);
+            if (entry.appId == focused_app_id) {
+                focus_target = entry_button;
+            }
         }
 
         lv_obj_scroll_to_y(ctx->contentWrapper, scrollY, LV_ANIM_OFF);
+        if (focus_target != nullptr) {
+            lv_group_focus_obj(focus_target);
+            if (focused_by_key) {
+                lv_obj_add_state(focus_target, LV_STATE_FOCUS_KEY);
+            }
+        }
     } else {
         showRefreshFailedError(ctx, "Failed to load content");
     }
