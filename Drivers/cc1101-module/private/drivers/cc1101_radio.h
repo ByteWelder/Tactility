@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <tactility/concurrent/mutex.h>
 #include <tactility/concurrent/recursive_mutex.h>
 #include <tactility/concurrent/thread.h>
 #include <tactility/drivers/radio.h>
@@ -64,10 +65,25 @@ private:
         std::vector<uint8_t> data;
     };
 
+    /** Work that a caller hands to the radio thread, because RadioLib calls must stay on that thread */
+    enum class Request {
+        None,
+        Rssi,
+        Receiving,
+        Present,
+    };
+
     const Settings settings;
     RadioParts* parts;
     mutable RecursiveMutex mutex = {};
     EventGroupHandle_t events = nullptr;
+
+    Mutex requestMutex = {};
+    EventGroupHandle_t responses = nullptr;
+    Request pendingRequest = Request::None;
+    error_t requestResult = ERROR_NONE;
+    float requestRssi = 0.0f;
+    bool requestReceiving = false;
 
     Thread* thread = nullptr;
     bool threadInterrupted = false;
@@ -88,6 +104,8 @@ private:
     int32_t frequencyDeviation = 5000;      // Hz
     uint16_t preambleLength = 16;           // bits
     uint16_t syncWord = 0x12AD;
+    bool lbt = false;
+    int32_t lbtRssiThreshold = -90;         // dBm
 
     static void gdo0Isr(void* context);
     static int32_t threadMainStatic(void* context);
@@ -105,6 +123,11 @@ private:
 
     void registerGdo0Isr();
     void unregisterGdo0Isr();
+
+    error_t performRequest(Request request);
+    void handleRequest();
+    bool isChannelBusy();
+    bool waitForClearChannel();
     void applyBandSwitch();
     uint32_t getTimeOnAirMillis(size_t length) const;
 
@@ -123,6 +146,13 @@ public:
      * @return ERROR_NONE when the chip responded
      */
     error_t probe();
+
+    /**
+     * Check that the chip still answers, for the hotplug probe. Only checked while the radio is on,
+     * because only the radio thread may access the chip then.
+     * @retval ERROR_NOT_FOUND the chip doesn't answer
+     */
+    error_t checkPresent();
 
     enum RadioState getState() const;
     error_t setEnabled(bool enabled);
@@ -143,4 +173,7 @@ public:
     error_t getParameter(enum RadioParameter parameter, int32_t* value) const;
 
     error_t transmit(const uint8_t* data, size_t length, RadioTxId* id);
+
+    error_t getRssi(float* rssi);
+    error_t isReceiving(bool* receiving);
 };

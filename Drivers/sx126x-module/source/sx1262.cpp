@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <new>
+#include <TactilityCpp/Memory.h>
 
 #include <tactility/delay.h>
 #include <tactility/device.h>
@@ -16,6 +16,9 @@
 #include <drivers/sx1262_radio.h>
 
 #include <driver/gpio.h>
+#include <driver/spi_master.h>
+
+#include <cstring>
 
 #define TAG "sx1262"
 
@@ -31,6 +34,7 @@ struct Sx1262Internal {
     GpioDescriptor* pin_dio1 = nullptr;
     GpioDescriptor* pin_enable = nullptr;
     GpioDescriptor* pin_antenna_select = nullptr;
+    GpioDescriptor* pin_rx_enable = nullptr;
 
     void release_pins() {
         release_pin(&pin_reset);
@@ -38,6 +42,7 @@ struct Sx1262Internal {
         release_pin(&pin_dio1);
         release_pin(&pin_enable);
         release_pin(&pin_antenna_select);
+        release_pin(&pin_rx_enable);
     }
 
 private:
@@ -112,6 +117,157 @@ static void set_pin_active(GpioDescriptor* descriptor, const struct GpioPinSpec&
     }
 }
 
+// region Probe
+
+constexpr uint8_t SX126X_COMMAND_READ_REGISTER = 0x1D;
+constexpr uint16_t SX126X_REGISTER_VERSION_STRING = 0x0320;
+constexpr size_t SX126X_VERSION_STRING_LENGTH = 16;
+// Datasheet: the chip is ready about 3.5 ms after a reset
+constexpr int PROBE_READY_TIMEOUT_MILLIS = 10;
+
+/** Acquire a pin for probing without logging, as probing repeats while the hardware is absent */
+static GpioDescriptor* acquire_probe_pin(const struct GpioPinSpec& spec, gpio_flags_t flags) {
+    if (spec.gpio_controller == nullptr) {
+        return nullptr;
+    }
+    return gpio_descriptor_acquire(spec.gpio_controller, spec.pin, flags, GPIO_OWNER_GPIO);
+}
+
+static bool wait_until_ready(GpioDescriptor* busy) {
+    for (int elapsed = 0; elapsed <= PROBE_READY_TIMEOUT_MILLIS; elapsed++) {
+        bool level = true;
+        if (gpio_descriptor_get_level(busy, &level) == ERROR_NONE && !level) {
+            return true;
+        }
+        delay_millis(1);
+    }
+    return false;
+}
+
+/** Read the version string register through a temporary SPI device, as RadioLib does when it looks for the chip */
+static bool read_version_string(Device* device, char* version) {
+    auto* parent = device_get_parent(device);
+    auto* config = GET_CONFIG(device);
+    auto* spi_config = static_cast<const Esp32SpiConfig*>(parent->config);
+
+    struct GpioPinSpec cs_pin_spec;
+    if (esp32_spi_get_cs_pin(device, &cs_pin_spec) != ERROR_NONE) {
+        return false;
+    }
+    const auto pin_cs = static_cast<gpio_num_t>(cs_pin_spec.pin);
+    gpio_set_direction(pin_cs, GPIO_MODE_OUTPUT);
+    gpio_set_level(pin_cs, 1);
+
+    spi_device_interface_config_t device_config = {};
+    device_config.clock_speed_hz = (int)config->spi_frequency_khz * 1000;
+    device_config.mode = 0;
+    device_config.spics_io_num = -1;
+    device_config.queue_size = 1;
+    spi_device_handle_t handle;
+    if (spi_bus_add_device(spi_config->host, &device_config, &handle) != ESP_OK) {
+        return false;
+    }
+
+    uint8_t tx[4 + SX126X_VERSION_STRING_LENGTH] = {
+        SX126X_COMMAND_READ_REGISTER,
+        (uint8_t)(SX126X_REGISTER_VERSION_STRING >> 8),
+        (uint8_t)(SX126X_REGISTER_VERSION_STRING & 0xFF),
+    };
+    uint8_t rx[sizeof(tx)] = {};
+    spi_transaction_t transaction = {};
+    transaction.length = sizeof(tx) * 8;
+    transaction.tx_buffer = tx;
+    transaction.rx_buffer = rx;
+
+    spi_controller_lock(parent);
+    spi_device_acquire_bus(handle, portMAX_DELAY);
+    gpio_set_level(pin_cs, 0);
+    const esp_err_t result = spi_device_polling_transmit(handle, &transaction);
+    gpio_set_level(pin_cs, 1);
+    spi_device_release_bus(handle);
+    spi_controller_unlock(parent);
+    spi_bus_remove_device(handle);
+
+    // The response starts after the command, the 2 address bytes and the status byte
+    memcpy(version, rx + 4, SX126X_VERSION_STRING_LENGTH);
+    return result == ESP_OK;
+}
+
+/** Whether another started device uses the same chip-select line, e.g. another variant of an add-on in the same slot */
+static bool is_slot_in_use(Device* device) {
+    struct Context {
+        Device* device;
+        bool in_use;
+    } context = { device, false };
+    device_for_each_child(device_get_parent(device), &context, [](Device* sibling, void* context_pointer) {
+        auto* context = static_cast<Context*>(context_pointer);
+        if (sibling != context->device && sibling->address == context->device->address && device_is_ready(sibling)) {
+            context->in_use = true;
+            return false;
+        }
+        return true;
+    });
+    return context.in_use;
+}
+
+/** Power the module, reset it and check that it reports an SX126x version string */
+static error_t detect_chip(Device* device) {
+    auto* parent = device_get_parent(device);
+    if (device_get_type(parent) != &SPI_CONTROLLER_TYPE || !device_is_ready(parent)) {
+        return ERROR_INVALID_STATE;
+    }
+    if (is_slot_in_use(device)) {
+        return ERROR_NOT_FOUND;
+    }
+
+    auto* config = GET_CONFIG(device);
+    Sx1262Internal pins;
+    pins.pin_reset = acquire_probe_pin(config->pin_reset, GPIO_FLAG_DIRECTION_OUTPUT);
+    pins.pin_busy = acquire_probe_pin(config->pin_busy, GPIO_FLAG_DIRECTION_INPUT);
+    pins.pin_antenna_select = acquire_probe_pin(config->pin_antenna_select, GPIO_FLAG_DIRECTION_OUTPUT);
+    pins.pin_enable = acquire_probe_pin(config->pin_enable, GPIO_FLAG_DIRECTION_OUTPUT);
+    const bool acquired = pins.pin_reset != nullptr && pins.pin_busy != nullptr &&
+        (pins.pin_antenna_select != nullptr || config->pin_antenna_select.gpio_controller == nullptr) &&
+        (pins.pin_enable != nullptr || config->pin_enable.gpio_controller == nullptr);
+
+    bool found = false;
+    if (acquired) {
+        set_pin_active(pins.pin_antenna_select, config->pin_antenna_select, true);
+        set_pin_active(pins.pin_enable, config->pin_enable, true);
+        if (pins.pin_enable != nullptr) {
+            delay_millis(10);
+        }
+
+        // Datasheet: NRESET must be held low for at least 100 us
+        gpio_descriptor_set_level(pins.pin_reset, false);
+        delay_micros(200);
+        gpio_descriptor_set_level(pins.pin_reset, true);
+
+        char version[SX126X_VERSION_STRING_LENGTH] = {};
+        found = wait_until_ready(pins.pin_busy) && read_version_string(device, version) && strncmp(version, "SX126", 5) == 0;
+
+        // A found module stays powered: switching it off right before the device starts can leave it
+        // without a clean power-on reset
+        if (!found) {
+            set_pin_active(pins.pin_enable, config->pin_enable, false);
+            set_pin_active(pins.pin_antenna_select, config->pin_antenna_select, false);
+        }
+    }
+
+    pins.release_pins();
+    return found ? ERROR_NONE : ERROR_NOT_FOUND;
+}
+
+static error_t probe(Device* device) {
+    auto* data = GET_DATA(device);
+    if (data != nullptr) {
+        return data->radio->checkPresent();
+    }
+    return detect_chip(device);
+}
+
+// endregion
+
 static error_t start(Device* device) {
     LOG_I(TAG, "start %s", device->name);
 
@@ -135,7 +291,7 @@ static error_t start(Device* device) {
     // (see Sx1262Radio::registerDio1Isr), which installs the shared ISR service
     // on demand and reference-counts it against the other GPIO-interrupt users.
 
-    auto* data = new (std::nothrow) Sx1262Internal();
+    auto* data = tt::newObject<Sx1262Internal>();
     if (data == nullptr) return ERROR_OUT_OF_MEMORY;
 
     gpio_num_t pin_reset = GPIO_NUM_NC;
@@ -150,8 +306,18 @@ static error_t start(Device* device) {
 
     if (data->pin_reset == nullptr || data->pin_busy == nullptr || data->pin_dio1 == nullptr) {
         data->release_pins();
-        delete data;
+        tt::deleteObject(data);
         return ERROR_RESOURCE;
+    }
+
+    gpio_num_t pin_rx_enable = GPIO_NUM_NC;
+    if (config->pin_rx_enable.gpio_controller != nullptr) {
+        data->pin_rx_enable = acquire_native_pin(config->pin_rx_enable, "pin-rx-enable", GPIO_FLAG_DIRECTION_OUTPUT, &pin_rx_enable);
+        if (data->pin_rx_enable == nullptr) {
+            data->release_pins();
+            tt::deleteObject(data);
+            return ERROR_RESOURCE;
+        }
     }
 
     // Select the antenna path first, then power the module: the RF switch should
@@ -159,7 +325,7 @@ static error_t start(Device* device) {
     if (acquire_and_drive_pin(config->pin_antenna_select, "pin-antenna-select", true, &data->pin_antenna_select) != ERROR_NONE ||
         acquire_and_drive_pin(config->pin_enable, "pin-enable", true, &data->pin_enable) != ERROR_NONE) {
         data->release_pins();
-        delete data;
+        tt::deleteObject(data);
         return ERROR_RESOURCE;
     }
 
@@ -172,7 +338,7 @@ static error_t start(Device* device) {
     if (esp32_spi_get_cs_pin(device, &cs_pin_spec) != ERROR_NONE) {
         LOG_E(TAG, "Failed to get CS pin from parent SPI controller");
         data->release_pins();
-        delete data;
+        tt::deleteObject(data);
         return ERROR_RESOURCE;
     }
 
@@ -190,6 +356,7 @@ static error_t start(Device* device) {
         .tcxo_voltage = (float)config->tcxo_millivolts / 1000.0f,
         .use_regulator_ldo = config->use_regulator_ldo,
         .dio2_rf_switch = config->dio2_as_rf_switch,
+        .pin_rx_enable = pin_rx_enable,
     };
 
     LOG_I(
@@ -206,10 +373,10 @@ static error_t start(Device* device) {
         config->use_regulator_ldo ? "yes" : "no"
     );
 
-    data->radio = new (std::nothrow) Sx1262Radio(settings);
+    data->radio = tt::newObject<Sx1262Radio>(settings);
     if (data->radio == nullptr) {
         data->release_pins();
-        delete data;
+        tt::deleteObject(data);
         return ERROR_OUT_OF_MEMORY;
     }
 
@@ -217,12 +384,12 @@ static error_t start(Device* device) {
     // so a miswired or unpowered module fails at device start instead of
     // surfacing later as an opaque RadioLib error on the radio thread.
     if (data->radio->probe() != ERROR_NONE) {
-        delete data->radio;
+        tt::deleteObject(data->radio);
         // Power down first, then release the antenna path (mirror of the start order)
         set_pin_active(data->pin_enable, config->pin_enable, false);
         set_pin_active(data->pin_antenna_select, config->pin_antenna_select, false);
         data->release_pins();
-        delete data;
+        tt::deleteObject(data);
         return ERROR_RESOURCE;
     }
 
@@ -237,7 +404,7 @@ static error_t stop(Device* device) {
     if (data == nullptr) return ERROR_NONE;
 
     // Stops the radio thread before teardown
-    delete data->radio;
+    tt::deleteObject(data->radio);
     data->radio = nullptr;
 
     // Power down first, then release the antenna path (mirror of the start order)
@@ -247,7 +414,7 @@ static error_t stop(Device* device) {
 
     data->release_pins();
     device_set_driver_data(device, nullptr);
-    delete data;
+    tt::deleteObject(data);
     return ERROR_NONE;
 }
 
@@ -312,6 +479,18 @@ static error_t api_transmit(Device* device, const uint8_t* data, size_t length, 
     return radio->transmit(data, length, id);
 }
 
+static error_t api_get_rssi(Device* device, float* rssi) {
+    auto* radio = get_radio(device);
+    if (radio == nullptr) return ERROR_INVALID_STATE;
+    return radio->getRssi(rssi);
+}
+
+static error_t api_is_receiving(Device* device, bool* receiving) {
+    auto* radio = get_radio(device);
+    if (radio == nullptr) return ERROR_INVALID_STATE;
+    return radio->isReceiving(receiving);
+}
+
 static const struct RadioApi sx1262_radio_api = {
     .get_radio_state = api_get_radio_state,
     .set_enabled = api_set_enabled,
@@ -322,6 +501,8 @@ static const struct RadioApi sx1262_radio_api = {
     .set_parameter = api_set_parameter,
     .get_parameter = api_get_parameter,
     .transmit = api_transmit,
+    .get_rssi = api_get_rssi,
+    .is_receiving = api_is_receiving,
 };
 
 // endregion
@@ -331,6 +512,7 @@ Driver sx1262_driver = {
     .compatible = (const char*[]) { "semtech,sx1262", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = probe,
     .api = &sx1262_radio_api,
     .device_type = &RADIO_TYPE,
     .internal = nullptr

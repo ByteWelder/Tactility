@@ -53,6 +53,17 @@ Notes:
   current into a bad or disconnected antenna but also caps output below +22 dBm. A
   board-aware consumer that knows its antenna and PA can raise it via
   `RADIO_PARAMETER_CURRENT_LIMIT` (up to 140 mA) to reach full output power.
+- Listen-before-talk (`RADIO_PARAMETER_LBT`): before each transmission, LoRa uses channel activity detection and
+  FSK compares the RSSI to `RADIO_PARAMETER_LBT_RSSI_THRESHOLD`. A busy channel backs off 20-200 ms, up to 5 times,
+  before the transmission reports `RADIO_TRANSMISSION_STATE_CHANNEL_BUSY`.
+- `radio_get_rssi()` and `radio_is_receiving()` are served by the radio thread without leaving RX. The RSSI is
+  sampled during duty-cycled RX, so it's an approximation of the noise floor.
+- Hotplug: a node with status "okay" is only started when the chip is found. Before the device starts, the probe
+  powers and resets the module and reads the version string register (`0x0320`). While the radio is on, the radio
+  thread reads that register. While the radio is off, a started device counts as present. The probe skips the bus
+  when another started device on the same SPI controller uses the same chip-select line.
+- `pin-rx-enable` is for modules whose RF switch has a separate RX enable line next to DIO2 (e.g. Seeed Wio-SX1262).
+  RadioLib drives it high while receiving and low otherwise.
 - Radio activity is logged at INFO level (state changes, modem config, TX/RX events);
   per-call detail sits at DEBUG, which is compiled out unless the sdkconfig log level
   is raised.

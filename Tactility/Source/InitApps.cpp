@@ -8,6 +8,7 @@
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/file/File.h>
 #include <Tactility/service/audio/Audio.h>
+#include <Tactility/settings/RadioSettings.h>
 
 #include <app/install.h>
 #include <app/manager.h>
@@ -66,6 +67,10 @@ namespace app {
     namespace systeminfo { extern const ::AppManifest manifest; }
     namespace terminal { extern const ::AppManifest manifest; }
     namespace timedatesettings { extern const ::AppManifest manifest; }
+#if TT_FEATURE_MESH
+    namespace meshinspect { extern const ::AppManifest manifest; }
+    namespace meshsettings { extern const ::AppManifest manifest; }
+#endif
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
     namespace touchcalibration { extern const ::AppManifest manifest; }
 #endif
@@ -159,6 +164,13 @@ static void registerInternalApps() {
     if (device_exists_of_type(&TRACKBALL_TYPE)) {
         app_manager_add(&app::trackballsettings::manifest);
     }
+
+#if TT_FEATURE_MESH
+    if (settings::radio::hasRadio()) {
+        app_manager_add(&app::meshinspect::manifest);
+        app_manager_add(&app::meshsettings::manifest);
+    }
+#endif
 
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     app_manager_add(&app::usbsettings::manifest);

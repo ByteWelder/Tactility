@@ -13,6 +13,8 @@
 
 #include <RadioLib.h>
 
+#include <esp_random.h>
+
 #define TAG "cc1101"
 
 namespace {
@@ -24,6 +26,14 @@ constexpr auto CC1101_TX_POLL_INTERVAL_MILLIS = 1;
 constexpr uint32_t CC1101_INTERRUPT_BIT = (1 << 0);
 constexpr uint32_t CC1101_GDO0_EVENT_BIT = (1 << 1);
 constexpr uint32_t CC1101_QUEUED_TX_BIT = (1 << 2);
+constexpr uint32_t CC1101_REQUEST_BIT = (1 << 3);
+constexpr uint32_t CC1101_RESPONSE_BIT = (1 << 0);
+constexpr auto CC1101_REQUEST_TIMEOUT_MILLIS = 1000;
+constexpr auto CC1101_LBT_MAX_ATTEMPTS = 5;
+constexpr auto CC1101_LBT_BACKOFF_MIN_MILLIS = 20;
+constexpr auto CC1101_LBT_BACKOFF_MAX_MILLIS = 200;
+// PKTSTATUS bit 3: sync word received, cleared at the end of the packet
+constexpr uint8_t CC1101_PKTSTATUS_SFD = (1 << 3);
 constexpr size_t CC1101_THREAD_STACK_SIZE = 8192;
 // Sync word (16 bits) plus the length byte and CRC (16 bits)
 constexpr uint32_t CC1101_PACKET_OVERHEAD_BITS = 16 + 8 + 16;
@@ -93,6 +103,17 @@ public:
         return static_cast<uint8_t>(SPIgetRegValue(RADIOLIB_CC1101_REG_MARCSTATE, 4, 0));
     }
 
+    /** Instantaneous RSSI in dBm, valid while in RX */
+    float getInstantRssi() {
+        const auto raw = static_cast<uint8_t>(SPIgetRegValue(RADIOLIB_CC1101_REG_RSSI));
+        const float half = (raw >= 128) ? (static_cast<float>(raw) - 256.0f) / 2.0f : static_cast<float>(raw) / 2.0f;
+        return half - 74.0f;
+    }
+
+    uint8_t getPacketStatus() {
+        return static_cast<uint8_t>(SPIgetRegValue(RADIOLIB_CC1101_REG_PKTSTATUS));
+    }
+
     /** Read the VERSION register without running begin() */
     int16_t readVersion() {
         auto* module = getMod();
@@ -106,6 +127,12 @@ public:
 };
 
 } // namespace
+
+static bool isKnownVersion(int16_t version) {
+    return (version == RADIOLIB_CC1101_VERSION_CURRENT) ||
+        (version == RADIOLIB_CC1101_VERSION_LEGACY) ||
+        (version == RADIOLIB_CC1101_VERSION_CLONE);
+}
 
 struct Cc1101Radio::RadioParts {
     Cc1101RadiolibHal hal;
@@ -121,22 +148,24 @@ struct Cc1101Radio::RadioParts {
 Cc1101Radio::Cc1101Radio(const Settings& settings)
     : settings(settings) {
     recursive_mutex_construct(&mutex);
+    mutex_construct(&requestMutex);
     event_group_construct(&events);
+    event_group_construct(&responses);
     parts = new RadioParts(settings);
 }
 
 Cc1101Radio::~Cc1101Radio() {
     setEnabled(false);
     delete parts;
+    event_group_destruct(&responses);
     event_group_destruct(&events);
+    mutex_destruct(&requestMutex);
     recursive_mutex_destruct(&mutex);
 }
 
 error_t Cc1101Radio::probe() {
     const int16_t version = parts->radio.readVersion();
-    if ((version != RADIOLIB_CC1101_VERSION_CURRENT) &&
-        (version != RADIOLIB_CC1101_VERSION_LEGACY) &&
-        (version != RADIOLIB_CC1101_VERSION_CLONE)) {
+    if (!isKnownVersion(version)) {
         LOG_E(TAG, "Probe failed: unexpected VERSION register value 0x%02X (module absent or unpowered?)", (unsigned)version);
         return ERROR_RESOURCE;
     }
@@ -409,6 +438,12 @@ error_t Cc1101Radio::setParameter(enum RadioParameter parameter, int32_t value) 
                 result = checkLimitsAndApply(frequencyDeviation, value, 1587, 380800);
             }
             break;
+        case RADIO_PARAMETER_LBT:
+            result = checkLimitsAndApply(lbt, value, 0, 1);
+            break;
+        case RADIO_PARAMETER_LBT_RSSI_THRESHOLD:
+            result = checkLimitsAndApply(lbtRssiThreshold, value, -140, 0);
+            break;
         default:
             result = ERROR_NOT_SUPPORTED;
             break;
@@ -451,6 +486,12 @@ error_t Cc1101Radio::getParameter(enum RadioParameter parameter, int32_t* value)
             } else {
                 *value = frequencyDeviation;
             }
+            break;
+        case RADIO_PARAMETER_LBT:
+            *value = lbt;
+            break;
+        case RADIO_PARAMETER_LBT_RSSI_THRESHOLD:
+            *value = lbtRssiThreshold;
             break;
         default:
             result = ERROR_NOT_SUPPORTED;
@@ -590,6 +631,17 @@ void Cc1101Radio::doTransmit() {
     auto tx = popNextQueuedTx();
     auto& radio = parts->radio;
 
+    // The chip is still in RX from doListen(), so the channel can be sampled before transmitting
+    if (!waitForClearChannel()) {
+        if (isThreadInterrupted()) {
+            radio_tx_event_emit(settings.device, tx.id, RADIO_TRANSMISSION_STATE_ERROR);
+        } else {
+            LOG_W(TAG, "TX id=%d: channel busy", (int)tx.id);
+            radio_tx_event_emit(settings.device, tx.id, RADIO_TRANSMISSION_STATE_CHANNEL_BUSY);
+        }
+        return;
+    }
+
     LOG_I(TAG, "TX id=%d: %u bytes (%u more queued)", (int)tx.id, (unsigned)tx.data.size(), (unsigned)getTxQueueSize());
     int16_t rc = radio.startTransmit(tx.data.data(), tx.data.size());
     if (rc != RADIOLIB_ERR_NONE) {
@@ -648,18 +700,26 @@ bool Cc1101Radio::doListen() {
     // GDO0 now signals end of packet, so the interrupt can be armed
     gpio_descriptor_enable_interrupt(settings.gdo0);
 
-    uint32_t flags = 0;
-    event_group_wait(
-        events,
-        CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT,
-        false,
-        true,
-        &flags,
-        portMAX_DELAY
-    );
-
-    gpio_descriptor_disable_interrupt(settings.gdo0);
-    return (flags & CC1101_GDO0_EVENT_BIT) != 0;
+    while (true) {
+        uint32_t flags = 0;
+        event_group_wait(
+            events,
+            CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT | CC1101_REQUEST_BIT,
+            false,
+            false,
+            &flags,
+            portMAX_DELAY
+        );
+        // Requests are served without leaving RX, so a packet in flight isn't lost
+        if ((flags & (CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT)) == 0) {
+            event_group_clear(events, CC1101_REQUEST_BIT);
+            handleRequest();
+            continue;
+        }
+        event_group_clear(events, CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT);
+        gpio_descriptor_disable_interrupt(settings.gdo0);
+        return (flags & CC1101_GDO0_EVENT_BIT) != 0;
+    }
 }
 
 void Cc1101Radio::doReceive() {
@@ -683,6 +743,94 @@ void Cc1101Radio::doReceive() {
         LOG_I(TAG, "RX: %u bytes, RSSI %.1f dBm, LQI %u", (unsigned)rxSize, rssi, (unsigned)radio.getLQI());
         radio_rx_event_emit(settings.device, data.data(), rxSize, rssi, NAN);
     }
+}
+
+bool Cc1101Radio::isChannelBusy() {
+    auto& radio = parts->radio;
+    return ((radio.getPacketStatus() & CC1101_PKTSTATUS_SFD) != 0) ||
+           (radio.getInstantRssi() >= static_cast<float>(lbtRssiThreshold));
+}
+
+bool Cc1101Radio::waitForClearChannel() {
+    lock();
+    const bool enabled = lbt;
+    unlock();
+    if (!enabled) {
+        return true;
+    }
+
+    // RSSI is only valid in RX, which a preceding reception may have ended
+    auto& radio = parts->radio;
+    if (radio.getMarcState() != RADIOLIB_CC1101_MARC_STATE_RX) {
+        radio.startReceive();
+        delay_millis(1);
+    }
+
+    for (int attempt = 0; attempt < CC1101_LBT_MAX_ATTEMPTS; attempt++) {
+        if (!isChannelBusy()) {
+            return true;
+        }
+        const uint32_t backoffMillis = CC1101_LBT_BACKOFF_MIN_MILLIS + (esp_random() % (CC1101_LBT_BACKOFF_MAX_MILLIS - CC1101_LBT_BACKOFF_MIN_MILLIS));
+        LOG_D(TAG, "Channel busy, backing off %u ms", (unsigned)backoffMillis);
+        // Returns early when the radio is being turned off
+        if (event_group_wait(events, CC1101_INTERRUPT_BIT, false, false, nullptr, pdMS_TO_TICKS(backoffMillis)) == ERROR_NONE) {
+            return false;
+        }
+    }
+    return false;
+}
+
+void Cc1101Radio::handleRequest() {
+    auto& radio = parts->radio;
+    requestResult = ERROR_NONE;
+    if (pendingRequest == Request::Present) {
+        const int16_t version = radio.getChipVersion();
+        requestResult = isKnownVersion(version) ? ERROR_NONE : ERROR_NOT_FOUND;
+    } else if (pendingRequest == Request::Rssi) {
+        requestRssi = radio.getInstantRssi();
+    } else if (pendingRequest == Request::Receiving) {
+        requestReceiving = (radio.getPacketStatus() & CC1101_PKTSTATUS_SFD) != 0;
+    }
+    event_group_set(responses, CC1101_RESPONSE_BIT);
+}
+
+error_t Cc1101Radio::performRequest(Request request) {
+    if (getState() != RADIO_STATE_ON) {
+        return ERROR_INVALID_STATE;
+    }
+
+    mutex_lock(&requestMutex);
+    pendingRequest = request;
+    event_group_clear(responses, CC1101_RESPONSE_BIT);
+    event_group_set(events, CC1101_REQUEST_BIT);
+    const error_t waitResult = event_group_wait(responses, CC1101_RESPONSE_BIT, false, true, nullptr, pdMS_TO_TICKS(CC1101_REQUEST_TIMEOUT_MILLIS));
+    const error_t result = (waitResult == ERROR_NONE) ? requestResult : ERROR_TIMEOUT;
+    mutex_unlock(&requestMutex);
+    return result;
+}
+
+error_t Cc1101Radio::getRssi(float* rssi) {
+    const error_t result = performRequest(Request::Rssi);
+    if (result == ERROR_NONE) {
+        *rssi = requestRssi;
+    }
+    return result;
+}
+
+error_t Cc1101Radio::checkPresent() {
+    if (getState() != RADIO_STATE_ON) {
+        return ERROR_NONE;
+    }
+    // A busy or changing radio counts as present
+    return (performRequest(Request::Present) == ERROR_NOT_FOUND) ? ERROR_NOT_FOUND : ERROR_NONE;
+}
+
+error_t Cc1101Radio::isReceiving(bool* receiving) {
+    const error_t result = performRequest(Request::Receiving);
+    if (result == ERROR_NONE) {
+        *receiving = requestReceiving;
+    }
+    return result;
 }
 
 // endregion

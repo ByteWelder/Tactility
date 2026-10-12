@@ -75,6 +75,36 @@ TEST_CASE("device_hotplug_poll_once starts/stops a probe-capable device after de
     CHECK_EQ(driver_remove_destruct(&probe_driver), ERROR_NONE);
 }
 
+TEST_CASE("device_start skips probe() for a device that isn't registered with the hotplug poller") {
+    probe_present = false;
+    probe_driver_start_called = 0;
+
+    static Device device {
+        .name = "hotplug_unregistered_device",
+        .config = nullptr,
+        .parent = nullptr,
+    };
+
+    CHECK_EQ(driver_construct_add(&probe_driver), ERROR_NONE);
+    CHECK_EQ(device_construct_add(&device, "hotplug_test,probe"), ERROR_NONE);
+
+    // Like a devicetree node with status "disabled" that is started explicitly
+    CHECK_EQ(device_start(&device), ERROR_NONE);
+    CHECK(device_is_ready(&device));
+    CHECK_EQ(probe_driver_start_called, 1);
+
+    // Registered devices are probed: an absent one doesn't start
+    CHECK_EQ(device_stop(&device), ERROR_NONE);
+    device_hotplug_register(&device);
+    CHECK_NE(device_start(&device), ERROR_NONE);
+    CHECK_FALSE(device_is_ready(&device));
+
+    device_hotplug_unregister(&device);
+    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&device), ERROR_NONE);
+    CHECK_EQ(driver_remove_destruct(&probe_driver), ERROR_NONE);
+}
+
 static int mandatory_driver_start_called = 0;
 
 static error_t mandatory_driver_start(Device*) { mandatory_driver_start_called++; return ERROR_NONE; }

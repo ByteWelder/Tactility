@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <tactility/concurrent/mutex.h>
 #include <tactility/concurrent/recursive_mutex.h>
 #include <tactility/concurrent/thread.h>
 #include <tactility/drivers/radio.h>
@@ -10,10 +11,11 @@
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 
+#include <TactilityCpp/std/deque.h>
+#include <TactilityCpp/std/vector.h>
+
 #include <cstddef>
 #include <cstdint>
-#include <deque>
-#include <vector>
 
 struct Device;
 struct GpioDescriptor;
@@ -48,6 +50,8 @@ public:
         float tcxo_voltage;
         bool use_regulator_ldo;
         bool dio2_rf_switch;
+        /** RF switch RX enable, GPIO_NUM_NC when not wired */
+        gpio_num_t pin_rx_enable;
     };
 
 private:
@@ -55,7 +59,15 @@ private:
 
     struct TxItem {
         RadioTxId id = 0;
-        std::vector<uint8_t> data;
+        tt::std::vector<uint8_t> data;
+    };
+
+    /** Work that a caller hands to the radio thread, because RadioLib calls must stay on that thread */
+    enum class Request {
+        None,
+        Rssi,
+        Receiving,
+        Present,
     };
 
     const Settings settings;
@@ -63,13 +75,20 @@ private:
     mutable RecursiveMutex mutex = {};
     EventGroupHandle_t events = nullptr;
 
+    Mutex requestMutex = {};
+    EventGroupHandle_t responses = nullptr;
+    Request pendingRequest = Request::None;
+    error_t requestResult = ERROR_NONE;
+    float requestRssi = 0.0f;
+    bool requestReceiving = false;
+
     Thread* thread = nullptr;
     bool threadInterrupted = false;
 
     enum RadioState state = RADIO_STATE_OFF;
     enum RadioModulation modulation = RADIO_MODULATION_NONE;
 
-    std::deque<TxItem> txQueue;
+    tt::std::deque<TxItem> txQueue;
     TxItem currentTx;
     RadioTxId lastTxId = 0;
 
@@ -89,6 +108,8 @@ private:
     // PA over-current protection limit in mA. Default matches RadioLib's fail-safe 60 mA,
     // which caps output below +22 dBm; a board-aware consumer can raise it (up to 140 mA).
     int32_t currentLimit = 60;     // mA
+    bool lbt = false;
+    int32_t lbtRssiThreshold = -90; // dBm
 
     static void dio1Isr(void* context);
     static int32_t threadMainStatic(void* context);
@@ -108,6 +129,11 @@ private:
 
     void registerDio1Isr();
     void unregisterDio1Isr();
+
+    error_t performRequest(Request request);
+    void handleRequest();
+    bool isChannelBusy();
+    bool waitForClearChannel();
 
     error_t setBaseParameter(enum RadioParameter parameter, int32_t value);
     error_t setLoraParameter(enum RadioParameter parameter, int32_t value);
@@ -135,6 +161,13 @@ public:
      */
     error_t probe() const;
 
+    /**
+     * Check that the chip still answers, for the hotplug probe. Only checked while the radio is on,
+     * because only the radio thread may access the chip then.
+     * @retval ERROR_NOT_FOUND the chip doesn't answer
+     */
+    error_t checkPresent();
+
     enum RadioState getState() const;
     error_t setEnabled(bool enabled);
     error_t setModulation(enum RadioModulation newModulation);
@@ -154,4 +187,7 @@ public:
     error_t getParameter(enum RadioParameter parameter, int32_t* value) const;
 
     error_t transmit(const uint8_t* data, size_t length, RadioTxId* id);
+
+    error_t getRssi(float* rssi);
+    error_t isReceiving(bool* receiving);
 };

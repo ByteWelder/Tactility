@@ -2,6 +2,7 @@
 
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/bluetooth/Bluetooth.h>
+#include <Tactility/settings/RadioSettings.h>
 
 #include <app/manager.h>
 #include <app/start.h>
@@ -18,6 +19,10 @@
 #include <lvgl/widgets/icon_button.h>
 
 #include <lvgl_window_manager/window_manager.h>
+
+#if TT_FEATURE_MESH
+#include <mesh/mesh.h>
+#endif
 
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/device.h>
@@ -57,6 +62,18 @@ static bool hasGps() {
 static bool hasBluetooth() {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
     return device_exists_of_type(&BLUETOOTH_TYPE);
+#else
+    return false;
+#endif
+}
+
+/** Mesh can be toggled once it was configured: a backend is selected and the region is set */
+static bool hasMesh() {
+#if TT_FEATURE_MESH
+    char backend[MESH_BACKEND_ID_MAX_LENGTH + 1];
+    return mesh_is_available() &&
+        mesh_get_backend(backend, sizeof(backend)) == ERROR_NONE &&
+        settings::radio::loadRegion() != RADIO_REGION_UNSET;
 #else
     return false;
 #endif
@@ -135,6 +152,21 @@ static void setBluetoothEnabled(void* context) {
         }
     }
     device_put(device);
+}
+
+#endif
+
+#if TT_FEATURE_MESH
+
+static bool isMeshEnabled() {
+    return mesh_is_enabled();
+}
+
+static void setMeshEnabled(void* context) {
+    const error_t result = mesh_set_enabled(fromContext(context));
+    if (result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to set mesh state (%s)", error_to_string(result));
+    }
 }
 
 #endif
@@ -268,6 +300,13 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
         createOption(grid, &bluetooth_option);
     }
 #endif
+#if TT_FEATURE_MESH
+    // There is no "off" variant of this icon: the toggle's checked state shows whether mesh is on
+    static constexpr ToggleOption mesh_option = { LVGL_ICON_SHARED_HUB, LVGL_ICON_SHARED_HUB, isMeshEnabled, setMeshEnabled };
+    if (hasMesh()) {
+        createOption(grid, &mesh_option);
+    }
+#endif
     if (supportsPowerOff()) {
         auto* power_tile = createTile(grid, LVGL_ICON_SHARED_POWER_SETTINGS_NEW);
         lv_obj_add_event_cb(power_tile, onPowerOffClicked, LV_EVENT_SHORT_CLICKED, nullptr);
@@ -283,7 +322,7 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
 }
 
 void systemMenuShow() {
-    if (!hasWifi() && !hasGps() && !hasBluetooth() && !supportsPowerOff()) {
+    if (!hasWifi() && !hasGps() && !hasBluetooth() && !hasMesh() && !supportsPowerOff()) {
         return;
     }
     window_manager_overlay_show(createWidgets, nullptr, nullptr);

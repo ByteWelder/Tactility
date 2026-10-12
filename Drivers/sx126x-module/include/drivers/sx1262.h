@@ -31,6 +31,8 @@ struct Sx1262Config {
     bool use_regulator_ldo;
     /** DIO2 drives the antenna TX/RX switch */
     bool dio2_as_rf_switch;
+    /** Optional RF switch RX enable, driven high while receiving and low otherwise (must be an SoC GPIO) */
+    struct GpioPinSpec pin_rx_enable;
 };
 
 #ifdef __cplusplus

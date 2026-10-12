@@ -15,6 +15,7 @@
 #include <drivers/cc1101_radio.h>
 
 #include <driver/gpio.h>
+#include <driver/spi_master.h>
 
 #define TAG "cc1101"
 
@@ -59,6 +60,94 @@ static error_t acquire_optional_output(const struct GpioPinSpec& spec, const cha
     *out_descriptor = descriptor;
     return ERROR_NONE;
 }
+
+// region Probe
+
+// VERSION is a status register: it's read with the burst bit set
+constexpr uint8_t CC1101_READ_VERSION = 0x31 | 0xC0;
+constexpr uint8_t CC1101_VERSION_CURRENT = 0x14;
+constexpr uint8_t CC1101_VERSION_LEGACY = 0x04;
+constexpr uint8_t CC1101_VERSION_CLONE = 0x17;
+
+/** Whether another started device uses the same chip-select line, e.g. another variant of an add-on in the same slot */
+static bool is_slot_in_use(Device* device) {
+    struct Context {
+        Device* device;
+        bool in_use;
+    } context = { device, false };
+    device_for_each_child(device_get_parent(device), &context, [](Device* sibling, void* context_pointer) {
+        auto* context = static_cast<Context*>(context_pointer);
+        if (sibling != context->device && sibling->address == context->device->address && device_is_ready(sibling)) {
+            context->in_use = true;
+            return false;
+        }
+        return true;
+    });
+    return context.in_use;
+}
+
+/** Read the VERSION register through a temporary SPI device */
+static error_t detect_chip(Device* device) {
+    auto* parent = device_get_parent(device);
+    if (device_get_type(parent) != &SPI_CONTROLLER_TYPE || !device_is_ready(parent)) {
+        return ERROR_INVALID_STATE;
+    }
+    if (is_slot_in_use(device)) {
+        return ERROR_NOT_FOUND;
+    }
+
+    struct GpioPinSpec cs_pin_spec;
+    if (esp32_spi_get_cs_pin(device, &cs_pin_spec) != ERROR_NONE) {
+        return ERROR_RESOURCE;
+    }
+    const auto pin_cs = static_cast<gpio_num_t>(cs_pin_spec.pin);
+    gpio_set_direction(pin_cs, GPIO_MODE_OUTPUT);
+    gpio_set_level(pin_cs, 1);
+
+    auto* config = GET_CONFIG(device);
+    auto* spi_config = static_cast<const Esp32SpiConfig*>(parent->config);
+    spi_device_interface_config_t device_config = {};
+    device_config.clock_speed_hz = (int)config->spi_frequency_khz * 1000;
+    device_config.mode = 0;
+    device_config.spics_io_num = -1;
+    device_config.queue_size = 1;
+    spi_device_handle_t handle;
+    if (spi_bus_add_device(spi_config->host, &device_config, &handle) != ESP_OK) {
+        return ERROR_RESOURCE;
+    }
+
+    uint8_t tx[2] = { CC1101_READ_VERSION, 0x00 };
+    uint8_t rx[2] = {};
+    spi_transaction_t transaction = {};
+    transaction.length = sizeof(tx) * 8;
+    transaction.tx_buffer = tx;
+    transaction.rx_buffer = rx;
+
+    spi_controller_lock(parent);
+    spi_device_acquire_bus(handle, portMAX_DELAY);
+    gpio_set_level(pin_cs, 0);
+    const esp_err_t result = spi_device_polling_transmit(handle, &transaction);
+    gpio_set_level(pin_cs, 1);
+    spi_device_release_bus(handle);
+    spi_controller_unlock(parent);
+    spi_bus_remove_device(handle);
+
+    // The first byte is the chip status, the second the register value
+    const uint8_t version = rx[1];
+    const bool found = result == ESP_OK &&
+        (version == CC1101_VERSION_CURRENT || version == CC1101_VERSION_LEGACY || version == CC1101_VERSION_CLONE);
+    return found ? ERROR_NONE : ERROR_NOT_FOUND;
+}
+
+static error_t probe(Device* device) {
+    auto* data = GET_DATA(device);
+    if (data != nullptr) {
+        return data->radio->checkPresent();
+    }
+    return detect_chip(device);
+}
+
+// endregion
 
 static error_t start(Device* device) {
     LOG_I(TAG, "start %s", device->name);
@@ -239,6 +328,18 @@ static error_t api_transmit(Device* device, const uint8_t* data, size_t length, 
     return radio->transmit(data, length, id);
 }
 
+static error_t api_get_rssi(Device* device, float* rssi) {
+    auto* radio = get_radio(device);
+    if (radio == nullptr) return ERROR_INVALID_STATE;
+    return radio->getRssi(rssi);
+}
+
+static error_t api_is_receiving(Device* device, bool* receiving) {
+    auto* radio = get_radio(device);
+    if (radio == nullptr) return ERROR_INVALID_STATE;
+    return radio->isReceiving(receiving);
+}
+
 static const struct RadioApi cc1101_radio_api = {
     .get_radio_state = api_get_radio_state,
     .set_enabled = api_set_enabled,
@@ -249,6 +350,8 @@ static const struct RadioApi cc1101_radio_api = {
     .set_parameter = api_set_parameter,
     .get_parameter = api_get_parameter,
     .transmit = api_transmit,
+    .get_rssi = api_get_rssi,
+    .is_receiving = api_is_receiving,
 };
 
 // endregion
@@ -258,6 +361,7 @@ Driver cc1101_driver = {
     .compatible = (const char*[]) { "ti,cc1101", nullptr },
     .start_device = start,
     .stop_device = stop,
+    .probe = probe,
     .api = &cc1101_radio_api,
     .device_type = &RADIO_TYPE,
     .internal = nullptr

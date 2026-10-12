@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <driver/gpio.h>
+#include <esp_private/esp_gpio_reserve.h>
+
+#include <atomic>
 
 #include <tactility/driver.h>
 #include <tactility/drivers/esp32_gpio.h>
@@ -37,6 +40,9 @@ static error_t get_level(GpioDescriptor* descriptor, bool* high) {
     return ERROR_NONE;
 }
 
+/** Output pins reserved by gpio_config() calls of this driver */
+static std::atomic<uint64_t> own_output_pins = 0;
+
 static error_t set_flags(GpioDescriptor* descriptor, gpio_flags_t flags) {
     const Esp32GpioConfig* config = GET_CONFIG(descriptor->controller);
 
@@ -66,7 +72,18 @@ static error_t set_flags(GpioDescriptor* descriptor, gpio_flags_t flags) {
 #endif
     };
 
+    // gpio_config() reserves output pins and warns when a reserved pin is configured again. Pins this driver
+    // reserved itself are revoked first, so acquiring the same output pin again (e.g. hotplug probes) doesn't
+    // warn, while conflicts with pins of other ESP-IDF drivers still do.
+    const uint64_t pin_mask = 1ULL << descriptor->pin;
+    if ((own_output_pins.fetch_and(~pin_mask) & pin_mask) != 0) {
+        esp_gpio_revoke(pin_mask);
+    }
+
     auto esp_error = gpio_config(&esp_config);
+    if (esp_error == ESP_OK && (mode == GPIO_MODE_OUTPUT || mode == GPIO_MODE_INPUT_OUTPUT)) {
+        own_output_pins.fetch_or(pin_mask);
+    }
     return esp_err_to_error(esp_error);
 }
 

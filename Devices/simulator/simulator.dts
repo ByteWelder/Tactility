@@ -2,6 +2,7 @@
 
 #include <tactility/bindings/root.h>
 #include <bindings/mock_wifi.h>
+#include <bindings/mock_radio.h>
 
 / {
 	model = "Simulator";
@@ -9,5 +10,9 @@
 
 	wifi0 {
 		compatible = "mock,wifi";
+	};
+
+	radio0 {
+		compatible = "mock,radio";
 	};
 };

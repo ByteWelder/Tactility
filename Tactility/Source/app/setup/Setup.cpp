@@ -4,8 +4,10 @@
 
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/timezone/TimeZone.h>
+#include <Tactility/app/selectiondialog/SelectionDialog.h>
 #include <Tactility/app/wifimanage/WifiManage.h>
 #include <Tactility/file/File.h>
+#include <Tactility/settings/RadioSettings.h>
 #include <Tactility/Tactility.h>
 
 #include <app/event.h>
@@ -84,6 +86,8 @@ struct StepConfiguration {
     std::string title;
     std::string description;
     std::function<void()> run;
+    /** Optional: handles the result of the dialog that run() started */
+    std::function<void(int32_t)> onResult = nullptr;
 };
 
 struct Context {
@@ -235,6 +239,26 @@ int32_t appMain(int argc, char* argv[]) {
         }
     };
 
+    // The radio may only transmit on the frequencies and power of the user's region
+    if (settings::radio::hasRadio()) {
+        ctx.steps.push_back({
+            .title = "Radio Region",
+            .description = "Let's select your region, so the radio uses the frequencies that are allowed there.",
+            .run = [&ctx] {
+                std::vector<std::string> items;
+                for (int region = RADIO_REGION_UNSET + 1; region < RADIO_REGION_COUNT; region++) {
+                    items.emplace_back(settings::radio::getRegionLabel(static_cast<RadioRegion>(region)));
+                }
+                ctx.pendingStepDialogId = selectiondialog::start(ctx.appInstanceId, "Region", items);
+            },
+            .onResult = [](int32_t selected) {
+                if (selected >= 0 && selected < RADIO_REGION_COUNT - 1) {
+                    settings::radio::saveRegion(static_cast<RadioRegion>(selected + 1));
+                }
+            }
+        });
+    }
+
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
@@ -256,6 +280,10 @@ int32_t appMain(int argc, char* argv[]) {
                 case APP_EVENT_RESULT:
                     if (event.result.launch_id == ctx.pendingStepDialogId) {
                         ctx.pendingStepDialogId = 0;
+                        const auto& onResult = ctx.steps[ctx.stepIndex].onResult;
+                        if (onResult != nullptr) {
+                            onResult(event.result.result);
+                        }
                         advanceTo(&ctx, ctx.stepIndex + 1);
                     }
                     app_manager_stop(event.result.launch_id);

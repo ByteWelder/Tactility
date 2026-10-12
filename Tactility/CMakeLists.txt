@@ -42,6 +42,8 @@ list(APPEND REQUIRES_LIST
     graphics-module
     http-module
     mbedtls-module
+    mesh-module
+    mesh-meshcore-module
     posix-symbols-module
     pthread-module
     gps-generic-module
@@ -233,4 +235,17 @@ endif ()
 message("Default font size: ${font_default_size}")
 target_compile_definitions(${COMPONENT_LIB} PUBLIC
     "-DTT_FONT_DEFAULT_SIZE=${font_default_size}"
+)
+
+# The mesh stack is only linked into firmware for devices with "hardware.mesh=true", to save flash elsewhere
+set(tt_feature_mesh 1)
+if (DEFINED ENV{ESP_IDF_VERSION})
+    file(READ "${DEVICETREE_LOCATION}/device.properties" mesh_device_properties)
+    if (NOT mesh_device_properties MATCHES "hardware\\.mesh=true")
+        set(tt_feature_mesh 0)
+    endif ()
+endif ()
+message("Mesh: ${tt_feature_mesh}")
+target_compile_definitions(${COMPONENT_LIB} PUBLIC
+    "-DTT_FEATURE_MESH=${tt_feature_mesh}"
 )

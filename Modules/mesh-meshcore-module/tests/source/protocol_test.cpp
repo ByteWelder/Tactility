@@ -1,0 +1,140 @@
+#include "doctest.h"
+
+#include <mesh_meshcore/meshcore_packet.h>
+#include <mesh_meshcore/meshcore_protocol.h>
+
+#include <cstring>
+
+TEST_CASE("MeshCore packets survive a serialize and parse round trip") {
+    MeshCorePacket packet;
+    packet.route = MeshCoreRoute::TransportFlood;
+    packet.payloadType = MeshCorePayload::GroupText;
+    packet.transportCodes[0] = 0x1234;
+    packet.transportCodes[1] = 0xABCD;
+    packet.pathLength = 3;
+    packet.path[0] = 0x11;
+    packet.path[1] = 0x22;
+    packet.path[2] = 0x33;
+    packet.payloadLength = 5;
+    memcpy(packet.payload, "hello", 5);
+
+    uint8_t frame[255];
+    const size_t length = meshcore_packet_serialize(packet, frame, sizeof(frame));
+    CHECK_EQ(length, 1 + 4 + 1 + 3 + 5);
+    // Route 0, payload type 5 in bits 2-5
+    CHECK_EQ(frame[0], 0x14);
+    CHECK_EQ(frame[5], 3);
+
+    MeshCorePacket parsed;
+    REQUIRE(meshcore_packet_parse(frame, length, &parsed));
+    CHECK_EQ(parsed.route, MeshCoreRoute::TransportFlood);
+    CHECK_EQ(parsed.payloadType, MeshCorePayload::GroupText);
+    CHECK_EQ(parsed.transportCodes[1], 0xABCD);
+    CHECK_EQ(parsed.pathLength, 3);
+    CHECK_EQ(parsed.path[2], 0x33);
+    CHECK_EQ(parsed.payloadLength, 5);
+    CHECK_EQ(memcmp(parsed.payload, "hello", 5), 0);
+    CHECK_EQ(meshcore_packet_hash(parsed), meshcore_packet_hash(packet));
+}
+
+TEST_CASE("MeshCore parser rejects truncated frames") {
+    const uint8_t header_only[] = { 0x15 };
+    MeshCorePacket packet;
+    CHECK_FALSE(meshcore_packet_parse(header_only, sizeof(header_only), &packet));
+    // Path length claims 10 hops but only 2 bytes follow
+    const uint8_t short_path[] = { 0x15, 10, 0x01, 0x02 };
+    CHECK_FALSE(meshcore_packet_parse(short_path, sizeof(short_path), &packet));
+}
+
+TEST_CASE("MeshCore public channel hash matches the well-known value") {
+    MeshCoreChannel channel;
+    meshcore_channel_from_key(MESHCORE_PUBLIC_CHANNEL_KEY, &channel);
+    // The public channel is addressed with hash 0x11
+    CHECK_EQ(channel.hash, 0x11);
+}
+
+TEST_CASE("MeshCore hashtag channel keys are derived from the name") {
+    uint8_t key[16];
+    uint8_t again[16];
+    meshcore_hashtag_channel_key("#test", key);
+    meshcore_hashtag_channel_key("#test", again);
+    CHECK(memcmp(key, again, sizeof(key)) == 0);
+    meshcore_hashtag_channel_key("#other", again);
+    CHECK(memcmp(key, again, sizeof(key)) != 0);
+}
+
+TEST_CASE("MeshCore group text round trip") {
+    MeshCoreChannel channel;
+    meshcore_channel_from_key(MESHCORE_PUBLIC_CHANNEL_KEY, &channel);
+
+    MeshCorePacket packet;
+    REQUIRE(meshcore_build_group_text(channel, 1750000000, "alice", "hi there", &packet));
+    CHECK_EQ(packet.payload[0], channel.hash);
+
+    MeshCoreText text;
+    REQUIRE(meshcore_parse_group_text(channel, packet, &text));
+    CHECK_EQ(text.timestamp, 1750000000);
+    CHECK_EQ(text.text, "alice: hi there");
+
+    // Another key fails the MAC
+    uint8_t otherKey[16] = { 1 };
+    MeshCoreChannel other;
+    meshcore_channel_from_key(otherKey, &other);
+    other.hash = channel.hash;
+    CHECK_FALSE(meshcore_parse_group_text(other, packet, &text));
+}
+
+TEST_CASE("MeshCore adverts are signed and verified") {
+    MeshCoreIdentity identity;
+    meshcore_identity_create(&identity);
+
+    MeshCorePacket packet;
+    REQUIRE(meshcore_build_advert(identity, 1234, "Tactility", &packet));
+
+    MeshCoreAdvert advert;
+    REQUIRE(meshcore_parse_advert(packet, &advert));
+    CHECK_EQ(advert.timestamp, 1234);
+    CHECK_EQ(advert.name, "Tactility");
+    CHECK_EQ(advert.type, MeshCoreNodeType::Chat);
+    CHECK_EQ(memcmp(advert.publicKey, identity.publicKey, 32), 0);
+
+    // Tampering breaks the signature
+    packet.payload[packet.payloadLength - 1] ^= 0x01;
+    CHECK_FALSE(meshcore_parse_advert(packet, &advert));
+}
+
+TEST_CASE("MeshCore direct messages decrypt at the recipient and produce matching ACK hashes") {
+    MeshCoreIdentity alice;
+    MeshCoreIdentity bob;
+    meshcore_identity_create(&alice);
+    meshcore_identity_create(&bob);
+
+    uint8_t aliceSecret[32];
+    uint8_t bobSecret[32];
+    meshcore_shared_secret(alice, bob.publicKey, aliceSecret);
+    meshcore_shared_secret(bob, alice.publicKey, bobSecret);
+    CHECK_EQ(memcmp(aliceSecret, bobSecret, 32), 0);
+
+    MeshCorePacket packet;
+    uint32_t sentAckHash = 0;
+    REQUIRE(meshcore_build_text_message(alice, bob.publicKey, 42, 0, "secret", &packet, &sentAckHash));
+
+    uint8_t destinationHash;
+    uint8_t sourceHash;
+    REQUIRE(meshcore_peek_text_message(packet, &destinationHash, &sourceHash));
+    CHECK_EQ(destinationHash, bob.publicKey[0]);
+    CHECK_EQ(sourceHash, alice.publicKey[0]);
+
+    MeshCoreText text;
+    uint32_t receivedAckHash = 0;
+    REQUIRE(meshcore_parse_text_message(bob, alice.publicKey, packet, &text, &receivedAckHash));
+    CHECK_EQ(text.text, "secret");
+    CHECK_EQ(text.timestamp, 42);
+    CHECK_EQ(receivedAckHash, sentAckHash);
+
+    MeshCorePacket ack;
+    meshcore_build_ack(receivedAckHash, &ack);
+    uint32_t parsedAckHash = 0;
+    REQUIRE(meshcore_parse_ack(ack, &parsedAckHash));
+    CHECK_EQ(parsedAckHash, sentAckHash);
+}

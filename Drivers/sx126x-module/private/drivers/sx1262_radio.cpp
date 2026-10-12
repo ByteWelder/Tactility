@@ -3,14 +3,20 @@
 
 #include "sx126x_radiolib_hal.h"
 
+#include <TactilityCpp/Memory.h>
+
+#include <tactility/check.h>
 #include <tactility/concurrent/event_group.h>
 #include <tactility/delay.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/log.h>
 
+#include <cstring>
 #include <initializer_list>
 
 #include <RadioLib.h>
+
+#include <esp_random.h>
 
 #define TAG "sx1262"
 
@@ -25,7 +31,15 @@ constexpr auto SX1262_TX_TIMEOUT_FALLBACK_MILLIS = 2000;
 constexpr uint32_t SX1262_INTERRUPT_BIT = (1 << 0);
 constexpr uint32_t SX1262_DIO1_EVENT_BIT = (1 << 1);
 constexpr uint32_t SX1262_QUEUED_TX_BIT = (1 << 2);
-constexpr auto SX1262_IRQ_FLAGS = RADIOLIB_IRQ_RX_DEFAULT_FLAGS;
+constexpr uint32_t SX1262_REQUEST_BIT = (1 << 3);
+constexpr uint32_t SX1262_RESPONSE_BIT = (1 << 0);
+// Preamble and sync word detection are latched in the IRQ status for isReceiving(), but only RX done is routed to DIO1
+constexpr auto SX1262_IRQ_FLAGS = RADIOLIB_IRQ_RX_DEFAULT_FLAGS | (1UL << RADIOLIB_IRQ_PREAMBLE_DETECTED) | (1UL << RADIOLIB_IRQ_SYNC_WORD_VALID);
+constexpr auto SX1262_REQUEST_TIMEOUT_MILLIS = 1000;
+constexpr auto SX1262_CAD_TIMEOUT_MILLIS = 500;
+constexpr auto SX1262_LBT_MAX_ATTEMPTS = 5;
+constexpr auto SX1262_LBT_BACKOFF_MIN_MILLIS = 20;
+constexpr auto SX1262_LBT_BACKOFF_MAX_MILLIS = 200;
 // RX callbacks run on the radio thread and may do non-trivial work (e.g. packet decryption)
 constexpr size_t SX1262_THREAD_STACK_SIZE = 8192;
 
@@ -87,6 +101,10 @@ const char* toString(enum RadioParameter parameter) {
             return "narrow grid";
         case RADIO_PARAMETER_CURRENT_LIMIT:
             return "current limit";
+        case RADIO_PARAMETER_LBT:
+            return "listen-before-talk";
+        case RADIO_PARAMETER_LBT_RSSI_THRESHOLD:
+            return "listen-before-talk RSSI threshold";
         default:
             return "unknown";
     }
@@ -116,12 +134,19 @@ constexpr error_t checkValuesAndApply(T& target, const int32_t value, std::initi
     return ERROR_OUT_OF_RANGE;
 }
 
+/** Exposes the chip's device errors, which explain a failed begin() */
+class Sx1262Chip final : public SX1262 {
+public:
+    using SX1262::SX1262;
+    using SX126x::getDeviceErrors;
+};
+
 } // namespace
 
 struct Sx1262Radio::RadioParts {
     Sx126xRadiolibHal hal;
     Module radioModule;
-    SX1262 radio;
+    Sx1262Chip radio;
 
     explicit RadioParts(const Settings& settings)
         : hal(settings.spi_host, settings.spi_frequency_hz, settings.spi_controller)
@@ -132,21 +157,28 @@ struct Sx1262Radio::RadioParts {
 Sx1262Radio::Sx1262Radio(const Settings& settings)
     : settings(settings) {
     recursive_mutex_construct(&mutex);
+    mutex_construct(&requestMutex);
     event_group_construct(&events);
-    parts = new RadioParts(settings);
+    event_group_construct(&responses);
+    parts = tt::newObject<RadioParts>(settings);
+    check(parts != nullptr);
 }
 
 Sx1262Radio::~Sx1262Radio() {
     setEnabled(false);
-    delete parts;
+    tt::deleteObject(parts);
+    event_group_destruct(&responses);
     event_group_destruct(&events);
+    mutex_destruct(&requestMutex);
     recursive_mutex_destruct(&mutex);
 }
 
+// Datasheet: NRESET must be held low for at least 100 us
+constexpr uint32_t RESET_PULSE_MICROS = 200;
+
 error_t Sx1262Radio::probe() const {
-    // NRESET output, idle high. BUSY input with a pull-up: an absent or unpowered
-    // module leaves BUSY floating, and the pull-up parks it high so the ready
-    // check below can't false-pass on a floating line.
+    // NRESET output, idle high. BUSY input without pull-up: some modules drive BUSY through a
+    // series resistor, which an internal pull-up overpowers.
     gpio_config_t reset_conf = {
         .pin_bit_mask = (1ULL << settings.pin_reset),
         .mode = GPIO_MODE_OUTPUT,
@@ -160,35 +192,40 @@ error_t Sx1262Radio::probe() const {
     gpio_config_t busy_conf = {
         .pin_bit_mask = (1ULL << settings.pin_busy),
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE,
     };
     gpio_config(&busy_conf);
 
     // Reset pulse (datasheet: NRESET low for >= 100 us triggers a full reset)
+    const int busyBeforeReset = gpio_get_level(settings.pin_busy);
     gpio_set_level(settings.pin_reset, 0);
-    delay_millis(2);
+    delay_micros(RESET_PULSE_MICROS);
+    const int busyDuringReset = gpio_get_level(settings.pin_busy);
     gpio_set_level(settings.pin_reset, 1);
 
     // After reset the chip boots and calibrates with BUSY high, then drives BUSY
     // low once it reaches STDBY_RC (datasheet: ~3.5 ms max). Allow a generous
     // margin; a line stuck high means no chip is answering.
     constexpr auto PROBE_TIMEOUT_MILLIS = 20;
+    // BUSY level per millisecond after the reset, logged when the probe fails
+    char busyTrace[PROBE_TIMEOUT_MILLIS + 2] = {};
     int elapsed = 0;
-    while (gpio_get_level(settings.pin_busy) != 0) {
+    while (true) {
+        const int busy = gpio_get_level(settings.pin_busy);
+        busyTrace[elapsed] = busy ? '1' : '0';
+        if (busy == 0) {
+            break;
+        }
         if (elapsed >= PROBE_TIMEOUT_MILLIS) {
             LOG_E(TAG, "Probe failed: BUSY (GPIO %d) stuck high after reset — module absent or unpowered?", settings.pin_busy);
+            LOG_E(TAG, "BUSY before reset %d, during reset %d, after reset per ms: %s", busyBeforeReset, busyDuringReset, busyTrace);
             return ERROR_RESOURCE;
         }
         delay_millis(1);
         elapsed++;
     }
-
-    // Drop the probe pull-up again: the chip actively drives BUSY when powered,
-    // and RadioLib reconfigures the pin at begin() anyway.
-    busy_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&busy_conf);
 
     LOG_I(TAG, "Probe OK: SX1262 answered reset in ~%d ms (BUSY low)", elapsed);
     return ERROR_NONE;
@@ -404,7 +441,7 @@ error_t Sx1262Radio::transmit(const uint8_t* data, size_t length, RadioTxId* id)
     lock();
     const auto txId = lastTxId;
     lastTxId++;
-    txQueue.push_back(TxItem {.id = txId, .data = std::vector<uint8_t>(data, data + length)});
+    txQueue.push_back(TxItem {.id = txId, .data = tt::std::vector<uint8_t>(data, data + length)});
     LOG_D(TAG, "TX id=%d queued: %u bytes (queue depth %u)", (int)txId, (unsigned)length, (unsigned)txQueue.size());
     unlock();
 
@@ -430,6 +467,10 @@ error_t Sx1262Radio::setBaseParameter(enum RadioParameter parameter, int32_t val
         case RADIO_PARAMETER_CURRENT_LIMIT:
             // SX1262 OCP range is 0..140 mA (RadioLib clamps to a 2.5 mA step internally).
             return checkLimitsAndApply(currentLimit, value, 0, 140);
+        case RADIO_PARAMETER_LBT:
+            return checkLimitsAndApply(lbt, value, 0, 1, 1);
+        case RADIO_PARAMETER_LBT_RSSI_THRESHOLD:
+            return checkLimitsAndApply(lbtRssiThreshold, value, -140, 0);
         default:
             return ERROR_NOT_SUPPORTED;
     }
@@ -538,6 +579,12 @@ error_t Sx1262Radio::getBaseParameter(enum RadioParameter parameter, int32_t* va
             return ERROR_NONE;
         case RADIO_PARAMETER_CURRENT_LIMIT:
             *value = currentLimit;
+            return ERROR_NONE;
+        case RADIO_PARAMETER_LBT:
+            *value = lbt;
+            return ERROR_NONE;
+        case RADIO_PARAMETER_LBT_RSSI_THRESHOLD:
+            *value = lbtRssiThreshold;
             return ERROR_NONE;
         default:
             return ERROR_NOT_SUPPORTED;
@@ -729,7 +776,8 @@ int Sx1262Radio::doBegin(enum RadioModulation beginModulation) {
     }
 
     if (rc != RADIOLIB_ERR_NONE) {
-        LOG_E(TAG, "RadioLib initialization failed with code %hi", rc);
+        // Device error bits: 0 RC64K, 1 RC13M, 2 PLL, 3 ADC, 4 image calibration, 5 XOSC start, 6 PLL lock, 8 PA ramp
+        LOG_E(TAG, "RadioLib initialization failed with code %hi, device errors 0x%04X", rc, (unsigned)radio.getDeviceErrors());
         setState(RADIO_STATE_ERROR);
         return -1;
     }
@@ -753,6 +801,10 @@ int Sx1262Radio::doBegin(enum RadioModulation beginModulation) {
             setState(RADIO_STATE_ERROR);
             return -1;
         }
+    }
+
+    if (settings.pin_rx_enable != GPIO_NUM_NC) {
+        radio.setRfSwitchPins(settings.pin_rx_enable, RADIOLIB_NC);
     }
 
     rc = radio.setRxBoostedGainMode(boostedGain, true);
@@ -785,6 +837,16 @@ void Sx1262Radio::doTransmit() {
     int16_t rc = radio.standby();
     if (rc != RADIOLIB_ERR_NONE) {
         LOG_W(TAG, "RadioLib returned %hi on TX standby", rc);
+    }
+
+    if (!waitForClearChannel()) {
+        if (isThreadInterrupted()) {
+            publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_ERROR);
+        } else {
+            LOG_W(TAG, "TX id=%d: channel busy", (int)currentTx.id);
+            publishTx(currentTx.id, RADIO_TRANSMISSION_STATE_CHANNEL_BUSY);
+        }
+        return;
     }
 
     LOG_I(TAG, "TX id=%d: %u bytes (%u more queued)", (int)currentTx.id, (unsigned)currentTx.data.size(), (unsigned)getTxQueueSize());
@@ -842,31 +904,49 @@ bool Sx1262Radio::doListen() {
     if (getModulation() != RADIO_MODULATION_LR_FHSS) {
         int16_t rc = radio.startReceiveDutyCycleAuto(preambleLength, 0, SX1262_IRQ_FLAGS);
         if (rc == RADIOLIB_ERR_NONE) {
-            uint32_t flags = 0;
-            event_group_wait(
-                events,
-                SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT,
-                false,
-                true,
-                &flags,
-                portMAX_DELAY
-            );
-            return (flags & SX1262_DIO1_EVENT_BIT) != 0;
+            while (true) {
+                uint32_t flags = 0;
+                event_group_wait(
+                    events,
+                    SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT | SX1262_REQUEST_BIT,
+                    false,
+                    false,
+                    &flags,
+                    portMAX_DELAY
+                );
+                // Requests are served without leaving RX, so a packet in flight isn't lost
+                if ((flags & (SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT)) == 0) {
+                    event_group_clear(events, SX1262_REQUEST_BIT);
+                    handleRequest();
+                    continue;
+                }
+                event_group_clear(events, SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT);
+                return (flags & SX1262_DIO1_EVENT_BIT) != 0;
+            }
         } else {
             LOG_E(TAG, "Error setting dutycycle RX, RadioLib returned %hi", rc);
         }
         return false;
     } else {
         // LR-FHSS modem only supports TX
-        event_group_wait(
-            events,
-            SX1262_INTERRUPT_BIT | SX1262_QUEUED_TX_BIT,
-            false,
-            true,
-            nullptr,
-            portMAX_DELAY
-        );
-        return false;
+        while (true) {
+            uint32_t flags = 0;
+            event_group_wait(
+                events,
+                SX1262_INTERRUPT_BIT | SX1262_QUEUED_TX_BIT | SX1262_REQUEST_BIT,
+                false,
+                false,
+                &flags,
+                portMAX_DELAY
+            );
+            if ((flags & (SX1262_INTERRUPT_BIT | SX1262_QUEUED_TX_BIT)) == 0) {
+                event_group_clear(events, SX1262_REQUEST_BIT);
+                handleRequest();
+                continue;
+            }
+            event_group_clear(events, SX1262_INTERRUPT_BIT | SX1262_QUEUED_TX_BIT);
+            return false;
+        }
     }
 }
 
@@ -877,7 +957,7 @@ void Sx1262Radio::doReceive() {
     auto& radio = parts->radio;
 
     uint16_t rxSize = radio.getPacketLength(true);
-    std::vector<uint8_t> data(rxSize);
+    tt::std::vector<uint8_t> data(rxSize);
     int16_t rc = radio.readData(data.data(), rxSize);
     if (rc != RADIOLIB_ERR_NONE) {
         LOG_E(TAG, "Error receiving data, RadioLib returned %hi", rc);
@@ -890,6 +970,130 @@ void Sx1262Radio::doReceive() {
         publishRx(data.data(), data.size(), rssi, snr);
         radio.finishReceive();
     }
+}
+
+bool Sx1262Radio::isChannelBusy() {
+    auto& radio = parts->radio;
+
+    if (getModulation() == RADIO_MODULATION_LORA) {
+        // Channel activity detection reports through DIO1
+        event_group_clear(events, SX1262_DIO1_EVENT_BIT);
+        gpio_descriptor_enable_interrupt(settings.dio1);
+        int16_t rc = radio.startChannelScan();
+        if (rc != RADIOLIB_ERR_NONE) {
+            LOG_W(TAG, "Channel scan failed to start, RadioLib returned %hi", rc);
+            return false;
+        }
+        uint32_t flags = 0;
+        event_group_wait(events, SX1262_DIO1_EVENT_BIT, false, true, &flags, pdMS_TO_TICKS(SX1262_CAD_TIMEOUT_MILLIS));
+        const bool busy = radio.getChannelScanResult() == RADIOLIB_LORA_DETECTED;
+        radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_ALL);
+        radio.standby();
+        // Re-arm for the TX-done wait, as the ISR masks the interrupt when it fires
+        event_group_clear(events, SX1262_DIO1_EVENT_BIT);
+        gpio_descriptor_enable_interrupt(settings.dio1);
+        return busy;
+    }
+
+    // FSK: sample the RSSI in continuous RX
+    if (radio.startReceive() != RADIOLIB_ERR_NONE) {
+        return false;
+    }
+    delay_millis(2);
+    const float rssi = radio.getRSSI(false);
+    radio.standby();
+    radio.clearIrqFlags(RADIOLIB_SX126X_IRQ_ALL);
+    event_group_clear(events, SX1262_DIO1_EVENT_BIT);
+    gpio_descriptor_enable_interrupt(settings.dio1);
+    return rssi >= static_cast<float>(lbtRssiThreshold);
+}
+
+bool Sx1262Radio::waitForClearChannel() {
+    lock();
+    const bool enabled = lbt && (modulation != RADIO_MODULATION_LR_FHSS);
+    unlock();
+    if (!enabled) {
+        return true;
+    }
+
+    for (int attempt = 0; attempt < SX1262_LBT_MAX_ATTEMPTS; attempt++) {
+        if (!isChannelBusy()) {
+            return true;
+        }
+        const uint32_t backoffMillis = SX1262_LBT_BACKOFF_MIN_MILLIS + (esp_random() % (SX1262_LBT_BACKOFF_MAX_MILLIS - SX1262_LBT_BACKOFF_MIN_MILLIS));
+        LOG_D(TAG, "Channel busy, backing off %u ms", (unsigned)backoffMillis);
+        // Returns early when the radio is being turned off
+        if (event_group_wait(events, SX1262_INTERRUPT_BIT, false, false, nullptr, pdMS_TO_TICKS(backoffMillis)) == ERROR_NONE) {
+            return false;
+        }
+    }
+    return false;
+}
+
+void Sx1262Radio::handleRequest() {
+    auto& radio = parts->radio;
+    const auto request = pendingRequest;
+    requestResult = ERROR_NONE;
+
+    if (request == Request::Present) {
+        char version[16] = {};
+        parts->radioModule.SPIreadRegisterBurst(RADIOLIB_SX126X_REG_VERSION_STRING, sizeof(version), reinterpret_cast<uint8_t*>(version));
+        requestResult = (strncmp(version, "SX126", 5) == 0) ? ERROR_NONE : ERROR_NOT_FOUND;
+    } else if (getModulation() == RADIO_MODULATION_LR_FHSS) {
+        requestResult = ERROR_NOT_SUPPORTED;
+    } else if (request == Request::Rssi) {
+        requestRssi = radio.getRSSI(false);
+    } else if (request == Request::Receiving) {
+        const uint32_t irq = radio.getIrqFlags();
+        const uint32_t detected = RADIOLIB_SX126X_IRQ_PREAMBLE_DETECTED | RADIOLIB_SX126X_IRQ_SYNC_WORD_VALID | RADIOLIB_SX126X_IRQ_HEADER_VALID;
+        const uint32_t ended = RADIOLIB_SX126X_IRQ_RX_DONE | RADIOLIB_SX126X_IRQ_HEADER_ERR | RADIOLIB_SX126X_IRQ_CRC_ERR | RADIOLIB_SX126X_IRQ_TIMEOUT;
+        requestReceiving = ((irq & detected) != 0) && ((irq & ended) == 0);
+        // A reception that failed without RX done leaves its detection flags latched
+        if ((irq & ended) != 0 && (irq & RADIOLIB_SX126X_IRQ_RX_DONE) == 0) {
+            radio.clearIrqFlags(detected | ended);
+        }
+    }
+
+    event_group_set(responses, SX1262_RESPONSE_BIT);
+}
+
+error_t Sx1262Radio::performRequest(Request request) {
+    if (getState() != RADIO_STATE_ON) {
+        return ERROR_INVALID_STATE;
+    }
+
+    mutex_lock(&requestMutex);
+    pendingRequest = request;
+    event_group_clear(responses, SX1262_RESPONSE_BIT);
+    event_group_set(events, SX1262_REQUEST_BIT);
+    const error_t waitResult = event_group_wait(responses, SX1262_RESPONSE_BIT, false, true, nullptr, pdMS_TO_TICKS(SX1262_REQUEST_TIMEOUT_MILLIS));
+    const error_t result = (waitResult == ERROR_NONE) ? requestResult : ERROR_TIMEOUT;
+    mutex_unlock(&requestMutex);
+    return result;
+}
+
+error_t Sx1262Radio::getRssi(float* rssi) {
+    const error_t result = performRequest(Request::Rssi);
+    if (result == ERROR_NONE) {
+        *rssi = requestRssi;
+    }
+    return result;
+}
+
+error_t Sx1262Radio::checkPresent() {
+    if (getState() != RADIO_STATE_ON) {
+        return ERROR_NONE;
+    }
+    // A busy or changing radio counts as present
+    return (performRequest(Request::Present) == ERROR_NOT_FOUND) ? ERROR_NOT_FOUND : ERROR_NONE;
+}
+
+error_t Sx1262Radio::isReceiving(bool* receiving) {
+    const error_t result = performRequest(Request::Receiving);
+    if (result == ERROR_NONE) {
+        *receiving = requestReceiving;
+    }
+    return result;
 }
 
 // endregion

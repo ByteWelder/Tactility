@@ -1,0 +1,8 @@
+description: Mock packet radio. Mock radios in the same process with matching settings receive each other's transmissions.
+
+compatible: "mock,radio"
+
+properties:
+  _unused:
+    type: int
+    default: 0

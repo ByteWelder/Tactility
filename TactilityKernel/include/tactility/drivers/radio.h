@@ -75,6 +75,14 @@ enum RadioParameter {
      * antenna and PA can raise it to reach full output power.
      */
     RADIO_PARAMETER_CURRENT_LIMIT,
+    /**
+     * Listen-before-talk: 0 = off, 1 = on. When on, the driver checks the channel before each
+     * transmission (channel activity detection for LoRa, RSSI threshold otherwise), backs off
+     * randomly while it is busy and reports RADIO_TRANSMISSION_STATE_CHANNEL_BUSY when it stays busy.
+     */
+    RADIO_PARAMETER_LBT,
+    /** Listen-before-talk RSSI threshold in dBm: the channel counts as busy at or above it */
+    RADIO_PARAMETER_LBT_RSSI_THRESHOLD,
 };
 
 enum RadioState {
@@ -99,6 +107,36 @@ enum RadioTransmissionState {
     RADIO_TRANSMISSION_STATE_TIMEOUT,
     /** The modem rejected the transmission */
     RADIO_TRANSMISSION_STATE_ERROR,
+    /** Listen-before-talk found the channel busy on every attempt */
+    RADIO_TRANSMISSION_STATE_CHANNEL_BUSY,
+};
+
+/**
+ * Regulatory region. Each region allows one or more frequency bands with a maximum TX power.
+ * See radio_get_region_bands().
+ */
+enum RadioRegion {
+    /** No region set: only the driver's own limits apply */
+    RADIO_REGION_UNSET = 0,
+    RADIO_REGION_EU_433,
+    RADIO_REGION_EU_868,
+    RADIO_REGION_US_915,
+    RADIO_REGION_AU_915,
+    RADIO_REGION_NZ_865,
+    RADIO_REGION_IN_865,
+    RADIO_REGION_RU_868,
+    RADIO_REGION_CN_470,
+    RADIO_REGION_JP_920,
+    RADIO_REGION_COUNT,
+};
+
+struct RadioRegionBand {
+    /** Lowest allowed frequency in Hz */
+    int32_t frequency_min;
+    /** Highest allowed frequency in Hz */
+    int32_t frequency_max;
+    /** Maximum TX power in dBm */
+    int8_t power_max;
 };
 
 /** Largest RX payload any supported modem can hand back in one packet. */
@@ -187,6 +225,26 @@ struct RadioApi {
      * @return ERROR_NONE on success
      */
     error_t (*transmit)(struct Device* device, const uint8_t* data, size_t length, RadioTxId* id);
+
+    /**
+     * Optional: get the instantaneous RSSI, which is the noise floor when nothing is being received.
+     * Only available while the radio is on.
+     * @param[in] device the radio device
+     * @param[out] rssi the RSSI in dBm
+     * @return ERROR_NONE on success
+     * @retval ERROR_INVALID_STATE when the radio is not on
+     */
+    error_t (*get_rssi)(struct Device* device, float* rssi);
+
+    /**
+     * Optional: check whether a packet is being received right now (preamble or sync word detected).
+     * Only available while the radio is on.
+     * @param[in] device the radio device
+     * @param[out] receiving true when a packet is being received
+     * @return ERROR_NONE on success
+     * @retval ERROR_INVALID_STATE when the radio is not on
+     */
+    error_t (*is_receiving)(struct Device* device, bool* receiving);
 };
 
 // region State events
@@ -470,6 +528,75 @@ bool radio_can_receive(struct Device* device, enum RadioModulation modulation);
 error_t radio_set_parameter(struct Device* device, enum RadioParameter parameter, int32_t value);
 error_t radio_get_parameter(struct Device* device, enum RadioParameter parameter, int32_t* value);
 error_t radio_transmit(struct Device* device, const uint8_t* data, size_t length, RadioTxId* id);
+
+/** @retval ERROR_NOT_SUPPORTED when the driver doesn't implement it */
+error_t radio_get_rssi(struct Device* device, float* rssi);
+
+/** @retval ERROR_NOT_SUPPORTED when the driver doesn't implement it */
+error_t radio_is_receiving(struct Device* device, bool* receiving);
+
+// region Ownership
+
+/** Maximum owner name length, excluding the terminator */
+#define RADIO_OWNER_NAME_MAX_LENGTH 31
+
+/**
+ * Claim a radio device for exclusive use. The claim is advisory: consumers that want to configure or
+ * transmit should acquire first and back off when the radio is owned by someone else. RX and other
+ * event subscriptions are not affected.
+ * @param[in] device the radio device
+ * @param[in] owner a name that identifies the owner, truncated to RADIO_OWNER_NAME_MAX_LENGTH
+ * @retval ERROR_NONE on success, or when @a owner already holds the device
+ * @retval ERROR_RESOURCE_BUSY when another owner holds the device
+ */
+error_t radio_acquire(struct Device* device, const char* owner);
+
+/**
+ * Release a claim made with radio_acquire().
+ * @retval ERROR_NONE on success
+ * @retval ERROR_INVALID_STATE when the device is not owned
+ */
+error_t radio_release(struct Device* device);
+
+/**
+ * Get the name of the current owner.
+ * @param[in] device the radio device
+ * @param[out] owner buffer for the owner name
+ * @param[in] owner_size size of @a owner
+ * @retval ERROR_NONE on success
+ * @retval ERROR_NOT_FOUND when the device is not owned
+ */
+error_t radio_get_owner(struct Device* device, char* owner, size_t owner_size);
+
+// endregion
+
+// region Regulatory region
+
+/**
+ * Set the regulatory region of a radio device. While a region other than RADIO_REGION_UNSET is set:
+ * radio_set_parameter() rejects a frequency outside the region's bands and a power above the region's
+ * highest limit, and radio_set_enabled() rejects turning on when the configured frequency, bandwidth
+ * and power don't fit a single band. Both return ERROR_OUT_OF_RANGE.
+ * @retval ERROR_NONE on success
+ * @retval ERROR_INVALID_ARGUMENT for an unknown region
+ */
+error_t radio_set_region(struct Device* device, enum RadioRegion region);
+
+/** @return the region of the device, RADIO_REGION_UNSET when none was set */
+enum RadioRegion radio_get_region(struct Device* device);
+
+/**
+ * Get the bands of a region.
+ * @param[in] region the region
+ * @param[out] bands the region's bands
+ * @return the number of bands, 0 for RADIO_REGION_UNSET or an unknown region
+ */
+size_t radio_get_region_bands(enum RadioRegion region, const struct RadioRegionBand** bands);
+
+/** @return a short name for the region, e.g. "EU_868" */
+const char* radio_region_to_string(enum RadioRegion region);
+
+// endregion
 
 #ifdef __cplusplus
 }
