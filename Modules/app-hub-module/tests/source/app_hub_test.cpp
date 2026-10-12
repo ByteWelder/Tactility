@@ -218,6 +218,37 @@ TEST_CASE("app_hub operations report their outcome and the worker stops when idl
     task_event_group_destruct(&group);
 }
 
+TEST_CASE("app_hub drops newer events while a subscriber's queue is full") {
+    ensureFixture();
+    TaskEventGroup group {};
+    task_event_group_construct(&group);
+    AppHubEventSubscription polled {};
+    AppHubEventSubscription unpolled {};
+    REQUIRE_EQ(app_hub_event_subscribe(&polled, &group), ERROR_NONE);
+    REQUIRE_EQ(app_hub_event_subscribe(&unpolled, &group), ERROR_NONE);
+
+    // Each operation emits 2 events, so the last operation's events don't fit
+    uint32_t ids[APP_HUB_EVENT_QUEUE_CAPACITY / 2 + 1] = {};
+    for (auto& id : ids) {
+        REQUIRE_EQ(app_hub_remove("missing", &id), ERROR_NONE);
+        CHECK_EQ(waitForEvent(polled).type, APP_HUB_EVENT_REMOVING);
+        CHECK_EQ(waitForEvent(polled).type, APP_HUB_EVENT_REMOVED);
+    }
+
+    std::vector<uint32_t> received;
+    AppHubEvent event {};
+    while (app_hub_event_poll(&unpolled, &event) == ERROR_NONE) {
+        received.push_back(event.operation_id);
+    }
+    REQUIRE_EQ(received.size(), APP_HUB_EVENT_QUEUE_CAPACITY);
+    CHECK_EQ(received.front(), ids[0]);
+    CHECK_EQ(received.back(), ids[APP_HUB_EVENT_QUEUE_CAPACITY / 2 - 1]);
+
+    CHECK_EQ(app_hub_event_unsubscribe(&unpolled), ERROR_NONE);
+    CHECK_EQ(app_hub_event_unsubscribe(&polled), ERROR_NONE);
+    task_event_group_destruct(&group);
+}
+
 TEST_CASE("app_hub rejects invalid ids") {
     ensureFixture();
     CHECK_EQ(app_hub_install("", nullptr), ERROR_INVALID_ARGUMENT);

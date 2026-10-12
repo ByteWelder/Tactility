@@ -139,6 +139,7 @@ struct AppHubEvent {
 
 /**
  * Caller-owned subscription: wait on the event group, then drain with app_hub_event_poll().
+ * The subscriber must poll often enough: while APP_HUB_EVENT_QUEUE_CAPACITY events are queued, newer events are dropped.
  * @warning Fields other than `bit` are for internal use only.
  */
 struct AppHubEventSubscription {

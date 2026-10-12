@@ -108,6 +108,7 @@ void emitEvent(AppHubEventType type, const Operation& operation, error_t result)
     event.result = result;
     for (auto* sub = subscriptions; sub != nullptr; sub = sub->internal.next) {
         if (sub->internal.count >= APP_HUB_EVENT_QUEUE_CAPACITY) {
+            LOG_W(TAG, "A subscriber's event queue is full: dropped an event of operation %lu", static_cast<unsigned long>(event.operation_id));
             continue;
         }
         const uint8_t tail = (sub->internal.head + sub->internal.count) % APP_HUB_EVENT_QUEUE_CAPACITY;
