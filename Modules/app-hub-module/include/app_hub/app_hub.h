@@ -68,11 +68,18 @@ typedef bool (*AppHubAppVisitorFn)(const struct AppHubApp* app, void* context);
  */
 error_t app_hub_search(const char* query, AppHubAppVisitorFn visitor, void* context);
 
-/** @retval ERROR_NOT_FOUND when the app is neither in the catalog nor installed */
+/**
+ * @param[in] id the app id, must not be NULL
+ * @param[out] app the app, must not be NULL
+ * @retval ERROR_NOT_FOUND when the app is neither in the catalog nor installed
+ */
 error_t app_hub_get_app(const char* id, struct AppHubApp* app);
 
 /**
  * Get the catalog description of an app.
+ * @param[in] id the app id, must not be NULL
+ * @param[out] description the description, must not be NULL
+ * @param[in] description_size the size of @a description
  * @retval ERROR_NOT_FOUND when the app isn't in the catalog
  * @retval ERROR_BUFFER_OVERFLOW when @a description_size is too small
  */

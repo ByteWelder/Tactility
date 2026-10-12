@@ -202,8 +202,11 @@ static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
 }
 
 static void show_menu() {
-    if (statusbar_data.menu_callback != nullptr) {
-        statusbar_data.menu_callback();
+    recursive_mutex_lock(&statusbar_data.mutex);
+    auto* callback = statusbar_data.menu_callback;
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    if (callback != nullptr) {
+        callback();
     }
 }
 
@@ -254,7 +257,9 @@ static void onStatusbarGesture(lv_event_t* /*event*/) {
 extern "C" {
 
 void lvgl_statusbar_set_menu_callback(void (*callback)()) {
+    recursive_mutex_lock(&statusbar_data.mutex);
     statusbar_data.menu_callback = callback;
+    recursive_mutex_unlock(&statusbar_data.mutex);
 }
 
 void lvgl_statusbar_set_time_format_24h(bool format_24h) {
