@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define LVGL_STATUSBAR_ICON_LIMIT 10
+#define LVGL_STATUSBAR_ICON_LIMIT 16
 #define LVGL_STATUSBAR_IMAGE_MAX_LENGTH 63
 
 /**
