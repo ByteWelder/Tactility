@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+
+#include <lvgl.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LVGL_STATUSBAR_ICON_LIMIT 10
+#define LVGL_STATUSBAR_IMAGE_MAX_LENGTH 63
+
+/**
+ * @brief Set the function that opens the system menu, called when the statusbar's icons are clicked or the statusbar is swiped down.
+ * @param[in] callback the function, or NULL to do nothing
+ */
+void lvgl_statusbar_set_menu_callback(void (*callback)(void));
+
+/** @brief Set whether the time is shown in the 24-hour format. The default is true. */
+void lvgl_statusbar_set_time_format_24h(bool format_24h);
+
+/**
+ * @brief Create a statusbar widget.
+ * @warning Needs to be called with the LVGL lock.
+ */
+lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent);
+
+/**
+ * @brief Add an icon to all statusbars. Does not need the LVGL lock.
+ * @param[in] image the icon (e.g. a statusbar icon font symbol) or NULL for none, at most LVGL_STATUSBAR_IMAGE_MAX_LENGTH bytes
+ * @param[in] visible whether the icon is shown
+ * @return the icon id, or -1 when LVGL_STATUSBAR_ICON_LIMIT icons were added already
+ */
+int8_t lvgl_statusbar_icon_add(const char* image, bool visible);
+
+/** @brief Remove an icon. Does not need the LVGL lock. */
+void lvgl_statusbar_icon_remove(int8_t id);
+
+/**
+ * @brief Update an icon's image. Does not need the LVGL lock.
+ * @param[in] image the icon or NULL for none, at most LVGL_STATUSBAR_IMAGE_MAX_LENGTH bytes
+ */
+void lvgl_statusbar_icon_set_image(int8_t id, const char* image);
+
+/** @brief Update an icon's visibility. Does not need the LVGL lock. */
+void lvgl_statusbar_icon_set_visibility(int8_t id, bool visible);
+
+/** @return the height of the statusbar in the split layout */
+int32_t lvgl_statusbar_get_height(void);
+
+/**
+ * @brief Switch between the split layout (a bar on top) and the side layout (a vertical strip on the left).
+ * Circular displays always use the split layout. The caller places the statusbar in its parent.
+ * @warning Needs to be called with the LVGL lock.
+ */
+void lvgl_statusbar_set_side(lv_obj_t* statusbar, bool side);
+
+/**
+ * @return the container for the action buttons of apps in the side layout, or NULL on circular displays. It is hidden in the split layout.
+ * @warning Needs to be called with the LVGL lock.
+ */
+lv_obj_t* lvgl_statusbar_get_action_container(lv_obj_t* statusbar);
+
+#ifdef __cplusplus
+}
+#endif

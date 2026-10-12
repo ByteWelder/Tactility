@@ -23,6 +23,7 @@
 #include <lvgl/widgets/list.h>
 #include <lvgl/widgets/page_indicator.h>
 #include <lvgl/widgets/spinner.h>
+#include <lvgl/widgets/statusbar.h>
 #include <lvgl/widgets/toolbar.h>
 
 #include <tactility/module.h>
@@ -143,6 +144,16 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_spinner_create),
     // lvgl_toolbar
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_configure),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_set_menu_callback),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_set_time_format_24h),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_create),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_icon_add),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_icon_remove),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_icon_set_image),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_icon_set_visibility),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_get_height),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_set_side),
+    DEFINE_MODULE_SYMBOL(lvgl_statusbar_get_action_container),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_create),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_set_title),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_set_nav_action),

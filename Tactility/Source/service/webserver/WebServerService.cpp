@@ -5,7 +5,7 @@
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/Statusbar.h>
+#include <lvgl/widgets/statusbar.h>
 #include <Tactility/Mutex.h>
 
 #include <Tactility/DeprecatedPaths.h>
@@ -205,8 +205,8 @@ bool WebServerService::onStart(ServiceContext& service) {
     g_webServerInstance.store(this);
 
     // Create statusbar icon (hidden initially, shown when server actually starts)
-    statusbarIconId = lvgl::statusbar_icon_add();
-    lvgl::statusbar_icon_set_visibility(statusbarIconId, false);
+    statusbarIconId = lvgl_statusbar_icon_add(nullptr, false);
+    lvgl_statusbar_icon_set_visibility(statusbarIconId, false);
 
     // Load and cache settings once at boot
     bool serverEnabled;
@@ -249,7 +249,7 @@ void WebServerService::onStop(ServiceContext& service) {
 
     // Remove statusbar icon
     if (statusbarIconId >= 0) {
-        lvgl::statusbar_icon_remove(statusbarIconId);
+        lvgl_statusbar_icon_remove(statusbarIconId);
         statusbarIconId = -1;
     }
 }
@@ -513,8 +513,8 @@ bool WebServerService::startServer() {
 
     // Show statusbar icon
     if (statusbarIconId >= 0) {
-        lvgl::statusbar_icon_set_image(statusbarIconId, LVGL_ICON_STATUSBAR_CLOUD);
-        lvgl::statusbar_icon_set_visibility(statusbarIconId, true);
+        lvgl_statusbar_icon_set_image(statusbarIconId, LVGL_ICON_STATUSBAR_CLOUD);
+        lvgl_statusbar_icon_set_visibility(statusbarIconId, true);
         LOG_I(TAG, "WebServer statusbar icon shown (%s mode)",
                  settings.wifiMode == settings::webserver::WiFiMode::AccessPoint ? "AP" : "Station");
     }
@@ -543,7 +543,7 @@ void WebServerService::stopServer() {
     publish_event(this, WebServerEvent::WebServerStopped);
 
     if (statusbarIconId >= 0) {
-        lvgl::statusbar_icon_set_visibility(statusbarIconId, false);
+        lvgl_statusbar_icon_set_visibility(statusbarIconId, false);
     }
 }
 

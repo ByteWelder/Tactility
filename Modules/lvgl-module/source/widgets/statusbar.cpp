@@ -1,14 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/PubSub.h>
-#include <Tactility/RecursiveMutex.h>
-#include <Tactility/Timer.h>
-#include <Tactility/lvgl/Statusbar.h>
-#include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/SystemMenu.h>
-#include <Tactility/settings/Time.h>
+#include <lvgl/widgets/statusbar.h>
 
 #include <tactility/check.h>
+#include <tactility/concurrent/mutex.h>
+#include <tactility/concurrent/recursive_mutex.h>
+#include <tactility/concurrent/timer.h>
 #include <tactility/log.h>
 #include <tactility/system_event.h>
 #include <tactility/time.h>
@@ -22,45 +20,56 @@
 #include <lvgl/widgets/icon_button.h>
 
 #include <algorithm>
-#include <memory>
+#include <cstring>
+#include <ctime>
 
-#ifdef ESP_PLATFORM
-#include <sdkconfig.h>
-#endif
-
-namespace tt::lvgl {
-
-constexpr auto* TAG = "statusbar";
-
-static void onUpdateTime();
+constexpr auto* TAG = "lvgl_statusbar";
+constexpr auto STATUSBAR_ICON_LIMIT = LVGL_STATUSBAR_ICON_LIMIT;
 
 struct StatusbarIcon {
-    std::string image;
+    char image[LVGL_STATUSBAR_IMAGE_MAX_LENGTH + 1] = {};
     bool visible = false;
     bool claimed = false;
     // When the icon was added: the side strip drops the newest icons that don't fit
     uint32_t added_order = 0;
 };
 
+struct Statusbar;
+
 struct StatusbarData {
-    RecursiveMutex mutex;
-    std::shared_ptr<PubSub<void*>> pubsub = std::make_shared<PubSub<void*>>();
+    RecursiveMutex mutex {};
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, 200 / portTICK_PERIOD_MS, [] { onUpdateTime(); });
+    Timer* time_update_timer = nullptr;
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
+    bool time_format_24h = true;
     uint32_t next_added_order = 0;
+    void (*menu_callback)() = nullptr;
+    // The created statusbars, which are updated when the icons or the time change
+    Mutex instances_mutex {};
+    Statusbar* instances = nullptr;
+
+    StatusbarData() {
+        recursive_mutex_construct(&mutex);
+        mutex_construct(&instances_mutex);
+    }
+
+    ~StatusbarData() {
+        mutex_destruct(&instances_mutex);
+        recursive_mutex_destruct(&mutex);
+    }
 };
 
 static StatusbarData statusbar_data;
 
-typedef struct {
+struct Statusbar {
     lv_obj_t obj;
     lv_obj_t* time;
     lv_obj_t* icons[STATUSBAR_ICON_LIMIT];
     lv_obj_t* battery_icon;
-    PubSub<void*>::SubscriptionHandle pubsub_subscription;
+    // The next created statusbar
+    Statusbar* next;
     // The parent of the icons, which opens the system menu
     lv_obj_t* icon_row;
     // Pushes the action container to the bottom in the side layout. Null on circular displays.
@@ -70,7 +79,7 @@ typedef struct {
     // The horizontal padding of the split layout
     int32_t split_pad_hor;
     bool side;
-} Statusbar;
+};
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
@@ -89,26 +98,43 @@ static TickType_t getNextUpdateTime() {
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
 }
 
-static void onUpdateTime() {
+static void notify_instances() {
+    mutex_lock(&statusbar_data.instances_mutex);
+    for (auto* statusbar = statusbar_data.instances; statusbar != nullptr; statusbar = statusbar->next) {
+        LOG_D(TAG, "Update event");
+        if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
+            update_main(statusbar);
+            lv_obj_invalidate(&statusbar->obj);
+            lvgl_unlock();
+        } else {
+            LOG_W(TAG, "Mutex acquisition timeout (%s)", "Statusbar");
+        }
+    }
+    mutex_unlock(&statusbar_data.instances_mutex);
+}
+
+static void on_update_time(void* /*context*/) {
     time_t now = ::time(nullptr);
     tm* tm_struct = localtime(&now);
 
-    if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
+    if (recursive_mutex_try_lock(&statusbar_data.mutex, 100 / portTICK_PERIOD_MS)) {
+        bool changed = false;
         if (tm_struct->tm_year >= (2025 - 1900)) {
             statusbar_data.time_hours = tm_struct->tm_hour;
             statusbar_data.time_minutes = tm_struct->tm_min;
             statusbar_data.time_set = true;
+            changed = true;
 
             // Reschedule
-            statusbar_data.time_update_timer->reset(getNextUpdateTime());
-
-            // Notify widget
-            statusbar_data.pubsub->publish(nullptr);
+            timer_reset_with_interval(statusbar_data.time_update_timer, getNextUpdateTime());
         } else {
-            statusbar_data.time_update_timer->reset(pdMS_TO_TICKS(60000U));
+            timer_reset_with_interval(statusbar_data.time_update_timer, pdMS_TO_TICKS(60000U));
         }
 
-        statusbar_data.mutex.unlock();
+        recursive_mutex_unlock(&statusbar_data.mutex);
+        if (changed) {
+            notify_instances();
+        }
     }
 }
 
@@ -127,22 +153,10 @@ static lv_obj_class_t statusbar_class = {
     .theme_inheritable = false
 };
 
-static void statusbar_pubsub_event(Statusbar* statusbar) {
-    LOG_D(TAG, "Update event");
-    if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
-        update_main(statusbar);
-        lv_obj_invalidate(&statusbar->obj);
-        lvgl_unlock();
-    } else {
-        LOG_W(TAG, "Mutex acquisition timeout (%s)", "Statusbar");
-    }
-}
-
 static void onTimeChanged(struct SystemEvent* /*event*/, void* /*context*/) {
-    if (statusbar_data.mutex.lock()) {
-        statusbar_data.time_update_timer->reset(5);
-        statusbar_data.mutex.unlock();
-    }
+    recursive_mutex_lock(&statusbar_data.mutex);
+    timer_reset_with_interval(statusbar_data.time_update_timer, 5);
+    recursive_mutex_unlock(&statusbar_data.mutex);
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -151,33 +165,50 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     lv_obj_set_scrollable(obj, false);
     LV_TRACE_OBJ_CREATE("finished");
 
-    // Deliberately does NOT subscribe to statusbar_data.pubsub here - that happens at the end of
-    // statusbar_create(), once statusbar->icons[] is actually populated. Subscribing this early
-    // would let a concurrent statusbar_icon_add()/_remove()/_set_image()/_set_visibility() call
-    // from another task publish and run update_icon() on a still-null icons[] slot before this
+    // Deliberately does NOT register the instance here - that happens at the end of
+    // lvgl_statusbar_create(), once statusbar->icons[] is actually populated. Registering this early
+    // would let a concurrent lvgl_statusbar_icon_add()/_remove()/_set_image()/_set_visibility() call
+    // from another task run update_icon() on a still-null icons[] slot before this
     // instance's own creation loop below has had a chance to fill it in.
-    if (!statusbar_data.time_update_timer->isRunning()) {
-        statusbar_data.time_update_timer->start();
+    recursive_mutex_lock(&statusbar_data.mutex);
+    if (statusbar_data.time_update_timer == nullptr) {
+        statusbar_data.time_update_timer = timer_alloc(TIMER_TYPE_ONCE, 200 / portTICK_PERIOD_MS, on_update_time, nullptr);
+        check(statusbar_data.time_update_timer != nullptr);
+        timer_start(statusbar_data.time_update_timer);
         system_event_callback_add(KERNEL_EVENT_TIME_CHANGED, onTimeChanged, nullptr);
     }
+    recursive_mutex_unlock(&statusbar_data.mutex);
 }
 
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     auto* statusbar = (Statusbar*)obj;
-    statusbar_data.pubsub->unsubscribe(statusbar->pubsub_subscription);
+    mutex_lock(&statusbar_data.instances_mutex);
+    for (auto** link = &statusbar_data.instances; *link != nullptr; link = &(*link)->next) {
+        if (*link == statusbar) {
+            *link = statusbar->next;
+            break;
+        }
+    }
+    mutex_unlock(&statusbar_data.instances_mutex);
 }
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
-    if (!icon->image.empty() && icon->visible && icon->claimed) {
-        lv_image_set_src(image, icon->image.c_str());
+    if (icon->image[0] != '\0' && icon->visible && icon->claimed) {
+        lv_image_set_src(image, icon->image);
         lv_obj_set_hidden(image, false);
     } else {
         lv_obj_set_hidden(image, true);
     }
 }
 
+static void show_menu() {
+    if (statusbar_data.menu_callback != nullptr) {
+        statusbar_data.menu_callback();
+    }
+}
+
 static void onIconRowClicked(lv_event_t* /*event*/) {
-    systemMenuShow();
+    show_menu();
 }
 
 static bool is_inside(lv_obj_t* obj, lv_obj_t* ancestor) {
@@ -216,12 +247,25 @@ static void onStatusbarGesture(lv_event_t* /*event*/) {
     if (indev != nullptr && lv_indev_get_gesture_dir(indev) == LV_DIR_BOTTOM) {
         // The release must not click the pressed widget
         lv_indev_wait_release(indev);
-        systemMenuShow();
+        show_menu();
     }
 }
 
-lv_obj_t* statusbar_create(lv_obj_t* parent) {
-    statusbar_class.height_def = statusbar_get_height();
+extern "C" {
+
+void lvgl_statusbar_set_menu_callback(void (*callback)()) {
+    statusbar_data.menu_callback = callback;
+}
+
+void lvgl_statusbar_set_time_format_24h(bool format_24h) {
+    recursive_mutex_lock(&statusbar_data.mutex);
+    statusbar_data.time_format_24h = format_24h;
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    notify_instances();
+}
+
+lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent) {
+    statusbar_class.height_def = lvgl_statusbar_get_height();
     lv_obj_t* obj = lv_obj_class_create_obj(&statusbar_class, parent);
     lv_obj_class_init_obj(obj);
 
@@ -264,7 +308,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
         if (shape.shape == DISPLAY_SHAPE_ROUNDED) {
             // Moves the content inward from the rounded corners, measured at the top of the icons
-            const int32_t content_top = (statusbar_get_height() - static_cast<int32_t>(icon_size)) / 2;
+            const int32_t content_top = (lvgl_statusbar_get_height() - static_cast<int32_t>(icon_size)) / 2;
             lv_obj_set_style_pad_hor(obj, 2 + lvgl_display_get_row_inset(display, content_top), LV_STATE_DEFAULT);
         }
 
@@ -313,7 +357,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     }
 
 
-    statusbar_data.mutex.lock(MAX_TICKS);
+    recursive_mutex_lock(&statusbar_data.mutex);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(icon_row);
         lv_obj_set_size(image, icon_size, icon_size); // regular padding doesn't work
@@ -324,14 +368,14 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
         update_icon(image, &(statusbar_data.icons[i]));
     }
     // Only now is statusbar->icons[] fully populated - see statusbar_constructor()'s comment for
-    // why the subscription can't be registered any earlier. Subscribing before unlocking (rather
-    // than after) closes a narrow window where a concurrent statusbar_icon_add()/_remove()/
-    // _set_image()/_set_visibility() call could publish - and be missed by this instance - after
-    // the icons are populated but before it's subscribed.
-    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe([statusbar](auto) {
-        statusbar_pubsub_event(statusbar);
-    });
-    statusbar_data.mutex.unlock();
+    // why the instance can't be registered any earlier. Registering before unlocking (rather
+    // than after) closes a narrow window where a concurrent icon change could be missed by
+    // this instance after the icons are populated but before it's registered.
+    mutex_lock(&statusbar_data.instances_mutex);
+    statusbar->next = statusbar_data.instances;
+    statusbar_data.instances = statusbar;
+    mutex_unlock(&statusbar_data.instances_mutex);
+    recursive_mutex_unlock(&statusbar_data.mutex);
 
     // Only the icon row is focused, it joins the group by itself
     if (lv_obj_get_group(obj) != nullptr) {
@@ -341,9 +385,11 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     return obj;
 }
 
+}
+
 static void update_time(Statusbar* statusbar) {
     if (statusbar_data.time_set) {
-        bool format24 = settings::isTimeFormat24Hour();
+        bool format24 = statusbar_data.time_format_24h;
         int hours = format24 ? statusbar_data.time_hours : statusbar_data.time_hours % 12;
         lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data.time_minutes);
     } else {
@@ -384,12 +430,12 @@ static void apply_side_icon_limit(Statusbar* statusbar) {
 }
 
 static void update_icons(Statusbar* statusbar) {
-    if (statusbar_data.mutex.lock(200 / portTICK_PERIOD_MS)) {
+    if (recursive_mutex_try_lock(&statusbar_data.mutex, 200 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
             update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
         }
         apply_side_icon_limit(statusbar);
-        statusbar_data.mutex.unlock();
+        recursive_mutex_unlock(&statusbar_data.mutex);
     }
 }
 
@@ -421,65 +467,73 @@ static void statusbar_event(const lv_obj_class_t* class_p, lv_event_t* event) {
     }
 }
 
-int8_t statusbar_icon_add(const std::string& image, bool visible) {
-    statusbar_data.mutex.lock();
+static void copy_image(char* target, const char* image) {
+    if (image == nullptr) {
+        target[0] = '\0';
+        return;
+    }
+    if (strlen(image) > LVGL_STATUSBAR_IMAGE_MAX_LENGTH) {
+        LOG_W(TAG, "Image too long: %s", image);
+    }
+    strncpy(target, image, LVGL_STATUSBAR_IMAGE_MAX_LENGTH);
+    target[LVGL_STATUSBAR_IMAGE_MAX_LENGTH] = '\0';
+}
+
+extern "C" {
+
+int8_t lvgl_statusbar_icon_add(const char* image, bool visible) {
+    recursive_mutex_lock(&statusbar_data.mutex);
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
             statusbar_data.icons[i].claimed = true;
             statusbar_data.icons[i].visible = visible;
-            statusbar_data.icons[i].image = image;
+            copy_image(statusbar_data.icons[i].image, image);
             statusbar_data.icons[i].added_order = statusbar_data.next_added_order++;
             result = i;
             LOG_D(TAG, "id %d: added", (int)i);
             break;
         }
     }
-    statusbar_data.mutex.unlock();
-    statusbar_data.pubsub->publish(nullptr);
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    notify_instances();
     return result;
 }
 
-int8_t statusbar_icon_add() {
-    return statusbar_icon_add("", false);
-}
-
-void statusbar_icon_remove(int8_t id) {
+void lvgl_statusbar_icon_remove(int8_t id) {
     LOG_D(TAG, "id %d: remove", (int)id);
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_data.mutex.lock();
+    recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
     icon->claimed = false;
     icon->visible = false;
-    icon->image = "";
-    statusbar_data.mutex.unlock();
-    statusbar_data.pubsub->publish(nullptr);
+    icon->image[0] = '\0';
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    notify_instances();
 }
 
-void statusbar_icon_set_image(int8_t id, const std::string& image) {
-    if (image.empty()) {
-        LOG_D(TAG, "id %d: set image (none)", (int)id);
-    } else {
-        LOG_D(TAG, "id %d: set image %s", (int)id, image.c_str());
-    }
+void lvgl_statusbar_icon_set_image(int8_t id, const char* image) {
+    LOG_D(TAG, "id %d: set image %s", (int)id, image != nullptr ? image : "(none)");
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_data.mutex.lock();
+    recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
     check(icon->claimed);
-    icon->image = image;
-    statusbar_data.mutex.unlock();
-    statusbar_data.pubsub->publish(nullptr);
+    copy_image(icon->image, image);
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    notify_instances();
 }
 
-void statusbar_icon_set_visibility(int8_t id, bool visible) {
+void lvgl_statusbar_icon_set_visibility(int8_t id, bool visible) {
     LOG_D(TAG, "id %d: set visibility %d", (int)id, (int)visible);
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_data.mutex.lock();
+    recursive_mutex_lock(&statusbar_data.mutex);
     StatusbarIcon* icon = &statusbar_data.icons[id];
     check(icon->claimed);
     icon->visible = visible;
-    statusbar_data.mutex.unlock();
-    statusbar_data.pubsub->publish(nullptr);
+    recursive_mutex_unlock(&statusbar_data.mutex);
+    notify_instances();
+}
+
 }
 
 // The colour that is visible behind the object: its own background or the first visible one of its parents
@@ -527,7 +581,9 @@ static int32_t get_widest_time_width(const lv_font_t* font, int32_t letterSpace)
     return size.x;
 }
 
-void statusbar_set_side(lv_obj_t* obj, bool side) {
+extern "C" {
+
+void lvgl_statusbar_set_side(lv_obj_t* obj, bool side) {
     auto* statusbar = reinterpret_cast<Statusbar*>(obj);
     // Circular displays only have room for the statusbar at the top
     if (statusbar->action_container == nullptr || statusbar->side == side) {
@@ -569,7 +625,7 @@ void statusbar_set_side(lv_obj_t* obj, bool side) {
         lv_obj_move_to_index(statusbar->icon_row, 1);
         lv_obj_set_hidden(statusbar->action_container, false);
     } else {
-        lv_obj_set_size(obj, LV_PCT(100), statusbar_get_height());
+        lv_obj_set_size(obj, LV_PCT(100), lvgl_statusbar_get_height());
         lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
         lv_obj_set_style_pad_hor(obj, statusbar->split_pad_hor, LV_STATE_DEFAULT);
         lv_obj_set_style_pad_ver(obj, 0, LV_STATE_DEFAULT);
@@ -589,14 +645,14 @@ void statusbar_set_side(lv_obj_t* obj, bool side) {
     update_icons(statusbar);
 }
 
-lv_obj_t* statusbar_get_action_container(lv_obj_t* obj) {
+lv_obj_t* lvgl_statusbar_get_action_container(lv_obj_t* obj) {
     return reinterpret_cast<Statusbar*>(obj)->action_container;
 }
 
-int statusbar_get_height() {
+int32_t lvgl_statusbar_get_height() {
     const auto icon_size = lvgl_get_statusbar_icon_font_height();
     const auto vertical_padding = static_cast<uint32_t>((static_cast<float>(icon_size) * 0.1f));
-    return icon_size + (2 * vertical_padding) + 4;
+    return static_cast<int32_t>(icon_size + (2 * vertical_padding) + 4);
 }
 
-} // namespace
+}
