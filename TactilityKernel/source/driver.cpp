@@ -137,7 +137,8 @@ error_t driver_bind(Driver* driver, Device* device) {
         goto error;
     }
 
-    if (driver->probe != nullptr && driver->probe(device) != ERROR_NONE) {
+    // Only devices managed by the hotplug poller (devicetree status "okay") are probed
+    if (driver->probe != nullptr && (device->flags & DEVICE_FLAG_HOTPLUG) != 0 && driver->probe(device) != ERROR_NONE) {
         error = ERROR_NOT_FOUND;
         goto error;
     }

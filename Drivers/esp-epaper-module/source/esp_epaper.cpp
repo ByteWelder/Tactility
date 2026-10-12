@@ -66,6 +66,7 @@ static bool resolve_panel_type(const char* name, epd_panel_type_t* out_type) {
         { "ssd16xx-290", EPD_PANEL_SSD16XX_290 },
         { "ssd16xx-370", EPD_PANEL_SSD16XX_370 },
         { "ssd16xx-420", EPD_PANEL_SSD16XX_420 },
+        { "gdeq031t10", EPD_PANEL_GDEQ031T10 },
     };
     for (const auto& mapping : kPanelMappings) {
         if (std::strcmp(name, mapping.name) == 0) {
@@ -325,7 +326,7 @@ static error_t start(Device* device) {
 
     epd_config_t epd_config = EPD_CONFIG_DEFAULT();
     epd_config.pins.busy = config->pin_busy.pin;
-    epd_config.pins.rst = config->pin_reset.pin;
+    epd_config.pins.rst = config->pin_reset.gpio_controller != nullptr ? static_cast<int>(config->pin_reset.pin) : -1;
     epd_config.pins.dc = config->pin_dc.pin;
     epd_config.pins.cs = config->pin_cs.pin;
     epd_config.pins.sck = spi_config->pin_sclk.pin;

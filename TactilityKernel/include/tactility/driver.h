@@ -24,7 +24,8 @@ struct Driver {
     /** Function to deinitialize the driver for a device */
     error_t (*stop_device)(struct Device* dev);
     /**
-     * Optional: reports whether the hardware is physically present. Checked by driver_bind() and periodically by device_hotplug_poll_once().
+     * Optional: reports whether the hardware is physically present. Checked by driver_bind() and periodically by device_hotplug_poll_once(),
+     * only for devices registered with device_hotplug_register() (devicetree status "okay"). Also called while the device is started.
      * NULL means always present.
      * @retval ERROR_NONE the hardware is present
      * @retval (other) not present (or the probe itself failed - treated the same)
@@ -116,7 +117,7 @@ const struct Module* driver_get_owner(const struct Driver* driver);
  *
  * @param driver The driver to bind.
  * @param device The device to bind to.
- * @retval ERROR_NOT_FOUND probe() reported the device isn't present
+ * @retval ERROR_NOT_FOUND probe() reported that a device registered with device_hotplug_register() isn't present
  * @return ERROR_NONE if successful, or an error code otherwise.
  */
 error_t driver_bind(struct Driver* driver, struct Device* device);

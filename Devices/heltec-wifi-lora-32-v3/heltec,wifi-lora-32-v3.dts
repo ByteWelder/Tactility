@@ -5,12 +5,14 @@
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_gpio.h>
 #include <tactility/bindings/esp32_i2c_master.h>
+#include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_adc_oneshot.h>
 #include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/gpio_hog.h>
 #include <bindings/button_control.h>
 #include <bindings/ssd1306.h>
+#include <bindings/sx1262.h>
 
 / {
 	compatible = "root";
@@ -88,6 +90,27 @@
 				0x2E          // Stop scroll
 				0xAF          // Display on
 			];
+		};
+	};
+
+	spi0 {
+		compatible = "espressif,esp32-spi";
+		host = <SPI2_HOST>;
+		cs-gpios = <&gpio0 8 GPIO_FLAG_NONE>; // 0: LoRa radio (SX1262)
+		pin-mosi = <&gpio0 10 GPIO_FLAG_NONE>;
+		pin-miso = <&gpio0 11 GPIO_FLAG_NONE>;
+		pin-sclk = <&gpio0 9 GPIO_FLAG_NONE>;
+
+		// SX1262 LoRa transceiver: RST/BUSY/DIO1 = GPIO 12/13/14, TCXO 1.8 V,
+		// DIO2 drives the antenna TX/RX switch.
+		radio@0 {
+			compatible = "semtech,sx1262";
+			reg = <0>;
+			pin-reset = <&gpio0 12 GPIO_FLAG_NONE>;
+			pin-dio1 = <&gpio0 14 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 13 GPIO_FLAG_NONE>;
+			tcxo-millivolts = <1800>;
+			dio2-as-rf-switch;
 		};
 	};
 

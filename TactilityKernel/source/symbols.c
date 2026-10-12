@@ -26,7 +26,7 @@
 #include <tactility/drivers/imu.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/led_strip.h>
-#include <tactility/drivers/lora.h>
+#include <tactility/drivers/radio.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/pwm.h>
@@ -435,26 +435,35 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(WIFI_TYPE),
     // wifi_auto_scan
     DEFINE_MODULE_SYMBOL(wifi_auto_scan_set_paused),
-    // drivers/lora
-    DEFINE_MODULE_SYMBOL(lora_get_radio_state),
-    DEFINE_MODULE_SYMBOL(lora_set_enabled),
-    DEFINE_MODULE_SYMBOL(lora_set_modulation),
-    DEFINE_MODULE_SYMBOL(lora_get_modulation),
-    DEFINE_MODULE_SYMBOL(lora_can_transmit),
-    DEFINE_MODULE_SYMBOL(lora_can_receive),
-    DEFINE_MODULE_SYMBOL(lora_set_parameter),
-    DEFINE_MODULE_SYMBOL(lora_get_parameter),
-    DEFINE_MODULE_SYMBOL(lora_transmit),
-    DEFINE_MODULE_SYMBOL(lora_state_event_subscribe),
-    DEFINE_MODULE_SYMBOL(lora_state_event_unsubscribe),
-    DEFINE_MODULE_SYMBOL(lora_state_event_poll),
-    DEFINE_MODULE_SYMBOL(lora_rx_event_subscribe),
-    DEFINE_MODULE_SYMBOL(lora_rx_event_unsubscribe),
-    DEFINE_MODULE_SYMBOL(lora_rx_event_poll),
-    DEFINE_MODULE_SYMBOL(lora_tx_event_subscribe),
-    DEFINE_MODULE_SYMBOL(lora_tx_event_unsubscribe),
-    DEFINE_MODULE_SYMBOL(lora_tx_event_poll),
-    DEFINE_MODULE_SYMBOL(LORA_TYPE),
+    // drivers/radio
+    DEFINE_MODULE_SYMBOL(radio_get_state),
+    DEFINE_MODULE_SYMBOL(radio_set_enabled),
+    DEFINE_MODULE_SYMBOL(radio_set_modulation),
+    DEFINE_MODULE_SYMBOL(radio_get_modulation),
+    DEFINE_MODULE_SYMBOL(radio_can_transmit),
+    DEFINE_MODULE_SYMBOL(radio_can_receive),
+    DEFINE_MODULE_SYMBOL(radio_set_parameter),
+    DEFINE_MODULE_SYMBOL(radio_get_parameter),
+    DEFINE_MODULE_SYMBOL(radio_transmit),
+    DEFINE_MODULE_SYMBOL(radio_get_rssi),
+    DEFINE_MODULE_SYMBOL(radio_is_receiving),
+    DEFINE_MODULE_SYMBOL(radio_acquire),
+    DEFINE_MODULE_SYMBOL(radio_release),
+    DEFINE_MODULE_SYMBOL(radio_get_owner),
+    DEFINE_MODULE_SYMBOL(radio_set_region),
+    DEFINE_MODULE_SYMBOL(radio_get_region),
+    DEFINE_MODULE_SYMBOL(radio_get_region_bands),
+    DEFINE_MODULE_SYMBOL(radio_region_to_string),
+    DEFINE_MODULE_SYMBOL(radio_state_event_subscribe),
+    DEFINE_MODULE_SYMBOL(radio_state_event_unsubscribe),
+    DEFINE_MODULE_SYMBOL(radio_state_event_poll),
+    DEFINE_MODULE_SYMBOL(radio_rx_event_subscribe),
+    DEFINE_MODULE_SYMBOL(radio_rx_event_unsubscribe),
+    DEFINE_MODULE_SYMBOL(radio_rx_event_poll),
+    DEFINE_MODULE_SYMBOL(radio_tx_event_subscribe),
+    DEFINE_MODULE_SYMBOL(radio_tx_event_unsubscribe),
+    DEFINE_MODULE_SYMBOL(radio_tx_event_poll),
+    DEFINE_MODULE_SYMBOL(RADIO_TYPE),
     // drivers/usb_host
     DEFINE_MODULE_SYMBOL(usb_host_is_class_supported),
     DEFINE_MODULE_SYMBOL(usb_host_is_class_enabled),

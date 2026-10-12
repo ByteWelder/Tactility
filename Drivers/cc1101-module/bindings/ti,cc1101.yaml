@@ -1,0 +1,39 @@
+description: Texas Instruments CC1101 sub-GHz (G)FSK, 4-FSK and OOK transceiver
+
+compatible: "ti,cc1101"
+
+bus: spi
+
+properties:
+  reg:
+    type: int
+    required: true
+    description: Chip-select index on the parent SPI controller, must match the node's unit address
+  spi-frequency-khz:
+    type: int
+    default: 4000
+    description: SPI clock frequency in kHz
+  pin-gdo0:
+    type: phandles
+    required: true
+    description: GDO0 interrupt line (must be an SoC GPIO)
+  pin-band-switch-0:
+    type: phandles
+    default: GPIO_PIN_SPEC_NONE
+    description: Optional RF band switch line 0, driven from bit 0 of the band-switch-* value for the active band (any GPIO controller)
+  pin-band-switch-1:
+    type: phandles
+    default: GPIO_PIN_SPEC_NONE
+    description: Optional RF band switch line 1, driven from bit 1 of the band-switch-* value for the active band (any GPIO controller)
+  band-switch-low:
+    type: int
+    default: 0
+    description: Band switch value for the 300-348 MHz band
+  band-switch-mid:
+    type: int
+    default: 0
+    description: Band switch value for the 387-464 MHz band
+  band-switch-high:
+    type: int
+    default: 0
+    description: Band switch value for the 779-928 MHz band

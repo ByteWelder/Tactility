@@ -240,6 +240,8 @@ statusbar_symbol_code_point_names = [
     "bluetooth_connected",
     "bluetooth_disabled",
     "usb",
+    # Mesh networking
+    "hub",
 ]
 
 # Get more from https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded

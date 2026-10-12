@@ -7,6 +7,14 @@
 
 ## Higher Priority
 
+- Commandline app to control: bluetooth, mesh, power
+- App Hub: create updater service with "installing/update" statusbar icon, create commandline app
+- System dialog with service toggles: when no pointer device available, select close button by default
+- Fix audio in T-Lora Pager
+- When Wi-Fi connects, check for app updates
+- App Hub should make it obvious in its list when apps have updates.
+- Replace "Change" buttons to "list_alt"
+- Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot

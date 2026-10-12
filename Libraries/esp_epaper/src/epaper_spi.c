@@ -18,8 +18,11 @@ esp_err_t epd_spi_init(epd_spi_t *spi, const epd_pin_config_t *pins, const epd_s
         .intr_type = GPIO_INTR_DISABLE,
     };
     
-    // DC, RST, CS as output
-    io_conf.pin_bit_mask = (1ULL << pins->dc) | (1ULL << pins->rst) | (1ULL << pins->cs);
+    // DC, RST, CS as output (RST is optional: < 0 means not connected)
+    io_conf.pin_bit_mask = (1ULL << pins->dc) | (1ULL << pins->cs);
+    if (pins->rst >= 0) {
+        io_conf.pin_bit_mask |= (1ULL << pins->rst);
+    }
     gpio_config(&io_conf);
     
     // BUSY as input
@@ -36,7 +39,9 @@ esp_err_t epd_spi_init(epd_spi_t *spi, const epd_pin_config_t *pins, const epd_s
     // Set initial state
     gpio_set_level(pins->cs, 1);
     gpio_set_level(pins->dc, 1);
-    gpio_set_level(pins->rst, 1);
+    if (pins->rst >= 0) {
+        gpio_set_level(pins->rst, 1);
+    }
     
     // Configure SPI bus (large buffer for big displays like 800x480)
     spi_bus_config_t buscfg = {
@@ -146,6 +151,9 @@ void epd_spi_write_data_bulk(epd_spi_t *spi, const uint8_t *data, uint32_t len)
 
 void epd_spi_reset(epd_spi_t *spi)
 {
+    if (spi->pin_rst < 0) {
+        return;
+    }
     gpio_set_level(spi->pin_rst, 0);
     vTaskDelay(pdMS_TO_TICKS(10));
     gpio_set_level(spi->pin_rst, 1);

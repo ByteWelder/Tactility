@@ -31,6 +31,10 @@ struct DeviceInternal {
     // (device_get_by_name() etc.) take ledger_lock then this mutex via device_get(). Holding both
     // at once in opposite orders would ABBA-deadlock against those lookups.
     struct RecursiveMutex mutex {};
+    // Held across the driver's start_device, stop_device and probe callbacks, so a probe never
+    // sees driver data that is being created or torn down. Callbacks may start or stop child
+    // devices, which take the child's own callback_mutex.
+    struct RecursiveMutex callback_mutex {};
     /** The device state */
     struct {
         int start_result = 0;
@@ -90,6 +94,7 @@ error_t device_construct(Device* device) {
     }
     LOG_D(TAG, "construct %s", device->name);
     recursive_mutex_construct(&device->internal->mutex);
+    recursive_mutex_construct(&device->internal->callback_mutex);
     return ERROR_NONE;
 }
 
@@ -114,6 +119,7 @@ error_t device_destruct(Device* device) {
 
     device->internal = nullptr;
     recursive_mutex_unlock(&internal->mutex);
+    recursive_mutex_destruct(&internal->callback_mutex);
     delete internal;
 
     return ERROR_NONE;
@@ -222,7 +228,9 @@ error_t device_start(Device* device) {
     // driver_bind() runs the driver's start_device callback, which may add/start child devices
     // (device_add() takes ledger_lock) - `mutex` must stay released across this call. See the
     // comment on `mutex` above.
+    recursive_mutex_lock(&internal->callback_mutex);
     error_t bind_error = driver_bind(internal->driver, device);
+    recursive_mutex_unlock(&internal->callback_mutex);
 
     lock_internal(internal);
     internal->state.starting = false;
@@ -264,7 +272,9 @@ error_t device_stop(Device* device) {
 
     device_listener_notify(device, DEVICE_EVENT_STOPPING);
 
+    recursive_mutex_lock(&internal->callback_mutex);
     error_t unbind_error = driver_unbind(internal->driver, device);
+    recursive_mutex_unlock(&internal->callback_mutex);
 
     lock_internal(internal);
     internal->state.stopping = false;
@@ -643,7 +653,9 @@ error_t device_hotplug_poll_once(void) {
             continue;
         }
 
+        recursive_mutex_lock(&internal->callback_mutex);
         bool present = driver->probe(device) == ERROR_NONE;
+        recursive_mutex_unlock(&internal->callback_mutex);
 
         lock_internal(internal);
         bool act = false;

@@ -29,6 +29,7 @@ constexpr IconEntry ICONS[] = {
     {"tactility.keyboardsettings",  LVGL_ICON_SHARED_KEYBOARD_ALT},
     {"tactility.ledstripsettings",  LVGL_ICON_SHARED_LIGHTSTRIP},
     {"tactility.localesettings",    LVGL_ICON_SHARED_LANGUAGE},
+    {"tactility.meshsettings",      LVGL_ICON_SHARED_HUB},
     {"tactility.power",             LVGL_ICON_SHARED_POWER_SETTINGS_NEW},
     {"tactility.timedatesettings",  LVGL_ICON_SHARED_CALENDAR_MONTH},
     {"tactility.touchcalibration",  LVGL_ICON_SHARED_CIRCLE},

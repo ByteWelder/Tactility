@@ -45,3 +45,7 @@ properties:
     type: boolean
     default: false
     description: DIO2 drives the antenna TX/RX switch
+  pin-rx-enable:
+    type: phandles
+    default: GPIO_PIN_SPEC_NONE
+    description: Optional RF switch RX enable, driven high while receiving and low otherwise (must be an SoC GPIO)

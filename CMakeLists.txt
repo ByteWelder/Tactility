@@ -51,6 +51,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/esp_epaper"
         "Libraries/lv_screenshot"
         "Libraries/minitar"
+        "Libraries/ed25519"
         "Libraries/minmea"
         "Libraries/QRCode"
     )
@@ -158,6 +159,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
     add_subdirectory(Libraries/minitar)
+    add_subdirectory(Libraries/ed25519)
     add_subdirectory(Libraries/minmea)
     add_subdirectory(Modules/lvgl-module)
     add_subdirectory(Modules/audio-decoder-module)
@@ -172,6 +174,9 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Modules/graphics-module)
     add_subdirectory(Modules/http-module)
     add_subdirectory(Modules/mbedtls-module)
+    add_subdirectory(Modules/mesh-module)
+    add_subdirectory(Modules/mesh-meshcore-module)
+    add_subdirectory(Modules/mesh-meshtastic-module)
     add_subdirectory(Modules/posix-symbols-module)
     add_subdirectory(Modules/pthread-module)
     add_subdirectory(Modules/service-module)

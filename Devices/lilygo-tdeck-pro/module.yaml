@@ -1,8 +1,9 @@
 dependencies:
   - Platforms/platform-esp32
   - Drivers/cst328-module
-  - Drivers/gdeq031t10-module
+  - Drivers/esp-epaper-module
   - Drivers/tca8418-module
   - Drivers/sy6970-module
   - Drivers/bq25896-module
+  - Drivers/sx126x-module
 dts: lilygo,tdeck-pro.dts

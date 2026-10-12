@@ -51,6 +51,13 @@ extern esp_err_t bwry4c_write_ram(epd_device_t *dev, const uint8_t *data, uint32
 extern esp_err_t bwry4c_sleep(epd_device_t *dev);
 extern esp_err_t bwry4c_wake(epd_device_t *dev);
 
+// UC8253 BW controller
+extern esp_err_t uc8253_init(epd_device_t *dev);
+extern esp_err_t uc8253_update(epd_device_t *dev, epd_update_mode_t mode);
+extern esp_err_t uc8253_write_ram(epd_device_t *dev, const uint8_t *data, uint32_t len);
+extern esp_err_t uc8253_sleep(epd_device_t *dev);
+extern esp_err_t uc8253_wake(epd_device_t *dev);
+
 /*=============================================================================
  * Controller Operations Table
  *============================================================================*/
@@ -87,6 +94,14 @@ static const epd_controller_ops_t controller_ops[EPD_CTRL_COUNT] = {
         .write_ram_partial = NULL,  // Not supported
         .sleep = bwry4c_sleep,
         .wake = bwry4c_wake,
+    },
+    [EPD_CTRL_UC8253] = {
+        .init = uc8253_init,
+        .update = uc8253_update,
+        .write_ram = uc8253_write_ram,
+        .write_ram_partial = NULL,  // Not supported
+        .sleep = uc8253_sleep,
+        .wake = uc8253_wake,
     },
 };
 
@@ -190,6 +205,14 @@ static const epd_panel_desc_t panel_registry[EPD_PANEL_COUNT] = {
         .color_mode = EPD_COLOR_BW, .bits_per_pixel = 1,
         .caps = EPD_CAP_PARTIAL | EPD_CAP_FAST,
         .ctrl = EPD_CTRL_SSD16XX,
+        .init_data = NULL,
+    },
+    [EPD_PANEL_GDEQ031T10] = {
+        .name = "GDEQ031T10",
+        .width = 240, .height = 320,
+        .color_mode = EPD_COLOR_BW, .bits_per_pixel = 1,
+        .caps = EPD_CAP_FAST | EPD_CAP_BUSY_INV,  // Inverted busy, no partial
+        .ctrl = EPD_CTRL_UC8253,
         .init_data = NULL,
     },
 };

@@ -5,9 +5,11 @@
 extern "C" {
 
 extern Driver mock_wifi_driver;
+extern Driver mock_radio_driver;
 
 static Driver* const mock_drivers[] = {
     &mock_wifi_driver,
+    &mock_radio_driver,
     nullptr
 };
 

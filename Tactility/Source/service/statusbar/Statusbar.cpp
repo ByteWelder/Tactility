@@ -28,6 +28,10 @@
 
 #include <gps/gps.h>
 
+#if TT_FEATURE_MESH
+#include <mesh/mesh.h>
+#endif
+
 namespace tt::service::statusbar {
 
 constexpr auto* TAG = "StatusbarService";
@@ -146,6 +150,10 @@ class StatusbarService final : public Service {
     std::unique_ptr<Timer> updateTimer;
     int8_t gps_icon_id;
     const char* gps_last_icon = nullptr;
+#if TT_FEATURE_MESH
+    int8_t mesh_icon_id;
+    bool mesh_last_state = false;
+#endif
     int8_t bt_icon_id;
     const char* bt_last_icon = nullptr;
     int8_t wifi_icon_id;
@@ -176,6 +184,16 @@ class StatusbarService final : public Service {
             gps_last_icon = icon;
         }
     }
+
+#if TT_FEATURE_MESH
+    void updateMeshIcon() {
+        const bool active = mesh_get_state() == MESH_STATE_ON;
+        if (active != mesh_last_state) {
+            lvgl::statusbar_icon_set_visibility(mesh_icon_id, active);
+            mesh_last_state = active;
+        }
+    }
+#endif
 
     void updateBluetoothIcon() {
         auto radio_state = bluetooth::getRadioState();
@@ -289,6 +307,9 @@ class StatusbarService final : public Service {
         if (lvgl_is_running()) {
             if (lvgl_try_lock(200)) {
                 updateGpsIcon();
+#if TT_FEATURE_MESH
+                updateMeshIcon();
+#endif
                 updateBluetoothIcon();
                 updateWifiIcon();
                 updatePowerStatusIcon();
@@ -302,6 +323,9 @@ public:
 
     StatusbarService() {
         gps_icon_id = lvgl::statusbar_icon_add();
+#if TT_FEATURE_MESH
+        mesh_icon_id = lvgl::statusbar_icon_add();
+#endif
         bt_icon_id = lvgl::statusbar_icon_add();
         usb_icon_id = lvgl::statusbar_icon_add();
         wifi_icon_id = lvgl::statusbar_icon_add();
@@ -313,6 +337,9 @@ public:
         lvgl::statusbar_icon_remove(wifi_icon_id);
         lvgl::statusbar_icon_remove(usb_icon_id);
         lvgl::statusbar_icon_remove(bt_icon_id);
+#if TT_FEATURE_MESH
+        lvgl::statusbar_icon_remove(mesh_icon_id);
+#endif
         lvgl::statusbar_icon_remove(gps_icon_id);
     }
 
@@ -326,6 +353,10 @@ public:
         lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
         lvgl::statusbar_icon_set_image(usb_icon_id, LVGL_ICON_STATUSBAR_USB);
         lvgl::statusbar_icon_set_visibility(usb_icon_id, false);
+#if TT_FEATURE_MESH
+        lvgl::statusbar_icon_set_image(mesh_icon_id, LVGL_ICON_STATUSBAR_HUB);
+        lvgl::statusbar_icon_set_visibility(mesh_icon_id, false);
+#endif
 
         auto service = findServiceById<StatusbarService>(manifest.id);
         assert(service);

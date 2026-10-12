@@ -8,4 +8,5 @@ dependencies:
   - Drivers/es7210-module
   - Drivers/dummy-i2s-amp-module
   - Drivers/audio-stream-module
+  - Drivers/sx126x-module
 dts: lilygo,tdeck-plus.dts

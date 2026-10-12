@@ -21,6 +21,7 @@
 #include <bindings/es7210.h>
 #include <bindings/dummy_i2s_amp.h>
 #include <bindings/gpio_trackball.h>
+#include <bindings/sx1262.h>
 
 #include <gps_generic/bindings.h>
 
@@ -181,6 +182,19 @@
 			compatible = "espressif,esp32-sdspi";
 			status = "disabled";
 			frequency-khz = <20000>;
+		};
+
+		// SX1262 LoRa transceiver: CS/RST/DIO1/BUSY = GPIO 9/17/45/13, TCXO 1.8 V,
+		// DIO2 drives the antenna TX/RX switch. Module power comes from BOARD_POWERON
+		// (GPIO 10), which tdeck_power_on() enables at boot.
+		radio@2 {
+			compatible = "semtech,sx1262";
+			reg = <2>;
+			pin-reset = <&gpio0 17 GPIO_FLAG_NONE>;
+			pin-dio1 = <&gpio0 45 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 13 GPIO_FLAG_NONE>;
+			tcxo-millivolts = <1800>;
+			dio2-as-rf-switch;
 		};
 	};
 
