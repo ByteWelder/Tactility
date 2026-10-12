@@ -233,7 +233,6 @@ error_t MeshStore::open(const char* path) {
             // Never append after a torn record, as the scan stops there
             segments.push_back(segments.back() + 1);
             currentSegmentSize = 0;
-            enforceBudget();
         }
     }
 
@@ -434,7 +433,6 @@ error_t MeshStore::flush() {
     if (currentSegmentSize >= limits.segmentSize) {
         segments.push_back(segments.back() + 1);
         currentSegmentSize = 0;
-        enforceBudget();
     }
 
     const uint32_t segment = segments.back();
@@ -460,6 +458,8 @@ error_t MeshStore::flush() {
     }
     currentSegmentSize += (uint32_t)bufferUsed;
     bufferUsed = 0;
+    // Old segments are only deleted once the newer records are safely written
+    enforceBudget();
     return ERROR_NONE;
 }
 

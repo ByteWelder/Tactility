@@ -164,3 +164,59 @@ TEST_CASE("MeshStore keeps records that are added after a torn record") {
     CHECK_EQ(std::string(read.text), "after");
     CHECK_EQ(read.delivery, MESH_DELIVERY_SENT);
 }
+
+TEST_CASE("MeshStore keeps a full budget of segments when it recovers from a torn record") {
+    const std::string directory = makeTempDirectory();
+    const MeshStore::Limits limits = { .bufferSize = 512, .segmentSize = 1024, .segmentCount = 2 };
+    size_t countBefore = 0;
+    {
+        MeshStore store(limits);
+        CHECK_EQ(store.open(directory.c_str()), ERROR_NONE);
+        for (int i = 0; i < 100; i++) {
+            auto message = makeMessage("a message that takes up some space in the log", false, MESH_DELIVERY_RECEIVED);
+            CHECK_EQ(store.add(&message), ERROR_NONE);
+        }
+        store.close();
+    }
+
+    // Find the newest segment and tear its last record
+    std::string newest;
+    {
+        MeshStore store(limits);
+        CHECK_EQ(store.open(directory.c_str()), ERROR_NONE);
+        countBefore = store.getMessageCount();
+        store.close();
+    }
+    for (int segment = 0; segment < 1000; segment++) {
+        char name[32];
+        snprintf(name, sizeof(name), "/seg-%08d.log", segment);
+        if (FILE* existing = fopen((directory + name).c_str(), "rb")) {
+            fclose(existing);
+            newest = directory + name;
+        }
+    }
+    REQUIRE_FALSE(newest.empty());
+    FILE* file = fopen(newest.c_str(), "ab");
+    REQUIRE_NE(file, nullptr);
+    fwrite("\x4d\x53\x01", 1, 3, file);
+    fclose(file);
+
+    // Opening alone doesn't delete any messages
+    {
+        MeshStore store(limits);
+        CHECK_EQ(store.open(directory.c_str()), ERROR_NONE);
+        CHECK_EQ(store.getMessageCount(), countBefore);
+        store.close();
+    }
+    MeshStore reopened(limits);
+    CHECK_EQ(reopened.open(directory.c_str()), ERROR_NONE);
+    CHECK_EQ(reopened.getMessageCount(), countBefore);
+
+    // The budget applies again once new records are written
+    auto message = makeMessage("after", false, MESH_DELIVERY_RECEIVED);
+    CHECK_EQ(reopened.add(&message), ERROR_NONE);
+    CHECK_EQ(reopened.flush(), ERROR_NONE);
+    MeshMessage read {};
+    CHECK_EQ(reopened.get(message.seq, &read), ERROR_NONE);
+    CHECK_EQ(std::string(read.text), "after");
+}
