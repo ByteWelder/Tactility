@@ -54,6 +54,7 @@
 #include <tactility/paths.h>
 #include <tactility/preferences.h>
 #include <tactility/properties_file.h>
+#include <tactility/radio_settings.h>
 #include <tactility/wifi_auto_scan.h>
 
 #ifndef ESP_PLATFORM
@@ -454,6 +455,7 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(radio_get_region),
     DEFINE_MODULE_SYMBOL(radio_get_region_bands),
     DEFINE_MODULE_SYMBOL(radio_region_to_string),
+    DEFINE_MODULE_SYMBOL(radio_region_from_string),
     DEFINE_MODULE_SYMBOL(radio_state_event_subscribe),
     DEFINE_MODULE_SYMBOL(radio_state_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(radio_state_event_poll),
@@ -623,6 +625,10 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(properties_file_get),
     DEFINE_MODULE_SYMBOL(properties_file_set),
     DEFINE_MODULE_SYMBOL(properties_file_for_each),
+    // radio_settings
+    DEFINE_MODULE_SYMBOL(radio_settings_load_region),
+    DEFINE_MODULE_SYMBOL(radio_settings_save_region),
+    DEFINE_MODULE_SYMBOL(radio_settings_apply_region),
     // terminator
     MODULE_SYMBOL_TERMINATOR,
 };

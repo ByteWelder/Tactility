@@ -589,6 +589,16 @@ const char* radio_region_to_string(enum RadioRegion region) {
     return REGION_INFOS[region].name;
 }
 
+error_t radio_region_from_string(const char* name, enum RadioRegion* region) {
+    for (int i = RADIO_REGION_UNSET; i < RADIO_REGION_COUNT; i++) {
+        if (strcmp(REGION_INFOS[i].name, name) == 0) {
+            *region = static_cast<RadioRegion>(i);
+            return ERROR_NONE;
+        }
+    }
+    return ERROR_NOT_FOUND;
+}
+
 // endregion
 
 const struct DeviceType RADIO_TYPE = {
