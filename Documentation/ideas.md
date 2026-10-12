@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Files app should have a page indicator like Launcher.
 - Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - When Wi-Fi connects, check for app updates
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
