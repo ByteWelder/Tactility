@@ -318,6 +318,8 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     if (!lvgl_indev_exists(LV_INDEV_TYPE_POINTER)) {
         auto* close_button = createTile(card, LVGL_ICON_SHARED_CLOSE);
         lv_obj_add_event_cb(close_button, onCloseClicked, LV_EVENT_SHORT_CLICKED, nullptr);
+        lv_group_focus_obj(close_button);
+        lv_obj_add_state(close_button, LV_STATE_FOCUS_KEY);
     }
 }
 
