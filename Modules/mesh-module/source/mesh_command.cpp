@@ -188,13 +188,19 @@ static int command_join(int argc, char* argv[]) {
     MeshChannel channels[CHANNEL_LIMIT];
     size_t count = 0;
     uint8_t index = 0;
+    bool found = false;
     if (mesh_get_channels(channels, CHANNEL_LIMIT, &count) == ERROR_NONE) {
         for (size_t i = 0; i < count; i++) {
             if (strcmp(channels[i].name, name) == 0) {
                 index = channels[i].index;
+                found = true;
                 break;
             }
             index = std::max<uint8_t>(index, channels[i].index + 1);
+        }
+        if (!found && count >= CHANNEL_LIMIT) {
+            printf("mesh: no free channel slot\n");
+            return 1;
         }
     }
 
