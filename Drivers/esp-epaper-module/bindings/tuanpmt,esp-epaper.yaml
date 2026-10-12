@@ -1,6 +1,6 @@
 description: >
   E-paper display panels driven by the tuanpmt/esp_epaper ESP-IDF component
-  (SSD1680/1681 BW, GDEY0154D67 and ACeP/BWRY color controllers). The node must
+  (SSD1680/1681 BW, UC8253 BW, GDEY0154D67 and ACeP/BWRY color controllers). The node must
   be a child of an SPI controller: the display shares the parent's SPI host,
   clock and MOSI pins, and manages its DC/RESET/BUSY/CS pins itself via the
   component. Only 1bpp black/white panels are supported by the kernel display
@@ -17,8 +17,9 @@ properties:
     description: Data/Command GPIO pin
   pin-reset:
     type: phandles
-    required: true
-    description: Reset GPIO pin (the esp_epaper component drives it unconditionally)
+    required: false
+    default: GPIO_PIN_SPEC_NONE
+    description: Reset GPIO pin
   pin-busy:
     type: phandles
     required: true
@@ -37,7 +38,8 @@ properties:
     description: >
       esp_epaper panel registry name. One of "gdey0154d67", "gdep073e01",
       "gdey037f51", "gdey029t71h", "ssd16xx-154", "ssd16xx-213", "ssd16xx-266",
-      "ssd16xx-270", "ssd16xx-290", "ssd16xx-370", "ssd16xx-420".
+      "ssd16xx-270", "ssd16xx-290", "ssd16xx-370", "ssd16xx-420",
+      "gdeq031t10".
   width:
     type: int
     default: 0

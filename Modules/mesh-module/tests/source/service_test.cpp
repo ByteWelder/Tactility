@@ -7,6 +7,7 @@
 
 #include <service/manager.h>
 
+#include <tactility/concurrent/thread.h>
 #include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/drivers/radio.h>
@@ -206,6 +207,31 @@ TEST_CASE("mesh service sends and receives through the active backend") {
         }));
         CHECK(waitFor([] { return mesh_get_state() == MESH_STATE_ON; }));
         REQUIRE_EQ(mesh_set_preset("Default"), ERROR_NONE);
+    }
+
+    SUBCASE("concurrent synchronous calls finish") {
+        REQUIRE_EQ(radio_set_region(&local, RADIO_REGION_EU_868), ERROR_NONE);
+        REQUIRE_EQ(service_manager_start(MESH_SERVICE_ID), ERROR_NONE);
+        REQUIRE(waitFor([] { return mesh_get_state() == MESH_STATE_ON; }));
+
+        const auto caller = [](void*) -> int32_t {
+            for (int i = 0; i < 200; i++) {
+                MeshChannel channels[1];
+                size_t count = 0;
+                mesh_get_channels(channels, 1, &count);
+                mesh_get_state();
+            }
+            return 0;
+        };
+        Thread* threads[4];
+        for (auto& thread : threads) {
+            thread = thread_alloc_full("mesh_caller", 4096, caller, nullptr, -1);
+            REQUIRE_EQ(thread_start(thread), ERROR_NONE);
+        }
+        for (auto* thread : threads) {
+            CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(5000), 1), ERROR_NONE);
+            thread_free(thread);
+        }
     }
 
     SUBCASE("messages travel both ways") {

@@ -48,7 +48,8 @@ private:
     uint64_t firstPendingMs = 0;
 
     tt::std::string getSegmentPath(uint32_t segment) const;
-    void scanSegment(uint32_t segment);
+    /** @return the end offset of the last valid record */
+    uint32_t scanSegment(uint32_t segment);
     void applyRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t segment, uint32_t offset);
     error_t appendRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t seq);
     IndexEntry* findEntry(uint32_t seq);

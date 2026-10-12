@@ -16,6 +16,7 @@
 
 #include <tactility/check.h>
 #include <tactility/concurrent/task_event_group.h>
+#include <tactility/log.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -32,6 +33,8 @@ namespace tt::app::meshsettings {
 extern const ::AppManifest manifest;
 
 namespace {
+
+constexpr auto* TAG = "MeshSettings";
 
 struct Context {
     uint32_t appInstanceId;
@@ -138,31 +141,41 @@ void startChannelDialog(Context* ctx) {
     );
 }
 
+void joinChannel(const char* name) {
+    if (name[name[0] == '#' ? 1 : 0] == '\0') {
+    return;
+    }
+
+    // A new channel gets the next free index
+    MeshChannel channels[8];
+    size_t count = 0;
+    uint8_t index = 0;
+    if (mesh_get_channels(channels, 8, &count) == ERROR_NONE) {
+        for (size_t i = 0; i < count; i++) {
+            if (strcmp(channels[i].name, name) == 0) {
+                index = channels[i].index;
+                break;
+            }
+            index = std::max<uint8_t>(index, channels[i].index + 1);
+        }
+    }
+
+    MeshChannel channel {};
+    channel.index = index;
+    strncpy(channel.name, name, MESH_NAME_MAX_LENGTH);
+    channel.key_length = 0;
+    const error_t error = mesh_set_channel(&channel);
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Failed to join channel %s: %s", name, error_to_string(error));
+    }
+}
+
 void onChannelDialogResult(Context* ctx, int32_t result) {
     if (result == 0) {
         char name[sizeof(Context::channelBuffer)] = {};
         const size_t length = app_stream_read(&ctx->channelStream, name, sizeof(name) - 1);
         name[length] = '\0';
-
-        // A new channel gets the next free index
-        MeshChannel channels[8];
-        size_t count = 0;
-        uint8_t index = 0;
-        if (mesh_get_channels(channels, 8, &count) == ERROR_NONE) {
-            for (size_t i = 0; i < count; i++) {
-                if (strcmp(channels[i].name, name) == 0) {
-                    index = channels[i].index;
-                    break;
-                }
-                index = std::max<uint8_t>(index, channels[i].index + 1);
-            }
-        }
-
-        MeshChannel channel {};
-        channel.index = index;
-        strncpy(channel.name, name, MESH_NAME_MAX_LENGTH);
-        channel.key_length = 0;
-        mesh_set_channel(&channel);
+        joinChannel(name);
     }
     app_stream_unsubscribe(&ctx->channelStream);
 }

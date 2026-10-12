@@ -920,7 +920,12 @@ bool Sx1262Radio::doListen() {
                     handleRequest();
                     continue;
                 }
-                event_group_clear(events, SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT);
+                event_group_clear(events, flags & (SX1262_INTERRUPT_BIT | SX1262_DIO1_EVENT_BIT | SX1262_QUEUED_TX_BIT));
+                // A packet that arrived after the wake is received before a transmission can discard it
+                if ((event_group_get(events) & SX1262_DIO1_EVENT_BIT) != 0) {
+                    event_group_clear(events, SX1262_DIO1_EVENT_BIT);
+                    flags |= SX1262_DIO1_EVENT_BIT;
+                }
                 return (flags & SX1262_DIO1_EVENT_BIT) != 0;
             }
         } else {

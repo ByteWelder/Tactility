@@ -25,6 +25,7 @@ typedef enum {
     EPD_CTRL_GDEY0154_LUT,  // GDEY0154D67 with custom LUT
     EPD_CTRL_ACEP_6COLOR,   // ACeP 6-color controller (GDEP073E01)
     EPD_CTRL_BWRY_4COLOR,   // BWRY 4-color controller (GDEY037F51)
+    EPD_CTRL_UC8253,        // UC8253 BW panels (GDEQ031T10)
     EPD_CTRL_COUNT
 } epd_controller_type_t;
 

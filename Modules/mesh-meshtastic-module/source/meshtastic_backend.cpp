@@ -415,7 +415,14 @@ void onTick(void* context) {
     if (nowMs - backend->lastNodeInfoMs >= NODE_INFO_INTERVAL_MS) {
         sendNodeInfo(backend);
     }
-    std::erase_if(backend->pendingAcks, [nowMs](const auto& entry) { return nowMs >= entry.second.second; });
+    for (auto iterator = backend->pendingAcks.begin(); iterator != backend->pendingAcks.end();) {
+        if (nowMs >= iterator->second.second) {
+            mesh_host_set_delivery(backend->host, iterator->second.first, MESH_DELIVERY_FAILED);
+            iterator = backend->pendingAcks.erase(iterator);
+        } else {
+            ++iterator;
+        }
+    }
 }
 
 error_t sendText(void* context, uint32_t seq, const MeshAddress* to, uint8_t channelIndex, const char* text) {

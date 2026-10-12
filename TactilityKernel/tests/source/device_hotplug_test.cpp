@@ -1,6 +1,10 @@
 #include "doctest.h"
+#include <tactility/concurrent/thread.h>
+#include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
+
+#include <atomic>
 
 static bool probe_present = false;
 static int probe_driver_start_called = 0;
@@ -147,4 +151,83 @@ TEST_CASE("device_hotplug_poll_once starts a mandatory (probe == NULL) device un
     CHECK_EQ(device_remove(&device), ERROR_NONE);
     CHECK_EQ(device_destruct(&device), ERROR_NONE);
     CHECK_EQ(driver_remove_destruct(&mandatory_driver), ERROR_NONE);
+}
+
+static std::atomic<bool> blocking_probe_block { false };
+static std::atomic<bool> blocking_probe_entered { false };
+static std::atomic<bool> blocking_probe_release { false };
+static std::atomic<int> blocking_driver_stop_called { 0 };
+static std::atomic<bool> blocking_probe_saw_stop { false };
+
+static error_t blocking_driver_probe(Device*) {
+    if (blocking_probe_block) {
+        blocking_probe_entered = true;
+        while (!blocking_probe_release) {
+            delay_millis(1);
+        }
+        blocking_probe_saw_stop = blocking_driver_stop_called > 0;
+    }
+    return ERROR_NONE;
+}
+static error_t blocking_driver_start(Device*) { return ERROR_NONE; }
+static error_t blocking_driver_stop(Device*) { blocking_driver_stop_called++; return ERROR_NONE; }
+
+static Driver blocking_probe_driver = {
+    .name = "hotplug_test_blocking_probe_driver",
+    .compatible = (const char*[]) { "hotplug_test,blocking_probe", nullptr },
+    .start_device = blocking_driver_start,
+    .stop_device = blocking_driver_stop,
+    .probe = blocking_driver_probe,
+    .api = nullptr,
+    .device_type = nullptr,
+    .internal = nullptr,
+};
+
+TEST_CASE("device_stop waits for a probe() that is in progress") {
+    static Device device {
+        .name = "hotplug_blocking_probe_device",
+        .config = nullptr,
+        .parent = nullptr,
+    };
+    blocking_probe_block = false;
+    blocking_probe_entered = false;
+    blocking_probe_release = false;
+    blocking_driver_stop_called = 0;
+    blocking_probe_saw_stop = false;
+
+    CHECK_EQ(driver_construct_add(&blocking_probe_driver), ERROR_NONE);
+    CHECK_EQ(device_construct_add(&device, "hotplug_test,blocking_probe"), ERROR_NONE);
+    device_hotplug_register(&device);
+    CHECK_EQ(device_start(&device), ERROR_NONE);
+
+    blocking_probe_block = true;
+    auto* poller = thread_alloc_full("hotplug_poller", 4096, [](void*) -> int32_t {
+        device_hotplug_poll_once();
+        return 0;
+    }, nullptr, -1);
+    CHECK_EQ(thread_start(poller), ERROR_NONE);
+    while (!blocking_probe_entered) {
+        delay_millis(1);
+    }
+
+    auto* stopper = thread_alloc_full("hotplug_stopper", 4096, [](void*) -> int32_t {
+        return device_stop(&device);
+    }, nullptr, -1);
+    CHECK_EQ(thread_start(stopper), ERROR_NONE);
+    delay_millis(20);
+    CHECK_EQ(blocking_driver_stop_called.load(), 0);
+
+    blocking_probe_release = true;
+    CHECK_EQ(thread_join(poller, 1000, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(stopper, 1000, 1), ERROR_NONE);
+    CHECK_EQ(thread_get_return_code(stopper), ERROR_NONE);
+    thread_free(poller);
+    thread_free(stopper);
+    CHECK_FALSE(blocking_probe_saw_stop.load());
+    CHECK_EQ(blocking_driver_stop_called.load(), 1);
+
+    device_hotplug_unregister(&device);
+    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&device), ERROR_NONE);
+    CHECK_EQ(driver_remove_destruct(&blocking_probe_driver), ERROR_NONE);
 }

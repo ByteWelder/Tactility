@@ -218,8 +218,9 @@ error_t MeshStore::open(const char* path) {
     closedir(dir);
     std::sort(segments.begin(), segments.end());
 
+    uint32_t lastValidEnd = 0;
     for (uint32_t segment : segments) {
-        scanSegment(segment);
+        lastValidEnd = scanSegment(segment);
     }
 
     if (segments.empty()) {
@@ -228,6 +229,12 @@ error_t MeshStore::open(const char* path) {
     } else {
         struct stat info {};
         currentSegmentSize = (stat(getSegmentPath(segments.back()).c_str(), &info) == 0) ? (uint32_t)info.st_size : 0;
+        if (currentSegmentSize != lastValidEnd) {
+            // Never append after a torn record, as the scan stops there
+            segments.push_back(segments.back() + 1);
+            currentSegmentSize = 0;
+            enforceBudget();
+        }
     }
 
     LOG_I(TAG, "Opened %s: %u messages in %u segments", path, (unsigned)index.size(), (unsigned)segments.size());
@@ -247,10 +254,10 @@ void MeshStore::close() {
     nextSeq = 1;
 }
 
-void MeshStore::scanSegment(uint32_t segment) {
+uint32_t MeshStore::scanSegment(uint32_t segment) {
     FILE* file = fopen(getSegmentPath(segment).c_str(), "rb");
     if (file == nullptr) {
-        return;
+        return 0;
     }
 
     uint8_t header[RECORD_HEADER_SIZE];
@@ -268,6 +275,7 @@ void MeshStore::scanSegment(uint32_t segment) {
         offset += RECORD_HEADER_SIZE + length;
     }
     fclose(file);
+    return offset;
 }
 
 void MeshStore::applyRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t segment, uint32_t offset) {
@@ -439,6 +447,8 @@ error_t MeshStore::flush() {
     fclose(file);
     if (written != bufferUsed) {
         LOG_E(TAG, "Failed to write segment %u", (unsigned)segment);
+        // The segment may end with a partial record now, so the retry goes to a new one
+        currentSegmentSize = (uint32_t)limits.segmentSize;
         return ERROR_RESOURCE;
     }
 

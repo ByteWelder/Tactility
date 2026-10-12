@@ -2,6 +2,7 @@
 
 #include <mesh/mesh_store.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -127,4 +128,39 @@ TEST_CASE("MeshStore finds outgoing messages by backend and delivery state") {
     const auto found = store.findOutgoing("test", MESH_DELIVERY_BLOCKED);
     REQUIRE_EQ(found.size(), 1);
     CHECK_EQ(found[0], blocked.seq);
+}
+
+TEST_CASE("MeshStore keeps records that are added after a torn record") {
+    const std::string directory = makeTempDirectory();
+    {
+        MeshStore store;
+        CHECK_EQ(store.open(directory.c_str()), ERROR_NONE);
+        auto first = makeMessage("before", false, MESH_DELIVERY_RECEIVED);
+        CHECK_EQ(store.add(&first), ERROR_NONE);
+        store.close();
+    }
+
+    // A power loss during a flush leaves part of a record behind
+    FILE* file = fopen((directory + "/seg-00000000.log").c_str(), "ab");
+    REQUIRE_NE(file, nullptr);
+    fwrite("\x4d\x53\x01", 1, 3, file);
+    fclose(file);
+
+    {
+        MeshStore store;
+        CHECK_EQ(store.open(directory.c_str()), ERROR_NONE);
+        CHECK_EQ(store.getMessageCount(), 1);
+        auto second = makeMessage("after", false, MESH_DELIVERY_RECEIVED);
+        CHECK_EQ(store.add(&second), ERROR_NONE);
+        CHECK_EQ(store.setDelivery(second.seq, MESH_DELIVERY_SENT), ERROR_NONE);
+        store.close();
+    }
+
+    MeshStore reopened;
+    CHECK_EQ(reopened.open(directory.c_str()), ERROR_NONE);
+    CHECK_EQ(reopened.getMessageCount(), 2);
+    MeshMessage read {};
+    CHECK_EQ(reopened.get(2, &read), ERROR_NONE);
+    CHECK_EQ(std::string(read.text), "after");
+    CHECK_EQ(read.delivery, MESH_DELIVERY_SENT);
 }

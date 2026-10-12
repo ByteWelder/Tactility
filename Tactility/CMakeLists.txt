@@ -242,7 +242,7 @@ target_compile_definitions(${COMPONENT_LIB} PUBLIC
 set(tt_feature_mesh 1)
 if (DEFINED ENV{ESP_IDF_VERSION})
     file(READ "${DEVICETREE_LOCATION}/device.properties" mesh_device_properties)
-    if (NOT mesh_device_properties MATCHES "hardware\\.mesh=true")
+    if (NOT mesh_device_properties MATCHES "(^|\n)hardware\\.mesh=true")
         set(tt_feature_mesh 0)
     endif ()
 endif ()

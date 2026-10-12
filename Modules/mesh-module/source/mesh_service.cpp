@@ -60,6 +60,9 @@ GlobalMutex globalMutex;
 void lock() { mutex_lock(&globalMutex.handle); }
 void unlock() { mutex_unlock(&globalMutex.handle); }
 
+/** Serializes callOnServiceThread() callers. Taken before the global lock, never while holding it */
+GlobalMutex callMutex;
+
 const MeshBackendApi* backends[MAX_BACKENDS] = {};
 size_t backendCount = 0;
 
@@ -227,7 +230,6 @@ struct MeshHost {
     uint64_t lastTickMs = 0;
 
     // Synchronous calls
-    Mutex callMutex {};
     EventGroupHandle_t callEvents = nullptr;
 };
 
@@ -268,13 +270,14 @@ void post(MeshHost* host, std::function<void()> work) {
  * the service thread. The thread drains all posted work before it exits, so the wait always ends.
  */
 error_t callOnServiceThread(const std::function<void(MeshHost*)>& work) {
+    mutex_lock(&callMutex.handle);
     lock();
     MeshHost* host = service;
     if (host == nullptr) {
         unlock();
+        mutex_unlock(&callMutex.handle);
         return ERROR_INVALID_STATE;
     }
-    mutex_lock(&host->callMutex);
     event_group_clear(host->callEvents, CALL_DONE_BIT);
     post(host, [host, &work] {
         work(host);
@@ -282,7 +285,7 @@ error_t callOnServiceThread(const std::function<void(MeshHost*)>& work) {
     });
     unlock();
     event_group_wait(host->callEvents, CALL_DONE_BIT, false, true, nullptr, portMAX_DELAY);
-    mutex_unlock(&host->callMutex);
+    mutex_unlock(&callMutex.handle);
     return ERROR_NONE;
 }
 
@@ -679,13 +682,11 @@ void releaseResources(MeshHost* host) {
     }
     task_event_group_destruct(&host->group);
     event_group_destruct(&host->callEvents);
-    mutex_destruct(&host->callMutex);
 }
 
 error_t onStart(ServiceInstance*, void* data) {
     auto* host = static_cast<MeshHost*>(data);
 
-    mutex_construct(&host->callMutex);
     event_group_construct(&host->callEvents);
     task_event_group_construct(&host->group);
     if (task_event_group_claim_bit(&host->group, &host->stopBit) != ERROR_NONE ||

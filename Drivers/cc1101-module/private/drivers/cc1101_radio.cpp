@@ -716,8 +716,13 @@ bool Cc1101Radio::doListen() {
             handleRequest();
             continue;
         }
-        event_group_clear(events, CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT);
+        event_group_clear(events, flags & (CC1101_INTERRUPT_BIT | CC1101_GDO0_EVENT_BIT | CC1101_QUEUED_TX_BIT));
         gpio_descriptor_disable_interrupt(settings.gdo0);
+        // A packet that arrived after the wake is received before a transmission can discard it
+        if ((event_group_get(events) & CC1101_GDO0_EVENT_BIT) != 0) {
+            event_group_clear(events, CC1101_GDO0_EVENT_BIT);
+            flags |= CC1101_GDO0_EVENT_BIT;
+        }
         return (flags & CC1101_GDO0_EVENT_BIT) != 0;
     }
 }
