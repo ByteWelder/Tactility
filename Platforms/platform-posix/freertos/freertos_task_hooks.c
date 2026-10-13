@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "freertos_task_hooks.h"
 
+#include <pthread.h>
+#include <signal.h>
+
 static FreeRtosTaskCreateHook create_hook = NULL;
 static FreeRtosTaskDeleteHook delete_hook = NULL;
 
@@ -22,4 +25,13 @@ void vTaskDelete(TaskHandle_t handle) {
         return;
     }
     freertos_real_vTaskDelete(handle);
+}
+
+void vPortCancelThread(void* task) {
+    sigset_t all_signals;
+    sigset_t previous_signals;
+    sigfillset(&all_signals);
+    pthread_sigmask(SIG_BLOCK, &all_signals, &previous_signals);
+    freertos_real_vPortCancelThread(task);
+    pthread_sigmask(SIG_SETMASK, &previous_signals, NULL);
 }

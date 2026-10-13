@@ -1,20 +1,26 @@
 #include "doctest.h"
 
 #include <location/location.h>
+#include <location/gps_provider.h>
 #include <location/location_service.h>
 #include <location/provider.h>
 
 #include <service/manager.h>
 
+#include <tactility/delay.h>
+
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace {
 
-LocationHost* fakeHost = nullptr;
-int createCount = 0;
-int destroyCount = 0;
+// Providers start and stop on the service's worker
+std::atomic<LocationHost*> fakeHost = nullptr;
+std::atomic<int> createCount = 0;
+std::atomic<int> destroyCount = 0;
 
 void* fakeCreate(LocationHost* host) {
     fakeHost = host;
@@ -22,17 +28,32 @@ void* fakeCreate(LocationHost* host) {
     return host;
 }
 
-void fakeDestroy(void*) {
+void fakeRequestStop(void*) {}
+
+bool fakeWaitStopped(void*, TickType_t) {
     fakeHost = nullptr;
     destroyCount++;
+    return true;
 }
 
 const LocationProviderApi fakeProvider = {
     .id = "fake",
     .fallback = false,
     .create = fakeCreate,
-    .destroy = fakeDestroy,
+    .request_stop = fakeRequestStop,
+    .wait_stopped = fakeWaitStopped,
 };
+
+template <typename Predicate>
+bool waitUntil(Predicate predicate) {
+    for (int i = 0; i < 200; i++) {
+        if (predicate()) {
+            return true;
+        }
+        delay_millis(10);
+    }
+    return predicate();
+}
 
 Location makeLocation(double latitude, double longitude) {
     return Location {
@@ -64,6 +85,7 @@ TEST_CASE("location service reports fixes of its providers") {
     // Providers don't run without subscriptions
     REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
     CHECK(createCount == 0);
+    CHECK_FALSE(location_is_in_use());
 
     Location location;
     CHECK(location_get(&location) == ERROR_NOT_FOUND);
@@ -73,8 +95,9 @@ TEST_CASE("location service reports fixes of its providers") {
     LocationSubscription sub {};
     REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
     CHECK(location_subscribe(&sub, &group) == ERROR_INVALID_STATE);
+    CHECK(location_is_in_use());
+    REQUIRE(waitUntil([] { return fakeHost != nullptr; }));
     CHECK(createCount == 1);
-    REQUIRE(fakeHost != nullptr);
 
     const Location reported = makeLocation(51.05, 3.72);
     location_host_report(fakeHost, &reported);
@@ -93,18 +116,21 @@ TEST_CASE("location service reports fixes of its providers") {
     // The last known fix remains available after the last subscription is removed
     CHECK(location_unsubscribe(&sub) == ERROR_NONE);
     CHECK(location_unsubscribe(&sub) == ERROR_NOT_FOUND);
-    CHECK(destroyCount == 1);
+    CHECK_FALSE(location_is_in_use());
+    CHECK(waitUntil([] { return destroyCount == 1; }));
     CHECK(location_get(&location) == ERROR_NONE);
 
     REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
-    CHECK(createCount == 2);
+    CHECK(waitUntil([] { return createCount == 2; }));
 
     REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
-    CHECK(destroyCount == 2);
+    CHECK_FALSE(location_is_in_use());
     CHECK(location_get(&location) == ERROR_NOT_FOUND);
+    CHECK(waitUntil([] { return destroyCount == 2; }));
 
     REQUIRE(service_manager_start(location_service_manifest.id) == ERROR_NONE);
-    CHECK(createCount == 3);
+    CHECK(waitUntil([] { return createCount == 3; }));
+    // Unregistering waits for the provider to stop
     CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
     CHECK(destroyCount == 3);
     CHECK(location_provider_unregister(&fakeProvider) == ERROR_NOT_FOUND);
@@ -121,7 +147,7 @@ TEST_CASE("location provider registration is limited") {
     char ids[LOCATION_PROVIDER_MAX_COUNT + 1][8];
     for (size_t i = 0; i <= LOCATION_PROVIDER_MAX_COUNT; i++) {
         snprintf(ids[i], sizeof(ids[i]), "p%zu", i);
-        providers[i] = { .id = ids[i], .fallback = false, .create = fakeCreate, .destroy = fakeDestroy };
+        providers[i] = { .id = ids[i], .fallback = false, .create = fakeCreate, .request_stop = fakeRequestStop, .wait_stopped = fakeWaitStopped };
     }
     for (size_t i = 0; i < LOCATION_PROVIDER_MAX_COUNT; i++) {
         REQUIRE(location_provider_register(&providers[i]) == ERROR_NONE);
@@ -134,22 +160,26 @@ TEST_CASE("location provider registration is limited") {
 
 namespace {
 
-LocationHost* fallbackHost = nullptr;
+std::atomic<LocationHost*> fallbackHost = nullptr;
 
 void* fallbackCreate(LocationHost* host) {
     fallbackHost = host;
     return host;
 }
 
-void fallbackDestroy(void*) {
+void fallbackRequestStop(void*) {}
+
+bool fallbackWaitStopped(void*, TickType_t) {
     fallbackHost = nullptr;
+    return true;
 }
 
 const LocationProviderApi fakeFallbackProvider = {
     .id = "fakefallback",
     .fallback = true,
     .create = fallbackCreate,
-    .destroy = fallbackDestroy,
+    .request_stop = fallbackRequestStop,
+    .wait_stopped = fallbackWaitStopped,
 };
 
 }
@@ -163,8 +193,7 @@ TEST_CASE("location service prefers fixes of providers that aren't a fallback") 
     task_event_group_construct(&group);
     LocationSubscription sub {};
     REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
-    REQUIRE(fakeHost != nullptr);
-    REQUIRE(fallbackHost != nullptr);
+    REQUIRE(waitUntil([] { return fakeHost != nullptr && fallbackHost != nullptr; }));
 
     CHECK(location_host_needs_fallback());
     const Location fallback = makeLocation(10.0, 20.0);
@@ -218,4 +247,144 @@ TEST_CASE("location_make_approximate keeps only a coarse position") {
     location.horizontal_accuracy = 25000.0f;
     location_make_approximate(&location);
     CHECK(location.horizontal_accuracy == doctest::Approx(25000.0));
+}
+
+namespace {
+
+std::atomic<LocationHost*> stuckHost = nullptr;
+std::atomic<int> stuckCreateCount = 0;
+std::atomic<bool> stuck = false;
+
+void* stuckCreate(LocationHost* host) {
+    stuckHost = host;
+    stuckCreateCount++;
+    return host;
+}
+
+void stuckRequestStop(void*) {}
+
+bool stuckWaitStopped(void*, TickType_t timeout) {
+    if (stuck) {
+        vTaskDelay(timeout);
+        return false;
+    }
+    stuckHost = nullptr;
+    return true;
+}
+
+const LocationProviderApi stuckProvider = {
+    .id = "stuck",
+    .fallback = false,
+    .create = stuckCreate,
+    .request_stop = stuckRequestStop,
+    .wait_stopped = stuckWaitStopped,
+};
+
+}
+
+TEST_CASE("location service doesn't wait for a provider that is slow to stop") {
+    createCount = 0;
+    destroyCount = 0;
+    stuckCreateCount = 0;
+    REQUIRE(location_provider_register(&fakeProvider) == ERROR_NONE);
+    REQUIRE(location_provider_register(&stuckProvider) == ERROR_NONE);
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    REQUIRE(waitUntil([] { return fakeHost != nullptr && stuckHost != nullptr; }));
+    LocationHost* stoppingHost = stuckHost;
+
+    stuck = true;
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    // The other provider stops while the stuck one is still stopping
+    CHECK(waitUntil([] { return destroyCount == 1; }));
+
+    // A provider that is stopping doesn't report anymore
+    const Location reported = makeLocation(51.05, 3.72);
+    location_host_report(stoppingHost, &reported);
+    Location location;
+    CHECK(location_get(&location) == ERROR_NOT_FOUND);
+
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    CHECK(waitUntil([] { return createCount == 2; }));
+    CHECK(stuckCreateCount == 1);
+
+    // Once stopped, the provider starts again because it's desired again
+    stuck = false;
+    CHECK(waitUntil([] { return stuckCreateCount == 2; }));
+
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
+    CHECK(location_provider_unregister(&stuckProvider) == ERROR_NONE);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
+}
+
+namespace {
+
+/** @return the names of the location tasks that weren't deleted, separated by spaces */
+std::string getLocationTasks() {
+    TaskStatus_t statuses[32];
+    const UBaseType_t count = uxTaskGetSystemState(statuses, 32, nullptr);
+    std::string names;
+    for (UBaseType_t i = 0; i < count; i++) {
+        if (statuses[i].eCurrentState != eDeleted && strncmp(statuses[i].pcTaskName, "location", 8) == 0) {
+            names += statuses[i].pcTaskName;
+            names += ' ';
+        }
+    }
+    return names;
+}
+
+}
+
+TEST_CASE("location service has no background task without subscriptions") {
+    REQUIRE(location_provider_register(&fakeProvider) == ERROR_NONE);
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+    CHECK(waitUntil([] { return getLocationTasks().empty(); }));
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    REQUIRE(waitUntil([] { return fakeHost != nullptr; }));
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    REQUIRE(waitUntil([] { return fakeHost == nullptr; }));
+
+    // The worker exits once the provider stopped
+    CHECK(waitUntil([] { return getLocationTasks().empty(); }));
+    INFO("location tasks: ", getLocationTasks());
+    CHECK(getLocationTasks().empty());
+
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
+}
+
+TEST_CASE("the gps provider has no task without subscriptions") {
+    REQUIRE(location_provider_register(&gps_location_provider) == ERROR_NONE);
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+    CHECK(waitUntil([] { return getLocationTasks().empty(); }));
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    CHECK(waitUntil([] { return getLocationTasks().find("location_gps") != std::string::npos; }));
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+
+    // Without a GPS device, the provider polls for one every second
+    CHECK(waitUntil([] { return getLocationTasks().empty(); }));
+    INFO("location tasks: ", getLocationTasks());
+    CHECK(getLocationTasks().empty());
+
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(location_provider_unregister(&gps_location_provider) == ERROR_NONE);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
 }

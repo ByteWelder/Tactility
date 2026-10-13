@@ -3,6 +3,8 @@
 
 #include <location/location.h>
 
+#include <tactility/freertos/freertos.h>
+
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -27,13 +29,21 @@ struct LocationProviderApi {
     bool fallback;
 
     /**
-     * Start the provider. Called when the service starts, or when the provider registers while the service runs.
+     * Start the provider. Called on the service's worker task while the service runs and has subscriptions.
+     * It must not block: the work happens on the provider's own task.
      * @return the provider state, NULL on failure
      */
     void* (*create)(struct LocationHost* host);
 
-    /** Stop the provider. It must not report anymore once this returns. */
-    void (*destroy)(void* provider);
+    /** Ask the provider to stop. It must not block. */
+    void (*request_stop)(void* provider);
+
+    /**
+     * Wait at most @a timeout for the provider to stop and release its resources.
+     * It must not report anymore once this returned true. The provider is only created again after that.
+     * @return true when stopped
+     */
+    bool (*wait_stopped)(void* provider, TickType_t timeout);
 };
 
 /** Maximum number of registered providers */

@@ -96,9 +96,10 @@ error_t device_add(struct Device* device);
  * Deregister a device. Remove it from all relevant systems:
  * - the global ledger
  * - its parent (if any)
+ * Afterwards, device_start() fails for this device, also when called with a reference that was taken before.
  *
  * @param[in,out] device non-null device pointer
- * @retval ERROR_INVALID_STATE if the device is still started
+ * @retval ERROR_INVALID_STATE if the device is started, being started, or not added
  * @retval ERROR_NOT_FOUND if the device was not found in the system
  * @retval ERROR_NONE on success
  */
@@ -126,8 +127,8 @@ error_t device_start(struct Device* device);
  *          device_start()/device_stop() on this same device - device_stop() holds this
  *          device's lock for its entire body, so doing so would deadlock.
  * @param[in,out] device non-null device pointer
- * @retval ERROR_INVALID_STATE if the device is not started
- * @retval ERROR_RESOURCE_BUSY if the device has outstanding device_get() references
+ * @retval ERROR_INVALID_STATE if the device is not added
+ * @retval ERROR_RESOURCE_BUSY if the device is being stopped by another task
  * @retval ERROR_RESOURCE when driver unbinding fails
  * @retval ERROR_NONE on success
  */
@@ -260,18 +261,19 @@ void device_unlock(struct Device* device);
 bool device_is_constructed(const struct Device* device);
 
 /**
- * Take a reference on a device, guaranteeing its driver data remains valid until a matching
- * device_put(). Named after the Linux kernel's get_device()/put_device(). Intended to bracket
- * a single hardware operation (one API call or a short sequence of them), not to be held across
- * a blocking wait or unrelated later work - device_stop() fails with ERROR_RESOURCE_BUSY while
- * any reference is outstanding.
+ * Take a reference on a device, guaranteeing that the device stays constructed until a matching
+ * device_put(). Named after the Linux kernel's get_device()/put_device(). The reference doesn't depend
+ * on the device's state: the device can be started, stopped and removed while it's held, and only
+ * device_destruct() fails with ERROR_RESOURCE_BUSY while a reference is outstanding.
+ * Hold it for a short sequence of operations (e.g. device_start() on a device found with a lookup),
+ * not across unrelated later work.
  *
  * @param[in,out] device non-null device pointer, already known to be valid (e.g. a static
  *                devicetree pointer, or one captured earlier under a lock) - device_get() does
  *                not itself protect against a dangling/freed Device*. For a fresh lookup that
  *                might race a concurrent teardown of a dynamically-allocated Device, use one of
  *                the device_get_*() lookup functions below instead.
- * @retval ERROR_INVALID_STATE if the device is not started (or has been destructed)
+ * @retval ERROR_INVALID_STATE if the device has been destructed
  * @retval ERROR_NONE on success; caller must call device_put(device) exactly once
  */
 error_t device_get(struct Device* device);
@@ -350,12 +352,11 @@ bool device_exists_of_type(const struct DeviceType* type) ;
 error_t device_get_by_name(const char* name, struct Device** out_device);
 
 /**
- * Find the first device of the given type and atomically take a reference on it.
+ * Find the first device of the given type, started or not, and atomically take a reference on it.
  *
  * @param[in] type non-null device type pointer
  * @param[out] out_device receives the found device on success; untouched on failure
  * @retval ERROR_NOT_FOUND if no device of that type exists
- * @retval ERROR_INVALID_STATE if found but not started (no reference taken)
  * @retval ERROR_NONE on success; caller must call device_put(*out_device) exactly once
  */
 error_t device_get_first_by_type(const struct DeviceType* type, struct Device** out_device);

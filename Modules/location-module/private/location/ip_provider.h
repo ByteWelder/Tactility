@@ -5,8 +5,16 @@
 
 #include <stddef.h>
 
-/** Fallback provider that looks up the location of the public IP address with ip-api.com */
+/**
+ * Fallback provider that looks up the location of the public IP address with ip-api.com.
+ * The result is reused while the network (local IP address and gateway) is unchanged.
+ */
 extern const LocationProviderApi ip_location_provider;
+
+/** Start tracking the network that the device is connected to, also while the provider doesn't run */
+error_t ip_provider_track_network(void);
+
+void ip_provider_untrack_network(void);
 
 #define IP_API_MESSAGE_MAX_LENGTH 63
 

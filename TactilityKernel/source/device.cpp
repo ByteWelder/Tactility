@@ -168,10 +168,17 @@ error_t device_add(Device* device) {
 
 error_t device_remove(Device* device) {
     LOG_D(TAG, "remove %s", device->name);
+    auto* internal = device->internal;
 
-    if (device->internal->state.started || !device->internal->state.added) {
+    // Cleared under the lock that device_start() checks it with, so the device can't be started anymore.
+    // The lock is released before taking ledger_lock, as lookups take ledger_lock first.
+    lock_internal(internal);
+    if (internal->state.started || internal->state.starting || !internal->state.added) {
+        unlock_internal(internal);
         return ERROR_INVALID_STATE;
     }
+    internal->state.added = false;
+    unlock_internal(internal);
 
     // Remove self from parent's children list
     auto* parent = device->parent;
@@ -188,7 +195,6 @@ error_t device_remove(Device* device) {
     ledger.devices.erase(iterator);
     ledger_unlock();
 
-    device->internal->state.added = false;
     return ERROR_NONE;
 
 failed_ledger_lookup:
@@ -198,6 +204,9 @@ failed_ledger_lookup:
         device_add_child(parent, device);
     }
 
+    lock_internal(internal);
+    internal->state.added = true;
+    unlock_internal(internal);
     return ERROR_NOT_FOUND;
 }
 

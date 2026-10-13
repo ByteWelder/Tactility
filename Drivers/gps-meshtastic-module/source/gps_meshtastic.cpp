@@ -19,6 +19,7 @@
 
 #include <minmea.h>
 
+#include <atomic>
 #include <cstdio>
 #include <cstdlib> // For calloc() in PC builds
 
@@ -33,7 +34,7 @@ constexpr TickType_t GPS_THREAD_STOP_POLL_TICKS = pdMS_TO_TICKS(1000);
 struct GpsInternal {
     RecursiveMutex mutex;
     Thread* thread;
-    volatile bool interrupt_requested;
+    std::atomic<bool> interrupt_requested;
     GpsState state;
     // Mirrors GpsConfig::model, but overwritten with the autodetected model once probing succeeds.
     GpsModel model;
@@ -105,6 +106,31 @@ static bool is_interrupted(GpsInternal* internal) {
 
 // region Driver lifecycle
 
+// Returns false when probing or init failed, or when the thread was interrupted
+static bool setup_receiver(GpsInternal* internal, Device* uart) {
+    GpsModel model = internal->model;
+    if (model == GpsModel::GPS_MODEL_UNKNOWN) {
+        model = gps_probe(uart, internal->interrupt_requested);
+        if (model == GpsModel::GPS_MODEL_UNKNOWN) {
+            if (!is_interrupted(internal)) {
+                LOG_E(TAG, "Probe failed");
+            }
+            return false;
+        }
+        recursive_mutex_lock(&internal->mutex);
+        internal->model = model;
+        recursive_mutex_unlock(&internal->mutex);
+    }
+
+    if (!gps_init(uart, model, internal->interrupt_requested)) {
+        if (!is_interrupted(internal)) {
+            LOG_E(TAG, "Init failed");
+        }
+        return false;
+    }
+    return true;
+}
+
 static int32_t gps_thread_main(void* context) {
     auto* device = static_cast<Device*>(context);
     auto* internal = static_cast<GpsInternal*>(device_get_driver_data(device));
@@ -132,26 +158,12 @@ static int32_t gps_thread_main(void* context) {
         return -1;
     }
 
-    GpsModel model = internal->model;
-    if (model == GpsModel::GPS_MODEL_UNKNOWN) {
-        model = gps_probe(uart);
-        if (model == GpsModel::GPS_MODEL_UNKNOWN) {
-            LOG_E(TAG, "Probe failed");
-            set_state(internal, GpsState::GPS_STATE_ERROR);
-            return -1;
-        }
-        recursive_mutex_lock(&internal->mutex);
-        internal->model = model;
-        recursive_mutex_unlock(&internal->mutex);
-    }
-
-    if (!gps_init(uart, model)) {
-        LOG_E(TAG, "Init failed");
+    if (setup_receiver(internal, uart)) {
+        set_state(internal, GpsState::GPS_STATE_ON);
+    } else if (!is_interrupted(internal)) {
         set_state(internal, GpsState::GPS_STATE_ERROR);
         return -1;
     }
-
-    set_state(internal, GpsState::GPS_STATE_ON);
 
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     uint8_t buffer[GPS_UART_BUFFER_SIZE];

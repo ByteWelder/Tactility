@@ -9,6 +9,8 @@
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/concurrent/task_event_group.h>
+#include <tactility/concurrent/thread.h>
+#include <tactility/delay.h>
 #include <tactility/log.h>
 #include <tactility/time.h>
 
@@ -17,12 +19,23 @@
 
 #define TAG "location"
 
+enum class HostState {
+    Stopped,
+    Running,
+    Stopping,
+};
+
 struct LocationHost {
-    // Guarded by lifecycleMutex
     const LocationProviderApi* api;
     void* provider;
+    HostState state;
+    // The worker is calling the provider without holding the mutex
+    bool busy;
+    // Unregistering, which waits for the provider to stop
+    bool removing;
+    // Not created again until the provider is no longer desired
+    bool createFailed;
 
-    // Guarded by dataMutex
     bool fallback;
     bool hasLocation;
     Location location;
@@ -34,6 +47,10 @@ namespace {
 constexpr uint64_t FRESH_MS = 120000;
 // About 2 km north to south
 constexpr double APPROXIMATE_GRID_DEGREES = 0.02;
+// The worker waits this long for a stopping provider before it handles the other providers
+constexpr uint32_t STOP_WAIT_MS = 100;
+constexpr uint32_t UNREGISTER_POLL_MS = 10;
+constexpr size_t WORKER_STACK_SIZE = 4096;
 
 struct GlobalMutex {
     Mutex handle {};
@@ -41,16 +58,14 @@ struct GlobalMutex {
     ~GlobalMutex() { mutex_destruct(&handle); }
 };
 
-// Serializes provider registration, service start/stop and (un)subscribing, which create and destroy providers
-GlobalMutex lifecycleMutex;
+// Not held while calling provider functions
+GlobalMutex mutex;
 LocationHost hosts[LOCATION_PROVIDER_MAX_COUNT] {};
 bool running = false;
-// Providers only exist while the service runs and has subscribers
-bool providersActive = false;
-
-// Not held while calling provider functions, so providers can report while being destroyed
-GlobalMutex dataMutex;
 LocationSubscription* subscriptions = nullptr;
+// Starts and stops providers. It only exists while a provider isn't in its desired state.
+Thread* worker = nullptr;
+bool workerActive = false;
 
 GlobalMutex settingsMutex;
 LocationSettings settings {};
@@ -68,7 +83,7 @@ uint64_t getUptimeMs() {
     return get_micros_since_boot() / 1000;
 }
 
-/** Must be called with dataMutex held */
+/** Must be called with mutex held */
 int getRank(const LocationHost& host, uint64_t now) {
     if (host.fallback) {
         return 1;
@@ -76,7 +91,7 @@ int getRank(const LocationHost& host, uint64_t now) {
     return now - host.location.uptime_ms < FRESH_MS ? 2 : 0;
 }
 
-/** Must be called with dataMutex held */
+/** Must be called with mutex held */
 const LocationHost* findBest() {
     const uint64_t now = getUptimeMs();
     const LocationHost* best = nullptr;
@@ -94,48 +109,122 @@ const LocationHost* findBest() {
     return best;
 }
 
-void clearLocation(LocationHost* host) {
-    mutex_lock(&dataMutex.handle);
-    host->hasLocation = false;
-    mutex_unlock(&dataMutex.handle);
+/** Must be called with mutex held */
+bool isDesired(const LocationHost& host) {
+    return host.api != nullptr && !host.removing && running && subscriptions != nullptr;
 }
 
-void startProvider(LocationHost* host) {
-    host->provider = host->api->create(host);
-    if (host->provider == nullptr) {
-        LOG_E(TAG, "Failed to start provider %s", host->api->id);
+/** Must be called with mutex held */
+bool isSettled(const LocationHost& host) {
+    switch (host.state) {
+        case HostState::Running:
+            return isDesired(host);
+        case HostState::Stopped:
+            return !isDesired(host) || host.createFailed;
+        case HostState::Stopping:
+            return false;
+    }
+    return true;
+}
+
+/** Takes one step towards the desired state. Must be called with mutex held, which is released during the step. */
+void step(LocationHost& host) {
+    const LocationProviderApi* api = host.api;
+    void* provider = host.provider;
+    const HostState state = host.state;
+    host.busy = true;
+    mutex_unlock(&mutex.handle);
+
+    switch (state) {
+        case HostState::Stopped: {
+            void* created = api->create(&host);
+            mutex_lock(&mutex.handle);
+            if (created != nullptr) {
+                host.provider = created;
+                host.state = HostState::Running;
+            } else {
+                LOG_E(TAG, "Failed to start provider %s", api->id);
+                host.createFailed = true;
+            }
+            break;
+        }
+        case HostState::Running:
+            api->request_stop(provider);
+            mutex_lock(&mutex.handle);
+            host.state = HostState::Stopping;
+            break;
+        case HostState::Stopping: {
+            const bool stopped = api->wait_stopped(provider, millis_to_ticks(STOP_WAIT_MS));
+            mutex_lock(&mutex.handle);
+            if (stopped) {
+                host.provider = nullptr;
+                host.state = HostState::Stopped;
+            }
+            break;
+        }
+    }
+    host.busy = false;
+}
+
+int32_t workerMain(void*) {
+    mutex_lock(&mutex.handle);
+    bool settled = false;
+    while (!settled) {
+        settled = true;
+        for (auto& host : hosts) {
+            if (!host.busy && !isSettled(host)) {
+                settled = false;
+                step(host);
+            }
+        }
+    }
+    workerActive = false;
+    mutex_unlock(&mutex.handle);
+    return 0;
+}
+
+/** Frees the worker after it exited. Must be called with mutex held. */
+void freeFinishedWorker() {
+    if (worker != nullptr && !workerActive) {
+        // The worker released the mutex for the last time, so it exits right away
+        thread_join(worker, portMAX_DELAY, 1);
+        thread_free(worker);
+        worker = nullptr;
     }
 }
 
-void stopProvider(LocationHost* host) {
-    if (host->provider != nullptr) {
-        host->api->destroy(host->provider);
-        host->provider = nullptr;
+/** Starts the worker when a provider isn't in its desired state. Must be called with mutex held. */
+void reconcile() {
+    bool settled = true;
+    for (auto& host : hosts) {
+        if (!isDesired(host)) {
+            host.createFailed = false;
+        }
+        settled = settled && isSettled(host);
     }
-}
-
-/** Must be called with lifecycleMutex held */
-void updateProviders() {
-    mutex_lock(&dataMutex.handle);
-    const bool hasSubscribers = subscriptions != nullptr;
-    mutex_unlock(&dataMutex.handle);
-
-    const bool shouldBeActive = running && hasSubscribers;
-    if (shouldBeActive == providersActive) {
+    if (settled || workerActive) {
         return;
     }
-    providersActive = shouldBeActive;
-    for (auto& host : hosts) {
-        if (host.api == nullptr) {
-            continue;
-        }
-        if (shouldBeActive) {
-            startProvider(&host);
-        } else {
-            // Fixes are kept as the last known location
-            stopProvider(&host);
-        }
+
+    // The worker doesn't access flash, so its stack can be in external memory
+    mutex_lock(&settingsMutex.handle);
+    ensureSettingsLoaded();
+    mutex_unlock(&settingsMutex.handle);
+
+    freeFinishedWorker();
+    worker = thread_alloc_full("location", WORKER_STACK_SIZE, workerMain, nullptr, -1);
+    if (worker == nullptr) {
+        LOG_E(TAG, "Failed to allocate worker");
+        return;
     }
+    thread_set_stack_external(worker, true);
+    if (thread_start(worker) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to start worker");
+        thread_free(worker);
+        worker = nullptr;
+        return;
+    }
+    workerActive = true;
 }
 
 void* createService(const ServiceManifest*) {
@@ -145,21 +234,22 @@ void* createService(const ServiceManifest*) {
 void destroyService(const ServiceManifest*, void*) {}
 
 error_t onStart(ServiceInstance*, void*) {
-    mutex_lock(&lifecycleMutex.handle);
+    mutex_lock(&mutex.handle);
     running = true;
-    updateProviders();
-    mutex_unlock(&lifecycleMutex.handle);
+    reconcile();
+    mutex_unlock(&mutex.handle);
     return ERROR_NONE;
 }
 
 void onStop(ServiceInstance*, void*) {
-    mutex_lock(&lifecycleMutex.handle);
+    mutex_lock(&mutex.handle);
     running = false;
-    updateProviders();
     for (auto& host : hosts) {
-        clearLocation(&host);
+        host.hasLocation = false;
     }
-    mutex_unlock(&lifecycleMutex.handle);
+    reconcile();
+    freeFinishedWorker();
+    mutex_unlock(&mutex.handle);
 }
 
 } // namespace
@@ -206,13 +296,13 @@ error_t location_set_precision(LocationPrecision precision) {
 
     if (precision == LOCATION_PRECISION_APPROXIMATE) {
         // Fixes reported with precise precision are dropped until their providers report again
-        mutex_lock(&dataMutex.handle);
+        mutex_lock(&mutex.handle);
         for (auto& host : hosts) {
             if (host.hasLocation && !(host.location.horizontal_accuracy >= LOCATION_APPROXIMATE_ACCURACY_METERS)) {
                 host.hasLocation = false;
             }
         }
-        mutex_unlock(&dataMutex.handle);
+        mutex_unlock(&mutex.handle);
     }
     return location_settings_save(&copy);
 }
@@ -246,7 +336,7 @@ error_t location_provider_register(const LocationProviderApi* api) {
         return ERROR_INVALID_ARGUMENT;
     }
 
-    mutex_lock(&lifecycleMutex.handle);
+    mutex_lock(&mutex.handle);
     LocationHost* freeHost = nullptr;
     for (auto& host : hosts) {
         if (host.api == nullptr) {
@@ -254,43 +344,57 @@ error_t location_provider_register(const LocationProviderApi* api) {
                 freeHost = &host;
             }
         } else if (strcmp(host.api->id, api->id) == 0) {
-            mutex_unlock(&lifecycleMutex.handle);
+            mutex_unlock(&mutex.handle);
             return ERROR_ALREADY_EXISTS;
         }
     }
     if (freeHost == nullptr) {
-        mutex_unlock(&lifecycleMutex.handle);
+        mutex_unlock(&mutex.handle);
         return ERROR_RESOURCE;
     }
     freeHost->api = api;
-    mutex_lock(&dataMutex.handle);
     freeHost->fallback = api->fallback;
-    mutex_unlock(&dataMutex.handle);
-    if (providersActive) {
-        startProvider(freeHost);
-    }
-    mutex_unlock(&lifecycleMutex.handle);
+    reconcile();
+    mutex_unlock(&mutex.handle);
     return ERROR_NONE;
 }
 
 error_t location_provider_unregister(const LocationProviderApi* api) {
-    error_t result = ERROR_NOT_FOUND;
-    mutex_lock(&lifecycleMutex.handle);
-    for (auto& host : hosts) {
-        if (host.api == api) {
-            stopProvider(&host);
-            clearLocation(&host);
-            host.api = nullptr;
-            result = ERROR_NONE;
+    mutex_lock(&mutex.handle);
+    LocationHost* host = nullptr;
+    for (auto& candidate : hosts) {
+        if (candidate.api == api && !candidate.removing) {
+            host = &candidate;
             break;
         }
     }
-    mutex_unlock(&lifecycleMutex.handle);
-    return result;
+    if (host == nullptr) {
+        mutex_unlock(&mutex.handle);
+        return ERROR_NOT_FOUND;
+    }
+
+    host->removing = true;
+    while (host->state != HostState::Stopped || host->busy) {
+        reconcile();
+        mutex_unlock(&mutex.handle);
+        delay_millis(UNREGISTER_POLL_MS);
+        mutex_lock(&mutex.handle);
+    }
+    host->hasLocation = false;
+    host->api = nullptr;
+    host->removing = false;
+    host->createFailed = false;
+    mutex_unlock(&mutex.handle);
+    return ERROR_NONE;
 }
 
 void location_host_report(LocationHost* host, const Location* location) {
-    mutex_lock(&dataMutex.handle);
+    mutex_lock(&mutex.handle);
+    // Providers that are being stopped don't report anymore
+    if (host->state != HostState::Running || !isDesired(*host)) {
+        mutex_unlock(&mutex.handle);
+        return;
+    }
     host->location = *location;
     strcpy(host->location.provider, host->api->id);
     host->location.uptime_ms = getUptimeMs();
@@ -300,11 +404,11 @@ void location_host_report(LocationHost* host, const Location* location) {
             task_event_group_signal(sub->internal.event_group, sub->bit);
         }
     }
-    mutex_unlock(&dataMutex.handle);
+    mutex_unlock(&mutex.handle);
 }
 
 bool location_host_needs_fallback(void) {
-    mutex_lock(&dataMutex.handle);
+    mutex_lock(&mutex.handle);
     const uint64_t now = getUptimeMs();
     bool needed = true;
     for (const auto& host : hosts) {
@@ -313,17 +417,17 @@ bool location_host_needs_fallback(void) {
             break;
         }
     }
-    mutex_unlock(&dataMutex.handle);
+    mutex_unlock(&mutex.handle);
     return needed;
 }
 
 error_t location_get(Location* location) {
-    mutex_lock(&dataMutex.handle);
+    mutex_lock(&mutex.handle);
     const auto* best = findBest();
     if (best != nullptr) {
         *location = best->location;
     }
-    mutex_unlock(&dataMutex.handle);
+    mutex_unlock(&mutex.handle);
     return best != nullptr ? ERROR_NONE : ERROR_NOT_FOUND;
 }
 
@@ -334,12 +438,10 @@ error_t location_subscribe(LocationSubscription* sub, TaskEventGroup* event_grou
         return claimed;
     }
 
-    mutex_lock(&lifecycleMutex.handle);
-    mutex_lock(&dataMutex.handle);
+    mutex_lock(&mutex.handle);
     for (auto* existing = subscriptions; existing != nullptr; existing = existing->internal.next) {
         if (existing == sub) {
-            mutex_unlock(&dataMutex.handle);
-            mutex_unlock(&lifecycleMutex.handle);
+            mutex_unlock(&mutex.handle);
             task_event_group_release_bit(event_group, bit);
             return ERROR_INVALID_STATE;
         }
@@ -348,16 +450,14 @@ error_t location_subscribe(LocationSubscription* sub, TaskEventGroup* event_grou
     sub->internal.event_group = event_group;
     sub->internal.next = subscriptions;
     subscriptions = sub;
-    mutex_unlock(&dataMutex.handle);
-    updateProviders();
-    mutex_unlock(&lifecycleMutex.handle);
+    reconcile();
+    mutex_unlock(&mutex.handle);
     return ERROR_NONE;
 }
 
 error_t location_unsubscribe(LocationSubscription* sub) {
     error_t result = ERROR_NOT_FOUND;
-    mutex_lock(&lifecycleMutex.handle);
-    mutex_lock(&dataMutex.handle);
+    mutex_lock(&mutex.handle);
     for (auto** link = &subscriptions; *link != nullptr; link = &(*link)->internal.next) {
         if (*link == sub) {
             *link = sub->internal.next;
@@ -365,15 +465,22 @@ error_t location_unsubscribe(LocationSubscription* sub) {
             break;
         }
     }
-    mutex_unlock(&dataMutex.handle);
-    updateProviders();
-    mutex_unlock(&lifecycleMutex.handle);
+    reconcile();
+    freeFinishedWorker();
+    mutex_unlock(&mutex.handle);
     if (result == ERROR_NONE) {
         task_event_group_release_bit(sub->internal.event_group, sub->bit);
     }
     return result;
 }
 
+
+bool location_is_in_use(void) {
+    mutex_lock(&mutex.handle);
+    const bool inUse = running && subscriptions != nullptr;
+    mutex_unlock(&mutex.handle);
+    return inUse;
+}
 }
 
 extern const ServiceManifest location_service_manifest = {

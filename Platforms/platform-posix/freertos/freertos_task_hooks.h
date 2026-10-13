@@ -25,6 +25,14 @@ BaseType_t freertos_real_xTaskCreate(TaskFunction_t function, const char* name, 
 /** FreeRTOS-Kernel's own vTaskDelete() */
 void freertos_real_vTaskDelete(TaskHandle_t handle);
 
+/**
+ * The POSIX port's own vPortCancelThread(), which joins the thread of a deleted task.
+ * The simulator's vPortCancelThread() calls it with all signals blocked: glibc frees the joined thread's stack
+ * while holding its stack cache lock. When the tick signal switches tasks while that lock is held,
+ * the next pthread_create() blocks forever, because the port calls it with the tick signal blocked.
+ */
+void freertos_real_vPortCancelThread(void* task);
+
 #ifdef __cplusplus
 }
 #endif

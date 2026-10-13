@@ -4,6 +4,7 @@
 #include <gps/gps.h>
 #include <gps/gps_settings.h>
 #include <tactility/concurrent/mutex.h>
+#include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/log.h>
@@ -14,6 +15,8 @@
 #include <vector>
 
 constexpr auto* TAG = "gps_ledger";
+constexpr uint32_t DESTROY_RETRY_INTERVAL_MS = 10;
+constexpr uint32_t DESTROY_TIMEOUT_MS = 10 * 1000;
 
 struct GpsConfig {
     uint32_t baud_rate;
@@ -108,13 +111,26 @@ static bool create_device(const GpsConfiguration& configuration) {
 }
 
 // Stops (if needed), removes and destructs a ledger-owned device, and frees its entry.
+// Another task can be starting or stopping the device, or hold a reference to it, so each step is retried until it succeeds.
+// A device that can't be destructed in time is leaked, as freeing it could cause a use-after-free.
 static void destroy_device(Device* device) {
-    if (device_is_ready(device)) {
-        device_stop(device);
+    for (uint32_t waited_ms = 0; waited_ms < DESTROY_TIMEOUT_MS; waited_ms += DESTROY_RETRY_INTERVAL_MS) {
+        if (device_is_added(device)) {
+            const error_t stop_error = device_stop(device);
+            if (stop_error == ERROR_RESOURCE) {
+                break;
+            }
+            if (stop_error == ERROR_NONE) {
+                device_remove(device);
+            }
+        }
+        if (!device_is_added(device) && device_destruct(device) == ERROR_NONE) {
+            delete reinterpret_cast<GpsLedgerEntry*>(device);
+            return;
+        }
+        delay_millis(DESTROY_RETRY_INTERVAL_MS);
     }
-    device_remove(device);
-    device_destruct(device);
-    delete reinterpret_cast<GpsLedgerEntry*>(device);
+    LOG_E(TAG, "Failed to destroy %s", device->name);
 }
 
 static bool is_ledger_owned(const Device* device) {

@@ -30,7 +30,7 @@
 #include <set>
 #include <string>
 
-#include <gps/gps.h>
+#include <location/location.h>
 
 #if TT_FEATURE_MESH
 #include <mesh/mesh.h>
@@ -183,8 +183,8 @@ class StatusbarService final : public Service {
     }
 
     void updateGpsIcon() {
-        // Only shown while a GPS device is on
-        const char* icon = device_has_active_by_type(&GPS_TYPE) ? LVGL_ICON_STATUSBAR_LOCATION_ON : nullptr;
+        // Only shown while location is being used
+        const char* icon = location_is_in_use() ? LVGL_ICON_STATUSBAR_LOCATION_ON : nullptr;
         if (gps_last_icon != icon) {
             if (icon != nullptr) {
                 lvgl_statusbar_icon_set_image(gps_icon_id, icon);

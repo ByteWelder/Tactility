@@ -32,7 +32,6 @@ namespace {
 // The free ip-api endpoint only supports plain HTTP
 constexpr auto* API_HOST = "ip-api.com";
 constexpr auto* API_PATH = "/line/?fields=status,message,lat,lon";
-constexpr uint64_t REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 constexpr uint64_t RETRY_INTERVAL_MS = 60 * 1000;
 // Bounds the request rate when the network connects repeatedly
 constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;
@@ -43,6 +42,15 @@ constexpr size_t RESPONSE_MAX_LENGTH = 1024;
 // IP geolocation is accurate to roughly city level
 constexpr float ACCURACY_METERS = 25000.0f;
 
+/** The last lookup result. It's kept across provider runs. */
+struct CachedLookup {
+    bool valid = false;
+    // The network of the lookup, see trackedNetwork
+    uint64_t network = 0;
+    double latitude = NAN;
+    double longitude = NAN;
+};
+
 struct IpProvider {
     LocationHost* host = nullptr;
     Thread* thread = nullptr;
@@ -50,9 +58,24 @@ struct IpProvider {
     TaskEventGroup group {};
     uint32_t stopBit = 0;
     SystemEventSubscription networkSubscription {};
+    // Only accessed by the provider thread
+    CachedLookup cache {};
 };
 
 IpProvider provider;
+
+// The local IP address and gateway of the last connected network, 0 when unknown.
+// A disconnect keeps the last known network, so reconnecting to it doesn't need a new lookup.
+std::atomic<uint64_t> trackedNetwork = 0;
+
+void onNetworkConnected(SystemEvent* event, void*) {
+    NetworkConnectedEvent connected;
+    if (event->data_len < sizeof(connected)) {
+        return;
+    }
+    memcpy(&connected, event->data, sizeof(connected));
+    trackedNetwork = (static_cast<uint64_t>(connected.ipv4_addr) << 32) | connected.gateway;
+}
 
 uint64_t getUptimeMs() {
     return get_micros_since_boot() / 1000;
@@ -150,8 +173,28 @@ bool httpGet(const char* host, const char* path, char* response, size_t response
     return success;
 }
 
-/** @return the delay until the next lookup */
-uint64_t lookup() {
+void report(double latitude, double longitude) {
+    const Location location {
+        .latitude = latitude,
+        .longitude = longitude,
+        .horizontal_accuracy = ACCURACY_METERS,
+        .altitude = NAN,
+        .ellipsoidal_altitude = NAN,
+        .vertical_accuracy = NAN,
+        .speed = NAN,
+        .speed_accuracy = NAN,
+        .course = NAN,
+        .course_accuracy = NAN,
+        .satellites = 0,
+        .time_ms = 0,
+        .uptime_ms = 0,
+        .provider = {},
+    };
+    location_host_report(provider.host, &location);
+}
+
+/** @return the delay until the next lookup is allowed */
+uint64_t lookup(uint64_t network) {
     tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
     if (!httpGet(API_HOST, API_PATH, response.data(), response.size())) {
         LOG_W(TAG, "Request failed");
@@ -170,25 +213,10 @@ uint64_t lookup() {
     } else if (!parsed.success) {
         LOG_W(TAG, "Lookup failed: %s", parsed.message);
     } else {
-        const Location location {
-            .latitude = parsed.latitude,
-            .longitude = parsed.longitude,
-            .horizontal_accuracy = ACCURACY_METERS,
-            .altitude = NAN,
-            .ellipsoidal_altitude = NAN,
-            .vertical_accuracy = NAN,
-            .speed = NAN,
-            .speed_accuracy = NAN,
-            .course = NAN,
-            .course_accuracy = NAN,
-            .satellites = 0,
-            .time_ms = 0,
-            .uptime_ms = 0,
-            .provider = {},
-        };
-        location_host_report(provider.host, &location);
+        provider.cache = { .valid = true, .network = network, .latitude = parsed.latitude, .longitude = parsed.longitude };
+        report(parsed.latitude, parsed.longitude);
         LOG_D(TAG, "Lookup succeeded");
-        delay = REFRESH_INTERVAL_MS;
+        delay = MIN_INTERVAL_MS;
     }
 
     if (parsed.rate_remaining == 0 && parsed.rate_reset_seconds > 0) {
@@ -201,6 +229,8 @@ int32_t threadMain(void*) {
     uint64_t lastAttemptMs = 0;
     uint64_t nextAttemptMs = 0;
     bool attempted = false;
+    // Whether the cached result was reported during this run
+    bool reportedCache = false;
 
     while (provider.running) {
         const uint64_t now = getUptimeMs();
@@ -216,13 +246,27 @@ int32_t threadMain(void*) {
             nextAttemptMs = lastAttemptMs + MIN_INTERVAL_MS;
         }
 
+        if (!location_host_needs_fallback()) {
+            continue;
+        }
+
+        const uint64_t network = trackedNetwork;
+        if (provider.cache.valid && provider.cache.network == network) {
+            if (!reportedCache) {
+                report(provider.cache.latitude, provider.cache.longitude);
+                reportedCache = true;
+            }
+            continue;
+        }
+
         const uint64_t attemptMs = getUptimeMs();
-        if (attemptMs < nextAttemptMs || !location_host_needs_fallback()) {
+        if (attemptMs < nextAttemptMs) {
             continue;
         }
         attempted = true;
         lastAttemptMs = attemptMs;
-        nextAttemptMs = attemptMs + lookup();
+        nextAttemptMs = attemptMs + lookup(network);
+        reportedCache = provider.cache.valid && provider.cache.network == network;
     }
     return 0;
 }
@@ -259,15 +303,20 @@ void* create(LocationHost* host) {
     return &provider;
 }
 
-void destroy(void*) {
+void requestStop(void*) {
     provider.running = false;
     task_event_group_signal(&provider.group, provider.stopBit);
-    // The provider state can only be reused after the worker exits. All its blocking calls time out.
-    thread_join(provider.thread, portMAX_DELAY, millis_to_ticks(10));
+}
+
+bool waitStopped(void*, TickType_t timeout) {
+    if (thread_join(provider.thread, timeout, millis_to_ticks(10)) != ERROR_NONE) {
+        return false;
+    }
     thread_free(provider.thread);
     provider.thread = nullptr;
     system_event_unsubscribe(&provider.networkSubscription);
     task_event_group_destruct(&provider.group);
+    return true;
 }
 
 std::string_view nextLine(std::string_view& text) {
@@ -289,6 +338,14 @@ int parseHeaderNumber(std::string_view line, const char* name) {
 }
 
 } // namespace
+
+error_t ip_provider_track_network(void) {
+    return system_event_callback_add(KERNEL_EVENT_NETWORK_CONNECTED, onNetworkConnected, nullptr);
+}
+
+void ip_provider_untrack_network(void) {
+    system_event_callback_remove(KERNEL_EVENT_NETWORK_CONNECTED, onNetworkConnected);
+}
 
 bool ip_api_parse_response(const char* response, IpApiResponse* out) {
     *out = IpApiResponse {
@@ -363,5 +420,6 @@ const LocationProviderApi ip_location_provider = {
     .id = "ip",
     .fallback = true,
     .create = create,
-    .destroy = destroy,
+    .request_stop = requestStop,
+    .wait_stopped = waitStopped,
 };

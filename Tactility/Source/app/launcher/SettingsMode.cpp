@@ -23,7 +23,6 @@ constexpr IconEntry ICONS[] = {
     {"tactility.btmanage",          LVGL_ICON_SHARED_BLUETOOTH},
     {"tactility.development",       LVGL_ICON_SHARED_LOGO_DEV},
     {"tactility.display",           LVGL_ICON_SHARED_DISPLAY_SETTINGS},
-    {"tactility.gpssettings",       LVGL_ICON_SHARED_NAVIGATION},
     {"tactility.grovesettings",     LVGL_ICON_SHARED_CABLE},
     {"tactility.keyboardsettings",  LVGL_ICON_SHARED_KEYBOARD_ALT},
     {"tactility.ledstripsettings",  LVGL_ICON_SHARED_LIGHTSTRIP},

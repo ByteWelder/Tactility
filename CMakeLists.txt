@@ -204,6 +204,11 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         TARGET_DIRECTORY freertos_kernel
         PROPERTIES COMPILE_DEFINITIONS "xTaskCreate=freertos_real_xTaskCreate;vTaskDelete=freertos_real_vTaskDelete"
     )
+    # vPortCancelThread() is wrapped by freertos_task_hooks.c, see its header
+    set_source_files_properties(Libraries/FreeRTOS-Kernel/portable/ThirdParty/GCC/Posix/port.c
+        TARGET_DIRECTORY freertos_kernel_port
+        PROPERTIES COMPILE_DEFINITIONS "vPortCancelThread=freertos_real_vPortCancelThread"
+    )
     target_sources(freertos_kernel PRIVATE Platforms/platform-posix/freertos/freertos_task_hooks.c)
     target_include_directories(freertos_kernel PUBLIC Platforms/platform-posix/freertos)
 

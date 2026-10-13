@@ -101,6 +101,7 @@ struct LocationSubscription {
 
 /**
  * Subscribing starts the providers when location services are enabled. They stop when the last subscription is removed.
+ * Providers start and stop in the background: subscribing and unsubscribing don't wait for them.
  * @param[in,out] sub subscription to register, must stay alive until unsubscribed
  * @param[in] event_group caller-owned group to wait on, must outlive @a sub
  * @retval ERROR_RESOURCE @a event_group has no free bits left
@@ -110,6 +111,9 @@ error_t location_subscribe(struct LocationSubscription* sub, struct TaskEventGro
 
 /** @retval ERROR_NOT_FOUND when @a sub is not registered */
 error_t location_unsubscribe(struct LocationSubscription* sub);
+
+/** @return true when location services are enabled and there is at least one subscription */
+bool location_is_in_use(void);
 
 #ifdef __cplusplus
 }

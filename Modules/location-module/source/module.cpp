@@ -13,13 +13,19 @@
 extern "C" {
 
 static error_t start() {
-    error_t error = location_provider_register(&gps_location_provider);
+    error_t error = ip_provider_track_network();
     if (error != ERROR_NONE) {
+        return error;
+    }
+    error = location_provider_register(&gps_location_provider);
+    if (error != ERROR_NONE) {
+        ip_provider_untrack_network();
         return error;
     }
     error = location_provider_register(&ip_location_provider);
     if (error != ERROR_NONE) {
         location_provider_unregister(&gps_location_provider);
+        ip_provider_untrack_network();
         return error;
     }
     return service_manager_add(&location_service_manifest, location_is_enabled());
@@ -32,6 +38,7 @@ static error_t stop() {
     }
     location_provider_unregister(&ip_location_provider);
     location_provider_unregister(&gps_location_provider);
+    ip_provider_untrack_network();
     return service_manager_remove(location_service_manifest.id);
 }
 
@@ -43,6 +50,7 @@ static const ModuleSymbol location_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(location_get),
     DEFINE_MODULE_SYMBOL(location_subscribe),
     DEFINE_MODULE_SYMBOL(location_unsubscribe),
+    DEFINE_MODULE_SYMBOL(location_is_in_use),
     MODULE_SYMBOL_TERMINATOR
 };
 
