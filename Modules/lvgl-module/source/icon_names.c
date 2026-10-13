@@ -33,6 +33,7 @@ const char* const lvgl_icon_shared_names[] = {
     "lightbulb",
     "language",
     "lists",
+    "list_alt",
     "mail",
     "menu",
     "memory",
@@ -107,6 +108,7 @@ const char* const lvgl_icon_statusbar_names[] = {
     "bluetooth_disabled",
     "usb",
     "hub",
+    "download",
 };
 
 const size_t lvgl_icon_statusbar_name_count = sizeof(lvgl_icon_statusbar_names) / sizeof(lvgl_icon_statusbar_names[0]);

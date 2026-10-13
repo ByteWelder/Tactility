@@ -1,22 +1,15 @@
 #include "doctest.h"
 
-#include <Tactility/app/apphub/AppHubEntry.h>
-
-#include <tactility/filesystem/fs.h>
-#include <tactility/paths.h>
+#include <app_hub/app_hub_catalog.h>
 
 #include <cstdio>
 #include <string>
-
-using namespace tt::app::apphub;
+#include <vector>
 
 namespace {
 
 std::string writeAppsJson(const char* contents) {
-    char temp[FILE_MAX_PATH_STRING_LENGTH];
-    REQUIRE_EQ(paths_get_temp_path(temp, sizeof(temp)), ERROR_NONE);
-    REQUIRE_EQ(directory_make(temp, true), ERROR_NONE);
-    const std::string path = std::string(temp) + "/apphub_test_apps.json";
+    const std::string path = "/tmp/tactility_app_hub_catalog_test.json";
     FILE* file = fopen(path.c_str(), "w");
     REQUIRE_NE(file, nullptr);
     fputs(contents, file);
@@ -24,10 +17,10 @@ std::string writeAppsJson(const char* contents) {
     return path;
 }
 
-AppHubEntry entryWith(std::vector<std::string> requiresDeviceId, int32_t requiresRam) {
-    AppHubEntry entry {};
-    entry.requiresDeviceId = std::move(requiresDeviceId);
-    entry.requiresRam = requiresRam;
+AppHubCatalogEntry entryWith(std::vector<std::string> requiresDeviceId, int32_t requiresRam) {
+    AppHubCatalogEntry entry {};
+    entry.requires_device_id = std::move(requiresDeviceId);
+    entry.requires_ram = requiresRam;
     return entry;
 }
 
@@ -39,30 +32,30 @@ TEST_CASE("app hub: requiresDeviceId and requiresRam are parsed, and optional") 
          "requiresDeviceId": ["m5stack-tab5", "lilygo-tdeck"], "requiresRam": 2},
         {"appId": "b", "appVersionName": "1", "appVersionCode": 1, "appName": "B", "appDescription": "", "targetSdk": "0.8.0", "targetPlatforms": [], "file": "b-1.app"}
     ]})");
-    AppHubEntryList entries;
-    REQUIRE(parseJson(path, entries));
+    AppHubCatalog entries;
+    REQUIRE(app_hub_catalog_parse(path.c_str(), entries));
     REQUIRE_EQ(entries.size(), 2u);
-    CHECK_EQ(entries[0].requiresDeviceId, std::vector<std::string> { "m5stack-tab5", "lilygo-tdeck" });
-    CHECK_EQ(entries[0].requiresRam, 2);
-    CHECK(entries[1].requiresDeviceId.empty());
-    CHECK_EQ(entries[1].requiresRam, 0);
+    CHECK_EQ(entries[0].requires_device_id, std::vector<std::string> { "m5stack-tab5", "lilygo-tdeck" });
+    CHECK_EQ(entries[0].requires_ram, 2);
+    CHECK(entries[1].requires_device_id.empty());
+    CHECK_EQ(entries[1].requires_ram, 0);
     remove(path.c_str());
 }
 
 TEST_CASE("app hub: reparsing into the same list resets optional requirements") {
-    AppHubEntryList entries;
+    AppHubCatalog entries;
     const auto restricted = writeAppsJson(R"({"apps": [
         {"appId": "a", "appVersionName": "1", "appVersionCode": 1, "appName": "A", "appDescription": "", "targetSdk": "0.8.0", "targetPlatforms": [], "file": "a-1.app",
          "requiresDeviceId": ["m5stack-tab5"], "requiresRam": 2}
     ]})");
-    REQUIRE(parseJson(restricted, entries));
+    REQUIRE(app_hub_catalog_parse(restricted.c_str(), entries));
     const auto unrestricted = writeAppsJson(R"({"apps": [
         {"appId": "b", "appVersionName": "1", "appVersionCode": 1, "appName": "B", "appDescription": "", "targetSdk": "0.8.0", "targetPlatforms": [], "file": "b-1.app"}
     ]})");
-    REQUIRE(parseJson(unrestricted, entries));
+    REQUIRE(app_hub_catalog_parse(unrestricted.c_str(), entries));
     REQUIRE_EQ(entries.size(), 1u);
-    CHECK(entries[0].requiresDeviceId.empty());
-    CHECK_EQ(entries[0].requiresRam, 0);
+    CHECK(entries[0].requires_device_id.empty());
+    CHECK_EQ(entries[0].requires_ram, 0);
     remove(unrestricted.c_str());
 }
 
@@ -71,14 +64,14 @@ TEST_CASE("app hub: a fractional requiresRam rejects the entry") {
         {"appId": "a", "appVersionName": "1", "appVersionCode": 1, "appName": "A", "appDescription": "", "targetSdk": "0.8.0", "targetPlatforms": [], "file": "a-1.app",
          "requiresRam": 1.5}
     ]})");
-    AppHubEntryList entries;
-    CHECK_FALSE(parseJson(path, entries));
+    AppHubCatalog entries;
+    CHECK_FALSE(app_hub_catalog_parse(path.c_str(), entries));
     remove(path.c_str());
 }
 
 TEST_CASE("app hub: isCompatible applies the device and RAM requirements") {
-    CHECK(isCompatible(entryWith({}, 0)));
-    CHECK(isCompatible(entryWith({ "other-device", CONFIG_TT_DEVICE_ID }, 1)));
-    CHECK_FALSE(isCompatible(entryWith({ "other-device" }, 0)));
-    CHECK_FALSE(isCompatible(entryWith({}, 256)));
+    CHECK(app_hub_catalog_is_compatible(entryWith({}, 0)));
+    CHECK(app_hub_catalog_is_compatible(entryWith({ "other-device", CONFIG_TT_DEVICE_ID }, 1)));
+    CHECK_FALSE(app_hub_catalog_is_compatible(entryWith({ "other-device" }, 0)));
+    CHECK_FALSE(app_hub_catalog_is_compatible(entryWith({}, 256)));
 }

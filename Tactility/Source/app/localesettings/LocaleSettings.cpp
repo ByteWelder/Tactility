@@ -21,6 +21,7 @@
 
 #include <lvgl.h>
 #include <lvgl/fonts.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 #include <map>
 #include <string>
@@ -185,7 +186,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_text_font(ctx->languageValueLabel, lvgl_get_text_font(FONT_SIZE_SMALL), LV_STATE_DEFAULT);
 
     auto* select_button = lv_button_create(language_row);
-    lv_label_set_text(lv_label_create(select_button), "Change");
+    auto* select_icon = lv_label_create(select_button);
+    lv_obj_set_style_text_font(select_icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(select_icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(select_button, onSelectLanguagePressed, LV_EVENT_SHORT_CLICKED, ctx);
 
     updateViews(ctx);

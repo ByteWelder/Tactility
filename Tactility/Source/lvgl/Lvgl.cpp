@@ -9,13 +9,14 @@
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/lvgl/KeyboardDeviceListener.h>
-#include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/SystemBars.h>
+#include <Tactility/lvgl/SystemMenu.h>
 #include <Tactility/lvgl/TrackballInit.h>
 #include <Tactility/lvgl/UsbHidInput.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/DisplaySettings.h>
+#include <Tactility/settings/Time.h>
 
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 #include <Tactility/settings/TouchCalibrationSettings.h>
@@ -28,6 +29,7 @@
 #include <lvgl/insets.h>
 #include <lvgl/fonts.h>
 #include <lvgl/devices/pointer.h>
+#include <lvgl/widgets/statusbar.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/module.h>
 #include <lvgl/widgets/toolbar.h>
@@ -84,7 +86,9 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     lv_obj_set_scrollable(vertical_container, false);
 
     // The statusbar fits itself into the top of round and rounded displays
-    auto* statusbar = lvgl::statusbar_create(vertical_container);
+    lvgl_statusbar_set_menu_callback(systemMenuShow);
+    lvgl_statusbar_set_time_format_24h(settings::isTimeFormat24Hour());
+    auto* statusbar = lvgl_statusbar_create(vertical_container);
 
     auto* app_container = lv_obj_create(vertical_container);
     lv_obj_set_style_pad_all(app_container, 0, LV_STATE_DEFAULT);

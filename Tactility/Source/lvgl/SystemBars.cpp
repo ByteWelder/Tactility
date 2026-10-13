@@ -1,6 +1,6 @@
 #include <Tactility/lvgl/SystemBars.h>
 
-#include <Tactility/lvgl/Statusbar.h>
+#include <lvgl/widgets/statusbar.h>
 #include <Tactility/lvgl/SystemMenu.h>
 
 #include <lvgl_window_manager/window_manager.h>
@@ -59,7 +59,7 @@ void onPointerReleased(lv_event_t* event) {
     lv_indev_t* indev = getEventIndev(event);
     lv_point_t point;
     lv_indev_get_point(indev, &point);
-    const int32_t edge = statusbar_get_height();
+    const int32_t edge = lvgl_statusbar_get_height();
     const int32_t dy = point.y - state.pressPoint.y;
     const int32_t dx = point.x - state.pressPoint.x;
     if (state.pressPoint.y <= edge && dy >= edge * 2 && dy > 2 * LV_ABS(dx)) {
@@ -105,7 +105,7 @@ void applySeparator(bool side) {
 // The statusbar is the container's first child: on top in the split layout, and on the left in the side layout
 void applyLayout(SystemBarsLayout layout) {
     const bool side = layout == SystemBarsLayout::Side;
-    statusbar_set_side(state.statusbar, side);
+    lvgl_statusbar_set_side(state.statusbar, side);
     applySeparator(side);
     if (side) {
         lv_obj_set_flex_flow(state.container, LV_FLEX_FLOW_ROW);
@@ -153,7 +153,7 @@ void systemBarsRefresh() {
     const auto height = lv_display_get_vertical_resolution(state.display);
     auto layout = settings::launcher::resolveSystemBarsLayout(settings, settings::launcher::getSystemBarsCapabilities(), width, height);
     // Circular displays only have room for the statusbar at the top
-    if (statusbar_get_action_container(state.statusbar) == nullptr) {
+    if (lvgl_statusbar_get_action_container(state.statusbar) == nullptr) {
         layout = SystemBarsLayout::Split;
     }
     if (state.applied && layout == state.layout) {
@@ -178,7 +178,7 @@ lv_obj_t* systemBarsGetActionContainer() {
     if (state.statusbar == nullptr || state.layout != SystemBarsLayout::Side) {
         return nullptr;
     }
-    return statusbar_get_action_container(state.statusbar);
+    return lvgl_statusbar_get_action_container(state.statusbar);
 }
 
 SystemBarsListenerId systemBarsAddListener(std::function<void()> listener) {

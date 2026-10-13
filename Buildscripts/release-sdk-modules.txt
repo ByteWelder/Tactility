@@ -1,4 +1,5 @@
 app-module
+app-hub-module
 audio-decoder-module
 cjson-module
 crypt-module

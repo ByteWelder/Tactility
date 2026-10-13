@@ -11,6 +11,7 @@
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/esp32_usbdevice.h>
+#include <tactility/bindings/gpio_hog.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <gps_generic/bindings.h>
 #include <bindings/st7796.h>
@@ -18,6 +19,7 @@
 #include <bindings/tca8418.h>
 #include <bindings/bq25896.h>
 #include <bindings/drv2605.h>
+#include <bindings/es8311.h>
 #include <bindings/gpio_encoder.h>
 #include <bindings/sx1262.h>
 #include <bindings/xl9555.h>
@@ -38,6 +40,17 @@
 	gpio0 {
 		compatible = "espressif,esp32-gpio";
 		gpio-count = <49>;
+	};
+
+	// Speaker and microphone (ES8311)
+	i2s0 {
+		compatible = "espressif,esp32-i2s";
+		port = <I2S_NUM_0>;
+		pin-bclk = <&gpio0 11 GPIO_FLAG_NONE>;
+		pin-ws = <&gpio0 18 GPIO_FLAG_NONE>;
+		pin-data-out = <&gpio0 45 GPIO_FLAG_NONE>;
+		pin-data-in = <&gpio0 17 GPIO_FLAG_NONE>;
+		pin-mclk = <&gpio0 10 GPIO_FLAG_NONE>;
 	};
 
 	i2c0 {
@@ -98,6 +111,19 @@
 			compatible = "ti,drv2605";
 			reg = <0x5A>;
 		};
+
+		es8311 {
+			compatible = "everest,es8311";
+			reg = <0x18>;
+			i2s = <&i2s0>;
+		};
+	};
+
+	// Speaker amplifier enable (XL9555 IO1)
+	speaker_amp_enable {
+		compatible = "gpio-hog";
+		pin = <&xl9555 1 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_HIGH>;
 	};
 
 	// Keyboard backlight (LED_PWM), GPIO46. The keypress-triggered flash/decay effect from the
@@ -182,18 +208,6 @@
 			tcxo-millivolts = <3000>;
 			dio2-as-rf-switch;
 		};
-	};
-
-	// ES8311
-	// TODO: init via I2C to enable audio playback
-	i2s0 {
-		compatible = "espressif,esp32-i2s";
-		port = <I2S_NUM_0>;
-		pin-bclk = <&gpio0 11 GPIO_FLAG_NONE>;
-		pin-ws = <&gpio0 18 GPIO_FLAG_NONE>;
-		pin-data-out = <&gpio0 45 GPIO_FLAG_NONE>;
-		pin-data-in = <&gpio0 17 GPIO_FLAG_NONE>;
-		pin-mclk = <&gpio0 10 GPIO_FLAG_NONE>;
 	};
 
 	uart_internal: uart0 {

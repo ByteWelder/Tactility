@@ -29,6 +29,7 @@ list(APPEND REQUIRES_LIST
     lvgl-module
     lvgl-window-manager-module
     app-module
+    app-hub-module
     coreutils-module
     audio-decoder-module
     binfont-module

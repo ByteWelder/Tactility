@@ -234,6 +234,11 @@ int fputc(int c, FILE* stream) {
     return __wrap_fputc(c, stream);
 }
 
+// libstdc++'s std::cout writes single characters with putc(), and strings with fwrite()
+int putc(int c, FILE* stream) {
+    return __wrap_fputc(c, stream);
+}
+
 size_t fwrite(const void* data, size_t size, size_t count, FILE* stream) {
     return __wrap_fwrite(data, size, count, stream);
 }

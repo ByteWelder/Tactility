@@ -19,7 +19,6 @@ struct IconEntry {
 
 constexpr IconEntry ICONS[] = {
     {"tactility.appearance",        LVGL_ICON_SHARED_PALETTE},
-    {"tactility.apppackagelist",    LVGL_ICON_SHARED_DEPLOYED_CODE},
     {"tactility.audiosettings",     LVGL_ICON_SHARED_MUSIC_NOTE},
     {"tactility.btmanage",          LVGL_ICON_SHARED_BLUETOOTH},
     {"tactility.development",       LVGL_ICON_SHARED_LOGO_DEV},

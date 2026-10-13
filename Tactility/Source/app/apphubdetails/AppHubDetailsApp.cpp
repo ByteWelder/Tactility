@@ -1,19 +1,13 @@
-#include <Tactility/DeprecatedPaths.h>
-#include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/app/apphub/AppHub.h>
-#include <Tactility/app/apphub/AppHubEntry.h>
-#include <Tactility/file/File.h>
+#include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 
 #include <app/event.h>
-#include <app/install.h>
 #include <app/manager.h>
 #include <app/manifest.h>
-#include <app/package_manifest.h>
 #include <app/scheduler.h>
 #include <app/start.h>
 
-#include <http/download.h>
+#include <app_hub/app_hub.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -24,8 +18,10 @@
 #include <tactility/log.h>
 
 #include <atomic>
-#include <cstdlib>
+#include <cstring>
 #include <format>
+#include <string>
+#include <vector>
 
 namespace tt::app::apphubdetails {
 
@@ -38,10 +34,11 @@ namespace {
 constexpr auto* CONFIRM_TEXT = "Confirm";
 constexpr auto* CANCEL_TEXT = "Cancel";
 constexpr int32_t CONFIRMATION_BUTTON_INDEX = 0;
+constexpr size_t DESCRIPTION_MAX_SIZE = 2048;
 
 struct Context {
     uint32_t appInstanceId;
-    apphub::AppHubEntry entry;
+    std::string appId;
 
     lv_obj_t* toolbar = nullptr;
     lv_obj_t* spinner = nullptr;
@@ -54,19 +51,40 @@ struct Context {
     std::atomic<uint32_t> uninstallDialogId = 0;
     std::atomic<uint32_t> updateDialogId = 0;
 
-    // doInstall()/onDownloadFinished() and the poll for them both run on appMain()'s own task
-    // (triggered via confirm-dialog APP_EVENT_RESULTs), so HttpDownloadSubscription's
-    // subscribe/start/poll are naturally all on one consistent task already.
     TaskEventGroup* eventGroup = nullptr;
-    HttpDownloadSubscription downloadSub {};
-    bool downloadInProgress = false;
+    AppHubEventSubscription appHubSub {};
 };
 
+AppHubApp getApp(Context* ctx) {
+    AppHubApp app {};
+    if (app_hub_get_app(ctx->appId.c_str(), &app) != ERROR_NONE) {
+        strncpy(app.id, ctx->appId.c_str(), sizeof(app.id) - 1);
+        strncpy(app.name, ctx->appId.c_str(), sizeof(app.name) - 1);
+    }
+    return app;
+}
+
+/** @return true when App Hub is installing or removing another app, which blocks this app's install and remove */
+bool isAnotherAppBusy(Context* ctx) {
+    struct Search {
+        const char* appId;
+        bool busy;
+    } search { ctx->appId.c_str(), false };
+    app_hub_search(nullptr, [](const AppHubApp* app, void* context) {
+        auto* search = static_cast<Search*>(context);
+        if (app->operation_pending && strcmp(app->id, search->appId) != 0) {
+            search->busy = true;
+            return false;
+        }
+        return true;
+    }, &search);
+    return search.busy;
+}
 
 void updateViews(Context* ctx);
 
 uint32_t showConfirmDialog(Context* ctx, const char* action) {
-    const auto message = std::format("{} {}?", action, ctx->entry.appName);
+    const auto message = std::format("{} {}?", action, getApp(ctx).name);
     return alertdialog::start(ctx->appInstanceId, CONFIRM_TEXT, message, std::vector<std::string> { CONFIRM_TEXT, CANCEL_TEXT });
 }
 
@@ -90,128 +108,54 @@ void onUpdatePressed(lv_event_t* e) {
     ctx->updateDialogId = showConfirmDialog(ctx, "Update");
 }
 
-void uninstallApp(Context* ctx) {
-    LOG_I(TAG, "Uninstall");
-
-    lvgl_lock();
-    lv_obj_set_hidden(ctx->spinner, false);
-    lvgl_unlock();
-
-    app_uninstall(ctx->entry.appId.c_str());
-
+void queueOperation(Context* ctx, error_t (*operation)(const char* id, uint32_t* operation_id), const char* failure) {
+    const error_t error = operation(ctx->appId.c_str(), nullptr);
+    if (error == ERROR_RESOURCE_BUSY) {
+        alertdialog::start(ctx->appInstanceId, "Busy", "Another app is being installed or removed. Try again when it's done.");
+        return;
+    } else if (error != ERROR_NONE) {
+        alertdialog::start(ctx->appInstanceId, "Error", failure);
+        return;
+    }
     lvgl_lock();
     updateViews(ctx);
     lvgl_unlock();
 }
 
-// Path doInstall() downloads to and onDownloadFinished() installs from - deterministic from ctx->entry,
-// which doesn't change once this app instance is running, so it's recomputed at each use instead of stored.
-std::string getTempFilePath(Context* ctx) {
-    auto file_name = file::getLastPathSegment(ctx->entry.file);
-    return std::format("{}/{}", getTempPath(), file_name);
-}
-
-void doInstall(Context* ctx) {
-    if (ctx->downloadInProgress) {
-        return;
+void onOperationEvent(Context* ctx, const AppHubEvent& event) {
+    // Also another app's install or removal, as it blocks the buttons
+    const bool finished = event.type == APP_HUB_EVENT_INSTALLED || event.type == APP_HUB_EVENT_REMOVED;
+    if (finished && ctx->appId == event.app_id && event.result != ERROR_NONE) {
+        LOG_E(TAG, "Operation failed: %s", error_to_string(event.result));
+        const char* message = (event.type == APP_HUB_EVENT_REMOVED) ? "Failed to uninstall app" : "Failed to install app";
+        alertdialog::start(ctx->appInstanceId, "Error", message);
     }
-
-    if (http_download_subscribe(&ctx->downloadSub, ctx->eventGroup) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to subscribe to download events");
-        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
-        return;
-    }
-
-    auto url = apphub::getDownloadUrl(ctx->entry.file);
-    auto temp_file_path = getTempFilePath(ctx);
-    if (http_download_start(url.c_str(), apphub::CERTIFICATE_PATH, temp_file_path.c_str(), &ctx->downloadSub) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to start download");
-        http_download_unsubscribe(&ctx->downloadSub);
-        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
-        return;
-    }
-
-    ctx->downloadInProgress = true;
-}
-
-// Called from appMain()'s loop once http_download_poll() reports the download's terminal event.
-void onDownloadFinished(Context* ctx, const HttpDownloadEvent& event) {
-    ctx->downloadInProgress = false;
-    http_download_unsubscribe(&ctx->downloadSub);
-
-    auto temp_file_path = getTempFilePath(ctx);
-
-    if (event.type == HTTP_DOWNLOAD_EVENT_SUCCESS) {
-        error_t install_result = app_install(temp_file_path.c_str());
-        if (install_result != ERROR_NONE) {
-            LOG_E(TAG, "Install of %s failed", temp_file_path.c_str());
-            alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
-        }
-
-        if (!file::deleteFile(temp_file_path)) {
-            LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
-        } else {
-            LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
-        }
-
-        lvgl_lock();
-        updateViews(ctx);
-        lvgl_unlock();
-    } else {
-        LOG_E(TAG, "Download failed (status %d): %s", event.status_code,
-            event.type == HTTP_DOWNLOAD_EVENT_ERROR ? event.error.message : "Cancelled");
-        alertdialog::start(ctx->appInstanceId, "Error", "Failed to install app");
-
-        if (file::isFile(temp_file_path) && !file::deleteFile(temp_file_path.c_str())) {
-            LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
-        }
-    }
-}
-
-void installApp(Context* ctx) {
-    LOG_I(TAG, "Install");
-
     lvgl_lock();
-    lv_obj_set_hidden(ctx->spinner, false);
+    updateViews(ctx);
     lvgl_unlock();
-
-    doInstall(ctx);
-}
-
-void updateApp(Context* ctx) {
-    LOG_I(TAG, "Update");
-
-    lvgl_lock();
-    lv_obj_set_hidden(ctx->spinner, false);
-    lvgl_unlock();
-
-    LOG_I(TAG, "Removing previous version");
-    app_uninstall(ctx->entry.appId.c_str());
-    LOG_I(TAG, "Installing new version");
-    doInstall(ctx);
 }
 
 void updateViews(Context* ctx) {
     lvgl_toolbar_clear_actions(ctx->toolbar);
-    auto app_id = ctx->entry.appId.c_str();
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
-    lv_obj_set_hidden(ctx->spinner, true);
     lv_obj_set_hidden(ctx->updateLabel, true);
 
-    char install_path[128];
-    bool is_installed = app_get_install_path(app_id, install_path, sizeof(install_path)) == ERROR_NONE
-        && file::isFile(std::string(install_path) + "/manifest.properties");
+    // This app's install or removal continues after the window closes, so it can already be running when the window opens.
+    // Another app's install or removal blocks this app's buttons until it's done.
+    const auto app = getApp(ctx);
+    const bool busy = app.operation_pending || ((app.installed || app.in_catalog) && isAnotherAppBusy(ctx));
+    lv_obj_set_hidden(ctx->spinner, !busy);
+    if (busy) {
+        return;
+    }
 
-    if (is_installed) {
-        std::string metadata_path = std::string(install_path) + "/manifest.properties";
-        PackageManifest package;
-        if (app_package_manifest_parse(metadata_path.c_str(), &package, nullptr, 0) == ERROR_NONE
-            && package.version_code < ctx->entry.appVersionCode) {
+    if (app.installed) {
+        if (app.update_available) {
             ctx->updateButton = lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, ctx);
             lv_obj_set_hidden(ctx->updateLabel, false);
         }
         lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_TRASH, onUninstallPressed, ctx);
-    } else {
+    } else if (app.in_catalog) {
         lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_DOWNLOAD, onInstallPressed, ctx);
     }
 }
@@ -222,7 +166,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-    ctx->toolbar = lvgl_toolbar_create(parent, ctx->entry.appName.c_str());
+    const auto app = getApp(ctx);
+    ctx->toolbar = lvgl_toolbar_create(parent, app.name);
     // The global toolbar nav callback only knows how to stop old-model apps.
     lvgl_toolbar_set_nav_action(ctx->toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
     auto* wrapper = lv_obj_create(parent);
@@ -238,8 +183,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     auto* description_label = lv_label_create(wrapper);
     lv_obj_set_width(description_label, LV_PCT(100));
     lv_label_set_long_mode(description_label, LV_LABEL_LONG_MODE_WRAP);
-    if (!ctx->entry.appDescription.empty()) {
-        std::string description = ctx->entry.appDescription;
+    std::vector<char> description_buffer(DESCRIPTION_MAX_SIZE);
+    if (app_hub_get_description(ctx->appId.c_str(), description_buffer.data(), description_buffer.size()) == ERROR_NONE && description_buffer[0] != '\0') {
+        std::string description = description_buffer.data();
         for (size_t pos = 0; (pos = description.find("\\n", pos)) != std::string::npos;) {
             description.replace(pos, 2, "\n");
         }
@@ -249,29 +195,19 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
 
     auto* version_label = lv_label_create(wrapper);
-    lv_label_set_text_fmt(version_label, "Version %s", ctx->entry.appVersionName.c_str());
+    lv_label_set_text_fmt(version_label, "Version %s", app.in_catalog ? app.version_name : app.installed_version_name);
 
     updateViews(ctx);
 }
 
 int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
-    // argv layout: [0]=appId, [1]=appVersionName, [2]=appVersionCode, [3]=appName,
-    // [4]=appDescription, [5]=targetSdk, [6]=file, [7..argc)=targetPlatforms.
+    // argv layout: [0]=appId
 
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
-    if (argc >= 7) {
-        ctx.entry.appId = argv[0];
-        ctx.entry.appVersionName = argv[1];
-        ctx.entry.appVersionCode = static_cast<int32_t>(strtol(argv[2], nullptr, 10));
-        ctx.entry.appName = argv[3];
-        ctx.entry.appDescription = argv[4];
-        ctx.entry.targetSdk = argv[5];
-        ctx.entry.file = argv[6];
-        for (int i = 7; i < argc; i++) {
-            ctx.entry.targetPlatforms.emplace_back(argv[i]);
-        }
+    if (argc >= 1) {
+        ctx.appId = argv[0];
     }
 
     TaskEventGroup event_group {};
@@ -280,6 +216,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+    check(app_hub_event_subscribe(&ctx.appHubSub, &event_group) == ERROR_NONE);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
@@ -296,11 +233,11 @@ int32_t appMain(int argc, char* argv[]) {
                 case APP_EVENT_RESULT: {
                     bool confirmed = event.result.result == CONFIRMATION_BUTTON_INDEX;
                     if (event.result.launch_id == ctx.installDialogId && confirmed) {
-                        installApp(&ctx);
+                        queueOperation(&ctx, app_hub_install, "Failed to install app");
                     } else if (event.result.launch_id == ctx.uninstallDialogId && confirmed) {
-                        uninstallApp(&ctx);
+                        queueOperation(&ctx, app_hub_remove, "Failed to uninstall app");
                     } else if (event.result.launch_id == ctx.updateDialogId && confirmed) {
-                        updateApp(&ctx);
+                        queueOperation(&ctx, app_hub_install, "Failed to update app");
                     }
                     app_manager_stop(event.result.launch_id);
                     break;
@@ -311,23 +248,17 @@ int32_t appMain(int argc, char* argv[]) {
             if (shouldClose) break;
         }
 
-        if (ctx.downloadInProgress) {
-            HttpDownloadEvent download_event {};
-            if (http_download_poll(&ctx.downloadSub, &download_event) == ERROR_NONE) {
-                onDownloadFinished(&ctx, download_event);
+        AppHubEvent app_hub_event {};
+        while (!shouldClose && app_hub_event_poll(&ctx.appHubSub, &app_hub_event) == ERROR_NONE) {
+            if (app_hub_event.type != APP_HUB_EVENT_REFRESHING && app_hub_event.type != APP_HUB_EVENT_REFRESHED) {
+                onOperationEvent(&ctx, app_hub_event);
             }
         }
     }
 
-    if (ctx.downloadInProgress) {
-        // Safe to call immediately, even mid-download - no need to wait for the terminal event
-        // first, so app close doesn't block on the network.
-        http_download_cancel(&ctx.downloadSub);
-        http_download_unsubscribe(&ctx.downloadSub);
-        ctx.downloadInProgress = false;
-    }
-
+    // Queued operations continue in the background after the window closes
     window_manager_remove(window);
+    check(app_hub_event_unsubscribe(&ctx.appHubSub) == ERROR_NONE);
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
@@ -336,25 +267,13 @@ int32_t appMain(int argc, char* argv[]) {
 
 } // namespace
 
-void start(const apphub::AppHubEntry& entry) {
+void start(const char* appId) {
     // Fire-and-forget (parent_instance_id 0): AppHub's own multi-app browsing list isn't
-    // waiting on a result. targetPlatforms is variable-length, so it goes last in argv.
-    std::string versionCode = std::to_string(entry.appVersionCode);
-    std::vector<const char*> argv {
-        entry.appId.c_str(),
-        entry.appVersionName.c_str(),
-        versionCode.c_str(),
-        entry.appName.c_str(),
-        entry.appDescription.c_str(),
-        entry.targetSdk.c_str(),
-        entry.file.c_str(),
-    };
-    for (const auto& platform: entry.targetPlatforms) {
-        argv.push_back(platform.c_str());
-    }
+    // waiting on a result.
+    const char* argv[] = { appId };
     uint32_t instanceId = 0;
     AppStartContext context = app_start_context_for_manifest(&manifest);
-    app_start_context_set_arguments_ext(&context, static_cast<int>(argv.size()), argv.data());
+    app_start_context_set_arguments_ext(&context, 1, argv);
     app_start_context_set_parent(&context, /*parent_instance_id=*/0);
     app_start_with_context(&context, &instanceId);
 }

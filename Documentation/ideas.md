@@ -7,13 +7,13 @@
 
 ## Higher Priority
 
-- Commandline app to control: bluetooth, mesh, power
-- App Hub: create updater service with "installing/update" statusbar icon, create commandline app
-- System dialog with service toggles: when no pointer device available, select close button by default
-- Fix audio in T-Lora Pager
-- When Wi-Fi connects, check for app updates
-- App Hub should make it obvious in its list when apps have updates.
-- Replace "Change" buttons to "list_alt"
+- Create location service, which works with location providers. GPS is a location provider. IP is also a location provider (must have wifi connected)
+  - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
+- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
+- Cursor is hard-coded, needs size based on DPI
+- Improve Setup: Show progress of some kind
+- Files app should have a page indicator like Launcher.
+- Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - Improve posix support: use user home path and system /tmp folder.
@@ -21,7 +21,6 @@
 - Pick different font to improve monochrome screen readability (or change the weight). 
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - Improve SPI kernel driver (implement read, write, transactions)
-- TCA9534 keyboards should use interrupts
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
 - Support direct installation of an `.app` file with `tactility.py install --app helloworld.app`
@@ -37,17 +36,14 @@
   Without exceptions, an app that calls exit() is never unloaded and the next app start waits the full timeout.
 - netutils-module: ping, wget, ifconfig, nslookup, etc.
 - Core2: support power off via software
-- Improve Setup: Show "Step done" screen
 - Make it clearer to end-users that an SD card is required to run Tactility
 - Warn if file operations are done from prohibited tasks (e.g. lvgl task)
 - stopAppFromToolbar() in lvgl/Lvgl.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.
-- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Refactor HttpServer into C code and move implementation to http-module
-- Use GPS time to set/update the current time
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
@@ -59,6 +55,7 @@
 
 ## Lower Priority
 
+- When Wi-Fi connects, check for app updates
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - lvgl-module has a keyboard.cpp that creates a `keyboard_group`. This group is set as the default group, so it can also work with trackball(= LVGL "encoder").
   Make a separate group that is the default group. The keyboard can then use it (or use its own).

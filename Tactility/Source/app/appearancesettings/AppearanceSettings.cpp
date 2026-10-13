@@ -23,6 +23,7 @@
 
 #include <lvgl.h>
 #include <lvgl/fonts.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/grid_navigation.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/theme.h>
@@ -522,8 +523,9 @@ ColorRowWidgets createColorRow(lv_obj_t* parent, size_t index, Context* ctx) {
     lv_obj_set_style_radius(widgets.swatch, LV_DPX(4), LV_STATE_DEFAULT);
 
     auto* button = lv_button_create(widgets.row);
-    auto* button_label = lv_label_create(button);
-    lv_label_set_text(button_label, "Change");
+    auto* button_icon = lv_label_create(button);
+    lv_obj_set_style_text_font(button_icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+    lv_label_set_text(button_icon, LVGL_ICON_SHARED_PALETTE);
     lv_obj_set_user_data(button, reinterpret_cast<void*>(static_cast<uintptr_t>(index)));
     lv_obj_add_event_cb(button, onColorButtonPressed, LV_EVENT_SHORT_CLICKED, ctx);
 

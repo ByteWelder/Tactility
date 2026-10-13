@@ -672,9 +672,8 @@ int __wrap_putchar(int c) {
 int __wrap_fputc(int c, FILE* stream) {
     int fd = targetFdOf(stream);
     if (fd >= 0) {
-        auto ch = static_cast<char>(c);
-        writeAllTo(fd, &ch, 1);
-        return c;
+        const auto ch = static_cast<unsigned char>(c);
+        return writeAllTo(fd, &ch, 1) == 1 ? ch : EOF;
     }
     return __real_fputc(c, stream);
 }
