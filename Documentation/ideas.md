@@ -7,7 +7,6 @@
 
 ## Higher Priority
 
-- https://github.com/TactilityProject/Tactility/blob/main/LICENSE.md#overview -> put overview table on top
 - Fix Wi-Fi so it actually connects to something
 - Support http/https on posix
 - Vi apps are both named "Vi" in the App Hub
