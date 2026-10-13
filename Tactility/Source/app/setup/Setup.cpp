@@ -234,8 +234,8 @@ int32_t appMain(int argc, char* argv[]) {
                 getMainDispatcher().dispatch([] {
                     Device* wifi_device = nullptr;
                     if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
-                        if (wifi_set_radio_on(wifi_device) == ERROR_NONE) {
-                            wifi_settings_set_enable(true);
+                        if (wifi_set_radio_on(wifi_device) == ERROR_NONE && wifi_settings_set_enable(true) != ERROR_NONE) {
+                            LOG_E(TAG, "Failed to save the Wi-Fi state");
                         }
                         device_put(wifi_device);
                     }

@@ -156,7 +156,10 @@ static int command_radio(Device* device, int argc, char* argv[]) {
     if (error != ERROR_NONE) {
         return report_error(on ? "radio on" : "radio off", error);
     }
-    wifi_settings_set_enable(on);
+    error = wifi_settings_set_enable(on);
+    if (error != ERROR_NONE) {
+        return report_error("save radio state", error);
+    }
     printf("radio: %s\n", on ? "on" : "off");
     return 0;
 }

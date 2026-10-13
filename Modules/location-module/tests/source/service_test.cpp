@@ -388,3 +388,40 @@ TEST_CASE("the gps provider has no task without subscriptions") {
     CHECK(location_provider_unregister(&gps_location_provider) == ERROR_NONE);
     REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
 }
+
+TEST_CASE("selecting approximate precision rounds coarse fixes and drops precise ones") {
+    REQUIRE(location_provider_register(&fakeProvider) == ERROR_NONE);
+    REQUIRE(location_provider_register(&fakeFallbackProvider) == ERROR_NONE);
+    REQUIRE(service_manager_add(&location_service_manifest, true) == ERROR_NONE);
+    const LocationPrecision originalPrecision = location_get_precision();
+    // Saving the setting fails without a data partition, but the precision changes regardless
+    location_set_precision(LOCATION_PRECISION_PRECISE);
+
+    TaskEventGroup group;
+    task_event_group_construct(&group);
+    LocationSubscription sub {};
+    REQUIRE(location_subscribe(&sub, &group) == ERROR_NONE);
+    REQUIRE(waitUntil([] { return fakeHost != nullptr && fallbackHost != nullptr; }));
+
+    Location coarse = makeLocation(51.054321, 3.721234);
+    coarse.horizontal_accuracy = 25000.0f;
+    location_host_report(fallbackHost, &coarse);
+    const Location precise = makeLocation(10.0, 20.0);
+    location_host_report(fakeHost, &precise);
+
+    location_set_precision(LOCATION_PRECISION_APPROXIMATE);
+    REQUIRE(location_get_precision() == LOCATION_PRECISION_APPROXIMATE);
+    Location location;
+    REQUIRE(location_get(&location) == ERROR_NONE);
+    CHECK(strcmp(location.provider, "fakefallback") == 0);
+    CHECK(location.latitude == doctest::Approx(51.06));
+    CHECK(location.longitude == doctest::Approx(3.72));
+
+    location_set_precision(originalPrecision);
+    CHECK(location_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_destruct(&group);
+    REQUIRE(service_manager_stop(location_service_manifest.id) == ERROR_NONE);
+    CHECK(location_provider_unregister(&fakeProvider) == ERROR_NONE);
+    CHECK(location_provider_unregister(&fakeFallbackProvider) == ERROR_NONE);
+    REQUIRE(service_manager_remove(location_service_manifest.id) == ERROR_NONE);
+}

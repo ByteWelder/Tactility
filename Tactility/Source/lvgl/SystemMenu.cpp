@@ -97,7 +97,9 @@ static void setWifiEnabled(void* context) {
     const bool enabled = fromContext(context);
     error_t result = enabled ? wifi_set_radio_on(device) : wifi_set_radio_off(device);
     if (result == ERROR_NONE) {
-        wifi_settings_set_enable(enabled);
+        if (wifi_settings_set_enable(enabled) != ERROR_NONE) {
+            LOG_E(TAG, "Failed to save the Wi-Fi state");
+        }
     } else {
         LOG_E(TAG, "Failed to set Wi-Fi radio state (%s)", error_to_string(result));
     }

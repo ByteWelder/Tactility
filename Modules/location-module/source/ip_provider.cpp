@@ -174,7 +174,7 @@ bool httpGet(const char* host, const char* path, char* response, size_t response
 }
 
 void report(IpProvider& provider, double latitude, double longitude) {
-    const Location location {
+    Location location {
         .latitude = latitude,
         .longitude = longitude,
         .horizontal_accuracy = ACCURACY_METERS,
@@ -190,6 +190,9 @@ void report(IpProvider& provider, double latitude, double longitude) {
         .uptime_ms = 0,
         .provider = {},
     };
+    if (location_get_precision() == LOCATION_PRECISION_APPROXIMATE) {
+        location_make_approximate(&location);
+    }
     location_host_report(provider.host, &location);
 }
 

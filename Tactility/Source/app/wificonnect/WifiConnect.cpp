@@ -186,7 +186,9 @@ void onConnectPressed(lv_event_t* event) {
         }
         error_t result = wifi_set_radio_on(wifi_device);
         if (result == ERROR_NONE) {
-            wifi_settings_set_enable(true);
+            if (wifi_settings_set_enable(true) != ERROR_NONE) {
+                LOG_E(TAG, "Failed to save the Wi-Fi state");
+            }
             result = wifi_station_connect(wifi_device, settings.ssid, settings.password, settings.channel);
         }
         if (result != ERROR_NONE) {

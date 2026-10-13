@@ -324,11 +324,15 @@ error_t location_set_precision(LocationPrecision precision) {
     mutex_unlock(&settingsMutex.handle);
 
     if (precision == LOCATION_PRECISION_APPROXIMATE) {
-        // Fixes reported with precise precision are dropped until their providers report again
+        // Precise fixes are dropped until their providers report again. Coarse fixes are rounded.
         mutex_lock(&mutex.handle);
         for (auto& host : getHosts()) {
-            if (host.hasLocation && !(host.location.horizontal_accuracy >= LOCATION_APPROXIMATE_ACCURACY_METERS)) {
-                host.hasLocation = false;
+            if (host.hasLocation) {
+                if (host.location.horizontal_accuracy >= LOCATION_APPROXIMATE_ACCURACY_METERS) {
+                    location_make_approximate(&host.location);
+                } else {
+                    host.hasLocation = false;
+                }
             }
         }
         mutex_unlock(&mutex.handle);
