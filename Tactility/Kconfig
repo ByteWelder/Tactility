@@ -101,4 +101,12 @@ menu "Tactility App"
             to the display app's dropdown: 0=Landscape, 1=Portrait Right, 2=Landscape Flipped,
             3=Portrait Left. Set this to the value that makes IMU auto-rotate orient the UI
             correctly, so it works without manual calibration. -1 keeps the generic default.
+    config TT_DISPLAY_IDLE_TICK_MS
+        int "Display idle tick interval (ms)"
+        default 50
+        range 10 200
+        help
+            How often the display-idle service wakes to drive the screensaver animation and poll the
+            backlight timeout. Lower it on boards with a fast panel so the screensaver animates at
+            the panel's refresh rate; higher values reduce wakeups and save power.
 endmenu

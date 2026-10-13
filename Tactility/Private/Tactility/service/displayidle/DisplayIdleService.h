@@ -5,6 +5,8 @@
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Timer.h>
 
+#include <sdkconfig.h>
+
 #include <atomic>
 #include <memory>
 
@@ -29,9 +31,14 @@ class DisplayIdleService final : public Service {
     // Active screensaver instance
     std::unique_ptr<Screensaver> screensaver;
 
-    // Drives the screensaver animation (each tick moves the balls), so it must be at least as fast
-    // as the panel's refresh rate to reach 60fps. Also the backlight-timeout poll granularity.
-    static constexpr uint32_t TICK_INTERVAL_MS = 16;
+    // Drives the screensaver animation (each tick moves the balls) and polls the backlight timeout.
+    // Boards with a fast panel can lower it via CONFIG_TT_DISPLAY_IDLE_TICK_MS so the animation
+    // runs at the panel's refresh rate; the 50 ms fallback matches the generic default.
+#if defined(CONFIG_TT_DISPLAY_IDLE_TICK_MS) && CONFIG_TT_DISPLAY_IDLE_TICK_MS > 0
+    static constexpr uint32_t TICK_INTERVAL_MS = CONFIG_TT_DISPLAY_IDLE_TICK_MS;
+#else
+    static constexpr uint32_t TICK_INTERVAL_MS = 50;
+#endif
     static constexpr uint32_t SCREENSAVER_AUTO_OFF_MS = 5 * 60 * 1000;  // 5 minutes
     static constexpr int SCREENSAVER_AUTO_OFF_TICKS = SCREENSAVER_AUTO_OFF_MS / TICK_INTERVAL_MS;
     int screensaverActiveCounter = 0;
