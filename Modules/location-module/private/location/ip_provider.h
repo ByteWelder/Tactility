@@ -14,6 +14,7 @@ extern const LocationProviderApi ip_location_provider;
 /** Start tracking the network that the device is connected to, also while the provider doesn't run */
 error_t ip_provider_track_network(void);
 
+/** Stop tracking the network and release the cached result. The provider must not run. */
 void ip_provider_untrack_network(void);
 
 #define IP_API_MESSAGE_MAX_LENGTH 63

@@ -9,6 +9,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 #include <tactility/time.h>
 
 #include <cstring>
@@ -194,13 +195,86 @@ static int get_ack(Device* uart, const std::atomic<bool>& interrupted, uint8_t* 
     return 0;
 }
 
-static struct UbloxGnssModelInfo {
+struct UbloxGnssModelInfo {
     char swVersion[30];
     char hwVersion[10];
     uint8_t extensionNo;
     char extension[10][30];
     uint8_t protocol_version;
-} ublox_info;
+};
+
+// The protocol version of the last probed module, used by init
+static uint8_t protocol_version = 0;
+
+/** Reads the hardware and software info of a UBX-MON-VER response */
+static GpsModel parse_module_info(UbloxGnssModelInfo& ublox_info, uint8_t (&buffer)[256], uint16_t ack_response_len) {
+    uint16_t position = 0;
+    for (char& i: ublox_info.swVersion) {
+        i = buffer[position];
+        position++;
+    }
+    for (char& i: ublox_info.hwVersion) {
+        i = buffer[position];
+        position++;
+    }
+
+    while (ack_response_len >= position + 30) {
+        for (int i = 0; i < 30; i++) {
+            ublox_info.extension[ublox_info.extensionNo][i] = buffer[position];
+            position++;
+        }
+        ublox_info.extensionNo++;
+        if (ublox_info.extensionNo > 9)
+            break;
+    }
+
+    LOG_I(TAG, "Module Info:");
+    LOG_I(TAG, "Soft version: %s", ublox_info.swVersion);
+    LOG_I(TAG, "Hard version: %s", ublox_info.hwVersion);
+    LOG_I(TAG, "Extensions: %u", ublox_info.extensionNo);
+    for (int i = 0; i < ublox_info.extensionNo; i++) {
+        LOG_I(TAG, "  %s", ublox_info.extension[i]);
+    }
+
+    memset(buffer, 0, sizeof(buffer));
+
+    // tips: extensionNo field is 0 on some 6M GNSS modules
+    for (int i = 0; i < ublox_info.extensionNo; ++i) {
+        if (!strncmp(ublox_info.extension[i], "MOD=", 4)) {
+            strncpy((char*)buffer, &(ublox_info.extension[i][4]), sizeof(buffer));
+        } else if (!strncmp(ublox_info.extension[i], "PROTVER", 7)) {
+            char* ptr = nullptr;
+            memset(buffer, 0, sizeof(buffer));
+            strncpy((char*)buffer, &(ublox_info.extension[i][8]), sizeof(buffer));
+            LOG_I(TAG, "Protocol Version: %s", (char*)buffer);
+            if (strlen((char*)buffer)) {
+                ublox_info.protocol_version = strtoul((char*)buffer, &ptr, 10);
+                LOG_I(TAG, "ProtVer=%u", ublox_info.protocol_version);
+            } else {
+                ublox_info.protocol_version = 0;
+            }
+        }
+    }
+    #define DETECTED_MESSAGE "%s detected, using %s Module"
+    if (strncmp(ublox_info.hwVersion, "00040007", 8) == 0) {
+        LOG_I(TAG, DETECTED_MESSAGE, "U-blox 6", "6");
+        return GPS_MODEL_UBLOX6;
+    } else if (strncmp(ublox_info.hwVersion, "00070000", 8) == 0) {
+        LOG_I(TAG, DETECTED_MESSAGE, "U-blox 7", "7");
+        return GPS_MODEL_UBLOX7;
+    } else if (strncmp(ublox_info.hwVersion, "00080000", 8) == 0) {
+        LOG_I(TAG, DETECTED_MESSAGE, "U-blox 8", "8");
+        return GPS_MODEL_UBLOX8;
+    } else if (strncmp(ublox_info.hwVersion, "00190000", 8) == 0) {
+        LOG_I(TAG, DETECTED_MESSAGE, "U-blox 9", "9");
+        return GPS_MODEL_UBLOX9;
+    } else if (strncmp(ublox_info.hwVersion, "000A0000", 8) == 0) {
+        LOG_I(TAG, DETECTED_MESSAGE, "U-blox 10", "10");
+        return GPS_MODEL_UBLOX10;
+    }
+
+    return GPS_MODEL_UNKNOWN;
+}
 
 GpsModel probe(Device* uart, const std::atomic<bool>& interrupted) {
     LOG_I(TAG, "Probing for U-blox");
@@ -234,74 +308,18 @@ GpsModel probe(Device* uart, const std::atomic<bool>& interrupted) {
     uart_controller_write_bytes(uart, message_monver, sizeof(message_monver), 500);
 
     uint16_t ack_response_len = get_ack(uart, interrupted, buffer, sizeof(buffer), 0x0A, 0x04, 1200);
-    if (ack_response_len) {
-        uint16_t position = 0;
-        for (char& i: ublox_info.swVersion) {
-            i = buffer[position];
-            position++;
-        }
-        for (char& i: ublox_info.hwVersion) {
-            i = buffer[position];
-            position++;
-        }
-
-        while (ack_response_len >= position + 30) {
-            for (int i = 0; i < 30; i++) {
-                ublox_info.extension[ublox_info.extensionNo][i] = buffer[position];
-                position++;
-            }
-            ublox_info.extensionNo++;
-            if (ublox_info.extensionNo > 9)
-                break;
-        }
-
-        LOG_I(TAG, "Module Info:");
-        LOG_I(TAG, "Soft version: %s", ublox_info.swVersion);
-        LOG_I(TAG, "Hard version: %s", ublox_info.hwVersion);
-        LOG_I(TAG, "Extensions: %u", ublox_info.extensionNo);
-        for (int i = 0; i < ublox_info.extensionNo; i++) {
-            LOG_I(TAG, "  %s", ublox_info.extension[i]);
-        }
-
-        memset(buffer, 0, sizeof(buffer));
-
-        // tips: extensionNo field is 0 on some 6M GNSS modules
-        for (int i = 0; i < ublox_info.extensionNo; ++i) {
-            if (!strncmp(ublox_info.extension[i], "MOD=", 4)) {
-                strncpy((char*)buffer, &(ublox_info.extension[i][4]), sizeof(buffer));
-            } else if (!strncmp(ublox_info.extension[i], "PROTVER", 7)) {
-                char* ptr = nullptr;
-                memset(buffer, 0, sizeof(buffer));
-                strncpy((char*)buffer, &(ublox_info.extension[i][8]), sizeof(buffer));
-                LOG_I(TAG, "Protocol Version: %s", (char*)buffer);
-                if (strlen((char*)buffer)) {
-                    ublox_info.protocol_version = strtoul((char*)buffer, &ptr, 10);
-                    LOG_I(TAG, "ProtVer=%u", ublox_info.protocol_version);
-                } else {
-                    ublox_info.protocol_version = 0;
-                }
-            }
-        }
-        #define DETECTED_MESSAGE "%s detected, using %s Module"
-        if (strncmp(ublox_info.hwVersion, "00040007", 8) == 0) {
-            LOG_I(TAG, DETECTED_MESSAGE, "U-blox 6", "6");
-            return GPS_MODEL_UBLOX6;
-        } else if (strncmp(ublox_info.hwVersion, "00070000", 8) == 0) {
-            LOG_I(TAG, DETECTED_MESSAGE, "U-blox 7", "7");
-            return GPS_MODEL_UBLOX7;
-        } else if (strncmp(ublox_info.hwVersion, "00080000", 8) == 0) {
-            LOG_I(TAG, DETECTED_MESSAGE, "U-blox 8", "8");
-            return GPS_MODEL_UBLOX8;
-        } else if (strncmp(ublox_info.hwVersion, "00190000", 8) == 0) {
-            LOG_I(TAG, DETECTED_MESSAGE, "U-blox 9", "9");
-            return GPS_MODEL_UBLOX9;
-        } else if (strncmp(ublox_info.hwVersion, "000A0000", 8) == 0) {
-            LOG_I(TAG, DETECTED_MESSAGE, "U-blox 10", "10");
-            return GPS_MODEL_UBLOX10;
-        }
+    if (ack_response_len == 0) {
+        return GPS_MODEL_UNKNOWN;
     }
-
-    return GPS_MODEL_UNKNOWN;
+    static constexpr MemoryPolicy policy = { .required = 0, .desired = MEMORY_CAPABILITY_EXTERNAL, .alignment = 0 };
+    auto* info = static_cast<UbloxGnssModelInfo*>(memory_calloc_with_policy(1, sizeof(UbloxGnssModelInfo), &policy));
+    if (info == nullptr) {
+        return GPS_MODEL_UNKNOWN;
+    }
+    const GpsModel model = parse_module_info(*info, buffer, ack_response_len);
+    protocol_version = info->protocol_version;
+    memory_free(info);
+    return model;
 }
 
 bool init(Device* uart, GpsModel model, const std::atomic<bool>& interrupted) {
@@ -453,7 +471,7 @@ bool init_ublox_789(Device* uart, GpsModel model, const std::atomic<bool>& inter
     SEND_UBX_PACKET(uart, interrupted, buffer, 0x06, 0x01, _message_RMC, "enable NMEA RMC", 500);
     SEND_UBX_PACKET(uart, interrupted, buffer, 0x06, 0x01, _message_GGA, "enable NMEA GGA", 500);
 
-    if (ublox_info.protocol_version >= 18) {
+    if (protocol_version >= 18) {
         uart_controller_flush_input(uart);
         SEND_UBX_PACKET(uart, interrupted, buffer, 0x06, 0x86, _message_PMS, "enable powersave for GPS", 500);
         SEND_UBX_PACKET(uart, interrupted, buffer, 0x06, 0x3B, _message_CFG_PM2, "enable powersave details for GPS", 500);

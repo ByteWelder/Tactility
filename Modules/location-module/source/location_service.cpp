@@ -14,8 +14,11 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
+#include <TactilityCpp/Memory.h>
+
 #include <cmath>
 #include <cstring>
+#include <span>
 
 #define TAG "location"
 
@@ -60,7 +63,13 @@ struct GlobalMutex {
 
 // Not held while calling provider functions
 GlobalMutex mutex;
-LocationHost hosts[LOCATION_PROVIDER_MAX_COUNT] {};
+
+struct HostStorage {
+    LocationHost hosts[LOCATION_PROVIDER_MAX_COUNT] {};
+};
+
+// Allocated in external memory when available, while providers are registered
+HostStorage* hostStorage = nullptr;
 bool running = false;
 LocationSubscription* subscriptions = nullptr;
 // Starts and stops providers. It only exists while a provider isn't in its desired state.
@@ -77,6 +86,25 @@ void ensureSettingsLoaded() {
         location_settings_load(&settings);
         settingsLoaded = true;
     }
+}
+
+/** Must be called with mutex held */
+std::span<LocationHost> getHosts() {
+    return hostStorage != nullptr ? std::span<LocationHost>(hostStorage->hosts) : std::span<LocationHost>();
+}
+
+/** Frees the hosts when no provider is registered and the worker doesn't use them. Must be called with mutex held. */
+void freeUnusedHosts() {
+    if (hostStorage == nullptr || workerActive) {
+        return;
+    }
+    for (const auto& host : hostStorage->hosts) {
+        if (host.api != nullptr) {
+            return;
+        }
+    }
+    tt::deleteObject(hostStorage);
+    hostStorage = nullptr;
 }
 
 uint64_t getUptimeMs() {
@@ -96,7 +124,7 @@ const LocationHost* findBest() {
     const uint64_t now = getUptimeMs();
     const LocationHost* best = nullptr;
     int bestRank = -1;
-    for (const auto& host : hosts) {
+    for (const auto& host : getHosts()) {
         if (!host.hasLocation) {
             continue;
         }
@@ -171,7 +199,7 @@ int32_t workerMain(void*) {
     bool settled = false;
     while (!settled) {
         settled = true;
-        for (auto& host : hosts) {
+        for (auto& host : getHosts()) {
             if (!host.busy && !isSettled(host)) {
                 settled = false;
                 step(host);
@@ -179,6 +207,7 @@ int32_t workerMain(void*) {
         }
     }
     workerActive = false;
+    freeUnusedHosts();
     mutex_unlock(&mutex.handle);
     return 0;
 }
@@ -196,7 +225,7 @@ void freeFinishedWorker() {
 /** Starts the worker when a provider isn't in its desired state. Must be called with mutex held. */
 void reconcile() {
     bool settled = true;
-    for (auto& host : hosts) {
+    for (auto& host : getHosts()) {
         if (!isDesired(host)) {
             host.createFailed = false;
         }
@@ -244,7 +273,7 @@ error_t onStart(ServiceInstance*, void*) {
 void onStop(ServiceInstance*, void*) {
     mutex_lock(&mutex.handle);
     running = false;
-    for (auto& host : hosts) {
+    for (auto& host : getHosts()) {
         host.hasLocation = false;
     }
     reconcile();
@@ -297,7 +326,7 @@ error_t location_set_precision(LocationPrecision precision) {
     if (precision == LOCATION_PRECISION_APPROXIMATE) {
         // Fixes reported with precise precision are dropped until their providers report again
         mutex_lock(&mutex.handle);
-        for (auto& host : hosts) {
+        for (auto& host : getHosts()) {
             if (host.hasLocation && !(host.location.horizontal_accuracy >= LOCATION_APPROXIMATE_ACCURACY_METERS)) {
                 host.hasLocation = false;
             }
@@ -337,8 +366,15 @@ error_t location_provider_register(const LocationProviderApi* api) {
     }
 
     mutex_lock(&mutex.handle);
+    if (hostStorage == nullptr) {
+        hostStorage = tt::newObject<HostStorage>();
+        if (hostStorage == nullptr) {
+            mutex_unlock(&mutex.handle);
+            return ERROR_OUT_OF_MEMORY;
+        }
+    }
     LocationHost* freeHost = nullptr;
-    for (auto& host : hosts) {
+    for (auto& host : getHosts()) {
         if (host.api == nullptr) {
             if (freeHost == nullptr) {
                 freeHost = &host;
@@ -362,7 +398,7 @@ error_t location_provider_register(const LocationProviderApi* api) {
 error_t location_provider_unregister(const LocationProviderApi* api) {
     mutex_lock(&mutex.handle);
     LocationHost* host = nullptr;
-    for (auto& candidate : hosts) {
+    for (auto& candidate : getHosts()) {
         if (candidate.api == api && !candidate.removing) {
             host = &candidate;
             break;
@@ -384,6 +420,7 @@ error_t location_provider_unregister(const LocationProviderApi* api) {
     host->api = nullptr;
     host->removing = false;
     host->createFailed = false;
+    freeUnusedHosts();
     mutex_unlock(&mutex.handle);
     return ERROR_NONE;
 }
@@ -411,7 +448,7 @@ bool location_host_needs_fallback(void) {
     mutex_lock(&mutex.handle);
     const uint64_t now = getUptimeMs();
     bool needed = true;
-    for (const auto& host : hosts) {
+    for (const auto& host : getHosts()) {
         if (host.hasLocation && getRank(host, now) == 2) {
             needed = false;
             break;

@@ -7,6 +7,7 @@
 #include <tactility/system_event.h>
 #include <tactility/time.h>
 
+#include <TactilityCpp/Memory.h>
 #include <TactilityCpp/std/string.h>
 
 #include <fcntl.h>
@@ -42,9 +43,8 @@ constexpr size_t RESPONSE_MAX_LENGTH = 1024;
 // IP geolocation is accurate to roughly city level
 constexpr float ACCURACY_METERS = 25000.0f;
 
-/** The last lookup result. It's kept across provider runs. */
+/** A lookup result */
 struct CachedLookup {
-    bool valid = false;
     // The network of the lookup, see trackedNetwork
     uint64_t network = 0;
     double latitude = NAN;
@@ -58,11 +58,11 @@ struct IpProvider {
     TaskEventGroup group {};
     uint32_t stopBit = 0;
     SystemEventSubscription networkSubscription {};
-    // Only accessed by the provider thread
-    CachedLookup cache {};
 };
 
-IpProvider provider;
+// The last lookup result, kept across provider runs until the network isn't tracked anymore.
+// Only accessed by the provider thread and by ip_provider_untrack_network() after the provider stopped.
+CachedLookup* cache = nullptr;
 
 // The local IP address and gateway of the last connected network, 0 when unknown.
 // A disconnect keeps the last known network, so reconnecting to it doesn't need a new lookup.
@@ -173,7 +173,7 @@ bool httpGet(const char* host, const char* path, char* response, size_t response
     return success;
 }
 
-void report(double latitude, double longitude) {
+void report(IpProvider& provider, double latitude, double longitude) {
     const Location location {
         .latitude = latitude,
         .longitude = longitude,
@@ -194,7 +194,7 @@ void report(double latitude, double longitude) {
 }
 
 /** @return the delay until the next lookup is allowed */
-uint64_t lookup(uint64_t network) {
+uint64_t lookup(IpProvider& provider, uint64_t network) {
     tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
     if (!httpGet(API_HOST, API_PATH, response.data(), response.size())) {
         LOG_W(TAG, "Request failed");
@@ -213,8 +213,13 @@ uint64_t lookup(uint64_t network) {
     } else if (!parsed.success) {
         LOG_W(TAG, "Lookup failed: %s", parsed.message);
     } else {
-        provider.cache = { .valid = true, .network = network, .latitude = parsed.latitude, .longitude = parsed.longitude };
-        report(parsed.latitude, parsed.longitude);
+        if (cache == nullptr) {
+            cache = tt::newObject<CachedLookup>();
+        }
+        if (cache != nullptr) {
+            *cache = { .network = network, .latitude = parsed.latitude, .longitude = parsed.longitude };
+        }
+        report(provider, parsed.latitude, parsed.longitude);
         LOG_D(TAG, "Lookup succeeded");
         delay = MIN_INTERVAL_MS;
     }
@@ -225,7 +230,8 @@ uint64_t lookup(uint64_t network) {
     return delay;
 }
 
-int32_t threadMain(void*) {
+int32_t threadMain(void* context) {
+    auto& provider = *static_cast<IpProvider*>(context);
     uint64_t lastAttemptMs = 0;
     uint64_t nextAttemptMs = 0;
     bool attempted = false;
@@ -251,9 +257,9 @@ int32_t threadMain(void*) {
         }
 
         const uint64_t network = trackedNetwork;
-        if (provider.cache.valid && provider.cache.network == network) {
+        if (cache != nullptr && cache->network == network) {
             if (!reportedCache) {
-                report(provider.cache.latitude, provider.cache.longitude);
+                report(provider, cache->latitude, cache->longitude);
                 reportedCache = true;
             }
             continue;
@@ -265,57 +271,64 @@ int32_t threadMain(void*) {
         }
         attempted = true;
         lastAttemptMs = attemptMs;
-        nextAttemptMs = attemptMs + lookup(network);
-        reportedCache = provider.cache.valid && provider.cache.network == network;
+        nextAttemptMs = attemptMs + lookup(provider, network);
+        reportedCache = cache != nullptr && cache->network == network;
     }
     return 0;
 }
 
 void* create(LocationHost* host) {
-    provider.host = host;
-    provider.running = true;
-    task_event_group_construct(&provider.group);
-    if (task_event_group_claim_bit(&provider.group, &provider.stopBit) != ERROR_NONE) {
-        task_event_group_destruct(&provider.group);
+    auto* provider = tt::newObject<IpProvider>();
+    if (provider == nullptr) {
         return nullptr;
     }
-    provider.networkSubscription = {};
-    provider.networkSubscription.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
-    if (system_event_subscribe(&provider.networkSubscription, &provider.group) != ERROR_NONE) {
-        task_event_group_destruct(&provider.group);
+    provider->host = host;
+    provider->running = true;
+    task_event_group_construct(&provider->group);
+    if (task_event_group_claim_bit(&provider->group, &provider->stopBit) != ERROR_NONE) {
+        task_event_group_destruct(&provider->group);
+        tt::deleteObject(provider);
+        return nullptr;
+    }
+    provider->networkSubscription.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
+    if (system_event_subscribe(&provider->networkSubscription, &provider->group) != ERROR_NONE) {
+        task_event_group_destruct(&provider->group);
+        tt::deleteObject(provider);
         return nullptr;
     }
 
-    provider.thread = thread_alloc_full("location_ip", 4096, threadMain, nullptr, -1);
-    if (provider.thread != nullptr) {
+    provider->thread = thread_alloc_full("location_ip", 4096, threadMain, provider, -1);
+    if (provider->thread != nullptr) {
         // Settings are loaded before providers start, so the thread doesn't access flash
-        thread_set_stack_external(provider.thread, true);
+        thread_set_stack_external(provider->thread, true);
     }
-    if (provider.thread == nullptr || thread_start(provider.thread) != ERROR_NONE) {
-        if (provider.thread != nullptr) {
-            thread_free(provider.thread);
-            provider.thread = nullptr;
+    if (provider->thread == nullptr || thread_start(provider->thread) != ERROR_NONE) {
+        if (provider->thread != nullptr) {
+            thread_free(provider->thread);
         }
-        system_event_unsubscribe(&provider.networkSubscription);
-        task_event_group_destruct(&provider.group);
+        system_event_unsubscribe(&provider->networkSubscription);
+        task_event_group_destruct(&provider->group);
+        tt::deleteObject(provider);
         return nullptr;
     }
-    return &provider;
+    return provider;
 }
 
-void requestStop(void*) {
-    provider.running = false;
-    task_event_group_signal(&provider.group, provider.stopBit);
+void requestStop(void* context) {
+    auto* provider = static_cast<IpProvider*>(context);
+    provider->running = false;
+    task_event_group_signal(&provider->group, provider->stopBit);
 }
 
-bool waitStopped(void*, TickType_t timeout) {
-    if (thread_join(provider.thread, timeout, millis_to_ticks(10)) != ERROR_NONE) {
+bool waitStopped(void* context, TickType_t timeout) {
+    auto* provider = static_cast<IpProvider*>(context);
+    if (thread_join(provider->thread, timeout, millis_to_ticks(10)) != ERROR_NONE) {
         return false;
     }
-    thread_free(provider.thread);
-    provider.thread = nullptr;
-    system_event_unsubscribe(&provider.networkSubscription);
-    task_event_group_destruct(&provider.group);
+    thread_free(provider->thread);
+    system_event_unsubscribe(&provider->networkSubscription);
+    task_event_group_destruct(&provider->group);
+    tt::deleteObject(provider);
     return true;
 }
 
@@ -345,6 +358,10 @@ error_t ip_provider_track_network(void) {
 
 void ip_provider_untrack_network(void) {
     system_event_callback_remove(KERNEL_EVENT_NETWORK_CONNECTED, onNetworkConnected);
+    if (cache != nullptr) {
+        tt::deleteObject(cache);
+        cache = nullptr;
+    }
 }
 
 bool ip_api_parse_response(const char* response, IpApiResponse* out) {

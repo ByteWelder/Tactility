@@ -11,6 +11,8 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
+#include <TactilityCpp/Memory.h>
+
 #include <atomic>
 #include <cmath>
 #include <ctime>
@@ -36,25 +38,32 @@ struct Epoch {
     minmea_sentence_gga gga;
 };
 
+/** The state of a provider run. Allocated in external memory when available. */
 struct GpsProvider {
     LocationHost* host = nullptr;
     Thread* thread = nullptr;
     std::atomic<bool> running = false;
-    // Guards device, startedDevice and subscription. The device listener can outlive a provider run, so this state is static.
-    // Recursive, because stopping startedDevice notifies the device listener on the same thread.
-    RecursiveMutex mutex {};
+    // Guarded by mutex
     Device* device = nullptr;
-    // The device that this provider started, which it stops when it's done
+    // The device that this provider started, which it stops when it's done. Guarded by mutex.
     Device* startedDevice = nullptr;
     uint64_t nextStartAttemptMs = 0;
+    // Guarded by mutex
     GpsSubscription subscription {};
     Epoch epoch {};
-
-    GpsProvider() { recursive_mutex_construct(&mutex); }
-    ~GpsProvider() { recursive_mutex_destruct(&mutex); }
 };
 
-GpsProvider provider;
+struct GlobalRecursiveMutex {
+    RecursiveMutex handle {};
+    GlobalRecursiveMutex() { recursive_mutex_construct(&handle); }
+    ~GlobalRecursiveMutex() { recursive_mutex_destruct(&handle); }
+};
+
+// Guards instance and the provider state that the device listener uses.
+// Recursive, because stopping startedDevice notifies the device listener on the same thread.
+GlobalRecursiveMutex mutex;
+// The running provider, for the device listener. A listener call can still be in progress after it's removed.
+GpsProvider* instance = nullptr;
 
 double toDegrees(const minmea_float& value) {
     const double raw = static_cast<double>(value.value) / value.scale;
@@ -80,7 +89,7 @@ bool isSameTime(const minmea_time& a, const minmea_time& b) {
     return a.hours == b.hours && a.minutes == b.minutes && a.seconds == b.seconds && a.microseconds == b.microseconds;
 }
 
-void report(Epoch& epoch) {
+void report(GpsProvider& provider, Epoch& epoch) {
     Location location;
     if (gps_location_from_nmea(&epoch.rmc, epoch.hasGga ? &epoch.gga : nullptr, &location)) {
         if (location_get_precision() == LOCATION_PRECISION_APPROXIMATE) {
@@ -91,13 +100,13 @@ void report(Epoch& epoch) {
     epoch.reported = true;
 }
 
-void onSentence(const GpsEvent& event) {
+void onSentence(GpsProvider& provider, const GpsEvent& event) {
     auto& epoch = provider.epoch;
     const minmea_time& time = event.type == GPS_EVENT_MESSAGE_RMC ? event.data.rmc.time : event.data.gga.time;
     if (!isSameTime(epoch.time, time)) {
         // Receivers that don't send GGA only get reported once the next epoch starts
         if (epoch.hasRmc && !epoch.reported) {
-            report(epoch);
+            report(provider, epoch);
         }
         epoch = {};
         epoch.time = time;
@@ -112,7 +121,7 @@ void onSentence(const GpsEvent& event) {
     }
 
     if (epoch.hasRmc && epoch.hasGga && !epoch.reported) {
-        report(epoch);
+        report(provider, epoch);
     }
 }
 
@@ -121,19 +130,21 @@ void onDeviceEvent(Device* device, DeviceEvent event, void*) {
     if (event != DEVICE_EVENT_STOPPING) {
         return;
     }
-    recursive_mutex_lock(&provider.mutex);
-    if (device == provider.device) {
-        gps_event_unsubscribe(device, &provider.subscription);
-        provider.device = nullptr;
+    recursive_mutex_lock(&mutex.handle);
+    if (instance != nullptr) {
+        if (device == instance->device) {
+            gps_event_unsubscribe(device, &instance->subscription);
+            instance->device = nullptr;
+        }
+        if (device == instance->startedDevice) {
+            instance->startedDevice = nullptr;
+        }
     }
-    if (device == provider.startedDevice) {
-        provider.startedDevice = nullptr;
-    }
-    recursive_mutex_unlock(&provider.mutex);
+    recursive_mutex_unlock(&mutex.handle);
 }
 
 /** Must be called with the mutex held */
-void startFirstDevice() {
+void startFirstDevice(GpsProvider& provider) {
     const uint64_t now = getUptimeMs();
     if (now < provider.nextStartAttemptMs) {
         return;
@@ -155,10 +166,10 @@ void startFirstDevice() {
 }
 
 /** Must be called with the mutex held */
-bool subscribe() {
+bool subscribe(GpsProvider& provider) {
     Device* device;
     if (device_get_first_active_by_type(&GPS_TYPE, &device) != ERROR_NONE) {
-        startFirstDevice();
+        startFirstDevice(provider);
         if (device_get_first_active_by_type(&GPS_TYPE, &device) != ERROR_NONE) {
             return false;
         }
@@ -176,7 +187,7 @@ bool subscribe() {
 }
 
 /** Must be called with the mutex held and a device subscribed */
-void receive() {
+void receive(GpsProvider& provider) {
     auto& sub = provider.subscription;
     if (sub.sequence != sub.consumed_sequence) {
         sub.consumed_sequence = sub.sequence;
@@ -187,7 +198,7 @@ void receive() {
     switch (sub.event.type) {
         case GPS_EVENT_MESSAGE_RMC:
         case GPS_EVENT_MESSAGE_GGA:
-            onSentence(sub.event);
+            onSentence(provider, sub.event);
             break;
         case GPS_EVENT_UNSUBSCRIBED:
             provider.device = nullptr;
@@ -195,21 +206,22 @@ void receive() {
     }
 }
 
-int32_t threadMain(void*) {
+int32_t threadMain(void* context) {
+    auto& provider = *static_cast<GpsProvider*>(context);
     while (provider.running) {
-        recursive_mutex_lock(&provider.mutex);
-        const bool subscribed = provider.device != nullptr || subscribe();
+        recursive_mutex_lock(&mutex.handle);
+        const bool subscribed = provider.device != nullptr || subscribe(provider);
         if (subscribed) {
-            receive();
+            receive(provider);
         }
-        recursive_mutex_unlock(&provider.mutex);
+        recursive_mutex_unlock(&mutex.handle);
 
         if (!subscribed) {
             delay_millis(DEVICE_POLL_INTERVAL_MS);
         }
     }
 
-    recursive_mutex_lock(&provider.mutex);
+    recursive_mutex_lock(&mutex.handle);
     if (provider.device != nullptr) {
         gps_event_unsubscribe(provider.device, &provider.subscription);
         provider.device = nullptr;
@@ -221,41 +233,57 @@ int32_t threadMain(void*) {
             LOG_W(TAG, "Failed to stop %s", device->name);
         }
     }
-    recursive_mutex_unlock(&provider.mutex);
+    recursive_mutex_unlock(&mutex.handle);
     return 0;
 }
 
 void* create(LocationHost* host) {
-    provider.host = host;
-    provider.running = true;
-    provider.nextStartAttemptMs = 0;
-    provider.thread = thread_alloc_full("location_gps", 4096, threadMain, nullptr, -1);
-    if (provider.thread == nullptr) {
+    auto* provider = tt::newObject<GpsProvider>();
+    if (provider == nullptr) {
+        return nullptr;
+    }
+    provider->host = host;
+    provider->running = true;
+    provider->thread = thread_alloc_full("location_gps", 4096, threadMain, provider, -1);
+    if (provider->thread == nullptr) {
+        tt::deleteObject(provider);
         return nullptr;
     }
     // Settings are loaded before providers start, so the thread doesn't access flash
-    thread_set_stack_external(provider.thread, true);
+    thread_set_stack_external(provider->thread, true);
+
+    recursive_mutex_lock(&mutex.handle);
+    instance = provider;
+    recursive_mutex_unlock(&mutex.handle);
     device_listener_add(onDeviceEvent, nullptr);
-    if (thread_start(provider.thread) != ERROR_NONE) {
+
+    if (thread_start(provider->thread) != ERROR_NONE) {
         device_listener_remove(onDeviceEvent, nullptr);
-        thread_free(provider.thread);
-        provider.thread = nullptr;
+        recursive_mutex_lock(&mutex.handle);
+        instance = nullptr;
+        recursive_mutex_unlock(&mutex.handle);
+        thread_free(provider->thread);
+        tt::deleteObject(provider);
         return nullptr;
     }
-    return &provider;
+    return provider;
 }
 
-void requestStop(void*) {
-    provider.running = false;
+void requestStop(void* context) {
+    static_cast<GpsProvider*>(context)->running = false;
 }
 
-bool waitStopped(void*, TickType_t timeout) {
-    if (thread_join(provider.thread, timeout, millis_to_ticks(10)) != ERROR_NONE) {
+bool waitStopped(void* context, TickType_t timeout) {
+    auto* provider = static_cast<GpsProvider*>(context);
+    if (thread_join(provider->thread, timeout, millis_to_ticks(10)) != ERROR_NONE) {
         return false;
     }
     device_listener_remove(onDeviceEvent, nullptr);
-    thread_free(provider.thread);
-    provider.thread = nullptr;
+    recursive_mutex_lock(&mutex.handle);
+    instance = nullptr;
+    recursive_mutex_unlock(&mutex.handle);
+    thread_free(provider->thread);
+    tt::deleteObject(provider);
     return true;
 }
 
