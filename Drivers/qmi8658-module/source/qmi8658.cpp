@@ -38,10 +38,10 @@ static constexpr TickType_t I2C_TIMEOUT_TICKS = pdMS_TO_TICKS(10);
 
 // Applies the devicetree mount matrix (sensor frame -> device frame) to a 3-axis reading.
 static void applyMountMatrix(const Qmi8658Config& config, float& x, float& y, float& z) {
-    const auto& m = config.mount_matrix;
-    const float rx = m[0][0] * x + m[0][1] * y + m[0][2] * z;
-    const float ry = m[1][0] * x + m[1][1] * y + m[1][2] * z;
-    const float rz = m[2][0] * x + m[2][1] * y + m[2][2] * z;
+    const int32_t* m = config.mount_matrix;
+    const float rx = m[0] * x + m[1] * y + m[2] * z;
+    const float ry = m[3] * x + m[4] * y + m[5] * z;
+    const float rz = m[6] * x + m[7] * y + m[8] * z;
     x = rx;
     y = ry;
     z = rz;
