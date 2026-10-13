@@ -7,7 +7,7 @@
 #include <app/manager.h>
 #include <app/start.h>
 
-#include <gps/gps.h>
+#include <location/location.h>
 
 #include <lvgl/devices/indev.h>
 #include <lvgl/fonts.h>
@@ -55,10 +55,6 @@ static bool hasWifi() {
     return device_exists_of_type(&WIFI_TYPE);
 }
 
-static bool hasGps() {
-    return device_exists_of_type(&GPS_TYPE);
-}
-
 static bool hasBluetooth() {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
     return device_exists_of_type(&BLUETOOTH_TYPE);
@@ -102,28 +98,15 @@ static void setWifiEnabled(void* context) {
     device_put(device);
 }
 
-static bool isGpsEnabled() {
-    bool enabled = false;
-    device_for_each_of_type(&GPS_TYPE, &enabled, [](Device* device, void* context) {
-        if (device_is_ready(device)) {
-            *static_cast<bool*>(context) = true;
-            return false;
-        }
-        return true;
-    });
-    return enabled;
+static bool isLocationEnabled() {
+    return location_is_enabled();
 }
 
-static void setGpsEnabled(void* context) {
-    device_for_each_of_type(&GPS_TYPE, context, [](Device* device, void* context) {
-        const bool enabled = fromContext(context);
-        if (enabled && !device_is_ready(device)) {
-            device_start(device);
-        } else if (!enabled && device_is_ready(device)) {
-            device_stop(device);
-        }
-        return true;
-    });
+static void setLocationEnabled(void* context) {
+    const error_t result = location_set_enabled(fromContext(context));
+    if (result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to set location services state (%s)", error_to_string(result));
+    }
 }
 
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
@@ -290,10 +273,8 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     if (hasWifi()) {
         createOption(grid, &wifi_option);
     }
-    static constexpr ToggleOption gps_option = { LVGL_ICON_SHARED_LOCATION_ON, LVGL_ICON_SHARED_LOCATION_OFF, isGpsEnabled, setGpsEnabled };
-    if (hasGps()) {
-        createOption(grid, &gps_option);
-    }
+    static constexpr ToggleOption location_option = { LVGL_ICON_SHARED_LOCATION_ON, LVGL_ICON_SHARED_LOCATION_OFF, isLocationEnabled, setLocationEnabled };
+    createOption(grid, &location_option);
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
     static constexpr ToggleOption bluetooth_option = { LVGL_ICON_SHARED_BLUETOOTH, LVGL_ICON_SHARED_BLUETOOTH_DISABLED, isBluetoothEnabled, setBluetoothEnabled };
     if (hasBluetooth()) {
@@ -324,9 +305,6 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
 }
 
 void systemMenuShow() {
-    if (!hasWifi() && !hasGps() && !hasBluetooth() && !hasMesh() && !supportsPowerOff()) {
-        return;
-    }
     window_manager_overlay_show(createWidgets, nullptr, nullptr);
 }
 
