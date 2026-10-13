@@ -286,6 +286,5 @@ Driver ft5x06_driver = {
     .stop_device = stop,
     .api = &ft5x06_pointer_api,
     .device_type = &POINTER_TYPE,
-    .owner = &ft5x06_module,
     .internal = nullptr
 };

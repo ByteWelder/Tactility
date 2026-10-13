@@ -513,7 +513,6 @@ Driver sh8601_driver = {
     .stop_device = stop,
     .api = &sh8601_display_api,
     .device_type = &DISPLAY_TYPE,
-    .owner = &sh8601_module,
     .internal = nullptr
 };
 
@@ -613,7 +612,6 @@ Driver sh8601_backlight_driver = {
     .stop_device = sh8601_backlight_stop,
     .api = &SH8601_BACKLIGHT_API,
     .device_type = &BACKLIGHT_TYPE,
-    .owner = &sh8601_module,
     .internal = nullptr
 };
 
