@@ -160,7 +160,7 @@ static void on_wifi_event(WifiAutoConnect* data, const WifiEvent& event) {
 static void on_boot_completed(WifiAutoConnect* data) {
     wifi_provisioning_import();
 
-    if (wifi_settings_get_enable_on_boot()) {
+    if (wifi_settings_get_enable()) {
         LOG_I(TAG, "Auto-enabling WiFi");
         if (wifi_set_radio_on(data->device) != ERROR_NONE) {
             LOG_E(TAG, "Failed to enable WiFi radio");

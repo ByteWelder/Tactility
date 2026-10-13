@@ -28,6 +28,9 @@ struct Thread {
     ThreadPriority priority = THREAD_PRIORITY_NORMAL;
     Mutex mutex = { 0 };
     configSTACK_DEPTH_TYPE stackDepth = 4096;
+    bool stackExternal = false;
+    // Whether the task was created with xTaskCreatePinnedToCoreWithCaps()
+    bool createdWithCaps = false;
     portBASE_TYPE affinity = -1;
 
     Thread() {
@@ -77,10 +80,17 @@ static void thread_main_body(void* context) {
 
     vTaskSetThreadLocalStoragePointer(nullptr, LOCAL_STORAGE_SELF_POINTER_INDEX, nullptr);
 
+    // The thread can be freed once taskHandle is cleared
     thread->lock();
+    const bool createdWithCaps = thread->createdWithCaps;
     thread->taskHandle = nullptr;
     thread->unlock();
 
+#ifdef ESP_PLATFORM
+    if (createdWithCaps) {
+        vTaskDeleteWithCaps(nullptr);
+    }
+#endif
     vTaskDelete(nullptr);
 }
 
@@ -132,6 +142,13 @@ void thread_set_stack_size(Thread* thread, size_t stack_size) {
     check(thread->state == THREAD_STATE_STOPPED);
 
     thread->stackDepth = stack_size / sizeof(StackType_t);
+    thread->unlock();
+}
+
+void thread_set_stack_external(Thread* thread, bool external) {
+    thread->lock();
+    check(thread->state == THREAD_STATE_STOPPED);
+    thread->stackExternal = external;
     thread->unlock();
 }
 
@@ -187,10 +204,33 @@ error_t thread_start(Thread* thread) {
     thread->lock();
     auto priority = static_cast<UBaseType_t>(thread->priority);
     portBASE_TYPE affinity = thread->affinity;
+    bool stackExternal = thread->stackExternal;
+    thread->createdWithCaps = false;
     thread->unlock();
 
-    BaseType_t result;
-    if (affinity != -1) {
+    BaseType_t result = pdFAIL;
+#ifdef ESP_PLATFORM
+    if (stackExternal) {
+        // Set before the task can read it, as the task can run before the creation call returns
+        thread->createdWithCaps = true;
+        result = xTaskCreatePinnedToCoreWithCaps(
+            thread_main_body,
+            thread->name.c_str(),
+            thread->stackDepth,
+            thread,
+            priority,
+            &thread->taskHandle,
+            affinity != -1 ? affinity : tskNO_AFFINITY,
+            MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
+        );
+        if (result != pdPASS) {
+            thread->createdWithCaps = false;
+        }
+    }
+#endif
+    if (result == pdPASS) {
+        // Stack is in external memory
+    } else if (affinity != -1) {
 #ifdef ESP_PLATFORM
         result = xTaskCreatePinnedToCore(
             thread_main_body,

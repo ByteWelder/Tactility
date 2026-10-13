@@ -61,6 +61,9 @@ static void connectToAp(const WifiApSettings& ap) {
         }
         error_t result = wifi_set_radio_on(wifi_device);
         if (result == ERROR_NONE) {
+            if (wifi_settings_set_enable(true) != ERROR_NONE) {
+                LOG_E(TAG, "Failed to save the Wi-Fi state");
+            }
             result = wifi_station_connect(wifi_device, ap.ssid, ap.password, ap.channel);
         }
         if (result != ERROR_NONE) {
@@ -114,7 +117,11 @@ static void onWifiToggled(bool enabled) {
             return;
         }
         error_t result = enabled ? wifi_set_radio_on(wifi_device) : wifi_set_radio_off(wifi_device);
-        if (result != ERROR_NONE) {
+        if (result == ERROR_NONE) {
+            if (wifi_settings_set_enable(enabled) != ERROR_NONE) {
+                LOG_E(TAG, "Failed to save the Wi-Fi state");
+            }
+        } else {
             LOG_E(TAG, "Failed to set radio state (%s)", error_to_string(result));
         }
         device_put(wifi_device);

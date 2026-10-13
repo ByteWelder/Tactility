@@ -45,6 +45,9 @@ struct DeviceInternal {
         // also checked by device_get() so no new ref can be acquired while a stop is in flight.
         bool starting : 1 = false;
         bool stopping : 1 = false;
+        // Set while device_remove() updates the parent and the ledger, with `mutex` released.
+        // Blocks device_destruct() and device_add() until the removal or its rollback finishes.
+        bool removing : 1 = false;
     } state;
     /** Attached child devices */
     std::vector<Device*> children {};
@@ -107,7 +110,7 @@ error_t device_destruct(Device* device) {
         unlock_internal(device->internal);
         return ERROR_RESOURCE_BUSY;
     }
-    if (internal->state.started || internal->state.added) {
+    if (internal->state.started || internal->state.added || internal->state.removing) {
         unlock_internal(device->internal);
         return ERROR_INVALID_STATE;
     }
@@ -146,8 +149,10 @@ static void device_remove_child(Device* device, Device* child) {
 error_t device_add(Device* device) {
     LOG_D(TAG, "add %s", device->name);
 
-    // Already added
-    if (device->internal->state.started || device->internal->state.added) {
+    lock_internal(device->internal);
+    const bool invalid = device->internal->state.started || device->internal->state.added || device->internal->state.removing;
+    unlock_internal(device->internal);
+    if (invalid) {
         return ERROR_INVALID_STATE;
     }
 
@@ -168,10 +173,18 @@ error_t device_add(Device* device) {
 
 error_t device_remove(Device* device) {
     LOG_D(TAG, "remove %s", device->name);
+    auto* internal = device->internal;
 
-    if (device->internal->state.started || !device->internal->state.added) {
+    // Cleared under the lock that device_start() checks it with, so the device can't be started anymore.
+    // The lock is released before taking ledger_lock, as lookups take ledger_lock first.
+    lock_internal(internal);
+    if (internal->state.started || internal->state.starting || !internal->state.added) {
+        unlock_internal(internal);
         return ERROR_INVALID_STATE;
     }
+    internal->state.added = false;
+    internal->state.removing = true;
+    unlock_internal(internal);
 
     // Remove self from parent's children list
     auto* parent = device->parent;
@@ -188,7 +201,9 @@ error_t device_remove(Device* device) {
     ledger.devices.erase(iterator);
     ledger_unlock();
 
-    device->internal->state.added = false;
+    lock_internal(internal);
+    internal->state.removing = false;
+    unlock_internal(internal);
     return ERROR_NONE;
 
 failed_ledger_lookup:
@@ -198,6 +213,10 @@ failed_ledger_lookup:
         device_add_child(parent, device);
     }
 
+    lock_internal(internal);
+    internal->state.added = true;
+    internal->state.removing = false;
+    unlock_internal(internal);
     return ERROR_NOT_FOUND;
 }
 

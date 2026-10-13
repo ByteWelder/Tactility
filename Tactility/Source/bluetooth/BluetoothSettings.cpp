@@ -79,7 +79,7 @@ static BluetoothSettings getCachedOrLoad() {
     return result;
 }
 
-void setEnableOnBoot(bool enable) {
+void setEnable(bool enable) {
     settings_mutex.lock();
     cached.enableOnBoot = enable;
     cached_valid = true;
@@ -87,7 +87,7 @@ void setEnableOnBoot(bool enable) {
     if (!save(cached)) LOG_E(TAG, "Failed to save");
 }
 
-bool shouldEnableOnBoot() {
+bool isEnabled() {
     return getCachedOrLoad().enableOnBoot;
 }
 

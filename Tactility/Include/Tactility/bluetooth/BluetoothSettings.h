@@ -2,8 +2,8 @@
 
 namespace tt::bluetooth::settings {
 
-void setEnableOnBoot(bool enable);
-bool shouldEnableOnBoot();
+void setEnable(bool enable);
+bool isEnabled();
 
 void setSppAutoStart(bool enable);
 bool shouldSppAutoStart();

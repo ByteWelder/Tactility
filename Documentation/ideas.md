@@ -7,11 +7,13 @@
 
 ## Higher Priority
 
-- Create location service, which works with location providers. GPS is a location provider. IP is also a location provider (must have wifi connected)
-  - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
+- Fix Wi-Fi so it actually connects to something
+- Support http/https on posix
+- Vi apps are both named "Vi" in the App Hub
+- Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
 - lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
 - Cursor is hard-coded, needs size based on DPI
-- Improve Setup: Show progress of some kind
+- Improve Setup: Show progress of some kind. Put skip/next buttons closer? And add outline button style (update docs!)
 - Files app should have a page indicator like Launcher.
 - Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
@@ -30,6 +32,8 @@
 
 ## Medium Priority
 
+- CL-32 display driver performance
+- Move more window management code from Tactility/ to window-manager
 - Implement signal/raise for terminal apps (for CTRL+C and window resize signals)
 - Build the simulator with `-fno-exceptions` to match ESP32. First make app exit() work without C++ unwinding there:
   scheduler.cpp's DeferredUnload relies on pthread_exit()'s forced unwind running its destructor.

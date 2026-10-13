@@ -46,24 +46,6 @@ static void onEnableSwitchChanged(lv_event_t* event) {
     bindings->onWifiToggled(is_on);
 }
 
-static void onEnableOnBootSwitchChanged(lv_event_t* event) {
-    auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
-    bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-    // Dispatch it, so file IO doesn't block the UI
-    getMainDispatcher().dispatch([is_on] {
-        wifi_settings_set_enable_on_boot(is_on);
-    });
-}
-
-static void onEnableOnBootParentClicked(lv_event_t* event) {
-    auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_user_data(event));
-    if (lv_obj_has_state(enable_switch, LV_STATE_CHECKED)) {
-        lv_obj_remove_state(enable_switch, LV_STATE_CHECKED);
-    } else {
-        lv_obj_add_state(enable_switch, LV_STATE_CHECKED);
-    }
-}
-
 static void onConnectToHiddenClicked(lv_event_t* event) {
     auto* bindings = (Bindings*)lv_event_get_user_data(event);
     bindings->onConnectToHidden();
@@ -167,27 +149,6 @@ void View::updateConnectToHidden() {
 void View::updateNetworkList() {
     lv_obj_clean(networks_list);
 
-    // Enable on boot
-
-    auto* enable_on_boot_wrapper = lv_obj_create(networks_list);
-    lv_obj_set_size(enable_on_boot_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(enable_on_boot_wrapper, LV_OPA_TRANSP, LV_STATE_DEFAULT);
-    lv_obj_set_flex_flow(enable_on_boot_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(enable_on_boot_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_scrollable(enable_on_boot_wrapper, false);
-
-    auto* enable_label = lv_label_create(enable_on_boot_wrapper);
-    lv_label_set_text(enable_label, "Enable on boot");
-    lv_obj_set_flex_grow(enable_label, 1);
-
-    enable_on_boot_switch = lv_switch_create(enable_on_boot_wrapper);
-    lv_obj_add_event_cb(enable_on_boot_switch, onEnableOnBootSwitchChanged, LV_EVENT_VALUE_CHANGED, bindings);
-    lv_obj_add_event_cb(enable_on_boot_wrapper, onEnableOnBootParentClicked, LV_EVENT_SHORT_CLICKED, enable_on_boot_switch);
-
-    updateEnableOnBootToggle();
-
     switch (state->getRadioState()) {
         case WIFI_RADIO_STATE_ON_PENDING:
         case WIFI_RADIO_STATE_ON: {
@@ -288,17 +249,6 @@ void View::updateWifiToggle() {
     }
 }
 
-void View::updateEnableOnBootToggle() {
-    if (enable_on_boot_switch != nullptr) {
-        lv_obj_clear_state(enable_on_boot_switch, LV_STATE_ANY);
-        if (wifi_settings_get_enable_on_boot()) {
-            lv_obj_add_state(enable_on_boot_switch, LV_STATE_CHECKED);
-        } else {
-            lv_obj_remove_state(enable_on_boot_switch, LV_STATE_CHECKED);
-        }
-    }
-}
-
 // endregion Secondary updates
 
 // region Main
@@ -349,7 +299,6 @@ void View::update(bool rebuildList) {
 void View::reset() {
     root = nullptr;
     enable_switch = nullptr;
-    enable_on_boot_switch = nullptr;
     scanning_spinner = nullptr;
     refresh_button = nullptr;
     networks_list = nullptr;

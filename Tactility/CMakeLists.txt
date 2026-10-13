@@ -42,6 +42,7 @@ list(APPEND REQUIRES_LIST
     gps-module
     graphics-module
     http-module
+    location-module
     mbedtls-module
     mesh-module
     mesh-meshcore-module

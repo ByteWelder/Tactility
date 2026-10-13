@@ -320,7 +320,7 @@ void systemStart() {
         return;
     }
 
-    if (settings::shouldEnableOnBoot()) {
+    if (settings::isEnabled()) {
         start(dev);
     }
 }

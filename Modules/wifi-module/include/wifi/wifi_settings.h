@@ -68,14 +68,15 @@ error_t wifi_settings_remove(const char* ssid);
 void wifi_settings_for_each(void* context, bool (*on_ssid)(const char* ssid, void* context));
 
 /**
- * @param[in] enable whether to turn on the radio when booting
+ * Persist whether Wi-Fi is on. The radio is turned on when booting while it's enabled.
+ * @param[in] enable whether Wi-Fi is on
  * @retval ERROR_RESOURCE the setting could not be written
  * @retval ERROR_NONE on success
  */
-error_t wifi_settings_set_enable_on_boot(bool enable);
+error_t wifi_settings_set_enable(bool enable);
 
-/** @return true when the radio should be turned on when booting */
-bool wifi_settings_get_enable_on_boot(void);
+/** @return true when Wi-Fi is on, see wifi_settings_set_enable() */
+bool wifi_settings_get_enable(void);
 
 #ifdef __cplusplus
 }

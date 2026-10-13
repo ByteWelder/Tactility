@@ -1,5 +1,30 @@
 # License Grant
 
+## Overview
+
+In short:
+- The main firmware project uses `GNU Public License v3.0`
+- TactilitySDK and related libraries use `Apache License v2.0`
+- License of subprojects may vary.
+
+Below is an overview of the licenses of some of the subprojects.
+
+| Project            | License                 |
+|--------------------|-------------------------|
+| Tactility          | GNU Public License v3.0 |
+| TactilityFreeRTOS  | Apache License v2.0     |
+| TactilityKernel    | Apache License v2.0     |
+| Tests              | (varies)                |
+| Devices/*          | (varies)                |
+| Drivers/*          | (varies)                |
+| Modules/*          | Apache License v2.0     |
+| DevicetreeCompiler | Apache License v2.0     |
+| Platforms/*        | Apache License v2.0     |
+
+Subprojects and directories in this project can contain license files.
+
+The presence of such a license file indicates that this license applies to all the files and folders that are contained by the folder at the level where the license file resides.
+
 ## Definitions
 
 "external apps" or "external applications" refers to applications that are built with the TactilitySDK.
@@ -57,26 +82,6 @@ Some projects were rewritten entirely. Some examples:
 
 - Drivers that were written for the `Tactility/` subproject (C++ interface, GPL) and were rewritten from scratch based on `TactilityKernel/` (C interface, Apache)
 - Device subprojects were rewritten from a purely code-focused configuration project to an empty module declaration (can't really copyright this) and a DTS file.
-
-## Overview
-
-Below is an overview of the licenses of some of the subprojects.
-
-| Project            | License                 |
-|--------------------|-------------------------|
-| Tactility          | GNU Public License v3.0 |
-| TactilityFreeRTOS  | Apache License v2.0     |
-| TactilityKernel    | Apache License v2.0     |
-| Tests              | (varies)                |
-| Devices/*          | (varies)                |
-| Drivers/*          | (varies)                |
-| Modules/*          | Apache License v2.0     |
-| DevicetreeCompiler | Apache License v2.0     |
-| Platforms/*        | Apache License v2.0     |
-
-Subprojects and directories in this project can contain license files.
-
-The presence of such a license file indicates that this license applies to all the files and folders that are contained by the folder at the level where the license file resides.
 
 ## Logo
 

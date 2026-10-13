@@ -17,12 +17,10 @@ class View final {
     void* context = nullptr;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
-    lv_obj_t* enable_on_boot_switch = nullptr;
     lv_obj_t* scanning_spinner = nullptr;
     lv_obj_t* peers_list = nullptr;
 
     void updateBtToggle();
-    void updateEnableOnBootToggle();
     void updateScanning();
     void updatePeerList();
 
