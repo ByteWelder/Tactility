@@ -50,4 +50,8 @@ TEST_CASE("ip_api_parse_response rejects malformed responses") {
     CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\nX-Rl: 1\r\n", &parsed));
     CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\nabc\n1.0\n", &parsed));
     CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nunknown\n", &parsed));
+    CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\nnan\n1.0\n", &parsed));
+    CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\n1.0\ninf\n", &parsed));
+    CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\n90.5\n1.0\n", &parsed));
+    CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\n1.0\n-180.5\n", &parsed));
 }

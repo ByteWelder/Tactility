@@ -40,8 +40,6 @@ constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;
 constexpr uint32_t CHECK_INTERVAL_MS = 10 * 1000;
 constexpr int SOCKET_TIMEOUT_SECONDS = 5;
 constexpr size_t RESPONSE_MAX_LENGTH = 1024;
-// DNS resolution has no timeout of its own
-constexpr uint32_t THREAD_STOP_TIMEOUT_MS = 30 * 1000;
 // IP geolocation is accurate to roughly city level
 constexpr float ACCURACY_METERS = 25000.0f;
 
@@ -264,10 +262,8 @@ void* create(LocationHost* host) {
 void destroy(void*) {
     provider.running = false;
     task_event_group_signal(&provider.group, provider.stopBit);
-    if (thread_join(provider.thread, millis_to_ticks(THREAD_STOP_TIMEOUT_MS), millis_to_ticks(10)) != ERROR_NONE) {
-        LOG_E(TAG, "Thread did not stop in time");
-        return;
-    }
+    // The provider state can only be reused after the worker exits. All its blocking calls time out.
+    thread_join(provider.thread, portMAX_DELAY, millis_to_ticks(10));
     thread_free(provider.thread);
     provider.thread = nullptr;
     system_event_unsubscribe(&provider.networkSubscription);
@@ -347,7 +343,9 @@ bool ip_api_parse_response(const char* response, IpApiResponse* out) {
         char* longitudeEnd;
         out->latitude = strtod(latitude.c_str(), &latitudeEnd);
         out->longitude = strtod(longitude.c_str(), &longitudeEnd);
-        if (latitude.empty() || *latitudeEnd != '\0' || longitude.empty() || *longitudeEnd != '\0') {
+        if (latitude.empty() || *latitudeEnd != '\0' || longitude.empty() || *longitudeEnd != '\0' ||
+            !std::isfinite(out->latitude) || !std::isfinite(out->longitude) ||
+            std::fabs(out->latitude) > 90.0 || std::fabs(out->longitude) > 180.0) {
             return false;
         }
         out->success = true;

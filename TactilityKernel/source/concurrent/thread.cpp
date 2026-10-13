@@ -81,8 +81,8 @@ static void thread_main_body(void* context) {
     vTaskSetThreadLocalStoragePointer(nullptr, LOCAL_STORAGE_SELF_POINTER_INDEX, nullptr);
 
     // The thread can be freed once taskHandle is cleared
-    const bool createdWithCaps = thread->createdWithCaps;
     thread->lock();
+    const bool createdWithCaps = thread->createdWithCaps;
     thread->taskHandle = nullptr;
     thread->unlock();
 
@@ -223,7 +223,9 @@ error_t thread_start(Thread* thread) {
             affinity != -1 ? affinity : tskNO_AFFINITY,
             MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
         );
-        thread->createdWithCaps = (result == pdPASS);
+        if (result != pdPASS) {
+            thread->createdWithCaps = false;
+        }
     }
 #endif
     if (result == pdPASS) {

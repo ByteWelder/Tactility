@@ -21,7 +21,6 @@ namespace {
 
 constexpr uint32_t AWAIT_TIMEOUT_MS = 250;
 constexpr uint32_t DEVICE_POLL_INTERVAL_MS = 1000;
-constexpr uint32_t THREAD_STOP_TIMEOUT_MS = 3000;
 constexpr float METERS_PER_SECOND_PER_KNOT = 0.514444f;
 // Typical user equivalent range error of consumer receivers, which turns dilution of precision into meters
 constexpr float RANGE_ERROR_METERS = 5.0f;
@@ -203,10 +202,8 @@ void* create(LocationHost* host) {
 
 void destroy(void*) {
     provider.running = false;
-    if (thread_join(provider.thread, millis_to_ticks(THREAD_STOP_TIMEOUT_MS), millis_to_ticks(10)) != ERROR_NONE) {
-        LOG_E(TAG, "Thread did not stop in time");
-        return;
-    }
+    // The provider state can only be reused after the worker exits. It does so within AWAIT_TIMEOUT_MS.
+    thread_join(provider.thread, portMAX_DELAY, millis_to_ticks(10));
     device_listener_remove(onDeviceEvent, nullptr);
     thread_free(provider.thread);
     provider.thread = nullptr;
