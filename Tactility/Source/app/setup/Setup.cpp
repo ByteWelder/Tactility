@@ -18,6 +18,8 @@
 
 #include <location/location.h>
 
+#include <wifi/wifi_settings.h>
+
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
@@ -232,7 +234,9 @@ int32_t appMain(int argc, char* argv[]) {
                 getMainDispatcher().dispatch([] {
                     Device* wifi_device = nullptr;
                     if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
-                        wifi_set_radio_on(wifi_device);
+                        if (wifi_set_radio_on(wifi_device) == ERROR_NONE) {
+                            wifi_settings_set_enable(true);
+                        }
                         device_put(wifi_device);
                     }
                 });

@@ -281,7 +281,7 @@ void wifi_settings_for_each(void* context, bool (*on_ssid)(const char* ssid, voi
     closedir(dir);
 }
 
-error_t wifi_settings_set_enable_on_boot(bool enable) {
+error_t wifi_settings_set_enable(bool enable) {
     enable_on_boot = enable;
     enable_on_boot_cached = true;
 
@@ -306,7 +306,7 @@ error_t wifi_settings_set_enable_on_boot(bool enable) {
     return properties_file_close(file);
 }
 
-bool wifi_settings_get_enable_on_boot(void) {
+bool wifi_settings_get_enable(void) {
     if (enable_on_boot_cached) {
         return enable_on_boot;
     }

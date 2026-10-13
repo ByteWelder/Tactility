@@ -2,6 +2,8 @@
 
 #include <Tactility/app/btmanage/BtManagePrivate.h>
 #include <Tactility/app/btmanage/View.h>
+#include <Tactility/bluetooth/BluetoothSettings.h>
+#include <Tactility/Tactility.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -24,6 +26,10 @@ extern const ::AppManifest manifest;
 
 static void onBtToggled(void* /*context*/, bool requestOn) {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
+    // Dispatched, so file IO doesn't block the UI
+    getMainDispatcher().dispatch([requestOn] {
+        bluetooth::settings::setEnable(requestOn);
+    });
     Device* dev;
     if (device_get_first_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
         bool radio_on = bluetooth::isRadioOnOrPending(dev);

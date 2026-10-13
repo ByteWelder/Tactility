@@ -15,14 +15,12 @@ class View final {
     uint32_t appInstanceId = 0;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
-    lv_obj_t* enable_on_boot_switch = nullptr;
     lv_obj_t* scanning_spinner = nullptr;
     lv_obj_t* refresh_button = nullptr;
     lv_obj_t* networks_list = nullptr;
     lv_obj_t* connect_to_hidden = nullptr;
 
     void updateWifiToggle();
-    void updateEnableOnBootToggle();
     void updateScanning();
     void updateRefreshButton();
     void updateNetworkList();

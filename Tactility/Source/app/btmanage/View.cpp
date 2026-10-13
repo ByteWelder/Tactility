@@ -30,28 +30,6 @@ static void onEnableSwitchChanged(lv_event_t* event) {
     ctx->bindings.onBtToggled(ctx, is_on);
 }
 
-static void onEnableOnBootSwitchChanged(lv_event_t* event) {
-    auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
-    bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-    getMainDispatcher().dispatch([is_on] {
-        bluetooth::settings::setEnableOnBoot(is_on);
-    });
-}
-
-static void onEnableOnBootParentClicked(lv_event_t* event) {
-    auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_user_data(event));
-    bool new_state = !lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-    if (new_state) {
-        lv_obj_add_state(enable_switch, LV_STATE_CHECKED);
-    } else {
-        lv_obj_remove_state(enable_switch, LV_STATE_CHECKED);
-    }
-    // add/remove_state does not fire LV_EVENT_VALUE_CHANGED, so persist here directly.
-    getMainDispatcher().dispatch([new_state] {
-        bluetooth::settings::setEnableOnBoot(new_state);
-    });
-}
-
 static void onScanButtonClicked(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     Device* dev = nullptr;
@@ -162,17 +140,6 @@ void View::updateBtToggle() {
     }
 }
 
-void View::updateEnableOnBootToggle() {
-    if (enable_on_boot_switch != nullptr) {
-        lv_obj_clear_state(enable_on_boot_switch, LV_STATE_ANY);
-        if (bluetooth::settings::shouldEnableOnBoot()) {
-            lv_obj_add_state(enable_on_boot_switch, LV_STATE_CHECKED);
-        } else {
-            lv_obj_remove_state(enable_on_boot_switch, LV_STATE_CHECKED);
-        }
-    }
-}
-
 void View::updateScanning() {
     if (state->getRadioState() == bluetooth::RadioState::On && state->isScanning()) {
         lv_obj_set_hidden(scanning_spinner, false);
@@ -183,27 +150,6 @@ void View::updateScanning() {
 
 void View::updatePeerList() {
     lv_obj_clean(peers_list);
-
-    // Enable on boot
-
-    auto* enable_on_boot_wrapper = lv_obj_create(peers_list);
-    lv_obj_set_size(enable_on_boot_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(enable_on_boot_wrapper, LV_OPA_TRANSP, LV_STATE_DEFAULT);
-    lv_obj_set_flex_flow(enable_on_boot_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(enable_on_boot_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_scrollable(enable_on_boot_wrapper, false);
-
-    auto* enable_label = lv_label_create(enable_on_boot_wrapper);
-    lv_label_set_text(enable_label, "Enable on boot");
-    lv_obj_set_flex_grow(enable_label, 1);
-
-    enable_on_boot_switch = lv_switch_create(enable_on_boot_wrapper);
-    lv_obj_add_event_cb(enable_on_boot_switch, onEnableOnBootSwitchChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    lv_obj_add_event_cb(enable_on_boot_wrapper, onEnableOnBootParentClicked, LV_EVENT_SHORT_CLICKED, enable_on_boot_switch);
-
-    updateEnableOnBootToggle();
 
     using enum bluetooth::RadioState;
     if (state->getRadioState() == On) {

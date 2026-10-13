@@ -59,6 +59,7 @@ void connectToAp(const WifiApSettings& ap) {
         }
         error_t result = wifi_set_radio_on(wifi_device);
         if (result == ERROR_NONE) {
+            wifi_settings_set_enable(true);
             result = wifi_station_connect(wifi_device, ap.ssid, ap.password, ap.channel);
         }
         if (result != ERROR_NONE) {

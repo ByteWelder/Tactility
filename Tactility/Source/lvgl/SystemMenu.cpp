@@ -2,12 +2,15 @@
 
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/bluetooth/Bluetooth.h>
+#include <Tactility/bluetooth/BluetoothSettings.h>
 #include <Tactility/settings/RadioSettings.h>
 
 #include <app/manager.h>
 #include <app/start.h>
 
 #include <location/location.h>
+
+#include <wifi/wifi_settings.h>
 
 #include <lvgl/devices/indev.h>
 #include <lvgl/fonts.h>
@@ -91,8 +94,11 @@ static void setWifiEnabled(void* context) {
     if (device_get_first_by_type(&WIFI_TYPE, &device) != ERROR_NONE) {
         return;
     }
-    error_t result = fromContext(context) ? wifi_set_radio_on(device) : wifi_set_radio_off(device);
-    if (result != ERROR_NONE) {
+    const bool enabled = fromContext(context);
+    error_t result = enabled ? wifi_set_radio_on(device) : wifi_set_radio_off(device);
+    if (result == ERROR_NONE) {
+        wifi_settings_set_enable(enabled);
+    } else {
         LOG_E(TAG, "Failed to set Wi-Fi radio state (%s)", error_to_string(result));
     }
     device_put(device);
@@ -127,6 +133,7 @@ static void setBluetoothEnabled(void* context) {
         return;
     }
     const bool enabled = fromContext(context);
+    bluetooth::settings::setEnable(enabled);
     if (enabled != bluetooth::isRadioOnOrPending(device)) {
         if (enabled) {
             bluetooth::start(device);
