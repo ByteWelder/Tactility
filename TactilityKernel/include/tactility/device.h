@@ -75,7 +75,7 @@ error_t device_construct(struct Device* device);
  * This fails when a device is busy or has children.
  *
  * @param[in,out] device non-null device pointer
- * @retval ERROR_INVALID_STATE if the device is started, added, or has children
+ * @retval ERROR_INVALID_STATE if the device is started, added, being removed, or has children
  * @retval ERROR_RESOURCE_BUSY if the device has outstanding device_get() references
  * @retval ERROR_NONE on success
  */
@@ -87,7 +87,7 @@ error_t device_destruct(struct Device* device);
  * - its parent (if any)
  *
  * @param[in,out] device non-null device pointer
- * @retval ERROR_INVALID_STATE if the device is already added
+ * @retval ERROR_INVALID_STATE if the device is already added or being removed
  * @retval ERROR_NONE on success
  */
 error_t device_add(struct Device* device);

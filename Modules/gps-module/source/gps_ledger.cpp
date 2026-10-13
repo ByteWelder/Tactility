@@ -8,6 +8,7 @@
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/log.h>
+#include <tactility/time.h>
 
 #include <cstdio>
 #include <cstring>
@@ -45,6 +46,9 @@ static LedgerMutex ledger_mutex;
 
 // Unique across every device the ledger creates, so device names ("gpsN") never collide.
 static uint32_t next_device_index = 0;
+
+// Removed devices that were still referenced when they were destroyed. Guarded by ledger_mutex.
+static std::vector<Device*> pending_destruction;
 
 static bool device_matches_configuration(Device* device, const GpsConfiguration& configuration) {
     auto* parent = device_get_parent(device);
@@ -111,18 +115,15 @@ static bool create_device(const GpsConfiguration& configuration) {
 }
 
 // Stops (if needed), removes and destructs a ledger-owned device, and frees its entry.
-// Another task can be starting or stopping the device, or hold a reference to it, so each step is retried until it succeeds.
-// A device that can't be destructed in time is leaked, as freeing it could cause a use-after-free.
+// Another task can be starting or stopping the device, or hold a reference to it, and the driver can fail to stop
+// while its thread is still exiting. So each step is retried until it succeeds.
+// A removed device that is still referenced after the timeout is destructed by a later ledger operation.
+// Must be called with ledger_mutex held.
 static void destroy_device(Device* device) {
-    for (uint32_t waited_ms = 0; waited_ms < DESTROY_TIMEOUT_MS; waited_ms += DESTROY_RETRY_INTERVAL_MS) {
-        if (device_is_added(device)) {
-            const error_t stop_error = device_stop(device);
-            if (stop_error == ERROR_RESOURCE) {
-                break;
-            }
-            if (stop_error == ERROR_NONE) {
-                device_remove(device);
-            }
+    const uint64_t deadline_us = get_micros_since_boot() + DESTROY_TIMEOUT_MS * 1000ULL;
+    while (get_micros_since_boot() < deadline_us) {
+        if (device_is_added(device) && device_stop(device) == ERROR_NONE) {
+            device_remove(device);
         }
         if (!device_is_added(device) && device_destruct(device) == ERROR_NONE) {
             delete reinterpret_cast<GpsLedgerEntry*>(device);
@@ -130,7 +131,24 @@ static void destroy_device(Device* device) {
         }
         delay_millis(DESTROY_RETRY_INTERVAL_MS);
     }
-    LOG_E(TAG, "Failed to destroy %s", device->name);
+    if (device_is_added(device)) {
+        // Still in the device ledger, so a later ledger operation finds it again
+        LOG_E(TAG, "Failed to stop %s", device->name);
+    } else {
+        LOG_W(TAG, "%s is still referenced, destroying it later", device->name);
+        pending_destruction.push_back(device);
+    }
+}
+
+// Must be called with ledger_mutex held
+static void destroy_pending_devices() {
+    std::erase_if(pending_destruction, [](Device* device) {
+        if (device_destruct(device) != ERROR_NONE) {
+            return false;
+        }
+        delete reinterpret_cast<GpsLedgerEntry*>(device);
+        return true;
+    });
 }
 
 static bool is_ledger_owned(const Device* device) {
@@ -152,6 +170,7 @@ static std::vector<Device*> collect_owned_devices() {
 
 void gps_ledger_sync() {
     mutex_lock(&ledger_mutex.mutex);
+    destroy_pending_devices();
 
     std::vector<GpsConfiguration> configurations;
     gps_settings_for_each_configuration(&configurations, [](const GpsConfiguration* configuration, size_t, void* context) {
@@ -192,6 +211,7 @@ void gps_ledger_sync() {
 
 void gps_ledger_clear() {
     mutex_lock(&ledger_mutex.mutex);
+    destroy_pending_devices();
     for (auto* device : collect_owned_devices()) {
         destroy_device(device);
     }
@@ -200,6 +220,7 @@ void gps_ledger_clear() {
 
 void gps_ledger_remove_children_of(Device* parent) {
     mutex_lock(&ledger_mutex.mutex);
+    destroy_pending_devices();
     for (auto* device : collect_owned_devices()) {
         if (device_get_parent(device) == parent) {
             destroy_device(device);
