@@ -158,6 +158,7 @@ shared_symbol_code_point_names = [
     "lightbulb",
     "language", # Globe
     "lists", # Chat app toolbar
+    "list_alt", # Settings apps: opens a selection dialog
     "mail",
     "menu",
     "memory", # System Info
@@ -242,6 +243,8 @@ statusbar_symbol_code_point_names = [
     "usb",
     # Mesh networking
     "hub",
+    # App Hub installing an app
+    "download",
 ]
 
 # Get more from https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded

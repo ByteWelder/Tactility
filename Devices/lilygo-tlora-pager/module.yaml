@@ -6,6 +6,8 @@ dependencies:
   - Drivers/tca8418-module
   - Drivers/bq25896-module
   - Drivers/drv2605-module
+  - Drivers/es8311-module
+  - Drivers/audio-stream-module
   - Drivers/gpio-encoder-module
   - Drivers/sx126x-module
   - Drivers/xl9555-module

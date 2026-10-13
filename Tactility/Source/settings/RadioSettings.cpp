@@ -1,70 +1,20 @@
-#include <Tactility/DeprecatedPaths.h>
-#include <Tactility/file/File.h>
-#include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/RadioSettings.h>
 
 #include <tactility/device.h>
-#include <tactility/log.h>
-
-#include <cstring>
-#include <format>
-#include <map>
-#include <string>
+#include <tactility/radio_settings.h>
 
 namespace tt::settings::radio {
 
-constexpr auto* TAG = "RadioSettings";
-constexpr auto* FILE_PATH_FORMAT = "{}/settings/radio.properties";
-constexpr auto* KEY_REGION = "region";
-
-static std::string getFilePath() {
-    return std::format(FILE_PATH_FORMAT, getDataPath());
-}
-
 RadioRegion loadRegion() {
-    const auto path = getFilePath();
-    std::map<std::string, std::string> map;
-    if (!file::isFile(path) || !file::loadPropertiesFile(path, map)) {
-        return RADIO_REGION_UNSET;
-    }
-    const auto entry = map.find(KEY_REGION);
-    if (entry == map.end()) {
-        return RADIO_REGION_UNSET;
-    }
-    for (int region = RADIO_REGION_UNSET; region < RADIO_REGION_COUNT; region++) {
-        if (entry->second == radio_region_to_string(static_cast<RadioRegion>(region))) {
-            return static_cast<RadioRegion>(region);
-        }
-    }
-    LOG_W(TAG, "Unknown region \"%s\"", entry->second.c_str());
-    return RADIO_REGION_UNSET;
-}
-
-static void applyToDevices(RadioRegion region) {
-    device_for_each_of_type(&RADIO_TYPE, &region, [](Device* device, void* context) {
-        radio_set_region(device, *static_cast<RadioRegion*>(context));
-        return true;
-    });
+    return radio_settings_load_region();
 }
 
 bool saveRegion(RadioRegion region) {
-    const auto path = getFilePath();
-    std::map<std::string, std::string> map;
-    map[KEY_REGION] = radio_region_to_string(region);
-    if (!file::findOrCreateParentDirectory(path, 0755) || !file::savePropertiesFile(path, map)) {
-        LOG_E(TAG, "Failed to save %s", path.c_str());
-        return false;
-    }
-    applyToDevices(region);
-    return true;
+    return radio_settings_save_region(region) == ERROR_NONE;
 }
 
 void applyRegion() {
-    const auto region = loadRegion();
-    if (region != RADIO_REGION_UNSET) {
-        LOG_I(TAG, "Region %s", radio_region_to_string(region));
-        applyToDevices(region);
-    }
+    radio_settings_apply_region();
 }
 
 const char* getRegionLabel(RadioRegion region) {

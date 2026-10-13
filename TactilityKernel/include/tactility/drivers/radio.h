@@ -596,6 +596,13 @@ size_t radio_get_region_bands(enum RadioRegion region, const struct RadioRegionB
 /** @return a short name for the region, e.g. "EU_868" */
 const char* radio_region_to_string(enum RadioRegion region);
 
+/**
+ * @param[in] name a short region name, e.g. "EU_868"
+ * @param[out] region the region with that name
+ * @retval ERROR_NOT_FOUND when no region has that name
+ */
+error_t radio_region_from_string(const char* name, enum RadioRegion* region);
+
 // endregion
 
 #ifdef __cplusplus

@@ -3,6 +3,7 @@
 #include <mesh/mesh_service.h>
 #include <mesh/module.h>
 
+#include <app/manager.h>
 #include <service/manager.h>
 
 #include <tactility/error.h>
@@ -11,15 +12,27 @@
 extern "C" {
 
 static error_t start() {
-    return service_manager_add(&mesh_service_manifest, mesh_service_should_auto_start());
+    error_t error = app_manager_add(&mesh_command_manifest);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    error = service_manager_add(&mesh_service_manifest, mesh_service_should_auto_start());
+    if (error != ERROR_NONE) {
+        app_manager_remove(mesh_command_manifest.id);
+    }
+    return error;
 }
 
 static error_t stop() {
-    const error_t error = service_manager_stop(mesh_service_manifest.id);
+    error_t error = service_manager_stop(mesh_service_manifest.id);
     if (error != ERROR_NONE && error != ERROR_NOT_FOUND) {
         return error;
     }
-    return service_manager_remove(mesh_service_manifest.id);
+    error = service_manager_remove(mesh_service_manifest.id);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    return app_manager_remove(mesh_command_manifest.id);
 }
 
 static const ModuleSymbol mesh_module_symbols[] = {

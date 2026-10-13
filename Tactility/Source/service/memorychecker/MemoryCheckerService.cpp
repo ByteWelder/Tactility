@@ -1,4 +1,4 @@
-#include <Tactility/lvgl/Statusbar.h>
+#include <lvgl/widgets/statusbar.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/memorychecker/MemoryCheckerService.h>
@@ -54,8 +54,8 @@ bool MemoryCheckerService::onStart(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    statusbarIconId = lvgl::statusbar_icon_add(LVGL_ICON_STATUSBAR_MEMORY, false);
-    lvgl::statusbar_icon_set_visibility(statusbarIconId, false);
+    statusbarIconId = lvgl_statusbar_icon_add(LVGL_ICON_STATUSBAR_MEMORY, false);
+    lvgl_statusbar_icon_set_visibility(statusbarIconId, false);
 
     timer.setCallbackPriority(Thread::Priority::Lower);
     timer.start();
@@ -70,7 +70,7 @@ void MemoryCheckerService::onStop(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    lvgl::statusbar_icon_remove(statusbarIconId);
+    lvgl_statusbar_icon_remove(statusbarIconId);
 }
 
 void MemoryCheckerService::onTimerUpdate() {
@@ -80,7 +80,7 @@ void MemoryCheckerService::onTimerUpdate() {
     bool memory_low = isMemoryLow();
     if (memory_low != memoryLow) {
         memoryLow = memory_low;
-        lvgl::statusbar_icon_set_visibility(statusbarIconId, memory_low);
+        lvgl_statusbar_icon_set_visibility(statusbarIconId, memory_low);
     }
 }
 

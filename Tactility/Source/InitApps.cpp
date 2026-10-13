@@ -42,8 +42,6 @@ namespace app {
     namespace apphub { extern const ::AppManifest manifest; }
     namespace appearancesettings { extern const ::AppManifest manifest; }
     namespace apphubdetails { extern const ::AppManifest manifest; }
-    namespace apppackagedetails { extern const ::AppManifest manifest; }
-    namespace apppackagelist { extern const ::AppManifest manifest; }
     namespace audiosettings { extern const ::AppManifest manifest; }
     namespace boot { extern const ::AppManifest manifest; }
     namespace development { extern const ::AppManifest manifest; }
@@ -110,10 +108,8 @@ static void registerInternalApps() {
     LOG_I(TAG, "Registering internal apps");
 
     app_manager_add(&app::alertdialog::manifest);
-    app_manager_add(&app::apppackagedetails::manifest);
     app_manager_add(&app::apphub::manifest);
     app_manager_add(&app::apphubdetails::manifest);
-    app_manager_add(&app::apppackagelist::manifest);
     if (service::audio::isAvailable()) {
         app_manager_add(&app::audiosettings::manifest);
     }

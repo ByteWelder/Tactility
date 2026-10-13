@@ -9,6 +9,7 @@
 #include <Tactility/settings/RadioSettings.h>
 
 #include <location/module.h>
+#include <app_hub/module.h>
 #include <wifi/module.h>
 #if TT_FEATURE_MESH
 #include <mesh/module.h>
@@ -51,6 +52,7 @@ void registerAndStartServices() {
     }
     check(module_ensure_started(&wifi_module) == ERROR_NONE);
     check(module_ensure_started(&location_module) == ERROR_NONE);
+    check(module_ensure_started(&app_hub_module) == ERROR_NONE);
     // Before the mesh service starts, as it needs the region to turn on the radio
     settings::radio::applyRegion();
 #if TT_FEATURE_MESH

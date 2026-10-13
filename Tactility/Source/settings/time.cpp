@@ -7,6 +7,8 @@
 #include <tactility/preferences.h>
 #include <tactility/system_event.h>
 
+#include <lvgl/widgets/statusbar.h>
+
 #ifdef ESP_PLATFORM
 #include <ctime>
 #endif
@@ -125,6 +127,7 @@ void setTimeFormat24Hour(bool show24Hour) {
 
     properties.timeFormat24h = show24Hour;
     saveSystemSettings(properties);
+    lvgl_statusbar_set_time_format_24h(show24Hour);
 }
 
 }

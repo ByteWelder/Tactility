@@ -1,4 +1,4 @@
-#include <Tactility/lvgl/Statusbar.h>
+#include <lvgl/widgets/statusbar.h>
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
@@ -24,7 +24,11 @@
 #include <lvgl/icons/statusbar.h>
 #include <lvgl/lvgl.h>
 
+#include <app_hub/app_hub.h>
+
 #include <cstring>
+#include <set>
+#include <string>
 
 #include <gps/gps.h>
 
@@ -162,6 +166,13 @@ class StatusbarService final : public Service {
     const char* power_last_icon = nullptr;
     int8_t usb_icon_id;
     bool usb_last_state = false;
+    int8_t install_icon_id;
+    bool install_last_state = false;
+    TaskEventGroup appHubEventGroup {};
+    AppHubEventSubscription appHubSubscription {};
+    bool appHubSubscribed = false;
+    /** The apps that App Hub is installing */
+    std::set<std::string> installingApps;
 
     void lock() const {
         mutex.lock();
@@ -176,10 +187,10 @@ class StatusbarService final : public Service {
         const char* icon = device_has_active_by_type(&GPS_TYPE) ? LVGL_ICON_STATUSBAR_LOCATION_ON : nullptr;
         if (gps_last_icon != icon) {
             if (icon != nullptr) {
-                lvgl::statusbar_icon_set_image(gps_icon_id, icon);
-                lvgl::statusbar_icon_set_visibility(gps_icon_id, true);
+                lvgl_statusbar_icon_set_image(gps_icon_id, icon);
+                lvgl_statusbar_icon_set_visibility(gps_icon_id, true);
             } else {
-                lvgl::statusbar_icon_set_visibility(gps_icon_id, false);
+                lvgl_statusbar_icon_set_visibility(gps_icon_id, false);
             }
             gps_last_icon = icon;
         }
@@ -189,7 +200,7 @@ class StatusbarService final : public Service {
     void updateMeshIcon() {
         const bool active = mesh_get_state() == MESH_STATE_ON;
         if (active != mesh_last_state) {
-            lvgl::statusbar_icon_set_visibility(mesh_icon_id, active);
+            lvgl_statusbar_icon_set_visibility(mesh_icon_id, active);
             mesh_last_state = active;
         }
     }
@@ -227,10 +238,10 @@ class StatusbarService final : public Service {
         const char* desired_icon = getBluetoothStatusIcon(radio_state, scanning, connected);
         if (bt_last_icon != desired_icon) {
             if (desired_icon != nullptr) {
-                lvgl::statusbar_icon_set_image(bt_icon_id, desired_icon);
-                lvgl::statusbar_icon_set_visibility(bt_icon_id, true);
+                lvgl_statusbar_icon_set_image(bt_icon_id, desired_icon);
+                lvgl_statusbar_icon_set_visibility(bt_icon_id, true);
             } else {
-                lvgl::statusbar_icon_set_visibility(bt_icon_id, false);
+                lvgl_statusbar_icon_set_visibility(bt_icon_id, false);
             }
             bt_last_icon = desired_icon;
         }
@@ -240,10 +251,10 @@ class StatusbarService final : public Service {
         const char* desired_icon = getWifiStatusIcon();
         if (wifi_last_icon != desired_icon) {
             if (desired_icon != nullptr) {
-                lvgl::statusbar_icon_set_image(wifi_icon_id, desired_icon);
-                lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
+                lvgl_statusbar_icon_set_image(wifi_icon_id, desired_icon);
+                lvgl_statusbar_icon_set_visibility(wifi_icon_id, true);
             } else {
-                lvgl::statusbar_icon_set_visibility(wifi_icon_id, false);
+                lvgl_statusbar_icon_set_visibility(wifi_icon_id, false);
             }
             wifi_last_icon = desired_icon;
         }
@@ -253,10 +264,10 @@ class StatusbarService final : public Service {
         const char* desired_icon = getPowerStatusIcon();
         if (power_last_icon != desired_icon) {
             if (desired_icon != nullptr) {
-                lvgl::statusbar_icon_set_image(power_icon_id, desired_icon);
-                lvgl::statusbar_icon_set_visibility(power_icon_id, true);
+                lvgl_statusbar_icon_set_image(power_icon_id, desired_icon);
+                lvgl_statusbar_icon_set_visibility(power_icon_id, true);
             } else {
-                lvgl::statusbar_icon_set_visibility(power_icon_id, false);
+                lvgl_statusbar_icon_set_visibility(power_icon_id, false);
             }
             power_last_icon = desired_icon;
         }
@@ -298,8 +309,24 @@ class StatusbarService final : public Service {
             });
         }
         if (connected != usb_last_state) {
-            lvgl::statusbar_icon_set_visibility(usb_icon_id, connected);
+            lvgl_statusbar_icon_set_visibility(usb_icon_id, connected);
             usb_last_state = connected;
+        }
+    }
+
+    void updateInstallIcon() {
+        AppHubEvent event {};
+        while (appHubSubscribed && app_hub_event_poll(&appHubSubscription, &event) == ERROR_NONE) {
+            if (event.type == APP_HUB_EVENT_INSTALLING) {
+                installingApps.insert(event.app_id);
+            } else if (event.type == APP_HUB_EVENT_INSTALLED) {
+                installingApps.erase(event.app_id);
+            }
+        }
+        const bool installing = !installingApps.empty();
+        if (installing != install_last_state) {
+            lvgl_statusbar_icon_set_visibility(install_icon_id, installing);
+            install_last_state = installing;
         }
     }
 
@@ -314,6 +341,7 @@ class StatusbarService final : public Service {
                 updateWifiIcon();
                 updatePowerStatusIcon();
                 updateUsbIcon();
+                updateInstallIcon();
                 lvgl_unlock();
             }
         }
@@ -322,25 +350,28 @@ class StatusbarService final : public Service {
 public:
 
     StatusbarService() {
-        gps_icon_id = lvgl::statusbar_icon_add();
+        gps_icon_id = lvgl_statusbar_icon_add(nullptr, false);
+        // Added before the mesh icon, as the side strip hides the last added icons first when they don't fit
+        install_icon_id = lvgl_statusbar_icon_add(LVGL_ICON_STATUSBAR_DOWNLOAD, false);
 #if TT_FEATURE_MESH
-        mesh_icon_id = lvgl::statusbar_icon_add();
+        mesh_icon_id = lvgl_statusbar_icon_add(nullptr, false);
 #endif
-        bt_icon_id = lvgl::statusbar_icon_add();
-        usb_icon_id = lvgl::statusbar_icon_add();
-        wifi_icon_id = lvgl::statusbar_icon_add();
-        power_icon_id = lvgl::statusbar_icon_add();
+        bt_icon_id = lvgl_statusbar_icon_add(nullptr, false);
+        usb_icon_id = lvgl_statusbar_icon_add(nullptr, false);
+        wifi_icon_id = lvgl_statusbar_icon_add(nullptr, false);
+        power_icon_id = lvgl_statusbar_icon_add(nullptr, false);
     }
 
     ~StatusbarService() override {
-        lvgl::statusbar_icon_remove(power_icon_id);
-        lvgl::statusbar_icon_remove(wifi_icon_id);
-        lvgl::statusbar_icon_remove(usb_icon_id);
-        lvgl::statusbar_icon_remove(bt_icon_id);
+        lvgl_statusbar_icon_remove(power_icon_id);
+        lvgl_statusbar_icon_remove(wifi_icon_id);
+        lvgl_statusbar_icon_remove(usb_icon_id);
+        lvgl_statusbar_icon_remove(bt_icon_id);
 #if TT_FEATURE_MESH
-        lvgl::statusbar_icon_remove(mesh_icon_id);
+        lvgl_statusbar_icon_remove(mesh_icon_id);
 #endif
-        lvgl::statusbar_icon_remove(gps_icon_id);
+        lvgl_statusbar_icon_remove(install_icon_id);
+        lvgl_statusbar_icon_remove(gps_icon_id);
     }
 
     bool onStart(ServiceContext& serviceContext) override {
@@ -350,13 +381,19 @@ public:
         }
 
         // TODO: Make thread-safe for LVGL
-        lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
-        lvgl::statusbar_icon_set_image(usb_icon_id, LVGL_ICON_STATUSBAR_USB);
-        lvgl::statusbar_icon_set_visibility(usb_icon_id, false);
+        lvgl_statusbar_icon_set_visibility(wifi_icon_id, true);
+        lvgl_statusbar_icon_set_image(usb_icon_id, LVGL_ICON_STATUSBAR_USB);
+        lvgl_statusbar_icon_set_visibility(usb_icon_id, false);
 #if TT_FEATURE_MESH
-        lvgl::statusbar_icon_set_image(mesh_icon_id, LVGL_ICON_STATUSBAR_HUB);
-        lvgl::statusbar_icon_set_visibility(mesh_icon_id, false);
+        lvgl_statusbar_icon_set_image(mesh_icon_id, LVGL_ICON_STATUSBAR_HUB);
+        lvgl_statusbar_icon_set_visibility(mesh_icon_id, false);
 #endif
+
+        task_event_group_construct(&appHubEventGroup);
+        appHubSubscribed = app_hub_event_subscribe(&appHubSubscription, &appHubEventGroup) == ERROR_NONE;
+        if (!appHubSubscribed) {
+            LOG_E(TAG, "Failed to subscribe to App Hub events");
+        }
 
         auto service = findServiceById<StatusbarService>(manifest.id);
         assert(service);
@@ -377,6 +414,12 @@ public:
     void onStop(ServiceContext& service) override{
         updateTimer->stop();
         updateTimer = nullptr;
+        if (appHubSubscribed) {
+            app_hub_event_unsubscribe(&appHubSubscription);
+            appHubSubscribed = false;
+        }
+        installingApps.clear();
+        task_event_group_destruct(&appHubEventGroup);
     }
 };
 
