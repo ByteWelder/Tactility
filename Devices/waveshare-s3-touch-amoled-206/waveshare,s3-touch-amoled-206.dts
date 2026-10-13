@@ -70,6 +70,12 @@
 		qmi8658 {
 			compatible = "qst,qmi8658";
 			reg = <0x6B>;
+			// Maps the sensor frame onto the device frame (Linux IIO "mount-matrix" convention).
+			// The QMI8658C is rotated relative to the panel; this matrix is the one calibrated
+			// on-device so auto-rotate orients the UI correctly.
+			mount-matrix = <0 -1 0
+			                1  0 0
+			                0  0 1>;
 		};
 
 		// Mirrors the board's original power-up register writes: every LDO enabled, with

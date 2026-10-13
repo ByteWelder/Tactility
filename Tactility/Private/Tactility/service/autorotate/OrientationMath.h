@@ -20,13 +20,11 @@ public:
     void reset(lv_display_rotation_t rotation);
 
     /**
-     * @param ax, ay gravity-plane components from the IMU, in g
-     * @param mountQuarterTurns how the IMU is mounted relative to the panel's upright direction,
-     *        as a count of extra 90-degree steps (0-3)
+     * @param ax, ay gravity-plane components from the IMU, in g (already in the device frame)
      * @return the debounced current rotation (unchanged until a new reading is stable for
      *         several consecutive updates)
      */
-    lv_display_rotation_t update(float ax, float ay, int mountQuarterTurns);
+    lv_display_rotation_t update(float ax, float ay);
 };
 
 } // namespace tt::service::autorotate

@@ -87,8 +87,6 @@ struct Context {
     lv_obj_t* orientationGroup = nullptr;
     lv_obj_t* orientationChips = nullptr;
     lv_obj_t* autoRotateSwitch = nullptr;
-    // Shown when auto-rotate is on: the sensor mounting label and chips
-    lv_obj_t* mountRotationGroup = nullptr;
 };
 
 
@@ -153,13 +151,10 @@ void setCheckedChip(lv_obj_t* chips, settings::display::Orientation orientation)
     });
 }
 
-/** Shows the manual orientation or the sensor mounting, depending on whether auto-rotate is on */
+/** Shows or hides the manual orientation chips, depending on whether auto-rotate is on */
 void updateOrientationVisibility(Context* ctx) {
     const bool auto_rotate = ctx->autoRotateSwitch != nullptr && ctx->displaySettings.autoRotateEnabled;
     lv_obj_set_hidden(ctx->orientationGroup, auto_rotate);
-    if (ctx->mountRotationGroup != nullptr) {
-        lv_obj_set_hidden(ctx->mountRotationGroup, !auto_rotate);
-    }
 }
 
 void onOrientationChipPressed(lv_event_t* event) {
@@ -183,15 +178,6 @@ void onAutoRotateSwitch(lv_event_t* event) {
     ctx->displaySettings.autoRotateEnabled = enabled;
     ctx->displaySettingsUpdated = true;
     updateOrientationVisibility(ctx);
-}
-
-void onMountRotationChipPressed(lv_event_t* event) {
-    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    auto* chip = lv_event_get_target_obj(event);
-    const auto orientation = static_cast<settings::display::Orientation>(lv_obj_get_index(chip));
-    ctx->displaySettings.autoRotateMountRotation = orientation;
-    ctx->displaySettingsUpdated = true;
-    setCheckedChip(lv_obj_get_parent(chip), orientation);
 }
 
 /** Creates a transparent column in a card with a title, which centers the title and the content below it */
@@ -407,19 +393,13 @@ void createWidgets(lv_obj_t* parent, void* userData) {
         lv_obj_add_event_cb(ctx->autoRotateSwitch, onAutoRotateSwitch, LV_EVENT_VALUE_CHANGED, ctx);
     }
 
-    // The card shows the manual orientation, or the sensor mounting when auto-rotate is on
+    // The card shows the manual orientation; auto-rotate hides it while it drives the rotation
     auto* orientation_card = lvgl_card_create(main_wrapper);
     lv_obj_set_size(orientation_card, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(orientation_card, LV_FLEX_FLOW_COLUMN);
 
     ctx->orientationGroup = createCardGroup(orientation_card, "Orientation");
     ctx->orientationChips = createOrientationChips(ctx->orientationGroup, ctx->displaySettings.orientation, onOrientationChipPressed, ctx);
-
-    // Auto-rotate needs to know how the sensor is mounted relative to the display
-    if (has_imu) {
-        ctx->mountRotationGroup = createCardGroup(orientation_card, "Sensor mounting");
-        createOrientationChips(ctx->mountRotationGroup, ctx->displaySettings.autoRotateMountRotation, onMountRotationChipPressed, ctx);
-    }
 
     updateOrientationVisibility(ctx);
 
@@ -468,7 +448,6 @@ void destroyWidgets(void* userData) {
     ctx->orientationGroup = nullptr;
     ctx->orientationChips = nullptr;
     ctx->autoRotateSwitch = nullptr;
-    ctx->mountRotationGroup = nullptr;
 }
 
 // Mirrors the old onHide() behaviour: persist the settings (regardless of whether the app is

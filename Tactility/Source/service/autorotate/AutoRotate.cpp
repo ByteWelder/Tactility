@@ -44,8 +44,7 @@ void AutoRotateService::tick() {
         return; // Retry on next tick
     }
 
-    int mount_quarter_turns = static_cast<int>(cachedDisplaySettings.autoRotateMountRotation);
-    lv_display_rotation_t rotation = orientationMath.update(accel.ax, accel.ay, mount_quarter_turns);
+    lv_display_rotation_t rotation = orientationMath.update(accel.ax, accel.ay);
     Orientation orientation = settings::display::fromLvglDisplayRotation(rotation);
     if (orientation == cachedDisplaySettings.orientation) {
         lvgl_unlock();
