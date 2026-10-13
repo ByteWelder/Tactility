@@ -256,6 +256,7 @@ int32_t threadMain(void* context) {
         }
 
         if (!location_host_needs_fallback()) {
+            nextAttemptMs = std::max(nextAttemptMs, getUptimeMs() + CHECK_INTERVAL_MS);
             continue;
         }
 
@@ -265,6 +266,7 @@ int32_t threadMain(void* context) {
                 report(provider, cache->latitude, cache->longitude);
                 reportedCache = true;
             }
+            nextAttemptMs = std::max(nextAttemptMs, getUptimeMs() + CHECK_INTERVAL_MS);
             continue;
         }
 
