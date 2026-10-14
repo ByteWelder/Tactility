@@ -255,17 +255,19 @@ class TactilityTUI(App):
 
         # --- SPAWN THE THREAD WORKER ---
         # Pass captured primitive values explicitly to isolate the thread worker from UI widgets
+        # The selection can change while the worker runs
+        selected_app_path = self.selected_app_path
         self.run_worker(
-            lambda: self._native_thread_executor(action, host_ip, skip_build, verbose_mode, arch_select),
+            lambda: self._native_thread_executor(action, selected_app_path, host_ip, skip_build, verbose_mode, arch_select),
             thread=True
         )
 
-    def _native_thread_executor(self, action: str, host_ip: str, skip_build: bool, verbose_mode: bool, arch_select: str) -> None:
+    def _native_thread_executor(self, action: str, selected_app_path, host_ip: str, skip_build: bool, verbose_mode: bool, arch_select: str) -> None:
         """Isolated background thread handler running purely synchronous script and compiler operations."""
         # Use safe tui_print wrappers to safely proxy text calls to the log widget across threads
-        tui_print(f"⚙️ Running native compiler pipeline operation: '{action.upper()}' on workspace path '{str(self.selected_app_path)}'...")
+        tui_print(f"⚙️ Running native compiler pipeline operation: '{action.upper()}' on workspace path '{str(selected_app_path)}'...")
         
-        app_dir = os.path.abspath(str(self.selected_app_path))
+        app_dir = os.path.abspath(str(selected_app_path))
         manifest = read_properties_file(os.path.join(app_dir, "manifest.properties"))
         
         if not manifest:
