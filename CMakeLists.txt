@@ -198,6 +198,8 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
+    # FreeRTOS 11 no longer picks a heap implementation by default
+    set(FREERTOS_HEAP 4 CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     # xTaskCreate() and vTaskDelete() are defined by freertos_task_hooks.c instead, see its header
