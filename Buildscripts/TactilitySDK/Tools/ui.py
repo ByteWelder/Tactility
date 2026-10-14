@@ -7,7 +7,6 @@ import subprocess
 import time
 import urllib.request
 import zipfile
-import requests
 import tarfile
 from pathlib import Path
 from urllib.parse import urlparse

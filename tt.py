@@ -3,7 +3,7 @@
 """Runs the Tactility developer tools of the SDK version that an app targets.
 
 "tt <command> [arguments]" runs <command>.py from the tools of that SDK version.
-"tt local <command> [arguments]" uses the SDK and tools in TACTILITY_SDK_PATH instead of downloading them.
+When TACTILITY_SDK_PATH is set, its SDK and tools are used instead of downloading them.
 Both ~/.tactility and TACTILITY_SDK_PATH hold sdk/<version>/tools/ and sdk/<version>/platform-<platform>/TactilitySDK/.
 The tt (Linux, macOS) and tt.cmd (Windows) wrappers next to this script run it.
 The SDK version is read from ./manifest.properties, or else from the first Apps/*/manifest.properties or apps/*/manifest.properties.
@@ -201,13 +201,17 @@ def list_commands(tools_directory):
 
 
 def print_help(version, tools_directory):
-    print("Usage: tt [local] <command> [arguments]")
+    """Without an app manifest, the version and its commands are unknown"""
+    print("Usage: tt <command> [arguments]")
     print("")
-    print(f"SDK {version}, commands:")
-    for command in list_commands(tools_directory):
-        print(f"  {command}")
+    if version is None:
+        print("Run this in an app folder, or in a folder with Apps/*/ or apps/*/, to list the commands of its SDK")
+    else:
+        print(f"SDK {version}, commands:")
+        for command in list_commands(tools_directory):
+            print(f"  {command}")
     print("")
-    print("local: use the SDK and tools in TACTILITY_SDK_PATH")
+    print("The SDK and tools of TACTILITY_SDK_PATH are used when it is set")
 
 
 def tool_environment(version, sdk_path, is_local):
@@ -234,14 +238,20 @@ def run_tool(tool_path, arguments, environment):
 
 
 def main(arguments):
+    command = arguments[0] if arguments else None
+    is_help = command is None or command in ("help", "--help")
+    if not is_help and not is_command(command):
+        fail(f"command not found: {command}")
+    if is_help and find_manifest() is None:
+        print_help(None, None)
+        return
+
     version, platforms = resolve_target()
-    is_local = arguments[:1] == ["local"]
+    local_path = os.environ.get("TACTILITY_SDK_PATH")
+    is_local = local_path is not None
     if is_local:
-        arguments = arguments[1:]
-        local_path = os.environ.get("TACTILITY_SDK_PATH")
-        if local_path is None:
-            fail("local was requested, but the TACTILITY_SDK_PATH environment variable is not set")
         sdk_path = os.path.abspath(local_path)
+        print(f"tt: using the local SDK at {sdk_path}", file=sys.stderr)
         tools_directory = os.path.join(version_path(sdk_path, version), "tools")
         if not os.path.isdir(tools_directory):
             fail(f"tools not found: {tools_directory}")
@@ -249,12 +259,11 @@ def main(arguments):
         sdk_path = HOME_DIRECTORY
         tools_directory = os.path.join(prepare_sdk(version, platforms), "tools")
     environment = tool_environment(version, sdk_path, is_local)
-    if not arguments or arguments[0] in ("help", "--help"):
+    if is_help:
         print_help(version, tools_directory)
         return
-    command = arguments[0]
     tool_path = os.path.join(tools_directory, f"{command}.py")
-    if not is_command(command) or not os.path.isfile(tool_path):
+    if not os.path.isfile(tool_path):
         fail(f"command not found: {command}")
     run_tool(tool_path, arguments[1:], environment)
 

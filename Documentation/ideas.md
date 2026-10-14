@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- App Hub needs a commandline app
 - Find out why the first build of an app with a clean build cache folder always fails
 - Export TactilityKernelCpp with SDK as optional library
 - Fix BT: an esp32 device connecting to a peripheral isn't working

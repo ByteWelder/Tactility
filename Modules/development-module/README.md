@@ -9,12 +9,13 @@ The C API is in `<development/server.h>`.
 - Clients authenticate with their own self-signed certificate (mutual TLS).
   Unknown clients are accepted or rejected by the user through the `DEVELOPMENT_SERVER_PROMPT_APP_ID` app, which the firmware provides.
   The user can choose to always trust a client.
-- One session is active at a time.
+- At most 3 sessions are active at a time, and at most 1 of them is a `shell` session.
 
 ## Protocol
 
 1. The client connects with TLS 1.2 and presents its certificate.
 2. The client sends a JSON line: `{"protocol":1,"mode":"shell","client":"user@host","columns":80,"rows":24}`
+   In `shell` mode, an optional `"command"` (at most 511 bytes) runs that command like `sh -c` instead of an interactive shell.
 3. The server answers with a JSON line once the client is accepted: `{"status":"accepted"}`, `{"status":"rejected"}` or `{"status":"error","message":"..."}`
 4. In `shell` mode, both sides then send frames: `[type u8][length u16 big-endian][payload]`, with at most 1024 payload bytes.
    - `0x01` data: terminal input from the client, terminal output from the server

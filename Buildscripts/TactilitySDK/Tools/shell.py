@@ -15,9 +15,8 @@ import ssl
 import struct
 import sys
 import tempfile
-import termios
+import threading
 import time
-import tty
 
 import _device_host
 
@@ -174,6 +173,36 @@ def verify_device(host, port, fingerprint):
 
 # region Connection
 
+# A device that disappears without closing the connection (power loss, Wi-Fi drop) is noticed after
+# about KEEPALIVE_IDLE_SECONDS + KEEPALIVE_INTERVAL_SECONDS * KEEPALIVE_PROBES when the connection is idle,
+# and after USER_TIMEOUT_SECONDS when sent data isn't acknowledged
+KEEPALIVE_IDLE_SECONDS = 5
+KEEPALIVE_INTERVAL_SECONDS = 3
+KEEPALIVE_PROBES = 3
+USER_TIMEOUT_SECONDS = 15
+
+
+def enable_keepalive(raw_socket):
+    raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    if os.name == "nt":
+        raw_socket.ioctl(socket.SIO_KEEPALIVE_VALS, (1, KEEPALIVE_IDLE_SECONDS * 1000, KEEPALIVE_INTERVAL_SECONDS * 1000))
+        return
+    # Linux names the idle time TCP_KEEPIDLE, macOS TCP_KEEPALIVE
+    idle_option = getattr(socket, "TCP_KEEPIDLE", None) or getattr(socket, "TCP_KEEPALIVE", None)
+    options = [
+        (idle_option, KEEPALIVE_IDLE_SECONDS),
+        (getattr(socket, "TCP_KEEPINTVL", None), KEEPALIVE_INTERVAL_SECONDS),
+        (getattr(socket, "TCP_KEEPCNT", None), KEEPALIVE_PROBES),
+        (getattr(socket, "TCP_USER_TIMEOUT", None), USER_TIMEOUT_SECONDS * 1000),
+    ]
+    for option, value in options:
+        if option is not None:
+            try:
+                raw_socket.setsockopt(socket.IPPROTO_TCP, option, value)
+            except OSError:
+                pass
+
+
 class Connection:
 
     def __init__(self, host, port):
@@ -184,6 +213,7 @@ class Connection:
         context.load_cert_chain(CLIENT_CERTIFICATE_PATH, CLIENT_KEY_PATH)
         try:
             raw_socket = socket.create_connection((host, port), timeout=CONNECT_TIMEOUT_SECONDS)
+            enable_keepalive(raw_socket)
             self.socket = context.wrap_socket(raw_socket)
         except (OSError, ssl.SSLError) as error:
             fail(f"failed to connect to {host}:{port}: {error}")
@@ -298,6 +328,83 @@ def write_output(data, previous_was_cr):
     return previous_was_cr
 
 
+class RawTerminal:
+    """Sends every key to the device instead of letting the terminal edit lines, and lets it show escape sequences"""
+
+    def __init__(self, enabled):
+        self.enabled = enabled
+        self.restore = None
+
+    def __enter__(self):
+        if self.enabled:
+            self.restore = enter_windows_raw_mode() if os.name == "nt" else enter_posix_raw_mode()
+        return self
+
+    def __exit__(self, *_):
+        if self.restore is not None:
+            self.restore()
+
+
+def enter_posix_raw_mode():
+    import termios
+    import tty
+    stdin = sys.stdin.fileno()
+    saved_attributes = termios.tcgetattr(stdin)
+    tty.setraw(stdin)
+    return lambda: termios.tcsetattr(stdin, termios.TCSADRAIN, saved_attributes)
+
+
+def enter_windows_raw_mode():
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    enable_processed_input, enable_line_input, enable_echo_input = 0x0001, 0x0002, 0x0004
+    enable_virtual_terminal_input = 0x0200
+    enable_virtual_terminal_processing = 0x0004
+    utf8_code_page = 65001
+    input_handle = kernel32.GetStdHandle(-10)
+    output_handle = kernel32.GetStdHandle(-11)
+    input_mode = ctypes.c_uint32()
+    output_mode = ctypes.c_uint32()
+    kernel32.GetConsoleMode(input_handle, ctypes.byref(input_mode))
+    kernel32.GetConsoleMode(output_handle, ctypes.byref(output_mode))
+    input_code_page = kernel32.GetConsoleCP()
+    # Keys arrive as the same escape sequences as on Linux and macOS, Ctrl+C included
+    raw_input_mode = (input_mode.value & ~(enable_processed_input | enable_line_input | enable_echo_input)) | enable_virtual_terminal_input
+    kernel32.SetConsoleMode(input_handle, raw_input_mode)
+    kernel32.SetConsoleMode(output_handle, output_mode.value | enable_virtual_terminal_processing)
+    kernel32.SetConsoleCP(utf8_code_page)
+
+    def restore():
+        kernel32.SetConsoleMode(input_handle, input_mode.value)
+        kernel32.SetConsoleMode(output_handle, output_mode.value)
+        kernel32.SetConsoleCP(input_code_page)
+    return restore
+
+
+def start_input_reader(wake_socket):
+    """Reads stdin on a thread, because select() can't wait for it on Windows. None in the queue means end of input."""
+    import queue
+    inputs = queue.Queue()
+
+    def read_input():
+        stdin = sys.stdin.fileno()
+        while True:
+            try:
+                data = os.read(stdin, FRAME_PAYLOAD_MAX)
+            except OSError:
+                data = b""
+            inputs.put(data or None)
+            try:
+                wake_socket.send(b"i")
+            except OSError:
+                return
+            if not data:
+                return
+
+    threading.Thread(target=read_input, daemon=True).start()
+    return inputs
+
+
 def run_shell(args):
     """Opens an interactive shell, or runs a command like ssh does when one is given"""
     command = " ".join(args.command) if args.command else None
@@ -307,47 +414,49 @@ def run_shell(args):
     connection = open_session(args.host, args.port, "shell", columns, rows, command)
     connection.socket.settimeout(None)
 
-    resize_read, resize_write = os.pipe()
-    signal.signal(signal.SIGWINCH, lambda *_: os.write(resize_write, b"r"))
+    # Input and resizes wake up the select() below through this socket pair
+    wake_read, wake_write = socket.socketpair()
+    has_resize_signal = hasattr(signal, "SIGWINCH")
+    if has_resize_signal:
+        signal.signal(signal.SIGWINCH, lambda *_: wake_write.send(b"r"))
+    # Without a resize signal, the window size is checked this often
+    resize_poll_seconds = None if has_resize_signal else 0.5
+    window_size = (columns, rows)
 
-    stdin = sys.stdin.fileno()
     # A command gets its input as is, an interactive shell gets every key
-    is_terminal = os.isatty(stdin) and command is None
-    saved_attributes = termios.tcgetattr(stdin) if is_terminal else None
+    is_terminal = os.isatty(sys.stdin.fileno()) and command is None
     exit_code = None
     previous_was_cr = False
-    stdin_open = True
     try:
-        if is_terminal:
-            tty.setraw(stdin)
-        while exit_code is None:
-            sources = [connection.socket, resize_read] + ([stdin] if stdin_open else [])
-            # Already decrypted data doesn't make the socket readable
-            timeout = 0 if connection.socket.pending() > 0 else None
-            readable, _, _ = select.select(sources, [], [], timeout)
+        with RawTerminal(is_terminal):
+            inputs = start_input_reader(wake_write)
+            while exit_code is None:
+                # Already decrypted data doesn't make the socket readable
+                timeout = 0 if connection.socket.pending() > 0 else resize_poll_seconds
+                readable, _, _ = select.select([connection.socket, wake_read], [], [], timeout)
 
-            if stdin in readable:
-                data = os.read(stdin, FRAME_PAYLOAD_MAX)
-                if data:
-                    connection.send_frame(FRAME_DATA, data)
-                else:
-                    stdin_open = False
-            if resize_read in readable:
-                os.read(resize_read, 64)
-                connection.send_frame(FRAME_RESIZE, struct.pack(">HH", *terminal_size()))
-            if connection.socket in readable or connection.socket.pending() > 0:
-                if not connection.receive():
-                    break
-                while (frame := connection.pop_frame()) is not None:
-                    frame_type, payload = frame
-                    if frame_type == FRAME_DATA:
-                        previous_was_cr = write_output(payload, previous_was_cr)
-                    elif frame_type == FRAME_EXIT and len(payload) == 4:
-                        exit_code = struct.unpack(">i", payload)[0]
+                if wake_read in readable:
+                    wake_read.recv(256)
+                while not inputs.empty():
+                    data = inputs.get()
+                    if data is not None:
+                        connection.send_frame(FRAME_DATA, data)
+                if terminal_size() != window_size:
+                    window_size = terminal_size()
+                    connection.send_frame(FRAME_RESIZE, struct.pack(">HH", *window_size))
+                if connection.socket in readable or connection.socket.pending() > 0:
+                    if not connection.receive():
+                        break
+                    while (frame := connection.pop_frame()) is not None:
+                        frame_type, payload = frame
+                        if frame_type == FRAME_DATA:
+                            previous_was_cr = write_output(payload, previous_was_cr)
+                        elif frame_type == FRAME_EXIT and len(payload) == 4:
+                            exit_code = struct.unpack(">i", payload)[0]
     finally:
-        if saved_attributes is not None:
-            termios.tcsetattr(stdin, termios.TCSADRAIN, saved_attributes)
         connection.close()
+        wake_write.close()
+        wake_read.close()
 
     if exit_code is None:
         print("\nConnection closed", file=sys.stderr)

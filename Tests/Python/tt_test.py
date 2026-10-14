@@ -131,6 +131,16 @@ class TtTest(unittest.TestCase):
         self.write_manifest(os.path.join(self.work, "apps", "a"))
         self.assertEqual(self.run_tt("echo").returncode, 3)
 
+    def test_arguments_are_checked_before_the_manifest(self):
+        shutil.rmtree(self.cdn)
+        result = self.run_tt("help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Usage: tt", result.stdout)
+        result = self.run_tt("../x")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("command not found: ../x", result.stderr)
+        self.assertNotIn("manifest", result.stderr)
+
     def test_missing_manifest_fails(self):
         result = self.run_tt("echo")
         self.assertEqual(result.returncode, 1)
@@ -183,19 +193,21 @@ class TtTest(unittest.TestCase):
             with open(os.path.join(local_path, "sdk", VERSION, "tools", name), "w") as file:
                 file.write(content)
         shutil.rmtree(self.cdn)
-        result = self.run_tt("local", "echo", "a", environment={"TACTILITY_SDK_PATH": local_path})
+        result = self.run_tt("echo", "a", environment={"TACTILITY_SDK_PATH": local_path})
         self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertIn(f"using the local SDK at {local_path}", result.stderr)
         output = json.loads(result.stdout)
         self.assertEqual(output["arguments"], ["a"])
         self.assertEqual(output["path"], local_path)
         self.assertEqual(output["version"], VERSION)
         self.assertFalse(os.path.exists(self.sdk_path()))
 
-    def test_local_requires_tactility_sdk_path(self):
+    def test_local_tools_without_tactility_sdk_path_are_not_used(self):
         self.write_manifest(self.work)
-        result = self.run_tt("local", "echo")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("TACTILITY_SDK_PATH", result.stderr)
+        result = self.run_tt("echo")
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertNotIn("local SDK", result.stderr)
+        self.assertEqual(json.loads(result.stdout)["path"], os.path.join(self.home, ".tactility"))
 
     def publish_tt(self, files):
         with open(os.path.join(self.cdn, "sdk", "tt.zip"), "wb") as file:
@@ -306,10 +318,10 @@ class TtTest(unittest.TestCase):
         for name, content in self.default_tools().items():
             with open(os.path.join(local_path, "sdk", VERSION, "tools", name), "w") as file:
                 file.write(content)
-        result = self.run_tt("local", "echo", environment={"TACTILITY_SDK_PATH": local_path})
+        result = self.run_tt("echo", environment={"TACTILITY_SDK_PATH": local_path})
         self.assertEqual(result.returncode, 3, result.stderr)
         self.assertNotIn("update-sdk", result.stderr)
-        result = self.run_tt("local", "update-sdk", environment={"TACTILITY_SDK_PATH": local_path})
+        result = self.run_tt("update-sdk", environment={"TACTILITY_SDK_PATH": local_path})
         self.assertEqual(result.returncode, 1)
         self.assertIn("local SDK", result.stderr)
 

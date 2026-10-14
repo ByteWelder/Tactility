@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Releases the SDK of the current build and the tools to release/sdk/<version>/, for "tt local" with TACTILITY_SDK_PATH=release."""
+"""Releases the SDK of the current build and the tools to release/sdk/<version>/, for tt with TACTILITY_SDK_PATH=release."""
 
 import os
 import subprocess

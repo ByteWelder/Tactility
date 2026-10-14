@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exports the tools that tt runs to release/sdk/<version>/tools/, for "tt local" with TACTILITY_SDK_PATH=release."""
+"""Exports the tools that tt runs to release/sdk/<version>/tools/, for tt with TACTILITY_SDK_PATH=release."""
 
 import os
 import shutil
