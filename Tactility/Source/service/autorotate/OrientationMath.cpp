@@ -8,7 +8,7 @@ constexpr float FLAT_THRESHOLD = 0.45F; // gravity in the screen plane below thi
 constexpr int DEBOUNCE = 5; // consecutive readings before switching
 
 // gx toward +Y -> rotation 0; each +90 degrees of gx/gy angle is one more quarter-turn.
-static lv_display_rotation_t gravityToRotation(float gx, float gy, int mountQuarterTurns, lv_display_rotation_t fallback) {
+static lv_display_rotation_t gravityToRotation(float gx, float gy, lv_display_rotation_t fallback) {
     float plane = sqrtf((gx * gx) + (gy * gy));
     if (plane < FLAT_THRESHOLD) {
         return fallback; // lying flat: keep the current one
@@ -19,7 +19,7 @@ static lv_display_rotation_t gravityToRotation(float gx, float gy, int mountQuar
         ang += 360.0F;
     }
 
-    int idx = ((int)((ang + 45.0F) / 90.0F) + mountQuarterTurns) % 4;
+    int idx = (int)((ang + 45.0F) / 90.0F) % 4;
     static constexpr lv_display_rotation_t map[4] = {
         LV_DISPLAY_ROTATION_0,
         LV_DISPLAY_ROTATION_90,
@@ -35,8 +35,8 @@ void OrientationMath::reset(lv_display_rotation_t rotation) {
     stableCount = 0;
 }
 
-lv_display_rotation_t OrientationMath::update(float ax, float ay, int mountQuarterTurns) {
-    lv_display_rotation_t next = gravityToRotation(ax, ay, mountQuarterTurns, current);
+lv_display_rotation_t OrientationMath::update(float ax, float ay) {
+    lv_display_rotation_t next = gravityToRotation(ax, ay, current);
     if (next == current) {
         stableCount = 0;
         return current;

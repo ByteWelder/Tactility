@@ -153,6 +153,26 @@ static error_t start(Device* device) {
         return ERROR_RESOURCE;
     }
 
+    // Register 0x87 is the delay (in seconds) before the controller enters monitor mode. When the
+    // controller is only read infrequently (e.g. an app polling the driver directly rather than
+    // LVGL's periodic read), it sleeps and NAKs the next I2C read - boards can opt out entirely.
+    if (config->disable_monitor_timeout) {
+        // FT5x06: 0 = never auto-enter monitor mode.
+        uint8_t disable_monitor = 0;
+        if (esp_lcd_panel_io_tx_param(internal->io_handle, 0x87, &disable_monitor, 1) != ESP_OK) {
+            LOG_W(TAG, "Failed to disable monitor timeout");
+        }
+
+        // FT3168/FT3x68 (and FT5x06): register 0xA5 is the power mode
+        // (0=active, 1=monitor, 2=standby, 3=hibernate). The controller can power up in - or fall
+        // into - monitor mode, where it stops answering I2C until touched, which makes the periodic
+        // poll fail. Force active so every read is answered.
+        uint8_t power_mode_active = 0;
+        if (esp_lcd_panel_io_tx_param(internal->io_handle, 0xA5, &power_mode_active, 1) != ESP_OK) {
+            LOG_W(TAG, "Failed to set active power mode");
+        }
+    }
+
     device_set_driver_data(device, internal);
     return ERROR_NONE;
 }

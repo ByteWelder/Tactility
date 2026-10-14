@@ -21,6 +21,8 @@ struct Ft5x06Config {
     bool mirror_y;
     struct GpioPinSpec pin_reset;
     struct GpioPinSpec pin_interrupt;
+    // When true, disable the controller's monitor/sleep timeout (register 0x87 = 0) after init.
+    bool disable_monitor_timeout;
 };
 
 #ifdef __cplusplus

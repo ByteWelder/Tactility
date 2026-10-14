@@ -92,4 +92,12 @@ menu "Tactility App"
         bool "Set true when a touch screen calibration is required before the device is usable"
         default n
         depends on TT_TOUCH_CALIBRATION_SUPPORTED
+    config TT_DISPLAY_IDLE_TICK_MS
+        int "Display idle tick interval (ms)"
+        default 50
+        range 10 200
+        help
+            How often the display-idle service wakes to drive the screensaver animation and poll the
+            backlight timeout. Lower it on boards with a fast panel so the screensaver animates at
+            the panel's refresh rate; higher values reduce wakeups and save power.
 endmenu

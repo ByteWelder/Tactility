@@ -29,7 +29,6 @@ struct DisplaySettings {
     uint32_t backlightTimeoutMs; // 0 = Never
     ScreensaverType screensaverType = ScreensaverType::BouncingBalls;
     bool autoRotateEnabled = false;
-    Orientation autoRotateMountRotation = Orientation::Landscape; // IMU-to-panel mount offset
 };
 
 /** Compares default settings with the function parameter to return the difference */

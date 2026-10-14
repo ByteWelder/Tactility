@@ -29,7 +29,6 @@ constexpr auto* SETTINGS_KEY_TIMEOUT_ENABLED = "backlightTimeoutEnabled";
 constexpr auto* SETTINGS_KEY_TIMEOUT_MS = "backlightTimeoutMs";
 constexpr auto* SETTINGS_KEY_SCREENSAVER_TYPE = "screensaverType";
 constexpr auto* SETTINGS_KEY_AUTO_ROTATE_ENABLED = "autoRotateEnabled";
-constexpr auto* SETTINGS_KEY_AUTO_ROTATE_MOUNT_ROTATION = "autoRotateMountRotation";
 
 // Uses the kernel display, so it also works while LVGL isn't running
 static bool isOriginallyLandscape() {
@@ -175,12 +174,6 @@ bool load(DisplaySettings& settings) {
         auto_rotate_enabled = (auto_rotate_enabled_entry->second == "1" || auto_rotate_enabled_entry->second == "true" || auto_rotate_enabled_entry->second == "True");
     }
 
-    auto mount_rotation_entry = map.find(SETTINGS_KEY_AUTO_ROTATE_MOUNT_ROTATION);
-    Orientation mount_rotation = Orientation::Landscape;
-    if (mount_rotation_entry != map.end()) {
-        fromString(mount_rotation_entry->second, mount_rotation);
-    }
-
     settings.orientation = orientation;
     settings.gammaCurve = gamma_curve;
     settings.backlightDuty = backlight_duty;
@@ -188,7 +181,6 @@ bool load(DisplaySettings& settings) {
     settings.backlightTimeoutMs = timeout_ms;
     settings.screensaverType = screensaver_type;
     settings.autoRotateEnabled = auto_rotate_enabled;
-    settings.autoRotateMountRotation = mount_rotation;
 
     return true;
 }
@@ -201,8 +193,7 @@ DisplaySettings getDefault() {
         .backlightTimeoutEnabled = false,
         .backlightTimeoutMs = 60000,
         .screensaverType = ScreensaverType::BouncingBalls,
-        .autoRotateEnabled = false,
-        .autoRotateMountRotation = Orientation::Landscape
+        .autoRotateEnabled = false
     };
 }
 
@@ -223,7 +214,6 @@ bool save(const DisplaySettings& settings) {
     map[SETTINGS_KEY_TIMEOUT_MS] = std::to_string(settings.backlightTimeoutMs);
     map[SETTINGS_KEY_SCREENSAVER_TYPE] = toString(settings.screensaverType);
     map[SETTINGS_KEY_AUTO_ROTATE_ENABLED] = settings.autoRotateEnabled ? "1" : "0";
-    map[SETTINGS_KEY_AUTO_ROTATE_MOUNT_ROTATION] = toString(settings.autoRotateMountRotation);
     auto settings_path = getSettingsFilePath();
     if (!file::findOrCreateParentDirectory(settings_path, 0755)) {
         return false;
