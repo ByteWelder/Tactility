@@ -1,0 +1,16 @@
+name: Build Tools
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Release'
+      shell: bash
+      run: |
+        python Buildscripts/release-tools-current.py
+        echo "TACTILITY_TOOLS_PATH=release/sdk/$(cat version.txt)/tools" >> "$GITHUB_ENV"
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: TactilityTools
+        path: ${{ env.TACTILITY_TOOLS_PATH }}
+        retention-days: 30

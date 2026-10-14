@@ -1,3 +1,4 @@
+import hashlib
 import subprocess
 from datetime import datetime, UTC
 import os
@@ -5,8 +6,10 @@ import sys
 from dataclasses import dataclass, asdict
 import json
 import shutil
+import zipfile
 
 VERBOSE = False
+TOOLS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "TactilitySDK", "Tools")
 
 @dataclass
 class SdkIndex:
@@ -14,6 +17,7 @@ class SdkIndex:
     created: str
     gitCommit: str
     platforms: dict
+    tools: dict
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -40,6 +44,19 @@ def print_help():
 def get_git_commit_hash():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
+def create_tools_bundle(out_path: str):
+    """Bundles the tools that tt.py runs for this SDK version"""
+    if VERBOSE:
+        print(f"Archiving {TOOLS_PATH} to {out_path}/tools.zip")
+    archive_path = os.path.join(out_path, "tools.zip")
+    with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for file_name in sorted(os.listdir(TOOLS_PATH)):
+            if file_name.endswith(".py"):
+                archive.write(os.path.join(TOOLS_PATH, file_name), file_name)
+    with open(archive_path, "rb") as archive:
+        sha256 = hashlib.sha256(archive.read()).hexdigest()
+    return {"file": "tools.zip", "sha256": sha256}
+
 def main(in_path: str, out_path: str, version: str):
     if not os.path.exists(in_path):
         exit_with_error(f"Input path not found: {in_path}")
@@ -51,7 +68,8 @@ def main(in_path: str, out_path: str, version: str):
         version=version,
         created=datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S'),
         gitCommit=get_git_commit_hash(),
-        platforms={}
+        platforms={},
+        tools=create_tools_bundle(out_path)
     )
     for artifact_directory in artifact_directories:
         if VERBOSE:

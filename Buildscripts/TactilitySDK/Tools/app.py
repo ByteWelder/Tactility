@@ -1,32 +1,23 @@
 #!/usr/bin/env python3
 # License: Apache License v2
 
-import json
 import os
 import re
 import shutil
 import sys
 import subprocess
-import time
-import urllib.request
-import zipfile
-import requests
 import tarfile
-from urllib.parse import urlparse
 
-ttbuild_path = ".tactility"
-ttbuild_version = "7.0.1"
-ttbuild_cdn = "https://cdn.tactilityproject.org"
-ttbuild_sdk_json_validity = 3600  # seconds
-ttport = 6666
+import _device_host
+
+ttbuild_version = "8.0.0"
 verbose = False
-use_local_sdk = False
-local_base_path = None
-http_timeout_seconds = 10
-# App install uploads the whole package over HTTP and the device only responds once it's
-# fully received, extracted and registered; large packages (e.g. bundled fonts/assets) can
-# easily take well over http_timeout_seconds on a slow SD card, so give it a lot more room.
-install_timeout_seconds = 120
+# The development server client (shell.py) is next to this script
+tool_directory = os.path.dirname(os.path.abspath(__file__))
+# The SDKs are in TACTILITY_SDK_PATH/sdk/<version>, which tt sets along with the version it selected.
+# Read once, because builds point TACTILITY_SDK_PATH at the platform SDK for CMake.
+tt_sdk_version = os.environ.get("TACTILITY_SDK_VERSION")
+sdk_root_path = os.environ.get("TACTILITY_SDK_PATH")
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -36,7 +27,8 @@ shell_color_cyan = "\033[36m"
 shell_color_reset = "\033[m"
 
 def print_help():
-    print("Usage: python tactility.py [action] [options]")
+    command = "tt app"
+    print(f"Usage: {command} [action] [options]")
     print("")
     print("Actions:")
     print("")
@@ -48,69 +40,40 @@ def print_help():
     print("")
     print("  clean                          Clean the build folders")
     print("")
-    print("  clearcache                     Clear the SDK cache")
-    print("")
-    print("  updateself                     Update this tool")
-    print("")
     print("  run                            Run the application")
     print("    Parameters:")
-    print("      (required) --host, -h [input]")
+    print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("")
     print("  install                        Install the application")
     print("    Parameters:")
-    print("      (required) --host, -h [input]")
+    print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("")
     print("  uninstall                      Uninstall the application")
     print("    Parameters:")
-    print("      (required) --host, -h [input]")
+    print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("")
     print("  bir                            Build, install then run.")
     print("    Parameters:")
-    print("      (required) --host, -h [input]")
+    print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("      (optional) --architecture, -a [input]")
     print("")
     print("  brrr                           Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
     print("    Parameters:")
-    print("      (required) --host, -h [input]")
+    print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("      (optional) --architecture, -a [input]")
     print("")
     print("Options:")
     print("  -p, --path [input]             Path to the app directory (defaults to current directory)")
     print("  --help                         Show this commandline info")
-    print("  --local-sdk                    Use SDK specified by environment variable TACTILITY_SDK_PATH with platform subfolders matching target platforms.")
     print("  --skip-build                   Run everything except the idf.py/CMake commands")
     print("  --verbose                      Show extra console output")
     print("")
     print("Examples:")
-    print("  python tactility.py build")
-    print("  python tactility.py build --path Apps/Snake --architecture esp32s3 --verbose")
-    print("  python tactility.py bir --path Apps/Snake --host 192.168.1.50 --architecture esp32s3")
+    print(f"  {command} build")
+    print(f"  {command} build --path Apps/Snake --architecture esp32s3 --verbose")
+    print(f"  {command} bir --path Apps/Snake --host 192.168.1.50 --architecture esp32s3")
 
 # region Core
-
-def download_file(url, filepath):
-    global verbose
-    if verbose:
-        print(f"Downloading from {url} to {filepath}")
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
-        print_error(f"Unsupported URL scheme: {parsed.scheme}")
-        return False
-    request = urllib.request.Request(
-        url,
-        data=None,
-        headers={
-            "User-Agent": f"Tactility Build Tool {ttbuild_version}"
-        }
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=30) as response, open(filepath, mode="wb") as file:
-            file.write(response.read())
-        return True
-    except OSError as error:
-        if verbose:
-            print_error(f"Failed to fetch URL {url}\n{error}")
-        return False
 
 def print_warning(message):
     print(f"{shell_color_orange}WARNING: {message}{shell_color_reset}")
@@ -132,9 +95,6 @@ def print_status_error(status):
 def exit_with_error(message):
     print_error(message)
     sys.exit(1)
-
-def get_url(host, path):
-    return f"http://{host}:{ttport}{path}"
 
 def read_properties_file(path):
     properties = {}
@@ -222,7 +182,6 @@ ARG_SPECS = {
     "platform": ("-a", "--architecture", True),
     "verbose": (None, "--verbose", False),
     "skip-build": (None, "--skip-build", False),
-    "local-sdk": (None, "--local-sdk", False),
     "help": (None, "--help", False),
 }
 
@@ -273,72 +232,17 @@ def parse_command_line(argv):
 
 #region SDK helpers
 
-def get_tool_json_path(version):
-    return os.path.join(ttbuild_path, version, "tactility.py.json")
-
-def read_sdk_json(version):
-    json_file_path = get_tool_json_path(version)
-    with open(json_file_path) as json_file:
-        return json.load(json_file)
-
 def get_sdk_dir(version, platform):
-    global use_local_sdk, local_base_path
-    if use_local_sdk:
-        base_path = local_base_path
-        if base_path is None:
-            exit_with_error("TACTILITY_SDK_PATH environment variable is not set")
-        sdk_parent_dir = os.path.join(base_path, f"{version}-{platform}")
-        sdk_dir = os.path.join(sdk_parent_dir, "TactilitySDK")
-        if not os.path.isdir(sdk_dir):
-            exit_with_error(f"Local SDK folder not found for platform {platform}: {sdk_dir}")
-        return os.path.abspath(sdk_dir)
-    else:
-        # Must be absolute: this is exported as $TACTILITY_SDK_PATH and included by each app's
-        # main/CMakeLists.txt, which ESP-IDF also re-processes in a separate `cmake -P` subprocess
-        # (tools/cmake/scripts/component_get_requirements.cmake) with its own working directory -
-        # a relative path here resolves against whatever CWD that subprocess happens to have.
-        return os.path.abspath(os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK"))
+    """Absolute, because builds export it as TACTILITY_SDK_PATH for CMake, which also runs in subprocesses with another working directory"""
+    return os.path.abspath(os.path.join(sdk_root_path, "sdk", version, f"platform-{platform}", "TactilitySDK"))
 
-def validate_local_sdks(platforms, version):
-    if not use_local_sdk:
-        return
-    global local_base_path
-    base_path = local_base_path
+def validate_sdks(platforms, version):
     for platform in platforms:
-        sdk_parent_dir = os.path.join(base_path, f"{version}-{platform}")
-        sdk_dir = os.path.join(sdk_parent_dir, "TactilitySDK")
+        sdk_dir = get_sdk_dir(version, platform)
         if not os.path.isdir(sdk_dir):
-            exit_with_error(f"Local SDK folder missing for {platform}: {sdk_dir}")
+            exit_with_error(f"SDK {version} for {platform} not found: {sdk_dir}")
         if not sdk_has_sdkconfig(version, platform):
-            exit_with_error(f"Local SDK for {platform} does not contain sdkconfig.app.{platform}, which this tool requires. Rebuild it with the current SDK release scripts.")
-
-def get_sdk_root_dir(version, platform):
-    global ttbuild_cdn
-    return os.path.join(ttbuild_path, f"{version}-{platform}")
-
-def get_sdk_url(version, file):
-    global ttbuild_cdn
-    return f"{ttbuild_cdn}/sdk/{version}/{file}"
-
-def sdk_exists(version, platform):
-    sdk_dir = get_sdk_dir(version, platform)
-    return os.path.isdir(sdk_dir)
-
-def should_update_tool_json(version):
-    json_filepath = get_tool_json_path(version)
-    if os.path.exists(json_filepath):
-        json_modification_time = os.path.getmtime(json_filepath)
-        now = time.time()
-        global ttbuild_sdk_json_validity
-        minimum_seconds_difference = ttbuild_sdk_json_validity
-        return (now - json_modification_time) > minimum_seconds_difference
-    else:
-        return True
-
-def update_tool_json(version):
-    json_filepath = get_tool_json_path(version)
-    os.makedirs(os.path.dirname(json_filepath), exist_ok=True)
-    return download_file(get_sdk_url(version, "tactility.py.json"), json_filepath)
+            exit_with_error(f"SDK {version} for {platform} does not contain sdkconfig.app.{platform}, which this tool requires. Use a newer SDK version.")
 
 def get_sdk_sdkconfig_path(version, platform):
     return os.path.join(get_sdk_dir(version, platform), f"sdkconfig.app.{platform}")
@@ -367,19 +271,6 @@ def validate_environment(platforms):
             exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
     if not os.path.exists("manifest.properties"):
         exit_with_error("manifest.properties not found")
-    if use_local_sdk == False and os.environ.get("TACTILITY_SDK_PATH") is not None:
-        print_warning("TACTILITY_SDK_PATH is set, but will be ignored by this command.")
-        print_warning("If you want to use it, use the '--local-sdk' parameter")
-    elif use_local_sdk == True and os.environ.get("TACTILITY_SDK_PATH") is None:
-        exit_with_error("local build was requested, but TACTILITY_SDK_PATH environment variable is not set.")
-
-def validate_self(sdk_json):
-    if not "version" in sdk_json:
-        exit_with_error("Server returned invalid SDK data format (version not found)")
-    tool_version = sdk_json["version"]
-    if SemanticVersion.parse(ttbuild_version) < SemanticVersion.parse(tool_version):
-        print_warning(f"New version available: {tool_version} (currently using {ttbuild_version})")
-        print_warning(f"Run 'tactility.py updateself' to update.")
 
 #endregion Validation
 
@@ -469,79 +360,6 @@ def get_manifest_target_platforms(manifest, requested_platform):
         return [requested_platform]
 
 #endregion Manifest
-
-#region SDK download
-
-def safe_extract_zip(zip_ref, target_dir):
-    target_dir = os.path.realpath(target_dir)
-    for member in zip_ref.infolist():
-        dest = os.path.realpath(os.path.join(target_dir, member.filename))
-        if not dest.startswith(target_dir + os.sep):
-            raise ValueError(f"Invalid zip entry: {member.filename}")
-    zip_ref.extractall(target_dir)
-
-def sdk_download(version, platform, sdk_root_dir=None):
-    if sdk_root_dir is None:
-        sdk_root_dir = get_sdk_root_dir(version, platform)
-    os.makedirs(sdk_root_dir, exist_ok=True)
-    sdk_index_url = get_sdk_url(version, "index.json")
-    print(f"Downloading SDK version {version} for {platform}")
-    sdk_index_filepath = os.path.join(sdk_root_dir, "index.json")
-    if verbose:
-        print(f"Downloading {sdk_index_url} to {sdk_index_filepath}")
-    if not download_file(sdk_index_url, sdk_index_filepath):
-        # TODO: 404 check, print a more accurate error
-        print_error(f"Failed to download SDK version {version}. Check your internet connection and make sure this release exists.")
-        return False
-    with open(sdk_index_filepath) as sdk_index_json_file:
-        sdk_index_json = json.load(sdk_index_json_file)
-    sdk_platforms = sdk_index_json["platforms"]
-    if platform not in sdk_platforms:
-        print_error(f"Platform {platform} not found in {sdk_platforms} for version {version}")
-        return False
-    sdk_platform_file = sdk_platforms[platform]
-    sdk_zip_source_url = get_sdk_url(version, sdk_platform_file)
-    sdk_zip_target_filepath = os.path.join(sdk_root_dir, f"{version}-{platform}.zip")
-    if verbose:
-        print(f"Downloading {sdk_zip_source_url} to {sdk_zip_target_filepath}")
-    if not download_file(sdk_zip_source_url, sdk_zip_target_filepath):
-        print_error(f"Failed to download {sdk_zip_source_url} to {sdk_zip_target_filepath}")
-        return False
-    with zipfile.ZipFile(sdk_zip_target_filepath, "r") as zip_ref:
-        safe_extract_zip(zip_ref, os.path.join(sdk_root_dir, "TactilitySDK"))
-    return True
-
-def sdk_download_all(version, platforms):
-    for platform in platforms:
-        if sdk_exists(version, platform) and not sdk_has_sdkconfig(version, platform):
-            print_warning(f"Cached SDK version {version} for {platform} is outdated (no sdkconfig.app.{platform}), downloading it again")
-            # Downloaded next to the cache, so a failed download keeps the cached SDK
-            sdk_root_dir = get_sdk_root_dir(version, platform)
-            replacement_root_dir = f"{sdk_root_dir}.new"
-            shutil.rmtree(replacement_root_dir, ignore_errors=True)
-            if not sdk_download(version, platform, replacement_root_dir):
-                shutil.rmtree(replacement_root_dir, ignore_errors=True)
-                return False
-            replacement_sdkconfig = os.path.join(replacement_root_dir, "TactilitySDK", f"sdkconfig.app.{platform}")
-            if not platform.startswith("posix") and not os.path.isfile(replacement_sdkconfig):
-                shutil.rmtree(replacement_root_dir, ignore_errors=True)
-                print_error(f"SDK version {version} for {platform} does not contain sdkconfig.app.{platform}, which this tool requires. Use a newer SDK version.")
-                return False
-            shutil.rmtree(sdk_root_dir)
-            shutil.move(replacement_root_dir, sdk_root_dir)
-            continue
-        if not sdk_exists(version, platform):
-            if not sdk_download(version, platform):
-                return False
-            if not sdk_has_sdkconfig(version, platform):
-                print_error(f"SDK version {version} for {platform} does not contain sdkconfig.app.{platform}, which this tool requires. Use a newer SDK version.")
-                return False
-        else:
-            if verbose:
-                print(f"Using cached download for SDK version {version} and platform {platform}")
-    return True
-
-#endregion SDK download
 
 #region CMakeLists scaffolding
 
@@ -818,10 +636,6 @@ def package_all(manifest, platforms):
 
 #endregion Packaging
 
-def setup_environment():
-    global ttbuild_path
-    os.makedirs(ttbuild_path, exist_ok=True)
-
 def build_action(manifest, arguments):
     platform_arg = arguments.get("platform")
     skip_build = arguments.has("skip-build")
@@ -829,19 +643,8 @@ def build_action(manifest, arguments):
     # Environment validation
     validate_environment(platforms_to_build)
 
-    if use_local_sdk:
-        global local_base_path
-        local_base_path = os.environ.get("TACTILITY_SDK_PATH")
-        validate_local_sdks(platforms_to_build, manifest["target.sdk"])
-
-    if not use_local_sdk:
-        sdk_json = read_sdk_json(manifest["target.sdk"])
-        validate_self(sdk_json)
-    # Build
     sdk_version = manifest["target.sdk"]
-    if not use_local_sdk:
-        if not sdk_download_all(sdk_version, platforms_to_build):
-            exit_with_error("Failed to download one or more SDKs")
+    validate_sdks(platforms_to_build, sdk_version)
 
     # A multi-binary app builds each of its binaries in its own subdirectory as an independent
     # CMake project; a single-binary app has exactly one binary, built at the app root
@@ -887,107 +690,58 @@ def clean_action(manifest):
     if not cleaned_any:
         print("Nothing to clean")
 
-def clear_cache_action():
-    if os.path.exists(ttbuild_path):
-        print_status_busy(f"Removing {ttbuild_path}/")
-        shutil.rmtree(ttbuild_path)
-        print_status_success(f"Removed {ttbuild_path}/")
-    else:
-        print("Nothing to clear")
-
-def update_self_action(manifest):
-    if download_file(get_sdk_url(manifest["target.sdk"], "tactility.py"), "tactility.py"):
-        print("Updated")
-    else:
-        exit_with_error("Update failed")
-
-def get_device_info(host):
-    print_status_busy(f"Requesting device info")
-    url = get_url(host, "/info")
+def load_device_client():
+    sys.path.insert(0, tool_directory)
     try:
-        response = requests.get(url, timeout=http_timeout_seconds)
-        if response.status_code != 200:
-            print_error("Run failed")
-        else:
-            print_status_success(f"Received device info:")
-            print(response.json())
-    except requests.RequestException as e:
-        print_status_error(f"Device info request failed: {e}")
+        import shell
+    except ImportError:
+        exit_with_error(f"shell.py not found in {tool_directory}")
+    shell.PROGRAM_NAME = "tt app"
+    return shell
+
+def get_host(arguments):
+    host = arguments.get("host") or _device_host.read_device_host()
+    if host is None:
+        exit_with_error(_device_host.MISSING_HOST_MESSAGE)
+    return host
 
 def run_action(manifest, arguments):
-    host = arguments.get("host")
-    if host is None:
-        exit_with_error("Missing required argument: --host")
+    host = get_host(arguments)
     app_id = get_primary_app_id(manifest)
     print_status_busy("Running")
-    url = get_url(host, "/app/run")
-    params = {'id': app_id}
-    try:
-        response = requests.post(url, params=params, timeout=http_timeout_seconds)
-        if response.status_code != 200:
-            print_error("Run failed")
-        else:
-            print_status_success("Running")
-    except requests.RequestException as e:
-        print_status_error(f"Running request failed: {e}")
+    device = load_device_client()
+    device.run(host, device.DEFAULT_PORT, app_id)
+    print_status_success("Running")
 
 def install_action(manifest, arguments):
-    host = arguments.get("host")
-    if host is None:
-        exit_with_error("Missing required argument: --host")
+    host = get_host(arguments)
     package_path = package_name(manifest)
     if not os.path.isfile(package_path):
         print_status_error(f"Package not found: {package_path} (run 'build' first)")
         return False
     print_status_busy("Installing")
-    url = get_url(host, "/app/install")
-    try:
-        # Prepare multipart form data
-        with open(package_path, 'rb') as file:
-            files = {
-                'app': file
-            }
-            response = requests.put(url, files=files, timeout=install_timeout_seconds)
-            if response.status_code != 200:
-                print_status_error("Install failed")
-                return False
-            else:
-                print_status_success("Installing")
-                return True
-    except requests.RequestException as e:
-        print_status_error(f"Install request failed: {e}")
-        return False
-    except IOError as e:
-        print_status_error(f"Install file error: {e}")
-        return False
+    device = load_device_client()
+    device.install(host, device.DEFAULT_PORT, package_path)
+    print_status_success("Installing")
+    return True
 
 def uninstall_action(manifest, arguments):
-    host = arguments.get("host")
-    if host is None:
-        exit_with_error("Missing required argument: --host")
+    host = get_host(arguments)
     app_id = get_package_id(manifest)
     print_status_busy("Uninstalling")
-    url = get_url(host, "/app/uninstall")
-    params = {'id': app_id}
-    try:
-        response = requests.put(url, params=params, timeout=http_timeout_seconds)
-        if response.status_code != 200:
-            print_status_error("Server responded that uninstall failed")
-        else:
-            print_status_success("Uninstalled")
-    except requests.RequestException as e:
-        print_status_error(f"Uninstall request failed: {e}")
+    device = load_device_client()
+    device.uninstall(host, device.DEFAULT_PORT, app_id)
+    print_status_success("Uninstalled")
 
 #region Main
 
 if __name__ == "__main__":
+    import _bootstrap
+    _bootstrap.run()
     print(f"Tactility Build System v{ttbuild_version}")
-
-    # Anchor the cache to the invocation directory, before --path (below) can chdir into the app.
-    ttbuild_path = os.path.abspath(ttbuild_path)
-    # Same for a relative local SDK path.
-    if os.environ.get("TACTILITY_SDK_PATH") is not None:
-        os.environ["TACTILITY_SDK_PATH"] = os.path.abspath(os.environ["TACTILITY_SDK_PATH"])
+    if sdk_root_path is None:
+        exit_with_error("TACTILITY_SDK_PATH is not set: run this tool as 'tt app'")
+    sdk_root_path = os.path.abspath(sdk_root_path)
 
     argv = sys.argv[1:]
     if len(argv) == 0:
@@ -1004,7 +758,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     verbose = parsed_command.arguments.has("verbose")
-    use_local_sdk = parsed_command.arguments.has("local-sdk")
 
     app_path = parsed_command.arguments.get("path")
     if app_path is not None:
@@ -1014,16 +767,12 @@ if __name__ == "__main__":
             print_status_success(f"Switching to app directory: {app_path}")
         os.chdir(app_path)
 
-    # Environment setup
-    setup_environment()
     if not os.path.isfile("manifest.properties"):
         exit_with_error("manifest.properties not found")
     manifest = read_manifest()
     validate_manifest(manifest)
-    # Update SDK cache (tactility.py.json)
-    sdk_version = manifest["target.sdk"]
-    if not use_local_sdk and should_update_tool_json(sdk_version) and not update_tool_json(sdk_version):
-        exit_with_error("Failed to retrieve SDK info")
+    if tt_sdk_version is not None and manifest["target.sdk"] != tt_sdk_version:
+        exit_with_error(f"App targets SDK {manifest['target.sdk']}, but tt selected SDK {tt_sdk_version}")
     # Actions
     action_arg = parsed_command.action
     if action_arg == "build":
@@ -1031,10 +780,6 @@ if __name__ == "__main__":
             sys.exit(1)
     elif action_arg == "clean":
         clean_action(manifest)
-    elif action_arg == "clearcache":
-        clear_cache_action()
-    elif action_arg == "updateself":
-        update_self_action(manifest)
     elif action_arg == "run":
         run_action(manifest, parsed_command.arguments)
     elif action_arg == "install":

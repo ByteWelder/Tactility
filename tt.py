@@ -1,0 +1,263 @@
+#!/usr/bin/env python3
+# License: Apache License v2
+"""Runs the Tactility developer tools of the SDK version that an app targets.
+
+"tt <command> [arguments]" runs <command>.py from the tools of that SDK version.
+"tt local <command> [arguments]" uses the SDK and tools in TACTILITY_SDK_PATH instead of downloading them.
+Both ~/.tactility and TACTILITY_SDK_PATH hold sdk/<version>/tools/ and sdk/<version>/platform-<platform>/TactilitySDK/.
+The tt (Linux, macOS) and tt.cmd (Windows) wrappers next to this script run it.
+The SDK version is read from ./manifest.properties, or else from the first Apps/*/manifest.properties or apps/*/manifest.properties.
+"""
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+import zipfile
+
+TT_VERSION = "1.0.0"
+CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
+HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
+INDEX_VALIDITY_SECONDS = 3600
+COMMAND_PATTERN = re.compile(r"^[a-z0-9-]+$")
+
+
+def fail(message):
+    print(f"tt: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def warn(message):
+    print(f"tt: {message}", file=sys.stderr)
+
+
+def download(url, path):
+    """Downloads to a temporary file next to path, so a failed download keeps the existing file"""
+    request = urllib.request.Request(url, headers={"User-Agent": f"tt.py {TT_VERSION}"})
+    partial_path = f"{path}.part"
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response, open(partial_path, "wb") as file:
+            shutil.copyfileobj(response, file)
+    except OSError as error:
+        if os.path.exists(partial_path):
+            os.remove(partial_path)
+        warn(f"failed to download {url}: {error}")
+        return False
+    os.replace(partial_path, path)
+    return True
+
+
+def read_properties(path):
+    properties = {}
+    with open(path) as file:
+        for line in file:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            key, separator, value = line.partition("=")
+            if separator:
+                properties[key.strip()] = value.strip()
+    return properties
+
+
+def find_manifest():
+    if os.path.isfile("manifest.properties"):
+        return "manifest.properties"
+    for apps_directory in ("Apps", "apps"):
+        if not os.path.isdir(apps_directory):
+            continue
+        for name in sorted(os.listdir(apps_directory)):
+            path = os.path.join(apps_directory, name, "manifest.properties")
+            if os.path.isfile(path):
+                return path
+    return None
+
+
+def resolve_target():
+    """Returns the SDK version and platforms of the app manifest"""
+    manifest_path = find_manifest()
+    if manifest_path is None:
+        fail("no manifest.properties found in . or Apps/*/ or apps/*/")
+    manifest = read_properties(manifest_path)
+    version = manifest.get("target.sdk")
+    if not version:
+        fail(f"target.sdk not found in {manifest_path}")
+    if not re.match(r"^[0-9A-Za-z.+-]+$", version) or ".." in version:
+        fail(f"invalid target.sdk in {manifest_path}: {version}")
+    platforms = [platform.strip() for platform in manifest.get("target.platforms", "").split(",") if platform.strip()]
+    return version, platforms
+
+
+def sdk_url(version, file_name):
+    return f"{CDN_URL}/sdk/{version}/{file_name}"
+
+
+def extract_zip(zip_path, target_directory):
+    """Extracts into a new directory and then replaces target_directory, refusing entries outside of it"""
+    staging_directory = f"{target_directory}.new"
+    shutil.rmtree(staging_directory, ignore_errors=True)
+    os.makedirs(staging_directory)
+    root = os.path.realpath(staging_directory)
+    with zipfile.ZipFile(zip_path) as archive:
+        for member in archive.infolist():
+            destination = os.path.realpath(os.path.join(root, member.filename))
+            if not destination.startswith(root + os.sep):
+                shutil.rmtree(staging_directory, ignore_errors=True)
+                fail(f"invalid entry in {zip_path}: {member.filename}")
+        archive.extractall(root)
+    shutil.rmtree(target_directory, ignore_errors=True)
+    os.replace(staging_directory, target_directory)
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as file:
+        for block in iter(lambda: file.read(65536), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_index(version, version_directory):
+    index_path = os.path.join(version_directory, "index.json")
+    is_fresh = os.path.isfile(index_path) and time.time() - os.path.getmtime(index_path) < INDEX_VALIDITY_SECONDS
+    if not is_fresh and not download(sdk_url(version, "index.json"), index_path):
+        if not os.path.isfile(index_path):
+            fail(f"SDK {version} is not available: check your internet connection and that this SDK version exists")
+        warn(f"using the cached information of SDK {version}")
+    with open(index_path) as file:
+        return json.load(file)
+
+
+def version_path(sdk_path, version):
+    return os.path.join(sdk_path, "sdk", version)
+
+
+def install_tools(version, version_directory, index):
+    tools = index.get("tools")
+    if tools is None:
+        fail(f"SDK {version} has no tools")
+    tools_directory = os.path.join(version_directory, "tools")
+    hash_path = os.path.join(version_directory, "tools.sha256")
+    if os.path.isdir(tools_directory) and os.path.isfile(hash_path):
+        with open(hash_path) as file:
+            if file.read().strip() == tools["sha256"]:
+                return
+    print(f"Downloading the tools of SDK {version}", file=sys.stderr)
+    zip_path = os.path.join(version_directory, "tools.zip")
+    if not download(sdk_url(version, tools["file"]), zip_path):
+        if os.path.isdir(tools_directory):
+            warn(f"using the cached tools of SDK {version}")
+            return
+        fail(f"failed to download the tools of SDK {version}")
+    if file_sha256(zip_path) != tools["sha256"]:
+        os.remove(zip_path)
+        fail(f"the tools of SDK {version} don't match their checksum")
+    extract_zip(zip_path, tools_directory)
+    os.remove(zip_path)
+    with open(hash_path, "w") as file:
+        file.write(tools["sha256"])
+
+
+def install_platforms(version, version_directory, index, platforms):
+    available = index.get("platforms", {})
+    for platform in platforms:
+        platform_directory = os.path.join(version_directory, f"platform-{platform}")
+        if os.path.isdir(os.path.join(platform_directory, "TactilitySDK")):
+            continue
+        if platform not in available:
+            fail(f"platform {platform} is not available in SDK {version}")
+        print(f"Downloading SDK {version} for {platform}", file=sys.stderr)
+        zip_path = os.path.join(version_directory, f"platform-{platform}.zip")
+        if not download(sdk_url(version, available[platform]), zip_path):
+            fail(f"failed to download SDK {version} for {platform}")
+        extract_zip(zip_path, os.path.join(platform_directory, "TactilitySDK"))
+        os.remove(zip_path)
+        # The commit of the SDK build, to find out when a -dev version was published again
+        with open(os.path.join(platform_directory, "commit"), "w") as file:
+            file.write(index.get("gitCommit", ""))
+
+
+def prepare_sdk(version, platforms):
+    version_directory = version_path(HOME_DIRECTORY, version)
+    os.makedirs(version_directory, exist_ok=True)
+    index = load_index(version, version_directory)
+    install_tools(version, version_directory, index)
+    install_platforms(version, version_directory, index, platforms)
+    return version_directory
+
+
+def is_command(name):
+    """Tools named _*.py are internal to the tools and are never commands"""
+    return COMMAND_PATTERN.match(name) is not None and not name.startswith("_")
+
+
+def list_commands(tools_directory):
+    return sorted(name[:-3] for name in os.listdir(tools_directory) if name.endswith(".py") and is_command(name[:-3]))
+
+
+def print_help(version, tools_directory):
+    print("Usage: tt [local] <command> [arguments]")
+    print("")
+    print(f"SDK {version}, commands:")
+    for command in list_commands(tools_directory):
+        print(f"  {command}")
+    print("")
+    print("local: use the SDK and tools in TACTILITY_SDK_PATH")
+
+
+def tool_environment(version, sdk_path, is_local):
+    environment = dict(os.environ)
+    environment["TACTILITY_SDK_VERSION"] = version
+    environment["TACTILITY_SDK_PATH"] = sdk_path
+    environment["TT_DIRECTORY"] = os.path.dirname(os.path.abspath(__file__))
+    environment["TT_VERSION"] = TT_VERSION
+    # The SDK in TACTILITY_SDK_PATH is managed by tt unless it is local
+    if is_local:
+        environment["TT_LOCAL"] = "1"
+    else:
+        environment.pop("TT_LOCAL", None)
+    return environment
+
+
+def run_tool(tool_path, arguments, environment):
+    command = [sys.executable, tool_path, *arguments]
+    if os.name == "posix":
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os.execve(sys.executable, command, environment)
+    sys.exit(subprocess.run(command, env=environment).returncode)
+
+
+def main(arguments):
+    version, platforms = resolve_target()
+    is_local = arguments[:1] == ["local"]
+    if is_local:
+        arguments = arguments[1:]
+        local_path = os.environ.get("TACTILITY_SDK_PATH")
+        if local_path is None:
+            fail("local was requested, but the TACTILITY_SDK_PATH environment variable is not set")
+        sdk_path = os.path.abspath(local_path)
+        tools_directory = os.path.join(version_path(sdk_path, version), "tools")
+        if not os.path.isdir(tools_directory):
+            fail(f"tools not found: {tools_directory}")
+    else:
+        sdk_path = HOME_DIRECTORY
+        tools_directory = os.path.join(prepare_sdk(version, platforms), "tools")
+    environment = tool_environment(version, sdk_path, is_local)
+    if not arguments or arguments[0] in ("help", "--help"):
+        print_help(version, tools_directory)
+        return
+    command = arguments[0]
+    tool_path = os.path.join(tools_directory, f"{command}.py")
+    if not is_command(command) or not os.path.isfile(tool_path):
+        fail(f"command not found: {command}")
+    run_tool(tool_path, arguments[1:], environment)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -45,6 +45,7 @@ namespace app {
     namespace audiosettings { extern const ::AppManifest manifest; }
     namespace boot { extern const ::AppManifest manifest; }
     namespace development { extern const ::AppManifest manifest; }
+    namespace developmentprompt { extern const ::AppManifest manifest; }
     namespace display { extern const ::AppManifest manifest; }
     namespace files { extern const ::AppManifest manifest; }
     namespace fileselection { extern const ::AppManifest manifest; }
@@ -147,6 +148,7 @@ static void registerInternalApps() {
     app_manager_add(&app::wifimanage::manifest);
 
     app_manager_add(&app::development::manifest);
+    app_manager_add(&app::developmentprompt::manifest);
     app_manager_add(&app::webserversettings::manifest);
 #ifdef ESP_PLATFORM
     app_manager_add(&app::apwebserver::manifest);

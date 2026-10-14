@@ -39,11 +39,6 @@ constexpr IconEntry ICONS[] = {
     {"tactility.webserversettings", LVGL_ICON_SHARED_CLOUD},
 };
 
-// Hidden apps that are still shown in the launcher
-constexpr const char* SHOWN_HIDDEN_APP_IDS[] = {
-    "tactility.files",
-};
-
 const char* appIcon(const ::AppManifest* manifest) {
     for (const auto& entry : ICONS) {
         if (!strcmp(manifest->id, entry.id)) return entry.icon;
@@ -55,10 +50,14 @@ bool isShown(const ::AppManifest& manifest) {
     if (manifest.category != APP_CATEGORY_USER && manifest.category != APP_CATEGORY_SYSTEM) {
         return false;
     }
-    if ((manifest.flags & APP_MANIFEST_FLAG_HIDDEN) == 0) {
-        return true;
+    if ((manifest.flags & APP_MANIFEST_FLAG_HEADLESS) != 0) {
+        return false;
     }
-    return std::ranges::any_of(SHOWN_HIDDEN_APP_IDS, [&](const char* id) { return strcmp(manifest.id, id) == 0; });
+    if ((manifest.flags & APP_MANIFEST_FLAG_HIDDEN) != 0) {
+        return false;
+    }
+
+    return true;
 }
 
 void collectManifest(const ::AppManifest* manifest, void* context) {

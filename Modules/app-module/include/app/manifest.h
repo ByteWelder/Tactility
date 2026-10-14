@@ -28,9 +28,9 @@ enum AppCategory {
 
 /** Bit flags for AppManifest::flags. */
 enum AppManifestFlags {
-    /** Excluded from generic app-browsing UIs (e.g. Launcher, Settings) */
+    /** Excluded from generic app-browsing UIs (e.g. Launcher, Settings) and from shell commands */
     APP_MANIFEST_FLAG_HIDDEN = 1 << 0,
-    /** No window-manager dependency. Safe to start from a context with no GUI available. */
+    /** No window-manager dependency. Safe to start from a context with no GUI available. Listed as a shell command instead of in the Launcher. */
     APP_MANIFEST_FLAG_HEADLESS = 1 << 1,
     /**
      * When the app's main task ends, release what its binary leaked: tasks are deleted after a grace period,

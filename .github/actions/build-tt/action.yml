@@ -1,0 +1,14 @@
+name: Build tt
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Release'
+      shell: bash
+      run: python Buildscripts/release-tt.py
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: tt
+        path: release/tt
+        retention-days: 30

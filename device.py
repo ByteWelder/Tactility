@@ -252,6 +252,8 @@ def write_spiram_variables(output_file, device_properties: dict):
     # Reduce IRAM usage
     output_file.write("CONFIG_SPIRAM_USE_MALLOC=y\n")
     output_file.write("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y\n")
+    # TLS sessions (handshakes, record buffers) otherwise take internal RAM
+    output_file.write("CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y\n")
     # Performance improvements
     if idf_target == "esp32s3":
         apply_fix = get_property_or_default(device_properties, "hardware.spiRamXipDisabled", "false").lower()

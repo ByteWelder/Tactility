@@ -78,7 +78,7 @@ void forEachCommand(void* context, void (*callback)(const Command&, void*)) {
     } gathered;
     // First gather everything, so we don't keep the ledger lock while calling callback()
     app_manager_for_each_manifest([](const AppManifest* manifest, void* context) {
-        if ((manifest->flags & APP_MANIFEST_FLAG_HEADLESS) == 0) {
+        if ((manifest->flags & APP_MANIFEST_FLAG_HEADLESS) == 0 || (manifest->flags & APP_MANIFEST_FLAG_HIDDEN) != 0) {
             return;
         }
         auto& gathered = *static_cast<Gathered*>(context);
