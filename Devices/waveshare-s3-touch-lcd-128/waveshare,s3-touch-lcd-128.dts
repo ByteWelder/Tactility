@@ -9,7 +9,6 @@
 #include <bindings/qmi8658.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
-#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <bindings/cst816t.h>
 #include <bindings/gc9a01.h>
@@ -42,6 +41,9 @@
 		qmi8658 {
 			compatible = "qst,qmi8658";
 			reg = <0x6B>;
+			mount-matrix = <0 1 0
+							1 0 0
+							0 0 1>;
 		};
 
 		touch0 {
@@ -91,14 +93,6 @@
 			pin-dc = <&gpio0 8 GPIO_FLAG_NONE>;
 			pin-reset = <&gpio0 14 GPIO_FLAG_NONE>;
 			backlight = <&display_backlight>;
-		};
-	};
-
-	usbdevice0 {
-		compatible = "espressif,esp32-usbdevice";
-
-		usbdevicemsc0 {
-			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
 };

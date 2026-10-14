@@ -9,7 +9,6 @@
 #include <bindings/qmi8658.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
-#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <bindings/st7789.h>
 
@@ -41,6 +40,9 @@
 		qmi8658 {
 			compatible = "qst,qmi8658";
 			reg = <0x6B>;
+			mount-matrix = <-1 0 0
+							0 -1 0
+							0 0 -1>;
 		};
 	};
 
@@ -87,14 +89,6 @@
 		sdcard@0 {
 			compatible = "espressif,esp32-sdspi";
 			frequency-khz = <20000>;
-		};
-	};
-
-	usbdevice0 {
-		compatible = "espressif,esp32-usbdevice";
-
-		usbdevicemsc0 {
-			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
 };

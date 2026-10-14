@@ -343,6 +343,10 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_height),
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_clip_corner),
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_shadow_color),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_parent),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_style_bg_image_tiled),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_style_image_recolor),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_style_image_opa),
     // lv_font
     DEFINE_MODULE_SYMBOL(lv_font_get_bitmap_fmt_txt),
     DEFINE_MODULE_SYMBOL(lv_font_get_default),

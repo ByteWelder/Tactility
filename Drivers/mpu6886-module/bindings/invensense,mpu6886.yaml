@@ -5,27 +5,11 @@ include: [ "i2c-device.yaml" ]
 compatible: "invensense,mpu6886"
 
 properties:
-  swap-xy:
-    type: boolean
-    default: false
-    description: Swap the X and Y axes
-  swap-xz:
-    type: boolean
-    default: false
-    description: Swap the X and Z axes
-  swap-yz:
-    type: boolean
-    default: false
-    description: Swap the Y and Z axes
-  invert-x:
-    type: boolean
-    default: false
-    description: Invert the X axis
-  invert-y:
-    type: boolean
-    default: false
-    description: Invert the Y axis
-  invert-z:
-    type: boolean
-    default: false
-    description: Invert the Z axis
+  mount-matrix:
+    type: values
+    default: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+    description: >
+      Row-major 3x3 rotation matrix that maps the sensor frame onto the device frame, following the
+      Linux IIO "mount-matrix" convention (x' = m[0]*x + m[1]*y + m[2]*z, and so on). It is applied
+      to the accelerometer and gyroscope readings so consumers always see the device frame,
+      regardless of how the IMU is physically oriented on the PCB. Defaults to the identity matrix.

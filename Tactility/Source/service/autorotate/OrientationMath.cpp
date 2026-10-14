@@ -7,7 +7,10 @@ namespace tt::service::autorotate {
 constexpr float FLAT_THRESHOLD = 0.45F; // gravity in the screen plane below this = lying flat
 constexpr int DEBOUNCE = 5; // consecutive readings before switching
 
-// gx toward +Y -> rotation 0; each +90 degrees of gx/gy angle is one more quarter-turn.
+// ax/ay is the accelerometer support-force vector (points up, opposite gravity).
+// The UI top should point along (ax,ay): +Y -> rotation 0.
+// LVGL ROT90 is 90 deg counter-clockwise (UI top -> device left, -X), ROT270 is
+// 90 deg clockwise (UI top -> device right, +X), so +X maps to 270, not 90.
 static lv_display_rotation_t gravityToRotation(float gx, float gy, lv_display_rotation_t fallback) {
     float plane = sqrtf((gx * gx) + (gy * gy));
     if (plane < FLAT_THRESHOLD) {
@@ -22,9 +25,9 @@ static lv_display_rotation_t gravityToRotation(float gx, float gy, lv_display_ro
     int idx = (int)((ang + 45.0F) / 90.0F) % 4;
     static constexpr lv_display_rotation_t map[4] = {
         LV_DISPLAY_ROTATION_0,
-        LV_DISPLAY_ROTATION_90,
-        LV_DISPLAY_ROTATION_180,
         LV_DISPLAY_ROTATION_270,
+        LV_DISPLAY_ROTATION_180,
+        LV_DISPLAY_ROTATION_90,
     };
     return map[idx];
 }

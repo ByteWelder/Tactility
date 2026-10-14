@@ -14,12 +14,12 @@ extern "C" {
 struct Mpu6886Config {
     /** Address on bus */
     uint8_t address;
-    bool swap_xy;
-    bool swap_xz;
-    bool swap_yz;
-    bool invert_x;
-    bool invert_y;
-    bool invert_z;
+    /**
+     * Row-major 3x3 rotation matrix mapping the sensor frame onto the device frame (Linux IIO
+     * "mount-matrix" convention: `out[i] = m[i * 3] * x + m[i * 3 + 1] * y + m[i * 3 + 2] * z`).
+     * Identity means the sensor frame already matches the device frame.
+     */
+    int32_t mount_matrix[9];
 };
 
 /**
