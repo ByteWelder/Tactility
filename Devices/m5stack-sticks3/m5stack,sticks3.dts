@@ -63,6 +63,9 @@
 		bmi270 {
 			compatible = "bosch,bmi270";
 			reg = <0x68>;
+			mount-matrix = <0 1 0
+							-1 0 0
+							0 0 1>;
 		};
 
 		es8311 {

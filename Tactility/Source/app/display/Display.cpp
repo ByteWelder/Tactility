@@ -84,7 +84,7 @@ struct Context {
     lv_obj_t* timeoutValueLabel = nullptr;
     lv_obj_t* screensaverValueLabel = nullptr;
     // Shown when auto-rotate is off or unavailable: the orientation label and chips
-    lv_obj_t* orientationGroup = nullptr;
+    lv_obj_t* orientationCard = nullptr;
     lv_obj_t* orientationChips = nullptr;
     lv_obj_t* autoRotateSwitch = nullptr;
 };
@@ -151,10 +151,10 @@ void setCheckedChip(lv_obj_t* chips, settings::display::Orientation orientation)
     });
 }
 
-/** Shows or hides the manual orientation chips, depending on whether auto-rotate is on */
+/** Shows or hides the manual orientation card, depending on whether auto-rotate is on */
 void updateOrientationVisibility(Context* ctx) {
     const bool auto_rotate = ctx->autoRotateSwitch != nullptr && ctx->displaySettings.autoRotateEnabled;
-    lv_obj_set_hidden(ctx->orientationGroup, auto_rotate);
+    lv_obj_set_hidden(ctx->orientationCard, auto_rotate);
 }
 
 void onOrientationChipPressed(lv_event_t* event) {
@@ -396,12 +396,12 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
 
     // The card shows the manual orientation; auto-rotate hides it while it drives the rotation
-    auto* orientation_card = lvgl_card_create(main_wrapper);
-    lv_obj_set_size(orientation_card, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(orientation_card, LV_FLEX_FLOW_COLUMN);
+    ctx->orientationCard = lvgl_card_create(main_wrapper);
+    lv_obj_set_size(ctx->orientationCard, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(ctx->orientationCard, LV_FLEX_FLOW_COLUMN);
 
-    ctx->orientationGroup = createCardGroup(orientation_card, "Orientation");
-    ctx->orientationChips = createOrientationChips(ctx->orientationGroup, ctx->displaySettings.orientation, onOrientationChipPressed, ctx);
+    auto* orientation_group = createCardGroup(ctx->orientationCard, "Orientation");
+    ctx->orientationChips = createOrientationChips(orientation_group, ctx->displaySettings.orientation, onOrientationChipPressed, ctx);
 
     updateOrientationVisibility(ctx);
 
@@ -447,7 +447,7 @@ void destroyWidgets(void* userData) {
     ctx->timeoutCard = nullptr;
     ctx->timeoutValueLabel = nullptr;
     ctx->screensaverValueLabel = nullptr;
-    ctx->orientationGroup = nullptr;
+    ctx->orientationCard = nullptr;
     ctx->orientationChips = nullptr;
     ctx->autoRotateSwitch = nullptr;
 }

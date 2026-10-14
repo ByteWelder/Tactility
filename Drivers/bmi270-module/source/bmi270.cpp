@@ -5,8 +5,6 @@
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
 
-#include <algorithm>
-
 #define TAG "BMI270"
 
 static constexpr uint8_t REG_CHIP_ID = 0x00; // read: expect 0x24
@@ -90,6 +88,18 @@ static bool configure(Device* i2c_controller, uint8_t address) {
 
 // region Driver lifecycle
 
+// Applies the devicetree mount matrix (sensor frame -> device frame) to a 3-axis reading.
+// Flat row-major [9]: x' = m0*x + m1*y + m2*z, y' = m3*x + m4*y + m5*z, z' = m6*x + m7*y + m8*z.
+static void applyMountMatrix(const Bmi270Config& config, float& x, float& y, float& z) {
+    const int32_t* m = config.mount_matrix;
+    const float rx = m[0] * x + m[1] * y + m[2] * z;
+    const float ry = m[3] * x + m[4] * y + m[5] * z;
+    const float rz = m[6] * x + m[7] * y + m[8] * z;
+    x = rx;
+    y = ry;
+    z = rz;
+}
+
 static error_t start(Device* device) {
     auto* i2c_controller = device_get_parent(device);
     if (device_get_type(i2c_controller) != &I2C_CONTROLLER_TYPE) {
@@ -171,13 +181,7 @@ error_t bmi270_read_accel(Device* device, ImuAccelData* data) {
         toI16(buffer[2], buffer[3]) * ACCEL_SCALE,
         toI16(buffer[4], buffer[5]) * ACCEL_SCALE,
     };
-    const auto& config = *GET_CONFIG(device);
-    if (config.swap_xy) std::swap(axes[0], axes[1]);
-    if (config.swap_xz) std::swap(axes[0], axes[2]);
-    if (config.swap_yz) std::swap(axes[1], axes[2]);
-    if (config.invert_x) axes[0] = -axes[0];
-    if (config.invert_y) axes[1] = -axes[1];
-    if (config.invert_z) axes[2] = -axes[2];
+    applyMountMatrix(*GET_CONFIG(device), axes[0], axes[1], axes[2]);
     data->ax = axes[0];
     data->ay = axes[1];
     data->az = axes[2];
@@ -197,9 +201,13 @@ error_t bmi270_read_gyro(Device* device, ImuGyroData* data) {
         return static_cast<int16_t>(static_cast<uint16_t>(hi) << 8 | lo);
     };
 
-    data->gx = toI16(buffer[0], buffer[1]) * GYRO_SCALE;
-    data->gy = toI16(buffer[2], buffer[3]) * GYRO_SCALE;
-    data->gz = toI16(buffer[4], buffer[5]) * GYRO_SCALE;
+    float gx = toI16(buffer[0], buffer[1]) * GYRO_SCALE;
+    float gy = toI16(buffer[2], buffer[3]) * GYRO_SCALE;
+    float gz = toI16(buffer[4], buffer[5]) * GYRO_SCALE;
+    applyMountMatrix(*GET_CONFIG(device), gx, gy, gz);
+    data->gx = gx;
+    data->gy = gy;
+    data->gz = gz;
 
     return ERROR_NONE;
 }

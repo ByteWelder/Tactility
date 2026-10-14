@@ -42,6 +42,9 @@
 		qmi8658 {
 			compatible = "qst,qmi8658";
 			reg = <0x6B>;
+			mount-matrix = <0 1 0
+							1 0 0
+							0 0 1>;
 		};
 
 		touch0 {
