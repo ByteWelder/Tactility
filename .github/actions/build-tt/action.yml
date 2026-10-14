@@ -3,6 +3,9 @@ name: Build tt
 runs:
   using: 'composite'
   steps:
+    - name: 'Test'
+      shell: bash
+      run: python -m unittest discover -s Tests/Python -p '*_test.py' -v
     - name: 'Release'
       shell: bash
       run: python Buildscripts/release-tt.py

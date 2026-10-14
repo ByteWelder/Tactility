@@ -17,7 +17,7 @@ tool_directory = os.path.dirname(os.path.abspath(__file__))
 # The SDKs are in TACTILITY_SDK_PATH/sdk/<version>, which tt sets along with the version it selected.
 # Read once, because builds point TACTILITY_SDK_PATH at the platform SDK for CMake.
 tt_sdk_version = os.environ.get("TACTILITY_SDK_VERSION")
-sdk_root_path = os.environ.get("TACTILITY_SDK_PATH")
+sdk_root_path = os.environ.get("TACTILITY_SDK_PATH") or None
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"

@@ -247,7 +247,8 @@ def main(arguments):
         return
 
     version, platforms = resolve_target()
-    local_path = os.environ.get("TACTILITY_SDK_PATH")
+    # Empty counts as unset, like after "export TACTILITY_SDK_PATH="
+    local_path = os.environ.get("TACTILITY_SDK_PATH") or None
     is_local = local_path is not None
     if is_local:
         sdk_path = os.path.abspath(local_path)

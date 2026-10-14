@@ -202,6 +202,13 @@ class TtTest(unittest.TestCase):
         self.assertEqual(output["version"], VERSION)
         self.assertFalse(os.path.exists(self.sdk_path()))
 
+    def test_empty_tactility_sdk_path_counts_as_unset(self):
+        self.write_manifest(self.work)
+        result = self.run_tt("echo", environment={"TACTILITY_SDK_PATH": ""})
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertNotIn("local SDK", result.stderr)
+        self.assertEqual(json.loads(result.stdout)["path"], os.path.join(self.home, ".tactility"))
+
     def test_local_tools_without_tactility_sdk_path_are_not_used(self):
         self.write_manifest(self.work)
         result = self.run_tt("echo")

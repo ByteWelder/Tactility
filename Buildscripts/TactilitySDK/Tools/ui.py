@@ -200,7 +200,7 @@ class TactilityTUI(App):
                             yield Button("Build", id="btn_build", variant="success")
                             yield Button("Install", id="btn_install", variant="warning")
                             yield Button("Run", id="btn_run", variant="primary")
-                            yield Button("Clean Folders", id="btn_clean", variant="error")
+                            yield Button("Clean", id="btn_clean", variant="error")
                     with Vertical(id="network_settings"):
                         yield Label("🌐 REMOTE TARGET HOST", classes="section_title")
                         yield Input(value=_device_host.read_device_host() or "", placeholder="e.g. 192.168.1.50", id="host_input")

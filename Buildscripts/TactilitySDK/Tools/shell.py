@@ -396,6 +396,8 @@ def start_input_reader(wake_socket):
             inputs.put(data or None)
             try:
                 wake_socket.send(b"i")
+            except BlockingIOError:
+                pass
             except OSError:
                 return
             if not data:
@@ -416,9 +418,17 @@ def run_shell(args):
 
     # Input and resizes wake up the select() below through this socket pair
     wake_read, wake_write = socket.socketpair()
+    # A full buffer already wakes up the loop, and a signal handler must never block
+    wake_write.setblocking(False)
     has_resize_signal = hasattr(signal, "SIGWINCH")
+    previous_resize_handler = None
     if has_resize_signal:
-        signal.signal(signal.SIGWINCH, lambda *_: wake_write.send(b"r"))
+        def on_resize(*_):
+            try:
+                wake_write.send(b"r")
+            except OSError:
+                pass
+        previous_resize_handler = signal.signal(signal.SIGWINCH, on_resize)
     # Without a resize signal, the window size is checked this often
     resize_poll_seconds = None if has_resize_signal else 0.5
     window_size = (columns, rows)
@@ -454,6 +464,8 @@ def run_shell(args):
                         elif frame_type == FRAME_EXIT and len(payload) == 4:
                             exit_code = struct.unpack(">i", payload)[0]
     finally:
+        if has_resize_signal:
+            signal.signal(signal.SIGWINCH, previous_resize_handler)
         connection.close()
         wake_write.close()
         wake_read.close()

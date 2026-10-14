@@ -7,7 +7,9 @@
 
 ## Higher Priority
 
+- Update FreeRTOS-Kernel to 11.3.1 to fix hanging tests, then re-release apps.
 - App Hub needs a commandline app
+- ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
 - Export TactilityKernelCpp with SDK as optional library
 - Fix BT: an esp32 device connecting to a peripheral isn't working
