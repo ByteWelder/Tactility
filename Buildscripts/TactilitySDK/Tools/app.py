@@ -36,7 +36,7 @@ def print_help():
     print("")
     print("  build                          Build the app. Optionally specify a platform.")
     print("    Supported platforms are lower case. Example: esp32s3")
-    print("    Supported platforms are read from manifest.properties")
+    print("    Supported platforms are read from manifest.properties (target.platforms=all for every installed SDK platform)")
     print("    Parameters:")
     print("      (optional) --architecture [input], -a [input]")
     print("")
@@ -348,9 +348,19 @@ def get_binary_dirs(manifest):
     else:
         return [(manifest["app.id"], ".")]
 
+# "target.platforms=all" means every platform that an SDK is installed for
+def get_manifest_platforms(manifest):
+    platforms = [platform.strip() for platform in manifest["target.platforms"].split(",")]
+    if platforms != ["all"]:
+        return platforms
+    version_directory = os.path.join(sdk_root_path, "sdk", manifest["target.sdk"])
+    prefix = "platform-"
+    if not os.path.isdir(version_directory):
+        exit_with_error(f"No SDK {manifest['target.sdk']} installed, so 'all' platforms can't be determined")
+    return sorted(name[len(prefix):] for name in os.listdir(version_directory) if name.startswith(prefix))
+
 def is_valid_manifest_platform(manifest, platform):
-    manifest_platforms = manifest["target.platforms"].split(",")
-    return platform in manifest_platforms
+    return platform in get_manifest_platforms(manifest)
 
 def validate_manifest_platform(manifest, platform):
     if not is_valid_manifest_platform(manifest, platform):
@@ -358,7 +368,7 @@ def validate_manifest_platform(manifest, platform):
 
 def get_manifest_target_platforms(manifest, requested_platform):
     if requested_platform == "" or requested_platform is None:
-        return manifest["target.platforms"].split(",")
+        return get_manifest_platforms(manifest)
     else:
         validate_manifest_platform(manifest, requested_platform)
         return [requested_platform]

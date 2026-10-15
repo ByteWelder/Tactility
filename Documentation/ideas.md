@@ -13,7 +13,6 @@
 - Fix BT: an esp32 device connecting to a peripheral isn't working
 - "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
 - Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.
-- Fix posix Wi-Fi so it actually connects to something
 - Support http/https on posix
 - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
 - lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
