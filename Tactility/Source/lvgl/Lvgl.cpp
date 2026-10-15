@@ -54,9 +54,6 @@ namespace service {
     namespace displayidle { extern const ServiceManifest manifest; }
     namespace keyboardidle { extern const ServiceManifest manifest; }
 #endif
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    namespace screenshot { extern const ServiceManifest manifest; }
-#endif
 }
 
 namespace lvgl {
@@ -185,9 +182,6 @@ static void onLvglStarted() {
 #if defined(CONFIG_TT_TDECK_WORKAROUND)
     addService(service::keyboardidle::manifest);
 #endif
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    addService(service::screenshot::manifest);
-#endif
 
     lvgl::startUsbHidInput();
     lvgl::startKeyboardDeviceListener();
@@ -207,9 +201,6 @@ static void onLvglStopped() {
     if (device_exists_of_type(&IMU_TYPE)) {
         check(service::removeService(service::autorotate::manifest.id));
     }
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    check(service::removeService(service::screenshot::manifest.id));
-#endif
 #if defined(CONFIG_TT_TDECK_WORKAROUND)
     check(service::removeService(service::keyboardidle::manifest.id));
 #endif

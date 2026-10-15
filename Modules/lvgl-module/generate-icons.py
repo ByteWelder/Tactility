@@ -153,7 +153,7 @@ shared_symbol_code_point_names = [
     "help", # Diceware help
     "hub", # App Hub
     "info", # System Info
-    "image", # Screenshot app
+    "image", # Files app
     "keyboard_arrow_up",
     "lightbulb",
     "language", # Globe
