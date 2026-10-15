@@ -62,7 +62,81 @@ macro(tactility_project_post project_name)
         service-module
     )
 
+    _tactility_enable_sdk_ccache()
+
 endmacro()
+
+# Compiles the ESP-IDF and SDK components through ccache, so apps built for the same SDK and
+# platform reuse each other's objects: the SDK's fixed sdkconfig makes these objects identical
+# across apps. The app's own components get no launcher, so their sources are never cached.
+# Each platform uses its own cache directory: <TACTILITY_CCACHE_DIR or ~/.tactility/ccache>/<target>.
+# Disable with -D TACTILITY_CCACHE=OFF (the tool's --no-ccache).
+function(_tactility_enable_sdk_ccache)
+    set(TACTILITY_CCACHE ON CACHE BOOL "Compile ESP-IDF and SDK components through ccache")
+    if (NOT TACTILITY_CCACHE)
+        return()
+    endif()
+    find_program(TACTILITY_CCACHE_PROGRAM ccache)
+    if (NOT TACTILITY_CCACHE_PROGRAM)
+        return()
+    endif()
+
+    if (DEFINED ENV{TACTILITY_CCACHE_DIR})
+        set(cache_root "$ENV{TACTILITY_CCACHE_DIR}")
+    elseif (CMAKE_HOST_WIN32)
+        set(cache_root "$ENV{USERPROFILE}/.tactility/ccache")
+    else()
+        set(cache_root "$ENV{HOME}/.tactility/ccache")
+    endif()
+    idf_build_get_property(target IDF_TARGET)
+
+    # The settings are part of the launcher, so they also apply when idf.py runs without the tool.
+    # They remove the parts of an SDK compile command that differ per app:
+    # - CCACHE_BASEDIR: makes paths into the build directory (-I<build>/config) relative
+    # - CCACHE_NOHASHDIR: ignores the working directory that -g would otherwise add to the hash
+    # - CCACHE_IGNOREOPTIONS: ignores -fmacro-prefix-map=<app directory>=., which can't affect
+    #   sources outside the app directory
+    set(launcher
+        ${CMAKE_COMMAND} -E env
+        "CCACHE_DIR=${cache_root}/${target}"
+        "CCACHE_BASEDIR=${CMAKE_BINARY_DIR}"
+        "CCACHE_NOHASHDIR=1"
+        "CCACHE_IGNOREOPTIONS=-fmacro-prefix-map=*"
+        ${TACTILITY_CCACHE_PROGRAM}
+    )
+
+    # Selected by the directory that defines the target, not by component: some components define
+    # extra library targets (e.g. mbedtls's mbedcrypto), and the app's own targets (main, the ELF)
+    # are defined in the app directory. CMake has no launcher for assembly, so .S files aren't cached.
+    idf_build_get_property(idf_path IDF_PATH)
+    set(sdk_roots "${idf_path}" "${TACTILITY_SDK_PATH}")
+    set(directories "${CMAKE_SOURCE_DIR}")
+    while (directories)
+        list(POP_FRONT directories directory)
+        get_property(subdirectories DIRECTORY "${directory}" PROPERTY SUBDIRECTORIES)
+        list(APPEND directories ${subdirectories})
+        set(is_sdk_directory FALSE)
+        foreach(sdk_root ${sdk_roots})
+            cmake_path(IS_PREFIX sdk_root "${directory}" NORMALIZE is_prefix)
+            if (is_prefix)
+                set(is_sdk_directory TRUE)
+            endif()
+        endforeach()
+        if (NOT is_sdk_directory)
+            continue()
+        endif()
+        get_property(targets DIRECTORY "${directory}" PROPERTY BUILDSYSTEM_TARGETS)
+        foreach(target_name ${targets})
+            get_target_property(target_type ${target_name} TYPE)
+            if (target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+                set_target_properties(${target_name} PROPERTIES
+                    C_COMPILER_LAUNCHER "${launcher}"
+                    CXX_COMPILER_LAUNCHER "${launcher}"
+                )
+            endif()
+        endforeach()
+    endwhile()
+endfunction()
 
 macro(tactility_component_register)
     cmake_parse_arguments(TT_COMPONENT "" "" "SRCS;INCLUDE_DIRS;REQUIRES;PRIV_REQUIRES" ${ARGN})

@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Improve Setup: Show progress of some kind (page_indicator?). Improve skip/next buttons UX? e.g. add outline button style and put buttons together? (update docs!)
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
@@ -15,11 +16,9 @@
 - Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.
 - Fix posix Wi-Fi so it actually connects to something
 - Support http/https on posix
-- Vi apps are both named "Vi" in the App Hub
 - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
 - lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
 - Cursor is hard-coded, needs size based on DPI
-- Improve Setup: Show progress of some kind. Put skip/next buttons closer? And add outline button style (update docs!)
 - Files app should have a page indicator like Launcher.
 - Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`

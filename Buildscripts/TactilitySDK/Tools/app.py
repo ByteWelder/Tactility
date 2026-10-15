@@ -12,6 +12,8 @@ import _device_host
 
 ttbuild_version = "8.0.0"
 verbose = False
+# Compile the ESP-IDF and SDK components through ccache (see TactilitySDK.esp32.cmake)
+use_ccache = True
 # The development server client (shell.py) is next to this script
 tool_directory = os.path.dirname(os.path.abspath(__file__))
 # The SDKs are in TACTILITY_SDK_PATH/sdk/<version>, which tt sets along with the version it selected.
@@ -65,6 +67,7 @@ def print_help():
     print("Options:")
     print("  -p, --path [input]             Path to the app directory (defaults to current directory)")
     print("  --help                         Show this commandline info")
+    print("  --no-ccache                    Don't reuse ESP-IDF/SDK objects from other app builds via ccache")
     print("  --skip-build                   Run everything except the idf.py/CMake commands")
     print("  --verbose                      Show extra console output")
     print("")
@@ -182,6 +185,7 @@ ARG_SPECS = {
     "platform": ("-a", "--architecture", True),
     "verbose": (None, "--verbose", False),
     "skip-build": (None, "--skip-build", False),
+    "no-ccache": (None, "--no-ccache", False),
     "help": (None, "--help", False),
 }
 
@@ -472,6 +476,10 @@ def build_all(version, platforms, skip_build):
                 return False
     return True
 
+# Always passed, because a -D value persists in CMakeCache.txt
+def get_ccache_define():
+    return f"TACTILITY_CCACHE={'ON' if use_ccache else 'OFF'}"
+
 def wait_for_process(process):
     buffer = []
     if sys.platform != "win32":
@@ -514,7 +522,7 @@ def build_first(version, platform, skip_build):
     cmake_path = get_cmake_path(platform)
     print_status_busy(f"Building {platform} ELF")
     shell_needed = sys.platform == "win32"
-    build_command = ["idf.py", "-B", cmake_path, "build"]
+    build_command = ["idf.py", "-B", cmake_path, "-D", get_ccache_define(), "build"]
     if verbose:
         print(f"Running command: {' '.join(build_command)}")
     with subprocess.Popen(build_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell_needed) as process:
@@ -544,7 +552,7 @@ def build_consecutively(version, platform, skip_build):
     cmake_path = get_cmake_path(platform)
     print_status_busy(f"Building {platform} ELF")
     shell_needed = sys.platform == "win32"
-    build_command = ["idf.py", "-B", cmake_path, "elf"]
+    build_command = ["idf.py", "-B", cmake_path, "-D", get_ccache_define(), "elf"]
     if verbose:
         print(f"Running command: {' '.join(build_command)}")
     with subprocess.Popen(build_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell_needed) as process:
@@ -758,6 +766,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     verbose = parsed_command.arguments.has("verbose")
+    use_ccache = not parsed_command.arguments.has("no-ccache")
 
     app_path = parsed_command.arguments.get("path")
     if app_path is not None:
