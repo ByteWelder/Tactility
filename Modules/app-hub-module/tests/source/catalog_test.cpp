@@ -75,3 +75,12 @@ TEST_CASE("app hub: isCompatible applies the device and RAM requirements") {
     CHECK_FALSE(app_hub_catalog_is_compatible(entryWith({ "other-device" }, 0)));
     CHECK_FALSE(app_hub_catalog_is_compatible(entryWith({}, 256)));
 }
+
+TEST_CASE("app hub: isCompatible requires this device's platform when the app lists platforms") {
+    auto entry = entryWith({}, 0);
+    CHECK(app_hub_catalog_is_compatible(entry));
+    entry.target_platforms = { "some-other-platform" };
+    CHECK_FALSE(app_hub_catalog_is_compatible(entry));
+    entry.target_platforms = { "some-other-platform", app_hub_catalog_get_platform() };
+    CHECK(app_hub_catalog_is_compatible(entry));
+}

@@ -3,7 +3,9 @@
 
 #include <app/package_manifest.h>
 
+#include <tactility/filesystem/file_system.h>
 #include <tactility/log.h>
+#include <tactility/paths.h>
 
 #include <cJSON.h>
 
@@ -25,6 +27,16 @@ static std::string get_version_without_postfix() {
     std::string version(TT_VERSION);
     auto index = version.find_first_of('-');
     return (index == std::string::npos) ? version : version.substr(0, index);
+}
+
+std::string app_hub_catalog_get_certificate_path() {
+    // The system file system is mounted at "/system" on ESP32, but it's a folder elsewhere on the simulator
+    FileSystem* system = file_system_find_by_name("system");
+    char path[FILE_MAX_PATH_STRING_LENGTH];
+    if (system == nullptr || file_system_get_path(system, path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return std::string(path) + "/certificates/WE1.pem";
 }
 
 std::string app_hub_catalog_get_url() {
@@ -149,14 +161,21 @@ bool app_hub_catalog_parse(const char* path, AppHubCatalog& catalog) {
     return true;
 }
 
-bool app_hub_catalog_is_compatible(const AppHubCatalogEntry& entry) {
-    // The simulator isn't a real MCU target, so it has no platform to match against
+const char* app_hub_catalog_get_platform() {
 #ifdef ESP_PLATFORM
+    return CONFIG_IDF_TARGET;
+#else
+    // Same name as the folder of the app binary that the POSIX app loader looks for
+    return "posix-" TACTILITY_POSIX_ARCH;
+#endif
+}
+
+bool app_hub_catalog_is_compatible(const AppHubCatalogEntry& entry) {
+    // An empty list means that the app supports every platform
     if (!entry.target_platforms.empty() &&
-        std::ranges::find(entry.target_platforms, std::string_view(CONFIG_IDF_TARGET)) == entry.target_platforms.end()) {
+        std::ranges::find(entry.target_platforms, std::string_view(app_hub_catalog_get_platform())) == entry.target_platforms.end()) {
         return false;
     }
-#endif
 
     // Same device and RAM rules as for installed packages
     PackageManifest package {};

@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-constexpr auto* APP_HUB_CERTIFICATE_PATH = "/system/certificates/WE1.pem";
 
 struct AppHubCatalogEntry {
     std::string id;
@@ -30,8 +29,14 @@ using AppHubCatalog = std::vector<AppHubCatalogEntry, tt::OptExternalAllocator<A
 /** Parse an apps.json file */
 bool app_hub_catalog_parse(const char* path, AppHubCatalog& catalog);
 
+/** @return the platform name of this device in the catalog's target platforms, e.g. "esp32s3" or "posix-x86_64" */
+const char* app_hub_catalog_get_platform();
+
 /** @return true when this device can install and run the entry's app (target platform, device and RAM requirements) */
 bool app_hub_catalog_is_compatible(const AppHubCatalogEntry& entry);
+
+/** @return the path of the certificate that verifies the catalog server, in the "system" file system, or an empty string when it isn't available */
+std::string app_hub_catalog_get_certificate_path();
 
 std::string app_hub_catalog_get_url();
 
