@@ -58,6 +58,9 @@ def main():
         {'src': 'TactilityKernel/include/**', 'dst': 'Libraries/TactilityKernel/include/'},
         {'src': 'TactilityKernel/CMakeLists.txt', 'dst': 'Libraries/TactilityKernel/'},
         {'src': 'TactilityKernel/*.md', 'dst': 'Libraries/TactilityKernel/'},
+        # TactilityKernelCpp (header-only)
+        {'src': 'TactilityKernelCpp/Include/**', 'dst': 'Libraries/TactilityKernelCpp/Include/'},
+        {'src': 'TactilityKernelCpp/*.md', 'dst': 'Libraries/TactilityKernelCpp/'},
         # FreeRTOS-Kernel - TactilityKernel's public headers (tactility/freertos/*.h) include the
         # real FreeRTOS.h/task.h/etc directly, unlike ESP32 where ESP-IDF's own "freertos"
         # component and Kconfig-generated FreeRTOSConfig.h are already part of every project.

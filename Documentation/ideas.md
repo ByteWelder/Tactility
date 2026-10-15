@@ -10,7 +10,6 @@
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
-- Export TactilityKernelCpp with SDK as optional library
 - Fix BT: an esp32 device connecting to a peripheral isn't working
 - "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
 - Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.

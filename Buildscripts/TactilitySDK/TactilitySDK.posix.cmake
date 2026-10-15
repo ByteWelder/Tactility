@@ -26,6 +26,7 @@ macro(tactility_project_post project_name)
         ${TACTILITY_SDK_PATH}/Modules/lvgl-window-manager-module/include
         ${TACTILITY_SDK_PATH}/Modules/service-module/include
         ${TACTILITY_SDK_PATH}/Libraries/TactilityKernel/include
+        ${TACTILITY_SDK_PATH}/Libraries/TactilityKernelCpp/Include
         ${TACTILITY_SDK_PATH}/Libraries/lvgl/include
         ${TACTILITY_SDK_PATH}/Libraries/FreeRTOS-Kernel/include
         ${TACTILITY_SDK_PATH}/Libraries/FreeRTOS-Kernel/portable/ThirdParty/GCC/Posix
