@@ -30,6 +30,9 @@ CONNECT_TIMEOUT_SECONDS = 10
 # Leaves time for the user to answer the prompt on the device
 ACCEPT_TIMEOUT_SECONDS = 90
 PROMPT_HINT_DELAY_SECONDS = 1
+# How long the device may take to answer a request, and to answer an install, which extracts the whole package first
+REQUEST_TIMEOUT_SECONDS = 10
+INSTALL_TIMEOUT_SECONDS = 120
 
 # tt runs this tool as "tt shell"
 PROGRAM_NAME = "tt shell" if "TACTILITY_SDK_VERSION" in os.environ else "shell.py"
@@ -142,11 +145,12 @@ def read_known_hosts():
 
 
 def verify_device(host, port, fingerprint):
-    """Trust on first use: remembers the device fingerprint and refuses a device that changed it"""
+    """Trust on first use: remembers the device fingerprint and refuses a device that changed it.
+    @return True when the user was asked to trust the device"""
     address = f"{host}:{port}"
     known = read_known_hosts().get(address)
     if known == fingerprint:
-        return
+        return False
     if known is not None:
         fail(
             f"the fingerprint of {address} changed!\n"
@@ -168,6 +172,7 @@ def verify_device(host, port, fingerprint):
     os.makedirs(CONFIG_DIRECTORY, exist_ok=True)
     with open(KNOWN_HOSTS_PATH, "a") as file:
         file.write(f"{address} {fingerprint}\n")
+    return True
 
 # endregion
 
@@ -221,12 +226,17 @@ class Connection:
         self.fingerprint = certificate_fingerprint(self.socket.getpeercert(binary_form=True))
 
     def send(self, data):
-        self.socket.sendall(data)
+        try:
+            self.socket.sendall(data)
+        except (OSError, ssl.SSLError):
+            fail("the device closed the connection")
 
     def receive(self):
-        """@return False when the connection closed"""
+        """@return False when the connection closed. Raises socket.timeout when the socket timeout passes."""
         try:
             data = self.socket.recv(4096)
+        except socket.timeout:
+            raise
         except (OSError, ssl.SSLError):
             return False
         if not data:
@@ -261,11 +271,15 @@ class Connection:
         self.buffer = self.buffer[FRAME_HEADER_SIZE + length:]
         return frame_type, payload
 
-    def read_frame(self):
-        """Blocks until a frame arrives. @return (type, payload)"""
-        while (frame := self.pop_frame()) is None:
-            if not self.receive():
-                fail("the device closed the connection")
+    def read_frame(self, timeout=REQUEST_TIMEOUT_SECONDS):
+        """Waits for a frame. @return (type, payload)"""
+        self.socket.settimeout(timeout)
+        try:
+            while (frame := self.pop_frame()) is None:
+                if not self.receive():
+                    fail("the device closed the connection")
+        except socket.timeout:
+            fail(f"the device did not answer within {timeout} seconds")
         return frame
 
     def close(self):
@@ -278,7 +292,11 @@ class Connection:
 def open_session(host, port, mode, columns=80, rows=24, command=None):
     ensure_client_identity()
     connection = Connection(host, port)
-    verify_device(host, port, connection.fingerprint)
+    if verify_device(host, port, connection.fingerprint):
+        # The device closes a connection that doesn't greet it in time, which answering the question can take longer than
+        connection.close()
+        connection = Connection(host, port)
+        verify_device(host, port, connection.fingerprint)
 
     hello = {"protocol": PROTOCOL_VERSION, "mode": mode, "client": client_name(), "columns": columns, "rows": rows}
     if command is not None:
@@ -301,6 +319,7 @@ def open_session(host, port, mode, columns=80, rows=24, command=None):
         fail("the device rejected the connection")
     if status.get("status") != "accepted":
         fail(f"the device refused the connection: {status.get('message', line)}")
+    connection.socket.settimeout(REQUEST_TIMEOUT_SECONDS)
     return connection
 
 # endregion
@@ -414,6 +433,7 @@ def run_shell(args):
         fail(f"the command is longer than {COMMAND_MAX} bytes")
     columns, rows = terminal_size()
     connection = open_session(args.host, args.port, "shell", columns, rows, command)
+    # A shell or command can be silent for as long as it likes
     connection.socket.settimeout(None)
 
     # Input and resizes wake up the select() below through this socket pair
@@ -508,8 +528,8 @@ def send_file(connection, request_type, name, local_path):
     return size
 
 
-def expect_ok(connection, subject):
-    frame_type, payload = connection.read_frame()
+def expect_ok(connection, subject, timeout=REQUEST_TIMEOUT_SECONDS):
+    frame_type, payload = connection.read_frame(timeout)
     if frame_type == FRAME_FAIL:
         fail(f"{subject}: {payload.decode('utf-8', errors='replace')}")
     if frame_type != FRAME_OK:
@@ -593,7 +613,7 @@ def install(host, port, package_path):
     connection = open_session(host, port, "app")
     try:
         send_file(connection, FRAME_APP_INSTALL, os.path.basename(package_path), package_path)
-        expect_ok(connection, package_path)
+        expect_ok(connection, package_path, INSTALL_TIMEOUT_SECONDS)
     finally:
         connection.close()
     return True
