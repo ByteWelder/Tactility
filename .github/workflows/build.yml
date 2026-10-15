@@ -46,8 +46,23 @@ jobs:
           persist-credentials: false
       - name: "Build Tools"
         uses: ./.github/actions/build-tools
+  # Always runs, so the jobs that depend on it aren't skipped for pushes
+  CheckTtVersion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: "Check tt version"
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 Buildscripts/check-tt-version.py "origin/$BASE_REF"
   BuildTt:
     runs-on: ubuntu-latest
+    needs: [ CheckTtVersion ]
     steps:
       - uses: actions/checkout@v6
         with:

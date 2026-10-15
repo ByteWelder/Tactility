@@ -10,8 +10,8 @@ import zipfile
 
 ROOT_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 LAUNCHER_PATH = os.path.join(ROOT_PATH, "tt.py")
-# tt.py and the wrappers that run it: tt (Linux, macOS) and tt.cmd (Windows)
-FILE_NAMES = ["tt.py", "tt", "tt.cmd"]
+# tt.py and the wrappers that run it: tt (Linux, macOS) and tt.ps1 (Windows PowerShell)
+FILE_NAMES = ["tt.py", "tt", "tt.ps1"]
 CDN_OUTPUT_PATH = os.path.join(ROOT_PATH, "release", "tt")
 
 

@@ -5,7 +5,7 @@
 "tt <command> [arguments]" runs <command>.py from the tools of that SDK version.
 When TACTILITY_SDK_PATH is set, its SDK and tools are used instead of downloading them.
 Both ~/.tactility and TACTILITY_SDK_PATH hold sdk/<version>/tools/ and sdk/<version>/platform-<platform>/TactilitySDK/.
-The tt (Linux, macOS) and tt.cmd (Windows) wrappers next to this script run it.
+The tt (Linux, macOS) and tt.ps1 (Windows PowerShell) wrappers next to this script run it.
 The SDK version is read from ./manifest.properties, or else from the first Apps/*/manifest.properties or apps/*/manifest.properties.
 """
 
@@ -20,7 +20,7 @@ import time
 import urllib.request
 import zipfile
 
-TT_VERSION = "1.0.0"
+TT_VERSION = "1.1.0"
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
 INDEX_VALIDITY_SECONDS = 3600
@@ -143,16 +143,9 @@ def install_tools(version, version_directory, index):
         fail(f"SDK {version} has no tools")
     tools_directory = os.path.join(version_directory, "tools")
     hash_path = os.path.join(version_directory, "tools.sha256")
-    if os.path.isdir(tools_directory) and os.path.isfile(hash_path):
-        with open(hash_path) as file:
-            if file.read().strip() == tools["sha256"]:
-                return
     print(f"Downloading the tools of SDK {version}", file=sys.stderr)
     zip_path = os.path.join(version_directory, "tools.zip")
     if not download(sdk_url(version, tools["file"]), zip_path):
-        if os.path.isdir(tools_directory):
-            warn(f"using the cached tools of SDK {version}")
-            return
         fail(f"failed to download the tools of SDK {version}")
     if file_sha256(zip_path) != tools["sha256"]:
         os.remove(zip_path)
@@ -167,8 +160,6 @@ def install_platforms(version, version_directory, index, platforms):
     available = index.get("platforms", {})
     for platform in platforms:
         platform_directory = os.path.join(version_directory, f"platform-{platform}")
-        if os.path.isdir(os.path.join(platform_directory, "TactilitySDK")):
-            continue
         if platform not in available:
             fail(f"platform {platform} is not available in SDK {version}")
         print(f"Downloading SDK {version} for {platform}", file=sys.stderr)
@@ -183,11 +174,17 @@ def install_platforms(version, version_directory, index, platforms):
 
 
 def prepare_sdk(version, platforms):
+    """Installs what's missing of the SDK version. Installed tools and platforms are only replaced by "tt update-sdk", so they stay from the same build."""
     version_directory = version_path(HOME_DIRECTORY, version)
+    has_tools = os.path.isdir(os.path.join(version_directory, "tools"))
+    missing_platforms = [platform for platform in platforms if not os.path.isdir(os.path.join(version_directory, f"platform-{platform}", "TactilitySDK"))]
+    if has_tools and not missing_platforms:
+        return version_directory
     os.makedirs(version_directory, exist_ok=True)
     index = load_index(version, version_directory)
-    install_tools(version, version_directory, index)
-    install_platforms(version, version_directory, index, platforms)
+    if not has_tools:
+        install_tools(version, version_directory, index)
+    install_platforms(version, version_directory, index, missing_platforms)
     return version_directory
 
 

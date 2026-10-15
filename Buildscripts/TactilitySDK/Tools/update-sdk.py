@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # License: Apache License v2
-"""Downloads the installed platforms of the selected SDK again when the CDN has a newer build of it. Run it as "tt update-sdk"."""
+"""Downloads the tools and installed platforms of the selected SDK again when the CDN has a newer build of it. Run it as "tt update-sdk"."""
 
+import hashlib
 import io
 import json
 import os
@@ -43,9 +44,17 @@ def installed_platforms(version_directory):
     )
 
 
-def install_platform(platform_directory, archive_data, commit):
-    """Extracts next to the installed SDK and then replaces it, refusing entries outside of it"""
-    staging_directory = os.path.join(platform_directory, "TactilitySDK.new")
+def read_installed_tools_hash(version_directory):
+    try:
+        with open(os.path.join(version_directory, "tools.sha256")) as file:
+            return file.read().strip()
+    except OSError:
+        return None
+
+
+def extract(archive_data, target_directory):
+    """Extracts next to target_directory and then replaces it, refusing entries outside of it"""
+    staging_directory = f"{target_directory}.new"
     shutil.rmtree(staging_directory, ignore_errors=True)
     os.makedirs(staging_directory)
     root = os.path.realpath(staging_directory)
@@ -54,16 +63,25 @@ def install_platform(platform_directory, archive_data, commit):
             for member in archive.infolist():
                 destination = os.path.realpath(os.path.join(root, member.filename))
                 if not destination.startswith(root + os.sep):
-                    fail(f"invalid entry in the SDK archive: {member.filename}")
+                    fail(f"invalid entry in the archive: {member.filename}")
             archive.extractall(root)
     except zipfile.BadZipFile:
         shutil.rmtree(staging_directory, ignore_errors=True)
-        fail("the downloaded SDK archive is invalid")
-    sdk_directory = os.path.join(platform_directory, "TactilitySDK")
-    shutil.rmtree(sdk_directory, ignore_errors=True)
-    os.replace(staging_directory, sdk_directory)
+        fail("the downloaded archive is invalid")
+    shutil.rmtree(target_directory, ignore_errors=True)
+    os.replace(staging_directory, target_directory)
+
+
+def install_platform(platform_directory, archive_data, commit):
+    extract(archive_data, os.path.join(platform_directory, "TactilitySDK"))
     with open(os.path.join(platform_directory, "commit"), "w") as file:
         file.write(commit)
+
+
+def install_tools(version_directory, archive_data, sha256):
+    extract(archive_data, os.path.join(version_directory, "tools"))
+    with open(os.path.join(version_directory, "tools.sha256"), "w") as file:
+        file.write(sha256)
 
 
 def main():
@@ -82,6 +100,14 @@ def main():
     commit = index.get("gitCommit", "")
     available = index.get("platforms", {})
     updated = False
+    tools = index.get("tools")
+    if tools is not None and read_installed_tools_hash(version_directory) != tools.get("sha256"):
+        print(f"Updating the tools of SDK {version}")
+        archive_data = fetch(f"{CDN_URL}/sdk/{version}/{tools['file']}")
+        if hashlib.sha256(archive_data).hexdigest() != tools["sha256"]:
+            fail("the downloaded tools don't match their checksum")
+        install_tools(version_directory, archive_data, tools["sha256"])
+        updated = True
     for platform in installed_platforms(version_directory):
         platform_directory = os.path.join(version_directory, f"platform-{platform}")
         if read_commit(platform_directory) == commit or platform not in available:

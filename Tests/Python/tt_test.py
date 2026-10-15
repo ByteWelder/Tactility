@@ -160,22 +160,30 @@ class TtTest(unittest.TestCase):
         self.assertIn("echo", result.stdout)
         self.assertIn(VERSION, result.stdout)
 
-    def test_changed_tools_are_downloaded_again(self):
+    def test_installed_tools_and_platforms_are_only_replaced_by_update_sdk(self):
         self.write_manifest(self.work)
         self.assertEqual(self.run_tt("echo").returncode, 3)
-        self.publish_sdk({"echo.py": "import sys\nsys.exit(4)\n"})
-        self.assertEqual(self.run_tt("echo").returncode, 3)
+        tools = self.default_tools() | {"echo.py": "import sys\nimport _bootstrap\n_bootstrap.run()\nsys.exit(4)\n"}
+        self.publish_sdk(tools, commit="commit2", sdk_content="# sdk 2")
         self.expire_index()
+        self.expire_update_check()
+        result = self.run_tt("echo")
+        self.assertEqual(result.returncode, 3)
+        self.assertEqual(self.read_sdk_file(), "# sdk")
+        self.assertIn("run 'tt update-sdk'", result.stderr)
+        result = self.run_tt("update-sdk")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Updating the tools", result.stdout)
         self.assertEqual(self.run_tt("echo").returncode, 4)
+        self.assertEqual(self.read_sdk_file(), "# sdk 2")
 
-    def test_failed_download_keeps_the_cache(self):
+    def test_installed_sdk_works_offline(self):
         self.write_manifest(self.work)
         self.assertEqual(self.run_tt("echo").returncode, 3)
         shutil.rmtree(self.cdn)
         self.expire_index()
         result = self.run_tt("echo")
         self.assertEqual(result.returncode, 3, result.stderr)
-        self.assertIn("cached", result.stderr)
 
     def test_tools_with_a_wrong_checksum_are_refused(self):
         self.write_manifest(self.work)
@@ -225,16 +233,19 @@ class TtTest(unittest.TestCase):
     def test_update_replaces_itself_and_installs_wrappers(self):
         tt_copy = os.path.join(self.root, "tt.py")
         shutil.copy(TT_PATH, tt_copy)
-        self.publish_tt({"tt.py": "# updated\n", "tt": "#!/bin/sh\n", "tt.cmd": "@echo off\r\n"})
+        with open(os.path.join(self.root, "tt.cmd"), "w") as file:
+            file.write("@echo off\r\n")
+        self.publish_tt({"tt.py": "# updated\n", "tt": "#!/bin/sh\n", "tt.ps1": "exit 0\r\n"})
         self.write_manifest(self.work)
         result = self.run_tt("update-self", tt_path=tt_copy)
         self.assertEqual(result.returncode, 0, result.stderr)
         with open(tt_copy) as file:
             self.assertEqual(file.read(), "# updated\n")
         self.assertTrue(os.access(os.path.join(self.root, "tt"), os.X_OK))
-        self.assertTrue(os.access(os.path.join(self.root, "tt.cmd"), os.X_OK))
+        self.assertTrue(os.access(os.path.join(self.root, "tt.ps1"), os.X_OK))
         self.assertTrue(os.access(tt_copy, os.X_OK))
-        self.assertEqual(sorted(os.listdir(self.root)), ["cdn", "home", "tt", "tt.cmd", "tt.py", "work"])
+        # The obsolete tt.cmd is removed
+        self.assertEqual(sorted(os.listdir(self.root)), ["cdn", "home", "tt", "tt.ps1", "tt.py", "work"])
 
     def test_update_rejects_invalid_python(self):
         tt_copy = os.path.join(self.root, "tt.py")
