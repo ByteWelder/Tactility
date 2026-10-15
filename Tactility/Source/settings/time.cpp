@@ -1,10 +1,12 @@
 #include <service/paths.h>
 
+#include <Tactility/settings/RadioSettings.h>
 #include <Tactility/settings/Time.h>
 #include <Tactility/settings/SystemSettings.h>
 
 #include <tactility/paths.h>
 #include <tactility/preferences.h>
+#include <tactility/log.h>
 #include <tactility/system_event.h>
 
 #include <lvgl/widgets/statusbar.h>
@@ -14,6 +16,8 @@
 #endif
 
 namespace tt::settings {
+
+constexpr auto* TAG = "Time";
 
 constexpr auto* TIMEZONE_PREFERENCES_KEY_NAME = "tz_name";
 constexpr auto* TIMEZONE_PREFERENCES_KEY_CODE = "tz_code";
@@ -60,6 +64,14 @@ void setTimeZone(const std::string& name, const std::string& code) {
     setenv("TZ", code.c_str(), 1);
     tzset();
 #endif
+
+    // The time zone tells where the device is, and so which radio band it may use
+    if (radio::hasRadio()) {
+        const RadioRegion region = radio::findRegionForTimeZone(name);
+        if (region != RADIO_REGION_UNSET && !radio::saveRegion(region)) {
+            LOG_E(TAG, "Failed to save the radio region");
+        }
+    }
 
     system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
 }

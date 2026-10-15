@@ -32,7 +32,7 @@ namespace {
 
 // The free ip-api endpoint only supports plain HTTP
 constexpr auto* API_HOST = "ip-api.com";
-constexpr auto* API_PATH = "/line/?fields=status,message,lat,lon";
+constexpr auto* API_PATH = "/line/?fields=status,message,lat,lon,timezone";
 constexpr uint64_t RETRY_INTERVAL_MS = 60 * 1000;
 // Bounds the request rate when the network connects repeatedly
 constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;
@@ -337,6 +337,12 @@ bool waitStopped(void* context, TickType_t timeout) {
     return true;
 }
 
+/** The characters of IANA time zone names, e.g. "America/Port-au-Prince" or "Etc/GMT+5" */
+bool isTimeZoneCharacter(char character) {
+    return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
+        character == '_' || character == '+' || character == '-' || character == '/';
+}
+
 std::string_view nextLine(std::string_view& text) {
     const size_t end = text.find('\n');
     std::string_view line = text.substr(0, end);
@@ -369,6 +375,27 @@ void ip_provider_untrack_network(void) {
     }
 }
 
+error_t location_lookup_time_zone(char* out_name, size_t out_size) {
+    if (!location_is_enabled()) {
+        return ERROR_INVALID_STATE;
+    }
+    tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
+    IpApiResponse parsed;
+    if (!httpGet(API_HOST, API_PATH, response.data(), response.size()) || !ip_api_parse_response(response.c_str(), &parsed) ||
+        parsed.status_code != 200 || !parsed.success) {
+        return ERROR_RESOURCE;
+    }
+    const size_t length = strlen(parsed.time_zone);
+    if (length == 0) {
+        return ERROR_NOT_FOUND;
+    }
+    if (length >= out_size) {
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    memcpy(out_name, parsed.time_zone, length + 1);
+    return ERROR_NONE;
+}
+
 bool ip_api_parse_response(const char* response, IpApiResponse* out) {
     *out = IpApiResponse {
         .status_code = 0,
@@ -378,6 +405,7 @@ bool ip_api_parse_response(const char* response, IpApiResponse* out) {
         .message = {},
         .latitude = NAN,
         .longitude = NAN,
+        .time_zone = {},
     };
 
     std::string_view text = response;
@@ -427,6 +455,12 @@ bool ip_api_parse_response(const char* response, IpApiResponse* out) {
             std::fabs(out->latitude) > 90.0 || std::fabs(out->longitude) > 180.0) {
             return false;
         }
+        const std::string_view timeZone = nextLine(text);
+        if (timeZone.size() > LOCATION_TIME_ZONE_MAX_LENGTH || !std::ranges::all_of(timeZone, isTimeZoneCharacter)) {
+            return false;
+        }
+        memcpy(out->time_zone, timeZone.data(), timeZone.size());
+        out->time_zone[timeZone.size()] = '\0';
         out->success = true;
     } else if (status == "fail") {
         const std::string_view message = nextLine(text).substr(0, IP_API_MESSAGE_MAX_LENGTH);

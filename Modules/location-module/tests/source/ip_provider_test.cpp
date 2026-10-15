@@ -3,6 +3,7 @@
 #include <location/ip_provider.h>
 
 #include <cstring>
+#include <string>
 
 TEST_CASE("ip_api_parse_response parses a successful lookup") {
     const char* response =
@@ -13,15 +14,32 @@ TEST_CASE("ip_api_parse_response parses a successful lookup") {
         "\r\n"
         "success\n"
         "39.03\n"
-        "-77.5\n";
+        "-77.5\n"
+        "America/New_York\n";
     IpApiResponse parsed;
     REQUIRE(ip_api_parse_response(response, &parsed));
     CHECK(parsed.status_code == 200);
     CHECK(parsed.success);
     CHECK(parsed.latitude == doctest::Approx(39.03));
     CHECK(parsed.longitude == doctest::Approx(-77.5));
+    CHECK(strcmp(parsed.time_zone, "America/New_York") == 0);
     CHECK(parsed.rate_remaining == 44);
     CHECK(parsed.rate_reset_seconds == 60);
+}
+
+TEST_CASE("ip_api_parse_response accepts a lookup without a time zone") {
+    const char* response = "HTTP/1.1 200 OK\r\n\r\nsuccess\n52.37\n4.89\n";
+    IpApiResponse parsed;
+    REQUIRE(ip_api_parse_response(response, &parsed));
+    CHECK(parsed.success);
+    CHECK(strcmp(parsed.time_zone, "") == 0);
+}
+
+TEST_CASE("ip_api_parse_response rejects an invalid time zone") {
+    IpApiResponse parsed;
+    CHECK_FALSE(ip_api_parse_response("HTTP/1.1 200 OK\r\n\r\nsuccess\n52.37\n4.89\n../etc/passwd x\n", &parsed));
+    const std::string tooLong = "HTTP/1.1 200 OK\r\n\r\nsuccess\n52.37\n4.89\n" + std::string(LOCATION_TIME_ZONE_MAX_LENGTH + 1, 'A') + "\n";
+    CHECK_FALSE(ip_api_parse_response(tooLong.c_str(), &parsed));
 }
 
 TEST_CASE("ip_api_parse_response parses a failed lookup") {

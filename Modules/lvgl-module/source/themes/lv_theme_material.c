@@ -19,6 +19,8 @@ extern const lv_obj_class_t lvgl_chip_class;
 extern const lv_obj_class_t lvgl_badge_class;
 extern const lv_obj_class_t lvgl_page_indicator_class;
 extern const lv_obj_class_t lvgl_page_indicator_dot_class;
+extern const lv_obj_class_t lvgl_step_indicator_class;
+extern const lv_obj_class_t lvgl_step_indicator_segment_class;
 extern const lv_obj_class_t lvgl_list_class;
 extern const lv_obj_class_t lvgl_list_text_class;
 extern const lv_obj_class_t lvgl_list_button_class;
@@ -150,6 +152,11 @@ extern const lv_obj_class_t lvgl_text_button_class;
 #define PAGE_INDICATOR_COLOR COLOR_ON_SURFACE_VARIANT
 #define PAGE_INDICATOR_DOT_SIZE (theme->config.is_compact ? 6 : LV_DPX_CALC(theme->disp_dpi, 8))
 #define PAGE_INDICATOR_GAP (theme->config.is_compact ? 4 : LV_DPX_CALC(theme->disp_dpi, 6))
+#define STEP_INDICATOR_FINISHED_COLOR COLOR_SECONDARY
+#define STEP_INDICATOR_UNFINISHED_COLOR (lv_color_mix(lv_color_black(), COLOR_SECONDARY, LV_OPA_50))
+#define STEP_INDICATOR_THICKNESS (LV_DPX_CALC(theme->disp_dpi, 6))
+#define STEP_INDICATOR_MARGIN (LV_DPX_CALC(theme->disp_dpi, 6))
+#define STEP_INDICATOR_GAP STEP_INDICATOR_MARGIN
 #define BADGE_COLOR COLOR_SECONDARY
 #define BADGE_SIZE (theme->config.is_compact ? 4 : LV_DPX_CALC(theme->disp_dpi, 6))
 #define SCROLLBAR_COLOR COLOR_OUTLINE
@@ -266,7 +273,7 @@ extern const lv_obj_class_t lvgl_text_button_class;
 #define KEY_CHECKED_TEXT_COLOR COLOR_ON_SECONDARY_CONTAINER
 #define KEY_SELECTED_COLOR COLOR_PRIMARY
 #define KEY_SELECTED_TEXT_COLOR COLOR_ON_PRIMARY
-#define LIST_COLOR COLOR_SURFACE
+#define LIST_COLOR CARD_COLOR
 #define LIST_PAD DENSITY_LIST_PAD
 #define LIST_ITEM_COLOR COLOR_SURFACE
 #define LIST_ITEM_OPACITY LV_OPA_TRANSP
@@ -276,7 +283,9 @@ extern const lv_obj_class_t lvgl_text_button_class;
 #define LIST_ITEM_GAP (theme->config.is_compact ? 3 : SPACE_4)
 #define LIST_ITEM_FOCUSED_COLOR COLOR_SECONDARY_CONTAINER
 #define LIST_ITEM_FOCUSED_TEXT_COLOR COLOR_ON_SECONDARY_CONTAINER
-#define LIST_DIVIDER_COLOR COLOR_OUTLINE_VARIANT
+#define LIST_ITEM_SELECTED_COLOR COLOR_SECONDARY_CONTAINER
+#define LIST_ITEM_SELECTED_TEXT_COLOR COLOR_ON_SECONDARY_CONTAINER
+#define LIST_DIVIDER_COLOR (lv_color_mix(COLOR_SECONDARY, LIST_COLOR, 89))
 #define LIST_DIVIDER_WIDTH DENSITY_BORDER
 #define LIST_SUBHEADER_TEXT_COLOR COLOR_ON_SURFACE_VARIANT
 #define TABS_COLOR CARD_COLOR
@@ -357,6 +366,9 @@ typedef struct {
 #endif
     lv_style_t page_indicator_dot;
     lv_style_t page_indicator_dot_current;
+    lv_style_t step_indicator;
+    lv_style_t step_indicator_segment;
+    lv_style_t step_indicator_segment_finished;
     lv_style_t badge;
     lv_style_t chip;
     lv_style_t chip_selected;
@@ -500,6 +512,7 @@ typedef struct {
     lv_style_t list;
     lv_style_t list_item;
     lv_style_t list_item_focused;
+    lv_style_t list_item_selected;
     lv_style_t list_subheader;
 #if LV_USE_TABVIEW
     lv_style_t tabs;
@@ -797,6 +810,22 @@ static void style_init(my_theme_t * theme)
 
     style_init_reset(&theme->styles.page_indicator_dot_current);
     lv_style_set_bg_opa(&theme->styles.page_indicator_dot_current, LV_OPA_COVER);
+
+    style_init_reset(&theme->styles.step_indicator);
+    lv_style_set_bg_opa(&theme->styles.step_indicator, LV_OPA_TRANSP);
+    lv_style_set_border_width(&theme->styles.step_indicator, 0);
+    lv_style_set_pad_all(&theme->styles.step_indicator, STEP_INDICATOR_MARGIN);
+    lv_style_set_pad_gap(&theme->styles.step_indicator, STEP_INDICATOR_GAP);
+
+    style_init_reset(&theme->styles.step_indicator_segment);
+    lv_style_set_height(&theme->styles.step_indicator_segment, STEP_INDICATOR_THICKNESS);
+    lv_style_set_radius(&theme->styles.step_indicator_segment, LV_RADIUS_CIRCLE);
+    lv_style_set_border_width(&theme->styles.step_indicator_segment, 0);
+    lv_style_set_bg_color(&theme->styles.step_indicator_segment, STEP_INDICATOR_UNFINISHED_COLOR);
+    lv_style_set_bg_opa(&theme->styles.step_indicator_segment, LV_OPA_COVER);
+
+    style_init_reset(&theme->styles.step_indicator_segment_finished);
+    lv_style_set_bg_color(&theme->styles.step_indicator_segment_finished, STEP_INDICATOR_FINISHED_COLOR);
 
     style_init_reset(&theme->styles.badge);
     lv_style_set_width(&theme->styles.badge, BADGE_SIZE);
@@ -1210,7 +1239,7 @@ static void style_init(my_theme_t * theme)
     lv_style_set_bg_color(&theme->styles.list, LIST_COLOR);
     lv_style_set_bg_opa(&theme->styles.list, LV_OPA_COVER);
     lv_style_set_pad_hor(&theme->styles.list, 0);
-    lv_style_set_pad_ver(&theme->styles.list, LIST_PAD);
+    lv_style_set_pad_ver(&theme->styles.list, 0);
     lv_style_set_pad_gap(&theme->styles.list, 0);
     lv_style_set_clip_corner(&theme->styles.list, true);
 
@@ -1229,6 +1258,11 @@ static void style_init(my_theme_t * theme)
     lv_style_set_bg_color(&theme->styles.list_item_focused, LIST_ITEM_FOCUSED_COLOR);
     lv_style_set_bg_opa(&theme->styles.list_item_focused, LV_OPA_COVER);
     lv_style_set_text_color(&theme->styles.list_item_focused, LIST_ITEM_FOCUSED_TEXT_COLOR);
+
+    style_init_reset(&theme->styles.list_item_selected);
+    lv_style_set_bg_color(&theme->styles.list_item_selected, LIST_ITEM_SELECTED_COLOR);
+    lv_style_set_bg_opa(&theme->styles.list_item_selected, LV_OPA_COVER);
+    lv_style_set_text_color(&theme->styles.list_item_selected, LIST_ITEM_SELECTED_TEXT_COLOR);
 
     style_init_reset(&theme->styles.list_subheader);
     lv_style_set_text_color(&theme->styles.list_subheader, LIST_SUBHEADER_TEXT_COLOR);
@@ -1935,6 +1969,17 @@ static void theme_apply(lv_theme_t * th, lv_obj_t * obj)
         lv_obj_add_style(obj, &theme->styles.page_indicator_dot_current, LV_STATE_CHECKED);
         return;
     }
+    if(lv_obj_check_type(obj, &lvgl_step_indicator_class)) {
+        /* step_indicator */
+        lv_obj_add_style(obj, &theme->styles.step_indicator, 0);
+        return;
+    }
+    if(lv_obj_check_type(obj, &lvgl_step_indicator_segment_class)) {
+        /* step_indicator_segment */
+        lv_obj_add_style(obj, &theme->styles.step_indicator_segment, 0);
+        lv_obj_add_style(obj, &theme->styles.step_indicator_segment_finished, LV_STATE_CHECKED);
+        return;
+    }
     if(lv_obj_check_type(obj, &lvgl_badge_class)) {
         /* badge */
         lv_obj_add_style(obj, &theme->styles.badge, 0);
@@ -2150,6 +2195,7 @@ static void theme_apply(lv_theme_t * th, lv_obj_t * obj)
     if(lv_obj_check_type(obj, &lvgl_list_button_class)) {
         /* flex_list_button */
         lv_obj_add_style(obj, &theme->styles.list_item, 0);
+        lv_obj_add_style(obj, &theme->styles.list_item_selected, LV_STATE_CHECKED);
         lv_obj_add_style(obj, &theme->styles.transition_exit, 0);
         lv_obj_add_style(obj, &theme->styles.state_pressed, LV_STATE_PRESSED);
         lv_obj_add_style(obj, &theme->styles.transition_enter, LV_STATE_PRESSED);

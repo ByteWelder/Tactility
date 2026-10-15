@@ -35,6 +35,8 @@
 @widget badge: lvgl_badge_class;
 @widget page_indicator: lvgl_page_indicator_class;
 @widget page_indicator_dot: lvgl_page_indicator_dot_class;
+@widget step_indicator: lvgl_step_indicator_class;
+@widget step_indicator_segment: lvgl_step_indicator_segment_class;
 @widget flex_list: lvgl_list_class;
 @widget flex_list_text: lvgl_list_text_class;
 @widget flex_list_button: lvgl_list_button_class;
@@ -219,6 +221,13 @@
 @page-indicator-dot-size: if($isCompact, 6, 8dp);
 @page-indicator-gap: if($isCompact, 4, 6dp);
 
+// Step indicator (lvgl_step_indicator_create): a line segment per step, finished steps in the secondary colour
+@step-indicator-finished-color: @color-secondary;
+@step-indicator-unfinished-color: mix(black, @color-secondary, 50%);
+@step-indicator-thickness: 6dp;
+@step-indicator-margin: 6dp;
+@step-indicator-gap: @step-indicator-margin;
+
 // Badge (lvgl_badge_create): a small dot that marks an item, e.g. a favourite
 @badge-color: @color-secondary;
 @badge-size: if($isCompact, 4, 6dp);
@@ -373,7 +382,7 @@
 @key-selected-text-color: @color-on-primary;
 
 // List
-@list-color: @color-surface;
+@list-color: @card-color;
 @list-pad: @density-list-pad;
 @list-item-color: @color-surface;
 @list-item-opacity: transp;
@@ -383,7 +392,10 @@
 @list-item-gap: if($isCompact, 3, @space-4);
 @list-item-focused-color: @color-secondary-container;
 @list-item-focused-text-color: @color-on-secondary-container;
-@list-divider-color: @color-outline-variant;
+@list-item-selected-color: @color-secondary-container;
+@list-item-selected-text-color: @color-on-secondary-container;
+// The secondary colour, muted towards the list background
+@list-divider-color: mix(@color-secondary, @list-color, 35%);
 @list-divider-width: @density-border;
 @list-subheader-text-color: @color-on-surface-variant;
 
@@ -612,6 +624,25 @@ page_indicator_dot {
 
 page_indicator_dot_current {
     bgOpa: cover;
+}
+
+step_indicator {
+    bgOpa: transp;
+    borderWidth: 0;
+    padAll: @step-indicator-margin;
+    padGap: @step-indicator-gap;
+}
+
+step_indicator_segment {
+    height: @step-indicator-thickness;
+    radius: circle;
+    borderWidth: 0;
+    bgColor: @step-indicator-unfinished-color;
+    bgOpa: cover;
+}
+
+step_indicator_segment_finished {
+    bgColor: @step-indicator-finished-color;
 }
 
 badge {
@@ -1012,7 +1043,7 @@ list {
     bgColor: @list-color;
     bgOpa: cover;
     padHor: 0;
-    padVer: @list-pad;
+    padVer: 0;
     padGap: 0;
     clipCorner: true;
 }
@@ -1033,6 +1064,13 @@ list_item_focused {
     bgColor: @list-item-focused-color;
     bgOpa: cover;
     textColor: @list-item-focused-text-color;
+}
+
+// A list item that is checked to show it's the selected one
+list_item_selected {
+    bgColor: @list-item-selected-color;
+    bgOpa: cover;
+    textColor: @list-item-selected-text-color;
 }
 
 list_subheader {
@@ -1501,6 +1539,15 @@ apply(page_indicator_dot) {
     page_indicator_dot_current: state.checked;
 }
 
+apply(step_indicator) {
+    step_indicator: default;
+}
+
+apply(step_indicator_segment) {
+    step_indicator_segment: default;
+    step_indicator_segment_finished: state.checked;
+}
+
 apply(badge) {
     badge: default;
 }
@@ -1680,6 +1727,7 @@ apply(flex_list_text) {
 
 apply(flex_list_button) {
     list_item: default;
+    list_item_selected: state.checked;
     transition_exit: default;
     state_pressed: state.pressed;
     transition_enter: state.pressed;

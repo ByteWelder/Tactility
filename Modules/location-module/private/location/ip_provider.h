@@ -31,10 +31,12 @@ struct IpApiResponse {
     char message[IP_API_MESSAGE_MAX_LENGTH + 1];
     double latitude;
     double longitude;
+    /** IANA time zone name, empty when unknown */
+    char time_zone[LOCATION_TIME_ZONE_MAX_LENGTH + 1];
 };
 
 /**
- * Parse an HTTP response of the newline separated ip-api endpoint, requested with fields "status,message,lat,lon"
+ * Parse an HTTP response of the newline separated ip-api endpoint, requested with fields "status,message,lat,lon,timezone"
  * @param[in] response the NUL-terminated response, including the status line and headers
  * @return false when the response is malformed
  */
