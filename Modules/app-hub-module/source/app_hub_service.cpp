@@ -86,6 +86,7 @@ AppHubEventType getStartedEventType(AppHubOperationType operation) {
         case APP_HUB_OPERATION_REFRESH: return APP_HUB_EVENT_REFRESHING;
         case APP_HUB_OPERATION_INSTALL: return APP_HUB_EVENT_INSTALLING;
         case APP_HUB_OPERATION_REMOVE: return APP_HUB_EVENT_REMOVING;
+        case APP_HUB_OPERATION_UPDATE_ALL: return APP_HUB_EVENT_UPDATING;
     }
     return APP_HUB_EVENT_REFRESHING;
 }
@@ -95,16 +96,20 @@ AppHubEventType getFinishedEventType(AppHubOperationType operation) {
         case APP_HUB_OPERATION_REFRESH: return APP_HUB_EVENT_REFRESHED;
         case APP_HUB_OPERATION_INSTALL: return APP_HUB_EVENT_INSTALLED;
         case APP_HUB_OPERATION_REMOVE: return APP_HUB_EVENT_REMOVED;
+        case APP_HUB_OPERATION_UPDATE_ALL: return APP_HUB_EVENT_UPDATED;
     }
     return APP_HUB_EVENT_REFRESHED;
 }
 
-/** Requires the global lock */
-void emitEvent(AppHubEventType type, const Operation& operation, error_t result) {
+/**
+ * Requires the global lock
+ * @param[in] appId the app the event is about, which an update of all apps reports per app
+ */
+void emitEvent(AppHubEventType type, const Operation& operation, const char* appId, error_t result) {
     AppHubEvent event {};
     event.type = type;
     event.operation_id = operation.id;
-    strcpy(event.app_id, operation.app_id);
+    strcpy(event.app_id, appId);
     event.result = result;
     for (auto* sub = subscriptions; sub != nullptr; sub = sub->internal.next) {
         if (sub->internal.count >= APP_HUB_EVENT_QUEUE_CAPACITY) {
@@ -235,8 +240,13 @@ AppList collectApps(const std::vector<InstalledPackage>& installedPackages) {
         app->update_available = app->in_catalog && app->installed_version_code < app->version_code;
     }
 
+    const Operation* pendingAppOperation = findPendingOperationOfKind(false);
+    const bool updatingAll = pendingAppOperation != nullptr && pendingAppOperation->type == APP_HUB_OPERATION_UPDATE_ALL;
     for (auto& app : apps) {
         const Operation* pending = findPendingOperation(app.id);
+        if (pending == nullptr && updatingAll && app.update_available) {
+            pending = pendingAppOperation;
+        }
         app.operation_pending = pending != nullptr;
         if (pending != nullptr) {
             app.pending_operation = pending->type;
@@ -374,6 +384,41 @@ error_t executeInstall(const char* id) {
     return error;
 }
 
+error_t executeUpdateAll(const Operation& operation) {
+    const auto installed = getInstalledPackages();
+    std::vector<std::string> ids;
+    lock();
+    for (const auto& app : collectApps(installed)) {
+        if (app.update_available) {
+            ids.emplace_back(app.id);
+        }
+    }
+    unlock();
+
+    error_t lastError = ERROR_NONE;
+    for (const auto& id : ids) {
+        lock();
+        const bool stop = stopping;
+        if (!stop) {
+            emitEvent(APP_HUB_EVENT_INSTALLING, operation, id.c_str(), ERROR_NONE);
+        }
+        unlock();
+        if (stop) {
+            return ERROR_INVALID_STATE;
+        }
+
+        const error_t error = executeInstall(id.c_str());
+        if (error != ERROR_NONE) {
+            lastError = error;
+        }
+
+        lock();
+        emitEvent(APP_HUB_EVENT_INSTALLED, operation, id.c_str(), error);
+        unlock();
+    }
+    return lastError;
+}
+
 error_t execute(const Operation& operation) {
     switch (operation.type) {
         case APP_HUB_OPERATION_REFRESH:
@@ -382,6 +427,8 @@ error_t execute(const Operation& operation) {
             return executeInstall(operation.app_id);
         case APP_HUB_OPERATION_REMOVE:
             return app_uninstall(operation.app_id);
+        case APP_HUB_OPERATION_UPDATE_ALL:
+            return executeUpdateAll(operation);
     }
     return ERROR_INVALID_ARGUMENT;
 }
@@ -417,14 +464,14 @@ int32_t workerMain(void* /*context*/) {
         queue.pop_front();
         operationRunning = true;
         const Operation operation = runningOperation;
-        emitEvent(getStartedEventType(operation.type), operation, ERROR_NONE);
+        emitEvent(getStartedEventType(operation.type), operation, operation.app_id, ERROR_NONE);
         unlock();
 
         const error_t result = execute(operation);
 
         lock();
         operationRunning = false;
-        emitEvent(getFinishedEventType(operation.type), operation, result);
+        emitEvent(getFinishedEventType(operation.type), operation, operation.app_id, result);
         unlock();
     }
 }
@@ -611,12 +658,23 @@ error_t app_hub_get_description(const char* id, char* description, size_t descri
 
 // region Operations
 
+bool app_hub_is_busy() {
+    lock();
+    const bool busy = operationRunning || !queue.empty();
+    unlock();
+    return busy;
+}
+
 error_t app_hub_refresh(uint32_t* operation_id) {
     return enqueue(APP_HUB_OPERATION_REFRESH, nullptr, operation_id);
 }
 
 error_t app_hub_install(const char* id, uint32_t* operation_id) {
     return enqueue(APP_HUB_OPERATION_INSTALL, id, operation_id);
+}
+
+error_t app_hub_update_all(uint32_t* operation_id) {
+    return enqueue(APP_HUB_OPERATION_UPDATE_ALL, nullptr, operation_id);
 }
 
 error_t app_hub_remove(const char* id, uint32_t* operation_id) {

@@ -1,4 +1,5 @@
 #include <Tactility/Mutex.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 
 #include <app/event.h>
@@ -14,7 +15,9 @@
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
+#include <lvgl/fonts.h>
 #include <lvgl/grid_navigation.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/card.h>
 #include <lvgl/widgets/chip.h>
@@ -50,6 +53,8 @@ struct Context {
 
     lv_obj_t* contentWrapper = nullptr;
     lv_obj_t* refreshButton = nullptr;
+    lv_obj_t* updateAllButton = nullptr;
+    lv_obj_t* updateAllSpinner = nullptr;
     lv_obj_t* filterChips = nullptr;
     // Survives across a bury/resurface cycle
     Filter filter = Filter::All;
@@ -74,6 +79,10 @@ struct Context {
     AppHubEventSubscription appHubSub {};
     /** The id of the queued catalog refresh, 0 when none is pending */
     std::atomic<uint32_t> refreshOperationId {0};
+    /** The id of the running update of all apps, 0 when none is running */
+    uint32_t updateAllOperationId = 0;
+    /** The ids of the apps that failed to update during updateAllOperationId */
+    std::vector<std::string> failedUpdates;
 };
 
 
@@ -101,6 +110,30 @@ void updateFilterChips(Context* ctx) {
     for (uint32_t i = 0; i < count; i++) {
         lv_obj_set_state(lv_obj_get_child(ctx->filterChips, static_cast<int32_t>(i)), LV_STATE_CHECKED, i == static_cast<uint32_t>(ctx->filter));
     }
+}
+
+/**
+ * Shows the spinner while App Hub is busy, and otherwise the update all button when there are updates.
+ * Requires the LVGL lock.
+ */
+void updateToolbarActions(Context* ctx, bool hasUpdates) {
+    if (ctx->updateAllSpinner == nullptr) {
+        return;
+    }
+    const bool busy = app_hub_is_busy();
+    lv_obj_set_hidden(ctx->updateAllSpinner, !busy);
+    lv_obj_set_hidden(ctx->updateAllButton, busy || !hasUpdates);
+}
+
+void onUpdateAllPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    const error_t error = app_hub_update_all(nullptr);
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Failed to queue the update of all apps: %s", error_to_string(error));
+        return;
+    }
+    // Shows the spinner
+    showApps(ctx);
 }
 
 void updateUpdatesChipText(Context* ctx, size_t updateCount) {
@@ -189,6 +222,7 @@ void showRefreshFailedError(Context* ctx, const char* message) {
     lv_label_set_text(label, message);
 
     lv_obj_set_hidden(ctx->refreshButton, false);
+    updateToolbarActions(ctx, false);
 }
 
 void showNoInternet(Context* ctx) {
@@ -236,6 +270,7 @@ void showApps(Context* ctx) {
     }, &apps);
     const bool hasApps = !apps.empty();
     updateUpdatesChipText(ctx, std::ranges::count_if(apps, [](const AppHubApp& app) { return app.update_available; }));
+    updateToolbarActions(ctx, std::ranges::any_of(apps, [](const AppHubApp& app) { return app.update_available; }));
     std::erase_if(apps, [ctx](const AppHubApp& app) {
         return !matchesFilter(app, ctx->filter);
     });
@@ -256,8 +291,11 @@ void showApps(Context* ctx) {
         lv_obj_t* focus_target = nullptr;
         for (int i = 0; i < apps.size(); i++) {
             const auto& app = apps[i];
-            const char* icon = app.installed ? LV_SYMBOL_OK : nullptr;
+            const char* icon = app.operation_pending ? LVGL_ICON_SHARED_HOURGLASS : (app.installed ? LV_SYMBOL_OK : nullptr);
             auto* entry_button = lvgl_list_add_button(list, icon, app.name);
+            if (app.operation_pending) {
+                lv_obj_set_style_text_font(lv_obj_get_child(entry_button, 0), lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
+            }
             auto int_as_voidptr = reinterpret_cast<void*>(i);
             lv_obj_set_user_data(entry_button, int_as_voidptr);
             lv_obj_add_event_cb(entry_button, onAppPressed, LV_EVENT_SHORT_CLICKED, ctx);
@@ -331,7 +369,17 @@ void refresh(Context* ctx) {
     lvgl_unlock();
 }
 
-void onOperationFinished(Context* ctx, const AppHubEvent& event) {
+void onOperationEvent(Context* ctx, const AppHubEvent& event) {
+    if (event.type == APP_HUB_EVENT_REFRESHING) {
+        // The list doesn't change yet, only the toolbar shows that App Hub is busy
+        lvgl_lock();
+        if (ctx->updateAllButton != nullptr) {
+            updateToolbarActions(ctx, !lv_obj_is_hidden(ctx->updateAllButton));
+        }
+        lvgl_unlock();
+        return;
+    }
+
     const bool isRefresh = event.operation_id == ctx->refreshOperationId;
     if (isRefresh) {
         ctx->refreshOperationId = 0;
@@ -341,13 +389,10 @@ void onOperationFinished(Context* ctx, const AppHubEvent& event) {
         }
     }
 
-    if (ctx->contentWrapper == nullptr) {
-        // Buried (e.g. AppHubDetailsApp is open): createWidgets() rebuilds the list on resurface
-        return;
-    }
-
     lvgl_lock();
-    if (isRefresh && event.result != ERROR_NONE) {
+    if (ctx->contentWrapper == nullptr) {
+        // Buried (e.g. AppHubDetailsApp or a dialog is open): createWidgets() rebuilds the list on resurface
+    } else if (isRefresh && event.result != ERROR_NONE) {
         showRefreshFailedError(ctx, "Cannot reach server");
     } else {
         showApps(ctx);
@@ -366,6 +411,10 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
     ctx->refreshButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, ctx);
     lv_obj_set_hidden(ctx->refreshButton, true);
+    ctx->updateAllButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_DOWNLOAD, onUpdateAllPressed, ctx);
+    lv_obj_set_hidden(ctx->updateAllButton, true);
+    ctx->updateAllSpinner = lvgl_toolbar_add_spinner_action(toolbar);
+    lv_obj_set_hidden(ctx->updateAllSpinner, true);
 
     ctx->filterChips = createFilterChips(parent, ctx);
     updateFilterChips(ctx);
@@ -391,7 +440,34 @@ void destroyWidgets(void* userData) {
     ctx->scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
     ctx->contentWrapper = nullptr;
     ctx->refreshButton = nullptr;
+    ctx->updateAllButton = nullptr;
+    ctx->updateAllSpinner = nullptr;
     ctx->filterChips = nullptr;
+}
+
+/** Tracks the update of all apps, and shows which apps failed when it's done */
+void onUpdateAllEvent(Context* ctx, const AppHubEvent& event) {
+    if (event.type == APP_HUB_EVENT_UPDATING) {
+        ctx->updateAllOperationId = event.operation_id;
+        ctx->failedUpdates.clear();
+    } else if (event.type == APP_HUB_EVENT_INSTALLED && event.operation_id == ctx->updateAllOperationId && event.result != ERROR_NONE) {
+        ctx->failedUpdates.emplace_back(event.app_id);
+    } else if (event.type == APP_HUB_EVENT_UPDATED && event.operation_id == ctx->updateAllOperationId) {
+        ctx->updateAllOperationId = 0;
+        if (!ctx->failedUpdates.empty()) {
+            std::string names;
+            for (const auto& id : ctx->failedUpdates) {
+                AppHubApp app {};
+                if (!names.empty()) {
+                    names += ", ";
+                }
+                names += (app_hub_get_app(id.c_str(), &app) == ERROR_NONE) ? app.name : id.c_str();
+            }
+            const auto count = ctx->failedUpdates.size();
+            alertdialog::start(ctx->appInstanceId, "Update failed", std::format("{} {} failed to update: {}", count, count == 1 ? "app" : "apps", names));
+            ctx->failedUpdates.clear();
+        }
+    }
 }
 
 int32_t appMain(int argc, char* argv[]) {
@@ -429,11 +505,8 @@ int32_t appMain(int argc, char* argv[]) {
 
         AppHubEvent app_hub_event {};
         while (app_hub_event_poll(&ctx.appHubSub, &app_hub_event) == ERROR_NONE) {
-            if (app_hub_event.type == APP_HUB_EVENT_REFRESHED ||
-                app_hub_event.type == APP_HUB_EVENT_INSTALLED ||
-                app_hub_event.type == APP_HUB_EVENT_REMOVED) {
-                onOperationFinished(&ctx, app_hub_event);
-            }
+            onUpdateAllEvent(&ctx, app_hub_event);
+            onOperationEvent(&ctx, app_hub_event);
         }
 
         if (!shouldClose && ctx.refreshRequested.exchange(false)) {

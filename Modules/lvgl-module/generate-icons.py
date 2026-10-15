@@ -159,6 +159,7 @@ shared_symbol_code_point_names = [
     "language", # Globe
     "lists", # Chat app toolbar
     "list_alt", # Settings apps: opens a selection dialog
+    "hourglass", # App Hub: an operation for the app is pending
     "mail",
     "menu",
     "memory", # System Info

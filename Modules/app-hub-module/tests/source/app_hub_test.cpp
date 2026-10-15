@@ -249,6 +249,28 @@ TEST_CASE("app_hub drops newer events while a subscriber's queue is full") {
     task_event_group_destruct(&group);
 }
 
+TEST_CASE("app_hub_update_all finishes without installs when nothing has an update") {
+    ensureFixture();
+    TaskEventGroup group {};
+    task_event_group_construct(&group);
+    AppHubEventSubscription sub {};
+    REQUIRE_EQ(app_hub_event_subscribe(&sub, &group), ERROR_NONE);
+
+    uint32_t id = 0;
+    REQUIRE_EQ(app_hub_update_all(&id), ERROR_NONE);
+    AppHubEvent event = waitForEvent(sub);
+    CHECK_EQ(event.type, APP_HUB_EVENT_UPDATING);
+    CHECK_EQ(event.operation_id, id);
+    CHECK_EQ(std::string(event.app_id), "");
+    event = waitForEvent(sub);
+    CHECK_EQ(event.type, APP_HUB_EVENT_UPDATED);
+    CHECK_EQ(event.operation_id, id);
+    CHECK_EQ(event.result, ERROR_NONE);
+
+    CHECK_EQ(app_hub_event_unsubscribe(&sub), ERROR_NONE);
+    task_event_group_destruct(&group);
+}
+
 TEST_CASE("app_hub rejects invalid ids") {
     ensureFixture();
     CHECK_EQ(app_hub_install("", nullptr), ERROR_INVALID_ARGUMENT);

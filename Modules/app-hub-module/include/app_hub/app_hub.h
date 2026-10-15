@@ -28,6 +28,8 @@ enum AppHubOperationType {
     APP_HUB_OPERATION_INSTALL,
     /** Uninstall an app */
     APP_HUB_OPERATION_REMOVE,
+    /** Install the newer catalog version of every installed app that has one */
+    APP_HUB_OPERATION_UPDATE_ALL,
 };
 
 /** An app from the catalog, an installed app, or both */
@@ -89,6 +91,9 @@ error_t app_hub_get_description(const char* id, char* description, size_t descri
 
 // region Operations
 
+/** @return true while an operation is queued or running */
+bool app_hub_is_busy(void);
+
 /**
  * Queue a download of the app catalog.
  * Only one refresh is queued or running at a time: while one is pending, its id is returned instead.
@@ -104,6 +109,17 @@ error_t app_hub_refresh(uint32_t* operation_id);
  * @retval ERROR_RESOURCE_BUSY another install or remove is pending
  */
 error_t app_hub_install(const char* id, uint32_t* operation_id);
+
+/**
+ * Queue the update of every installed app that has a newer version in the catalog. The apps are installed one at a time,
+ * with an INSTALLING and INSTALLED event each. A failed update doesn't stop the updates of the other apps.
+ * While the operation is pending, the apps with an update report it as their pending operation.
+ * The operation takes the place of an install or remove: only one of them is queued or running at a time.
+ * @param[out] operation_id the id of the queued operation (optional)
+ * @retval ERROR_NONE the operation was queued, or it was already pending and its id is returned
+ * @retval ERROR_RESOURCE_BUSY an install or remove is pending
+ */
+error_t app_hub_update_all(uint32_t* operation_id);
 
 /**
  * Queue the removal of an installed app.
@@ -131,12 +147,16 @@ enum AppHubEventType {
     APP_HUB_EVENT_REMOVING,
     /** The removal of AppHubEvent.app_id finished, see AppHubEvent.result */
     APP_HUB_EVENT_REMOVED,
+    /** Updating all apps started. INSTALLING and INSTALLED events with the same operation id follow for each app. */
+    APP_HUB_EVENT_UPDATING,
+    /** Updating all apps finished. AppHubEvent.result is the error of the last failed app, ERROR_NONE when all succeeded. */
+    APP_HUB_EVENT_UPDATED,
 };
 
 struct AppHubEvent {
     enum AppHubEventType type;
     uint32_t operation_id;
-    /** Empty for the refresh events */
+    /** Empty for the refresh, UPDATING and UPDATED events */
     PackageId app_id;
     /** The outcome of the operation for the REFRESHED, INSTALLED and REMOVED events, ERROR_NONE otherwise */
     error_t result;
