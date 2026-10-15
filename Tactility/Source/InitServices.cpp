@@ -10,6 +10,7 @@
 
 #include <location/module.h>
 #include <app_hub/module.h>
+#include <development/module.h>
 #include <wifi/module.h>
 #if TT_FEATURE_MESH
 #include <mesh/module.h>
@@ -33,7 +34,6 @@ namespace tt {
 namespace service {
     // Primary
     namespace audio { extern const ServiceManifest manifest; }
-    namespace development { extern const ServiceManifest manifest; }
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
     namespace espnow { extern const ServiceManifest manifest; }
 #endif
@@ -60,7 +60,7 @@ void registerAndStartServices() {
     check(module_ensure_started(&mesh_meshcore_module) == ERROR_NONE);
     check(module_ensure_started(&mesh_meshtastic_module) == ERROR_NONE);
 #endif
-    addService(service::development::manifest);
+    check(module_ensure_started(&development_module) == ERROR_NONE);
     addService(service::webserver::manifest);
 #if defined(__linux__) || defined(__APPLE__)
     check(posix_services_start() == ERROR_NONE);

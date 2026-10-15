@@ -26,5 +26,10 @@ TEST_CASE("microsecond time should be accurate within 1 tick") {
     auto end_time = get_micros_since_boot();
     auto difference = (end_time - start_time) / 1000;
     CHECK_EQ(difference >= 99, true);
+#ifdef ESP_PLATFORM
     CHECK_EQ(difference <= 101, true);
+#else
+    // The simulator's tick thread sleeps 1 ms per tick plus its own overhead, so ticks run up to about 10% slower than the clock
+    CHECK_EQ(difference <= 125, true);
+#endif
 }

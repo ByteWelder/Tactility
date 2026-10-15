@@ -73,3 +73,16 @@ TEST_CASE("shell completion: installed headless apps complete by their binary na
     app_manager_remove("test.shell.windowed");
     app_manager_remove("test.shell.installed");
 }
+
+TEST_CASE("shell completion: hidden headless apps are not offered") {
+    AppManifest hidden {};
+    snprintf(hidden.id, sizeof(hidden.id), "test.shell.hidden");
+    snprintf(hidden.name, sizeof(hidden.name), "Hidden");
+    hidden.flags = APP_MANIFEST_FLAG_HEADLESS | APP_MANIFEST_FLAG_HIDDEN;
+    hidden.location = { APP_LOCATION_PATH, const_cast<char*>("/nonexistent/bin/posix-x86_64/hiddencmd.so") };
+    REQUIRE_EQ(app_manager_add(&hidden), ERROR_NONE);
+
+    CHECK_EQ(complete("hiddenc"), "<none>");
+
+    app_manager_remove("test.shell.hidden");
+}

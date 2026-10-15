@@ -57,13 +57,11 @@ def main():
         if not idf_target:
             print("Could not determine IDF target from sdkconfig")
             sys.exit(1)
-        # release/TactilitySDK/${version}-${idf_target}/TactilitySDK
-        sdk_path = os.path.join("release", "TactilitySDK", f"{version}-{idf_target}", "TactilitySDK")
+        sdk_path = os.path.join("release", "sdk", version, f"platform-{idf_target}", "TactilitySDK")
         run_release_script("release-sdk-esp32.py", sdk_path)
     else:
-        # release/TactilitySDK/${version}-posix-${arch}/TactilitySDK
         arch = platform.machine()
-        sdk_path = os.path.join("release", "TactilitySDK", f"{version}-posix-{arch}", "TactilitySDK")
+        sdk_path = os.path.join("release", "sdk", version, f"platform-posix-{arch}", "TactilitySDK")
         run_release_script("release-sdk-posix.py", sdk_path)
 
 if __name__ == "__main__":

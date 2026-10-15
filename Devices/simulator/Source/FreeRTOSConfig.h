@@ -1,6 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 extern void vAssertCalled(unsigned long line, const char* const file);
+#ifdef __cplusplus
+}
+#endif
 
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
@@ -19,7 +25,7 @@ extern void vAssertCalled(unsigned long line, const char* const file);
 #define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
 #define configQUEUE_REGISTRY_SIZE               10
 #define configUSE_QUEUE_SETS                    1
-#define configUSE_TIME_SLICING                  0
+#define configUSE_TIME_SLICING                  1 // Same as ESP32: tasks of equal priority take turns
 #define configUSE_NEWLIB_REENTRANT              0
 #define configENABLE_BACKWARD_COMPATIBILITY     1
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 5

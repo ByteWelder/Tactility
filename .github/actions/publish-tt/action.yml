@@ -1,0 +1,16 @@
+name: Publish tt
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Download tt'
+      uses: actions/download-artifact@v4
+      with:
+        name: 'tt'
+        path: release/tt
+    - name: 'Install boto3'
+      shell: bash
+      run: pip install boto3
+    - name: 'Upload files'
+      shell: bash
+      run: python Buildscripts/CDN/upload-sdk-files.py --tt release/tt ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}

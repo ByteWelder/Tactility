@@ -6,6 +6,7 @@
     2. Merge the branch and wait for a build.
 3. Push a tag e.g. `v1.2.3` - the `v` prefix is crucial for the pipelines.
 4. Wait for the SDK and firmwares to be published on the CDN.
+   Only tags publish SDKs of a release version: `main` only publishes SDKs of a `-dev` version.
 5. Test the firmwares on all devices with the web installer
 6. Run `Buildscripts/gh-download-artifacts.py [actionId] --token [token]` and let it run in the background.
    Get a token from [here](https://github.com/settings/personal-access-tokens)

@@ -12,8 +12,20 @@
 #include <tactility/freertos/freertos.h>
 
 #include <cstdio>
+#include <cstring>
 #include <new>
 #include <unistd.h>
+
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
+// A task with its stack in PSRAM can't write to internal flash, unless flash operations keep the cache enabled
+#ifdef CONFIG_SPI_FLASH_AUTO_SUSPEND
+constexpr uint16_t STACK_MEMORY_CAPABILITY = MEMORY_CAPABILITY_EXTERNAL;
+#else
+constexpr uint16_t STACK_MEMORY_CAPABILITY = 0;
+#endif
 
 namespace tt::app::shell {
 
@@ -38,15 +50,35 @@ int getTerminalColumns() {
     return 0;
 }
 
-int main(int, char*[]) {
-    LineEditor::setTerminalColumns(getTerminalColumns());
+/** Whether argv is "<name> -c <command> [arguments...]", which runs the command instead of a script or session */
+bool isCommandMode(int argc, char* argv[]) {
+    return argc >= 3 && strcmp(argv[1], "-c") == 0;
+}
 
+/** Runs the command of "<name> -c <command> [name [arguments...]]": like sh -c, the arguments after it become $0..$N */
+int runCommandMode(int argc, char* argv[]) {
+    char* defaultArguments[] = { argv[0] };
+    if (argc > 3) {
+        return Shell::runScriptSource(argv[2], argc - 3, argv + 3);
+    }
+    return Shell::runScriptSource(argv[2], 1, defaultArguments);
+}
+
+int main(int argc, char* argv[]) {
     // Unbuffered so typed characters and command output appear as they are written rather than at
     // the next newline or flush. This app's stdout is a pipe, not a tty, so libc would otherwise
     // fully buffer it.
     setvbuf(stdout, nullptr, _IONBF, 0);
 
     Shell::init();
+
+    if (isCommandMode(argc, argv)) {
+        const int status = runCommandMode(argc, argv);
+        Shell::shutdown();
+        return status;
+    }
+
+    LineEditor::setTerminalColumns(getTerminalColumns());
 
     puts("Type 'exit' to quit shell.");
 
@@ -92,13 +124,17 @@ extern const ::AppManifest manifest = {
     .name = "Shell",
     .category = APP_CATEGORY_SYSTEM,
     .location = {  .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(main) },
-    .flags = APP_MANIFEST_FLAG_HIDDEN | APP_MANIFEST_FLAG_HEADLESS,
-    .stack = { .depth = 8192, .desired_memory_capability = 0 },
+    .flags = APP_MANIFEST_FLAG_HEADLESS,
+    .stack = { .depth = 8192, .desired_memory_capability = STACK_MEMORY_CAPABILITY },
 };
 
 static int32_t shMain(int argc, char* argv[]) {
+    if (isCommandMode(argc, argv)) {
+        return runCommandMode(argc, argv);
+    }
+
     if (argc < 2) {
-        printf("usage: sh <script> [args...]\n");
+        printf("usage: sh <script> [args...]\n       sh -c <command> [name [args...]]\n");
         return 1;
     }
 
@@ -122,7 +158,7 @@ extern const ::AppManifest sh_manifest = {
     .name = "sh",
     .category = APP_CATEGORY_SYSTEM,
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(shMain) },
-    .flags = APP_MANIFEST_FLAG_HIDDEN | APP_MANIFEST_FLAG_HEADLESS,
+    .flags = APP_MANIFEST_FLAG_HEADLESS,
     .stack = { .depth = 8192, .desired_memory_capability = 0 },
 };
 

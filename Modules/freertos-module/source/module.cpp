@@ -117,7 +117,13 @@ static const ModuleSymbol SYMBOLS[] = {
 #if configSUPPORT_STATIC_ALLOCATION == 1
     DEFINE_MODULE_SYMBOL(xTimerCreateStatic),
 #endif
+#if tskKERNEL_VERSION_MAJOR >= 11
+    // A macro over these two functions since FreeRTOS 11
+    DEFINE_MODULE_SYMBOL(xTimerGenericCommandFromTask),
+    DEFINE_MODULE_SYMBOL(xTimerGenericCommandFromISR),
+#else
     DEFINE_MODULE_SYMBOL(xTimerGenericCommand),
+#endif
     DEFINE_MODULE_SYMBOL(xTimerIsTimerActive),
     DEFINE_MODULE_SYMBOL(xTimerGetExpiryTime),
     DEFINE_MODULE_SYMBOL(xTimerPendFunctionCall),

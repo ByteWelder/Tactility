@@ -1,8 +1,9 @@
 #include <Tactility/Tactility.h>
+#include <Tactility/app/development/Fingerprint.h>
 #include <Tactility/Timer.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/service/development/DevelopmentService.h>
-#include <Tactility/service/development/DevelopmentSettings.h>
+
+#include <development/server.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -13,18 +14,22 @@
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
+#include <tactility/concurrent/mutex.h>
 #include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
 #include <lvgl.h>
+#include <lvgl/grid_navigation.h>
 #include <lvgl/lvgl.h>
-#include <lvgl/theme.h>
 #include <lvgl/widgets/card.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <atomic>
 #include <cstring>
 #include <format>
+#include <string>
+#include <vector>
 
 namespace tt::app::development {
 
@@ -34,13 +39,31 @@ extern const ::AppManifest manifest;
 
 namespace {
 
+constexpr TickType_t TRUSTED_CLIENTS_REFRESH_INTERVAL = pdMS_TO_TICKS(1000);
+
+struct TrustedClient {
+    std::string fingerprint;
+    std::string name;
+
+    bool operator==(const TrustedClient&) const = default;
+};
+
 struct Context {
     uint32_t appInstanceId;
 
     lv_obj_t* enableSwitch = nullptr;
-    lv_obj_t* enableOnBootSwitch = nullptr;
     lv_obj_t* statusLabel = nullptr;
-    std::shared_ptr<service::development::DevelopmentService> service;
+    lv_obj_t* trustedCard = nullptr;
+    // The server is enabled on the app task, as that can generate a certificate
+    TaskEventGroup* eventGroup = nullptr;
+    uint32_t enableBit = 0;
+    std::atomic<bool> enableRequested = false;
+    // File IO for trusted clients happens on the app task
+    uint32_t removeBit = 0;
+    ::Mutex removalMutex {};
+    std::vector<std::string> pendingRemovals;
+    // Guarded by the LVGL lock, so createWidgets() can rebuild the list from it
+    std::vector<TrustedClient> trustedClients;
     std::unique_ptr<Timer> timer;
 };
 
@@ -53,31 +76,10 @@ void onBackPressed(lv_event_t* event) {
 }
 
 void onEnableSwitchChanged(lv_event_t* event) {
-    lv_event_code_t code = lv_event_get_code(event);
     auto* widget = static_cast<lv_obj_t*>(lv_event_get_target(event));
-    if (code == LV_EVENT_VALUE_CHANGED) {
-        bool is_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
-        auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-        bool is_changed = is_on != ctx->service->isEnabled();
-        if (is_changed) {
-            ctx->service->setEnabled(is_on);
-        }
-    }
-}
-
-void onEnableOnBootSwitchChanged(lv_event_t* event) {
-    lv_event_code_t code = lv_event_get_code(event);
-    auto* widget = static_cast<lv_obj_t*>(lv_event_get_target(event));
-    if (code == LV_EVENT_VALUE_CHANGED) {
-        bool is_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
-        bool is_changed = is_on != service::development::shouldEnableOnBoot();
-        if (is_changed) {
-            // Dispatch it, so file IO doesn't block the UI
-            getMainDispatcher().dispatch([is_on] {
-                service::development::setEnableOnBoot(is_on);
-            });
-        }
-    }
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    ctx->enableRequested = lv_obj_has_state(widget, LV_STATE_CHECKED);
+    task_event_group_signal(ctx->eventGroup, ctx->enableBit);
 }
 
 void updateViewState(Context* ctx) {
@@ -90,7 +92,7 @@ void updateViewState(Context* ctx) {
         device_put(wifi_device);
     }
 
-    if (!ctx->service->isEnabled()) {
+    if (!development_server_is_enabled()) {
         lv_label_set_text(ctx->statusLabel, "Service disabled");
     } else if (station_state != WIFI_STATION_STATE_CONNECTED) {
         lv_label_set_text(ctx->statusLabel, "Waiting for connection...");
@@ -98,8 +100,91 @@ void updateViewState(Context* ctx) {
         if (ip[0] == '\0') {
             lv_label_set_text(ctx->statusLabel, "Waiting for IP...");
         } else {
-            const std::string status = std::format("Available at {}", ip);
+            char fingerprint[DEVELOPMENT_SERVER_FINGERPRINT_LENGTH + 1] = {};
+            development_server_get_fingerprint(fingerprint, sizeof(fingerprint));
+            const std::string status = std::format("Available at {}\nFingerprint: {}", ip, formatShortFingerprint(fingerprint));
             lv_label_set_text(ctx->statusLabel, status.c_str());
+        }
+    }
+}
+
+void onRemoveTrustedClientPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    auto* button = static_cast<lv_obj_t*>(lv_event_get_target(event));
+    const auto index = reinterpret_cast<uintptr_t>(lv_obj_get_user_data(button));
+    if (index >= ctx->trustedClients.size()) {
+        return;
+    }
+    mutex_lock(&ctx->removalMutex);
+    ctx->pendingRemovals.push_back(ctx->trustedClients[index].fingerprint);
+    mutex_unlock(&ctx->removalMutex);
+    task_event_group_signal(ctx->eventGroup, ctx->removeBit);
+}
+
+void rebuildTrustedClients(Context* ctx) {
+    lv_obj_clean(ctx->trustedCard);
+    if (ctx->trustedClients.empty()) {
+        lv_obj_t* none_label = lv_label_create(ctx->trustedCard);
+        lv_label_set_text(none_label, "None");
+        return;
+    }
+    for (size_t index = 0; index < ctx->trustedClients.size(); index++) {
+        const TrustedClient& client = ctx->trustedClients[index];
+
+        lv_obj_t* row = lv_obj_create(ctx->trustedCard);
+        lv_obj_set_size(row, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_scrollable(row, false);
+        lvgl::obj_set_style_bg_invisible(row);
+        lv_obj_set_style_border_width(row, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_all(row, 0, LV_STATE_DEFAULT);
+
+        lv_obj_t* label = lv_label_create(row);
+        const std::string text = std::format("{}\n{}", client.name.empty() ? "Unknown" : client.name, formatShortFingerprint(client.fingerprint));
+        lv_label_set_text(label, text.c_str());
+        lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_flex_grow(label, 1);
+
+        lv_obj_t* button = lv_button_create(row);
+        lv_obj_t* button_label = lv_label_create(button);
+        lv_label_set_text(button_label, LV_SYMBOL_TRASH);
+        lv_obj_set_user_data(button, reinterpret_cast<void*>(static_cast<uintptr_t>(index)));
+        lv_obj_add_event_cb(button, onRemoveTrustedClientPressed, LV_EVENT_SHORT_CLICKED, ctx);
+    }
+}
+
+std::vector<TrustedClient> loadTrustedClients() {
+    std::vector<TrustedClient> clients;
+    development_server_for_each_trusted_client([](const char* fingerprint, const char* name, void* context) {
+        static_cast<std::vector<TrustedClient>*>(context)->push_back({ fingerprint, name });
+        return true;
+    }, &clients);
+    return clients;
+}
+
+/** Shows the trusted clients when they changed */
+void refreshTrustedClients(Context* ctx, WindowId window) {
+    std::vector<TrustedClient> clients = loadTrustedClients();
+    lvgl_lock();
+    if (clients != ctx->trustedClients) {
+        ctx->trustedClients = std::move(clients);
+        if (window_manager_get_state(window) == WINDOW_STATE_GRANTED) {
+            rebuildTrustedClients(ctx);
+        }
+    }
+    lvgl_unlock();
+}
+
+void removePendingTrustedClients(Context* ctx) {
+    mutex_lock(&ctx->removalMutex);
+    std::vector<std::string> removals = std::move(ctx->pendingRemovals);
+    ctx->pendingRemovals.clear();
+    mutex_unlock(&ctx->removalMutex);
+    for (const auto& fingerprint : removals) {
+        const error_t error = development_server_remove_trusted_client(fingerprint.c_str());
+        if (error != ERROR_NONE && error != ERROR_NOT_FOUND) {
+            LOG_E(TAG, "Failed to remove trusted client");
         }
     }
 }
@@ -117,7 +202,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     ctx->enableSwitch = lvgl_toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(ctx->enableSwitch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, ctx);
 
-    if (ctx->service->isEnabled()) {
+    if (development_server_is_enabled()) {
         lv_obj_add_state(ctx->enableSwitch, LV_STATE_CHECKED);
     } else {
         lv_obj_remove_state(ctx->enableSwitch, LV_STATE_CHECKED);
@@ -132,50 +217,26 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_border_width(content_wrapper, 0, LV_STATE_DEFAULT);
     lvgl::obj_set_style_bg_invisible(content_wrapper);
 
-    // Enable on boot
-
-    auto* enable_card = lvgl_card_create(content_wrapper);
-    lv_obj_set_size(enable_card, LV_PCT(100), LV_SIZE_CONTENT);
-
-    lv_obj_t* enable_wrapper = lv_obj_create(enable_card);
-    lv_obj_set_size(enable_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(enable_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(enable_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_scrollable(enable_wrapper, false);
-    lvgl::obj_set_style_bg_invisible(enable_wrapper);
-    lv_obj_set_style_border_width(enable_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_all(enable_wrapper, 0, LV_STATE_DEFAULT);
-
-    lv_obj_t* enable_label = lv_label_create(enable_wrapper);
-    lv_label_set_text(enable_label, "Enable on boot");
-    lv_obj_set_flex_grow(enable_label, 1);
-
-    ctx->enableOnBootSwitch = lv_switch_create(enable_wrapper);
-    lv_obj_add_event_cb(ctx->enableOnBootSwitch, onEnableOnBootSwitchChanged, LV_EVENT_VALUE_CHANGED, ctx);
-    if (service::development::shouldEnableOnBoot()) {
-        lv_obj_add_state(ctx->enableOnBootSwitch, LV_STATE_CHECKED);
-    } else {
-        lv_obj_remove_state(ctx->enableOnBootSwitch, LV_STATE_CHECKED);
-    }
-
-    // Status and warning
+    // Status
 
     auto* status_card = lvgl_card_create(content_wrapper);
     lv_obj_set_size(status_card, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(status_card, LV_FLEX_FLOW_COLUMN);
 
     ctx->statusLabel = lv_label_create(status_card);
+    lv_obj_set_width(ctx->statusLabel, LV_PCT(100));
+    lv_label_set_long_mode(ctx->statusLabel, LV_LABEL_LONG_WRAP);
 
-    auto warning_label = lv_label_create(status_card);
-    lv_label_set_text(warning_label, "This feature is experimental and uses an unsecured http connection.");
-    lv_obj_set_width(warning_label, LV_PCT(100));
-    lv_label_set_long_mode(warning_label, LV_LABEL_LONG_WRAP);
-    // The monochrome theme has no error colour
-    if (!lvgl_theme_is_mono()) {
-        LvglThemeSettings theme_settings;
-        lvgl_theme_get_settings(&theme_settings);
-        lv_obj_set_style_text_color(warning_label, theme_settings.color_error, LV_STATE_DEFAULT);
-    }
+    // Trusted clients
+
+    lv_obj_t* trusted_label = lv_label_create(content_wrapper);
+    lv_label_set_text(trusted_label, "Trusted");
+
+    ctx->trustedCard = lvgl_card_create(content_wrapper);
+    lv_obj_set_size(ctx->trustedCard, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(ctx->trustedCard, LV_FLEX_FLOW_COLUMN);
+    lvgl_grid_navigation_add(ctx->trustedCard);
+    rebuildTrustedClients(ctx);
 
     updateViewState(ctx);
 }
@@ -184,20 +245,17 @@ int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
-    ctx.service = service::development::findService();
-
-    if (ctx.service == nullptr) {
-        LOG_E(TAG, "Service not found");
-        // No window/subscription was ever created - matches the old model, where onCreate()
-        // aborting the app meant onShow() was never called either.
-        return 0;
-    }
+    mutex_construct(&ctx.removalMutex);
+    ctx.trustedClients = loadTrustedClients();
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.enableBit) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.removeBit) == ERROR_NONE);
+    ctx.eventGroup = &event_group;
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
@@ -218,7 +276,21 @@ int32_t appMain(int argc, char* argv[]) {
 
     bool shouldClose = false;
     while (!shouldClose) {
-        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+        uint32_t flags = 0;
+        // The timeout picks up clients that were trusted while this app is open
+        task_event_group_wait_any(&event_group, &flags, TRUSTED_CLIENTS_REFRESH_INTERVAL);
+
+        if ((flags & ctx.enableBit) != 0) {
+            const bool enable = ctx.enableRequested;
+            if (enable != development_server_is_enabled() && development_server_set_enabled(enable) != ERROR_NONE) {
+                LOG_E(TAG, "Failed to change the development server");
+            }
+        }
+
+        if ((flags & ctx.removeBit) != 0) {
+            removePendingTrustedClients(&ctx);
+        }
+        refreshTrustedClients(&ctx, window);
 
         AppEvent event {};
         while (app_event_poll(&sub, &event) == ERROR_NONE) {
@@ -240,7 +312,10 @@ int32_t appMain(int argc, char* argv[]) {
 
     window_manager_remove(window);
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
+    task_event_group_release_bit(&event_group, ctx.enableBit);
+    task_event_group_release_bit(&event_group, ctx.removeBit);
     task_event_group_destruct(&event_group);
+    mutex_destruct(&ctx.removalMutex);
 
     return 0;
 }

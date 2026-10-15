@@ -1,0 +1,17 @@
+name: Build tt
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Test'
+      shell: bash
+      run: python -m unittest discover -s Tests/Python -p '*_test.py' -v
+    - name: 'Release'
+      shell: bash
+      run: python Buildscripts/release-tt.py
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: tt
+        path: release/tt
+        retention-days: 30

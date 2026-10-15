@@ -7,7 +7,17 @@
 
 ## Higher Priority
 
-- Fix Wi-Fi so it actually connects to something
+- Adding GPS: Crash when clicking "+"
+- Update FreeRTOS-Kernel to 11.3.1 to fix hanging tests, then re-release apps.
+- App Hub needs a commandline app
+- BlueTooth as radio backend for MeshCore/Meshtastic?
+- ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
+- Find out why the first build of an app with a clean build cache folder always fails
+- Export TactilityKernelCpp with SDK as optional library
+- Fix BT: an esp32 device connecting to a peripheral isn't working
+- "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
+- Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.
+- Fix posix Wi-Fi so it actually connects to something
 - Support http/https on posix
 - Vi apps are both named "Vi" in the App Hub
 - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
@@ -25,13 +35,14 @@
 - Improve SPI kernel driver (implement read, write, transactions)
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
-- Support direct installation of an `.app` file with `tactility.py install --app helloworld.app`
+- Support direct installation of an `.app` file with `tt app install --app helloworld.app`
 - minitar/untarFile(): "entry->metadata.path" can escape its confined path (e.g. "../something")
 - xl9555 and tca9534 drivers: support `GPIO_FLAG_ACTIVE_LOW` on outputs in software, like tca95xx does.
   Afterwards the raw level reset handling in cst66xx and tca8418 can use ACTIVE_LOW too.
 
 ## Medium Priority
 
+- A fullscreen tiny keyboard that works with single stroke gestures (similar to Palm OS Graffiti)
 - CL-32 display driver performance
 - Move more window management code from Tactility/ to window-manager
 - Implement signal/raise for terminal apps (for CTRL+C and window resize signals)
@@ -59,6 +70,7 @@
 
 ## Lower Priority
 
+- Show device name clearly in on-device web server landing page (to identify tabs of multiple devices easier)
 - When Wi-Fi connects, check for app updates
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - lvgl-module has a keyboard.cpp that creates a `keyboard_group`. This group is set as the default group, so it can also work with trackball(= LVGL "encoder").
