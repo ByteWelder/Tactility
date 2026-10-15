@@ -15,8 +15,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         lwip
         mbedtls
     )
-    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_mock\\.cpp$")
+    list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_posix\\.cpp$")
 else ()
+    list(APPEND REQUIRES_LIST mbedtls)
     list(FILTER SOURCE_FILES EXCLUDE REGEX ".*download_esp\\.cpp$")
 endif ()
 
