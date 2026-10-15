@@ -27,8 +27,12 @@
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
+#include <lvgl/devices/indev.h>
 #include <lvgl/fonts.h>
+#include <lvgl/grid_navigation.h>
 #include <lvgl/lvgl.h>
+#include <lvgl/widgets/page_indicator.h>
+#include <lvgl/widgets/text_button.h>
 #include <lvgl.h>
 
 #include <functional>
@@ -102,14 +106,36 @@ struct Context {
     std::vector<StepConfiguration> steps;
     uint32_t pendingStepDialogId = 0;
 
+    // Valid while the window is shown
     lv_obj_t* titleLabel = nullptr;
     lv_obj_t* descriptionLabel = nullptr;
+    lv_obj_t* backButton = nullptr;
     lv_obj_t* skipButton = nullptr;
     lv_obj_t* continueButton = nullptr;
+    lv_obj_t* pageIndicator = nullptr;
 };
+
+/** The welcome page, a page per step, and the completion page */
+uint32_t getPageCount(const Context* ctx) {
+    return static_cast<uint32_t>(ctx->steps.size()) + 2;
+}
+
+uint32_t getPage(const Context* ctx) {
+    switch (ctx->phase) {
+        case Phase::Welcome:
+            return 0;
+        case Phase::StepIntro:
+            return static_cast<uint32_t>(ctx->stepIndex) + 1;
+        case Phase::Done:
+            return getPageCount(ctx) - 1;
+    }
+    return 0;
+}
 
 
 void renderCurrent(Context* ctx) {
+    lvgl_page_indicator_set_page(ctx->pageIndicator, getPage(ctx));
+    lv_obj_set_hidden(ctx->backButton, ctx->phase == Phase::Welcome);
     switch (ctx->phase) {
         case Phase::Welcome: {
             lv_label_set_text(ctx->titleLabel, "Welcome");
@@ -146,8 +172,27 @@ void advanceTo(Context* ctx, size_t index) {
     }
 
     lvgl_lock();
-    renderCurrent(ctx);
+    // Covered by a step's app: createWidgets() renders the current page when the window is shown again
+    if (ctx->titleLabel != nullptr) {
+        renderCurrent(ctx);
+    }
     lvgl_unlock();
+}
+
+void onBackClicked(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    // The previous page: a step's intro page, or the welcome page before the first step
+    const size_t previousPage = getPage(ctx) - 1;
+    if (ctx->phase == Phase::Welcome) {
+        return;
+    } else if (previousPage == 0) {
+        ctx->phase = Phase::Welcome;
+        lvgl_lock();
+        renderCurrent(ctx);
+        lvgl_unlock();
+    } else {
+        advanceTo(ctx, previousPage - 1);
+    }
 }
 
 void onSkipClicked(lv_event_t* event) {
@@ -193,21 +238,57 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     int title_margin = lvgl_get_text_font_height(FONT_SIZE_LARGE);
     lv_obj_align_to(ctx->titleLabel, ctx->descriptionLabel, LV_ALIGN_OUT_TOP_MID, 0, -title_margin);
 
-    ctx->skipButton = lv_button_create(parent);
-    lv_obj_t* skip_label = lv_label_create(ctx->skipButton);
-    lv_label_set_text(skip_label, "Skip");
-    lv_obj_center(skip_label);
-    lv_obj_align(ctx->skipButton, LV_ALIGN_BOTTOM_LEFT, 12, -12);
+    // Back on the left, the page indicator in the middle, and Skip next to Continue on the right
+    auto* buttonRow = lv_obj_create(parent);
+    lv_obj_remove_style_all(buttonRow);
+    lv_obj_set_size(buttonRow, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_hor(buttonRow, 8, LV_STATE_DEFAULT);
+    lv_obj_set_flex_flow(buttonRow, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(buttonRow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_align(buttonRow, LV_ALIGN_BOTTOM_MID, 0, -8);
+
+    ctx->backButton = lvgl_text_button_create(buttonRow);
+    lv_label_set_text(lv_label_create(ctx->backButton), "Back");
+    lv_obj_add_event_cb(ctx->backButton, onBackClicked, LV_EVENT_SHORT_CLICKED, ctx);
+
+    auto* spacer = lv_obj_create(buttonRow);
+    lv_obj_remove_style_all(spacer);
+    lv_obj_set_height(spacer, 1);
+    lv_obj_set_flex_grow(spacer, 1);
+
+    ctx->skipButton = lvgl_text_button_create(buttonRow);
+    lv_label_set_text(lv_label_create(ctx->skipButton), "Skip");
     lv_obj_add_event_cb(ctx->skipButton, onSkipClicked, LV_EVENT_SHORT_CLICKED, ctx);
 
-    ctx->continueButton = lv_button_create(parent);
-    lv_obj_t* continue_label = lv_label_create(ctx->continueButton);
-    lv_label_set_text(continue_label, "Continue");
-    lv_obj_center(continue_label);
-    lv_obj_align(ctx->continueButton, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
+    ctx->continueButton = lv_button_create(buttonRow);
+    lv_label_set_text(lv_label_create(ctx->continueButton), "Continue");
     lv_obj_add_event_cb(ctx->continueButton, onContinueClicked, LV_EVENT_SHORT_CLICKED, ctx);
 
+    // Centered on the row, outside the flex layout. It shows the page number instead of the dots when they don't fit.
+    ctx->pageIndicator = lvgl_page_indicator_create(buttonRow);
+    lv_obj_add_flag(ctx->pageIndicator, LV_OBJ_FLAG_IGNORE_LAYOUT);
+    lv_obj_set_style_max_width(ctx->pageIndicator, LV_PCT(25), LV_STATE_DEFAULT);
+    lvgl_page_indicator_set_page_count(ctx->pageIndicator, getPageCount(ctx));
+    lv_obj_align(ctx->pageIndicator, LV_ALIGN_CENTER, 0, 0);
+
+    // The arrow keys move between the buttons, and Continue has the focus first
+    lvgl_grid_navigation_add(buttonRow);
+    if (!lvgl_indev_exists(LV_INDEV_TYPE_POINTER)) {
+        lv_group_focus_obj(buttonRow);
+        lv_gridnav_set_focused(buttonRow, ctx->continueButton, LV_ANIM_OFF);
+    }
+
     renderCurrent(ctx);
+}
+
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->titleLabel = nullptr;
+    ctx->descriptionLabel = nullptr;
+    ctx->backButton = nullptr;
+    ctx->skipButton = nullptr;
+    ctx->continueButton = nullptr;
+    ctx->pageIndicator = nullptr;
 }
 
 int32_t appMain(int argc, char* argv[]) {
@@ -288,7 +369,7 @@ int32_t appMain(int argc, char* argv[]) {
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {

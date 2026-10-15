@@ -446,6 +446,11 @@ void TileGrid::createWidgets(lv_obj_t* parent) {
     barSideContainer = nullptr;
     barButtons.clear();
     createGrid(parent);
+    // Centered below the grid
+    pageIndicator = lvgl_page_indicator_create(parent);
+    lv_obj_set_width(pageIndicator, LV_PCT(100));
+    // Keeps the dots off the screen's bottom edge
+    lv_obj_set_style_margin_bottom(pageIndicator, lvgl_theme_is_compact() ? LV_DPX(2) : LV_DPX(8), LV_STATE_DEFAULT);
     finishCreate(parent);
 }
 

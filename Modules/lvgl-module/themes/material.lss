@@ -38,6 +38,7 @@
 @widget flex_list: lvgl_list_class;
 @widget flex_list_text: lvgl_list_text_class;
 @widget flex_list_button: lvgl_list_button_class;
+@widget text_button: lvgl_text_button_class;
 
 // ============================================================
 // 1. Base tokens
@@ -684,6 +685,11 @@ text_button {
 text_button_pressed {
     bgColor: @text-button-pressed-container-color;
     bgOpa: @opacity-state-pressed;
+}
+
+// Room for the focus ring of a text button, which the parent would clip
+text_button_margin {
+    marginAll: @focus-width + @focus-offset;
 }
 
 icon_button {
@@ -1415,6 +1421,16 @@ apply(msgbox_header_button) {
     icon_button: default;
     transition_exit: default;
     state_pressed: state.pressed;
+    transition_enter: state.pressed;
+    focus_ring: state.focusKey;
+    disabled: state.disabled;
+}
+
+apply(text_button) {
+    text_button: default;
+    text_button_margin: default;
+    transition_exit: default;
+    text_button_pressed: state.pressed;
     transition_enter: state.pressed;
     focus_ring: state.focusKey;
     disabled: state.disabled;

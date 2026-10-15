@@ -62,7 +62,8 @@ public:
     void setSwipeNavigation(bool enabled) { swipeNavigation = enabled; }
 
     /**
-     * Creates the grid and populates it. Call setPageButtons() right after it to add page buttons.
+     * Creates the grid and populates it, with a page indicator below it that is hidden when there's only one page.
+     * Call setPageButtons() right after it to add page buttons.
      * @param[in] parent the container for the grid, with a flex column layout
      */
     void createWidgets(lv_obj_t* parent);

@@ -22,6 +22,7 @@ extern const lv_obj_class_t lvgl_page_indicator_dot_class;
 extern const lv_obj_class_t lvgl_list_class;
 extern const lv_obj_class_t lvgl_list_text_class;
 extern const lv_obj_class_t lvgl_list_button_class;
+extern const lv_obj_class_t lvgl_text_button_class;
 
 #define NEUTRAL_4 lv_color_hex(0x0E0E0E)
 #define NEUTRAL_6 lv_color_hex(0x131313)
@@ -372,12 +373,9 @@ typedef struct {
     lv_style_t button_checked_pressed;
 #endif
     lv_style_t button_disabled;
-#if LV_USE_MSGBOX
     lv_style_t text_button;
-#endif
-#if LV_USE_MSGBOX
     lv_style_t text_button_pressed;
-#endif
+    lv_style_t text_button_margin;
     lv_style_t icon_button;
     lv_style_t icon_button_selected;
     lv_style_t icon_button_filled;
@@ -857,7 +855,6 @@ static void style_init(my_theme_t * theme)
     lv_style_set_text_color(&theme->styles.button_disabled, BUTTON_DISABLED_LABEL_COLOR);
     lv_style_set_text_opa(&theme->styles.button_disabled, BUTTON_DISABLED_LABEL_OPACITY);
 
-#if LV_USE_MSGBOX
     style_init_reset(&theme->styles.text_button);
     lv_style_set_bg_opa(&theme->styles.text_button, LV_OPA_TRANSP);
     lv_style_set_text_color(&theme->styles.text_button, TEXT_BUTTON_LABEL_COLOR);
@@ -865,13 +862,13 @@ static void style_init(my_theme_t * theme)
     lv_style_set_pad_hor(&theme->styles.text_button, TEXT_BUTTON_PAD_HOR);
     lv_style_set_pad_ver(&theme->styles.text_button, BUTTON_PAD_VER);
     lv_style_set_pad_gap(&theme->styles.text_button, BUTTON_GAP);
-#endif
 
-#if LV_USE_MSGBOX
     style_init_reset(&theme->styles.text_button_pressed);
     lv_style_set_bg_color(&theme->styles.text_button_pressed, TEXT_BUTTON_PRESSED_CONTAINER_COLOR);
     lv_style_set_bg_opa(&theme->styles.text_button_pressed, OPACITY_STATE_PRESSED);
-#endif
+
+    style_init_reset(&theme->styles.text_button_margin);
+    lv_style_set_margin_all(&theme->styles.text_button_margin, FOCUS_WIDTH + FOCUS_OFFSET);
 
     style_init_reset(&theme->styles.icon_button);
     lv_style_set_bg_opa(&theme->styles.icon_button, LV_OPA_TRANSP);
@@ -1843,6 +1840,17 @@ static void theme_apply(lv_theme_t * th, lv_obj_t * obj)
         return;
     }
 #endif
+    if(lv_obj_check_type(obj, &lvgl_text_button_class)) {
+        /* text_button */
+        lv_obj_add_style(obj, &theme->styles.text_button, 0);
+        lv_obj_add_style(obj, &theme->styles.text_button_margin, 0);
+        lv_obj_add_style(obj, &theme->styles.transition_exit, 0);
+        lv_obj_add_style(obj, &theme->styles.text_button_pressed, LV_STATE_PRESSED);
+        lv_obj_add_style(obj, &theme->styles.transition_enter, LV_STATE_PRESSED);
+        lv_obj_add_style(obj, &theme->styles.focus_ring, LV_STATE_FOCUS_KEY);
+        lv_obj_add_style(obj, &theme->styles.disabled, LV_STATE_DISABLED);
+        return;
+    }
 #if LV_USE_MSGBOX
     if(lv_obj_check_type(obj, &lv_msgbox_footer_button_class)) {
         /* msgbox_footer_button */

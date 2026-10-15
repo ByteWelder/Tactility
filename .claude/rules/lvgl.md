@@ -1,6 +1,7 @@
 # Architecture: LVGL
 
 User interfaces should scale well for everything between very large (e.g. 1280x720) and small (e.g. 135x240) displays. Vertical and horizontal layouts are supported.
+Margins and padding are set in density-independent pixels with `LV_DPX()`, not in raw pixels.
 
 Two kernel modules cover LVGL:
 

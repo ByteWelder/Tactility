@@ -24,6 +24,7 @@
 #include <lvgl/widgets/page_indicator.h>
 #include <lvgl/widgets/spinner.h>
 #include <lvgl/widgets/statusbar.h>
+#include <lvgl/widgets/text_button.h>
 #include <lvgl/widgets/toolbar.h>
 
 #include <tactility/module.h>
@@ -136,6 +137,8 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     // lvgl_icon_button
     DEFINE_MODULE_SYMBOL(lvgl_icon_button_create),
     DEFINE_MODULE_SYMBOL(lvgl_icon_button_create_variant),
+    // lvgl_text_button
+    DEFINE_MODULE_SYMBOL(lvgl_text_button_create),
     // lvgl_list
     DEFINE_MODULE_SYMBOL(lvgl_list_create),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_text),
