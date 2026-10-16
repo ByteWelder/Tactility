@@ -210,6 +210,8 @@ struct MeshHost {
     MeshState state = MESH_STATE_OFF;
     MeshStore store;
     tt::std::vector<MeshNode> nodes;
+    /** The saved contacts of every backend */
+    tt::std::vector<MeshContact> contacts;
     char activeBackend[MESH_BACKEND_ID_MAX_LENGTH + 1] = {};
     tt::std::deque<std::function<void()>> calls;
 
@@ -260,6 +262,120 @@ void setStateLocked(MeshHost* host, MeshState state) {
     setState(host, state);
     unlock();
 }
+
+// region Contacts
+
+constexpr size_t MAX_CONTACTS = 64;
+constexpr auto* CONTACTS_FILE_NAME = "contacts.bin";
+
+bool isSameAddress(const MeshAddress& a, const MeshAddress& b) {
+    return a.length == b.length && memcmp(a.bytes, b.bytes, a.length) == 0;
+}
+
+/** Requires the global lock */
+MeshContact* findContact(MeshHost* host, const MeshAddress& address) {
+    for (auto& contact : host->contacts) {
+        if (strncmp(contact.backend, host->activeBackend, MESH_BACKEND_ID_MAX_LENGTH) == 0 && isSameAddress(contact.address, address)) {
+            return &contact;
+        }
+    }
+    return nullptr;
+}
+
+void loadContacts(MeshHost* host) {
+    char path[FILE_MAX_PATH_STRING_LENGTH];
+    if (service_paths_get_user_data_path(MESH_SERVICE_ID, CONTACTS_FILE_NAME, path, sizeof(path)) != ERROR_NONE) {
+        return;
+    }
+    FILE* file = fopen(path, "rb");
+    if (file == nullptr) {
+        return;
+    }
+    MeshContact contact;
+    while (host->contacts.size() < MAX_CONTACTS && fread(&contact, sizeof(contact), 1, file) == 1) {
+        contact.backend[MESH_BACKEND_ID_MAX_LENGTH] = '\0';
+        contact.name[MESH_NAME_MAX_LENGTH] = '\0';
+        if (contact.address.length > 0 && contact.address.length <= MESH_ADDRESS_MAX_LENGTH) {
+            host->contacts.push_back(contact);
+        }
+    }
+    fclose(file);
+}
+
+/** Requires the global lock */
+void saveContacts(MeshHost* host) {
+    char directory[FILE_MAX_PATH_STRING_LENGTH];
+    char path[FILE_MAX_PATH_STRING_LENGTH];
+    if (service_paths_get_user_data_directory(MESH_SERVICE_ID, directory, sizeof(directory)) != ERROR_NONE ||
+        service_paths_get_user_data_path(MESH_SERVICE_ID, CONTACTS_FILE_NAME, path, sizeof(path)) != ERROR_NONE) {
+        return;
+    }
+    const error_t made = directory_make(directory, true);
+    if (made != ERROR_NONE && made != ERROR_ALREADY_EXISTS) {
+        LOG_E(TAG, "Failed to create %s", directory);
+        return;
+    }
+    FILE* file = fopen(path, "wb");
+    if (file == nullptr) {
+        LOG_E(TAG, "Failed to save the contacts");
+        return;
+    }
+    if (!host->contacts.empty() && fwrite(host->contacts.data(), sizeof(MeshContact), host->contacts.size(), file) != host->contacts.size()) {
+        LOG_E(TAG, "Failed to save the contacts");
+    }
+    fclose(file);
+}
+
+/**
+ * Save a contact of the active backend. An existing contact is renamed when @a rename is set.
+ * Requires the global lock.
+ */
+error_t addContact(MeshHost* host, const MeshAddress& address, const char* name, bool rename) {
+    if (address.length == 0 || address.length > MESH_ADDRESS_MAX_LENGTH) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    char resolvedName[MESH_NAME_MAX_LENGTH + 1] = {};
+    if (name != nullptr) {
+        strncpy(resolvedName, name, MESH_NAME_MAX_LENGTH);
+    }
+    if (resolvedName[0] == '\0') {
+        for (const auto& node : host->nodes) {
+            if (isSameAddress(node.address, address) && strncmp(node.backend, host->activeBackend, MESH_BACKEND_ID_MAX_LENGTH) == 0) {
+                strncpy(resolvedName, node.name, MESH_NAME_MAX_LENGTH);
+                break;
+            }
+        }
+    }
+    if (resolvedName[0] == '\0') {
+        // The first bytes identify the node well enough to tell nodes apart
+        for (size_t i = 0; i < address.length && i < 4; i++) {
+            snprintf(resolvedName + i * 2, 3, "%02x", address.bytes[i]);
+        }
+    }
+
+    auto* existing = findContact(host, address);
+    if (existing != nullptr) {
+        if (!rename || name == nullptr || name[0] == '\0') {
+            return ERROR_NONE;
+        }
+        strncpy(existing->name, resolvedName, MESH_NAME_MAX_LENGTH);
+    } else {
+        if (host->contacts.size() >= MAX_CONTACTS) {
+            return ERROR_RESOURCE;
+        }
+        MeshContact contact {};
+        strncpy(contact.backend, host->activeBackend, MESH_BACKEND_ID_MAX_LENGTH);
+        contact.address = address;
+        strncpy(contact.name, resolvedName, MESH_NAME_MAX_LENGTH);
+        host->contacts.push_back(contact);
+    }
+    saveContacts(host);
+    emitEvent(MESH_EVENT_CONTACT, host->state, 0, MESH_DELIVERY_RECEIVED);
+    return ERROR_NONE;
+}
+
+// endregion
 
 /** Requires the global lock */
 void setDelivery(MeshHost* host, uint32_t seq, MeshDeliveryState delivery) {
@@ -711,6 +827,7 @@ error_t onStart(ServiceInstance*, void* data) {
         releaseResources(host);
         return ERROR_RESOURCE;
     }
+    loadContacts(host);
 
     if (!attachRadio(host)) {
         LOG_W(TAG, "No LoRa radio found yet");
@@ -883,6 +1000,10 @@ uint32_t mesh_host_receive_text(
     uint32_t seq = 0;
     if (host->store.add(&message) == ERROR_NONE) {
         seq = message.seq;
+        // A sender of a direct message is saved, so the conversation can be found and answered
+        if (from != nullptr && from->length > 0) {
+            addContact(host, *from, sender_name, false);
+        }
         emitEvent(MESH_EVENT_MESSAGE, host->state, seq, MESH_DELIVERY_RECEIVED);
     }
     unlock();
@@ -1022,6 +1143,14 @@ error_t mesh_set_node_name(const char* name) {
     strncpy(globals().settings.node_name, name, MESH_NAME_MAX_LENGTH);
     globals().settings.node_name[MESH_NAME_MAX_LENGTH] = '\0';
     const MeshSettings copy = globals().settings;
+    // The backend announces the new name
+    if (service != nullptr) {
+        post(service, [host = service] {
+            if (host->api != nullptr && host->api->on_node_name_changed != nullptr) {
+                host->api->on_node_name_changed(host->backend);
+            }
+        });
+    }
     unlock();
     return mesh_settings_save(&copy);
 }
@@ -1254,6 +1383,108 @@ error_t mesh_history_get(uint32_t before_seq, MeshMessage* messages, size_t max_
     return result;
 }
 
+error_t mesh_conversation_get(const MeshAddress* peer, uint8_t channel, uint32_t before_seq, MeshMessage* messages, size_t max_count, size_t* count) {
+    lock();
+    error_t result = ERROR_INVALID_STATE;
+    if (service != nullptr) {
+        *count = service->store.getConversation(service->activeBackend, peer, channel, before_seq, messages, max_count);
+        result = ERROR_NONE;
+    }
+    unlock();
+    return result;
+}
+
+error_t mesh_get_contacts(MeshContact* contacts, size_t max_count, size_t* count) {
+    lock();
+    error_t result = ERROR_INVALID_STATE;
+    if (service != nullptr) {
+        *count = 0;
+        for (const auto& contact : service->contacts) {
+            if (*count < max_count && strncmp(contact.backend, service->activeBackend, MESH_BACKEND_ID_MAX_LENGTH) == 0) {
+                contacts[(*count)++] = contact;
+            }
+        }
+        result = ERROR_NONE;
+    }
+    unlock();
+    return result;
+}
+
+error_t mesh_add_contact(const MeshAddress* address, const char* name) {
+    if (address->length == 0 || address->length > MESH_ADDRESS_MAX_LENGTH) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    bool valid = true;
+    const error_t callResult = callOnServiceThread([&](MeshHost* host) {
+        if (host->api != nullptr && host->api->is_valid_contact_address != nullptr) {
+            valid = host->api->is_valid_contact_address(host->backend, address);
+        }
+    });
+    if (callResult != ERROR_NONE) {
+        return callResult;
+    }
+    if (!valid) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    lock();
+    error_t result = ERROR_INVALID_STATE;
+    if (service != nullptr) {
+        result = addContact(service, *address, name, true);
+    }
+    unlock();
+    return result;
+}
+
+error_t mesh_remove_contact(const MeshAddress* address) {
+    lock();
+    error_t result = ERROR_INVALID_STATE;
+    if (service != nullptr) {
+        auto* contact = findContact(service, *address);
+        if (contact == nullptr) {
+            result = ERROR_NOT_FOUND;
+        } else {
+            service->contacts.erase(service->contacts.begin() + (contact - service->contacts.data()));
+            saveContacts(service);
+            emitEvent(MESH_EVENT_CONTACT, service->state, 0, MESH_DELIVERY_RECEIVED);
+            result = ERROR_NONE;
+        }
+    }
+    unlock();
+    return result;
+}
+
+error_t mesh_get_contact_uri(const MeshAddress* contact, char* uri, size_t uri_size) {
+    char name[MESH_NAME_MAX_LENGTH + 1] = {};
+    lock();
+    if (service == nullptr) {
+        unlock();
+        return ERROR_INVALID_STATE;
+    }
+    if (contact == nullptr) {
+        strncpy(name, globals().settings.node_name, MESH_NAME_MAX_LENGTH);
+    } else {
+        const auto* saved = findContact(service, *contact);
+        if (saved == nullptr) {
+            unlock();
+            return ERROR_NOT_FOUND;
+        }
+        strncpy(name, saved->name, MESH_NAME_MAX_LENGTH);
+    }
+    unlock();
+
+    error_t result = ERROR_INVALID_STATE;
+    const error_t callResult = callOnServiceThread([&](MeshHost* host) {
+        if (host->api == nullptr) {
+            return;
+        }
+        result = (host->api->get_contact_uri != nullptr)
+            ? host->api->get_contact_uri(host->backend, contact, name, uri, uri_size)
+            : ERROR_NOT_SUPPORTED;
+    });
+    return (callResult != ERROR_NONE) ? callResult : result;
+}
+
 error_t mesh_get_nodes(MeshNode* nodes, size_t max_count, size_t* count) {
     lock();
     error_t result = ERROR_INVALID_STATE;
@@ -1287,6 +1518,22 @@ error_t mesh_set_channel(const MeshChannel* channel) {
         }
         result = (host->api->set_channel != nullptr)
             ? host->api->set_channel(host->backend, channel)
+            : ERROR_NOT_SUPPORTED;
+    });
+    return (callResult != ERROR_NONE) ? callResult : result;
+}
+
+error_t mesh_remove_channel(uint8_t index) {
+    if (index == 0) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    error_t result = ERROR_INVALID_STATE;
+    const error_t callResult = callOnServiceThread([&](MeshHost* host) {
+        if (host->api == nullptr) {
+            return;
+        }
+        result = (host->api->remove_channel != nullptr)
+            ? host->api->remove_channel(host->backend, index)
             : ERROR_NOT_SUPPORTED;
     });
     return (callResult != ERROR_NONE) ? callResult : result;

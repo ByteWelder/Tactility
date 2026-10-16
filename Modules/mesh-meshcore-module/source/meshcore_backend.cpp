@@ -402,6 +402,24 @@ void onStart(void* context) {
     sendAdvert(static_cast<Backend*>(context));
 }
 
+error_t getContactUri(void* context, const MeshAddress* contact, const char* name, char* uri, size_t uriSize) {
+    auto* backend = static_cast<Backend*>(context);
+    if (contact != nullptr && contact->length != MESHCORE_PUBLIC_KEY_SIZE) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    const uint8_t* publicKey = (contact != nullptr) ? contact->bytes : backend->identity.publicKey;
+    // Contacts are shown as companions, as the type of a contact isn't stored
+    return meshcore_build_contact_uri(name, publicKey, 1, uri, uriSize) ? ERROR_NONE : ERROR_BUFFER_OVERFLOW;
+}
+
+bool isValidContactAddress(void*, const MeshAddress* address) {
+    return address->length == MESHCORE_PUBLIC_KEY_SIZE;
+}
+
+void onNodeNameChanged(void* context) {
+    sendAdvert(static_cast<Backend*>(context));
+}
+
 bool onReceive(void* context, const uint8_t* data, size_t length, float rssi, float snr) {
     auto* backend = static_cast<Backend*>(context);
     MeshCorePacket packet;
@@ -441,7 +459,7 @@ void onTick(void* context) {
     }
     for (auto iterator = backend->pendingAcks.begin(); iterator != backend->pendingAcks.end();) {
         if (nowMs >= iterator->second.deadlineMs) {
-            // Sent but never acknowledged: it stays "sent"
+            mesh_host_set_delivery(backend->host, iterator->second.seq, MESH_DELIVERY_FAILED);
             iterator = backend->pendingAcks.erase(iterator);
         } else {
             ++iterator;
@@ -520,6 +538,16 @@ error_t setChannel(void* context, const MeshChannel* channel) {
     return ERROR_NONE;
 }
 
+error_t removeChannel(void* context, uint8_t index) {
+    auto* backend = static_cast<Backend*>(context);
+    const size_t removed = std::erase_if(backend->channels, [index](const Channel& existing) { return existing.index == index; });
+    if (removed == 0) {
+        return ERROR_NOT_FOUND;
+    }
+    saveChannels(backend);
+    return ERROR_NONE;
+}
+
 // endregion
 
 } // namespace
@@ -536,4 +564,8 @@ const MeshBackendApi meshcore_backend_api = {
     .send_text = sendText,
     .get_channels = getChannels,
     .set_channel = setChannel,
+    .get_contact_uri = getContactUri,
+    .is_valid_contact_address = isValidContactAddress,
+    .on_node_name_changed = onNodeNameChanged,
+    .remove_channel = removeChannel,
 };

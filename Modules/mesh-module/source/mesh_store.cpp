@@ -29,6 +29,22 @@ constexpr size_t MESSAGE_PAYLOAD_MAX_SIZE = 512;
 constexpr auto* SEGMENT_PREFIX = "seg-";
 constexpr auto* SEGMENT_SUFFIX = ".log";
 
+bool isSameAddress(const MeshAddress& a, const MeshAddress& b) {
+    return a.length == b.length && memcmp(a.bytes, b.bytes, a.length) == 0;
+}
+
+/** FNV-1a, never 0 for an address so that 0 can mean "no peer" */
+uint32_t hashPeer(const MeshAddress& address) {
+    if (address.length == 0) {
+        return 0;
+    }
+    uint32_t hash = 2166136261u;
+    for (size_t i = 0; i < address.length; i++) {
+        hash = (hash ^ address.bytes[i]) * 16777619u;
+    }
+    return hash | 1;
+}
+
 uint8_t* allocateBuffer(size_t size) {
     constexpr MemoryPolicy policy = { .required = 0, .desired = MEMORY_CAPABILITY_EXTERNAL, .alignment = 0 };
     return static_cast<uint8_t*>(memory_alloc_with_policy(size, &policy));
@@ -277,11 +293,22 @@ uint32_t MeshStore::scanSegment(uint32_t segment) {
     return offset;
 }
 
+MeshStore::IndexEntry MeshStore::makeIndexEntry(const MeshMessage& message, uint32_t segment, uint32_t offset) {
+    return {
+        .seq = message.seq,
+        .segment = segment,
+        .offset = offset,
+        .delivery = message.delivery,
+        .channel = message.channel,
+        .peerHash = hashPeer(message.peer),
+    };
+}
+
 void MeshStore::applyRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t segment, uint32_t offset) {
     if (type == RECORD_TYPE_MESSAGE) {
         MeshMessage message;
         if (deserializeMessage(payload, length, &message)) {
-            index.push_back({ .seq = message.seq, .segment = segment, .offset = offset, .delivery = message.delivery });
+            index.push_back(makeIndexEntry(message, segment, offset));
             nextSeq = std::max(nextSeq, message.seq + 1);
         }
     } else if (type == RECORD_TYPE_DELIVERY && length >= 5) {
@@ -318,7 +345,7 @@ error_t MeshStore::appendRecord(uint8_t type, const uint8_t* payload, size_t len
     if (type == RECORD_TYPE_MESSAGE) {
         MeshMessage message;
         deserializeMessage(payload, length, &message);
-        index.push_back({ .seq = seq, .segment = PENDING, .offset = (uint32_t)bufferUsed, .delivery = message.delivery });
+        index.push_back(makeIndexEntry(message, PENDING, (uint32_t)bufferUsed));
     }
 
     if (bufferUsed == 0) {
@@ -398,6 +425,29 @@ error_t MeshStore::get(uint32_t seq, MeshMessage* message) const {
         return ERROR_NOT_FOUND;
     }
     return readEntry(*entry, message);
+}
+
+size_t MeshStore::getConversation(const char* backend, const MeshAddress* peer, uint8_t channel, uint32_t beforeSeq, MeshMessage* messages, size_t maxCount) const {
+    const uint32_t peerHash = (peer != nullptr) ? hashPeer(*peer) : 0;
+    size_t count = 0;
+    for (auto iterator = index.rbegin(); iterator != index.rend() && count < maxCount; ++iterator) {
+        if (beforeSeq != 0 && iterator->seq >= beforeSeq) {
+            continue;
+        }
+        if (iterator->peerHash != peerHash || (peer == nullptr && iterator->channel != channel)) {
+            continue;
+        }
+        MeshMessage* message = &messages[count];
+        // The hash can collide, so the stored message decides
+        if (readEntry(*iterator, message) != ERROR_NONE || strncmp(message->backend, backend, MESH_BACKEND_ID_MAX_LENGTH) != 0) {
+            continue;
+        }
+        if (peer != nullptr ? !isSameAddress(message->peer, *peer) : message->peer.length != 0) {
+            continue;
+        }
+        count++;
+    }
+    return count;
 }
 
 size_t MeshStore::getHistory(uint32_t beforeSeq, MeshMessage* messages, size_t maxCount) const {

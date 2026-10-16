@@ -21,7 +21,7 @@ extern "C" {
  */
 
 /** Incremented when the API changes in a way that matters to apps */
-#define MESH_API_VERSION 1
+#define MESH_API_VERSION 2
 
 #define MESH_BACKEND_ID_MAX_LENGTH 15
 #define MESH_ADDRESS_MAX_LENGTH 32
@@ -106,6 +106,13 @@ struct MeshNode {
     uint64_t last_heard_ms;
     float rssi;
     float snr;
+};
+
+/** A node that the user saved for direct messages */
+struct MeshContact {
+    char backend[MESH_BACKEND_ID_MAX_LENGTH + 1];
+    struct MeshAddress address;
+    char name[MESH_NAME_MAX_LENGTH + 1];
 };
 
 /**
@@ -213,6 +220,18 @@ error_t mesh_raw_send(const char* backend, const uint8_t* data, size_t length);
 error_t mesh_message_get(uint32_t seq, struct MeshMessage* message);
 
 /**
+ * Read the messages of one conversation of the active backend, newest first.
+ * @param[in] peer the peer of a direct conversation, or NULL for the conversation of @a channel
+ * @param[in] channel the channel index, ignored when @a peer is set
+ * @param[in] before_seq only return messages older than this, or 0 for the newest
+ * @param[out] messages buffer for the messages
+ * @param[in] max_count capacity of @a messages
+ * @param[out] count the number of messages returned
+ * @retval ERROR_INVALID_STATE when the service is not running
+ */
+error_t mesh_conversation_get(const struct MeshAddress* peer, uint8_t channel, uint32_t before_seq, struct MeshMessage* messages, size_t max_count, size_t* count);
+
+/**
  * Read stored messages, newest first.
  * @param[in] before_seq only return messages older than this, or 0 for the newest
  * @param[out] messages buffer for the messages
@@ -220,6 +239,40 @@ error_t mesh_message_get(uint32_t seq, struct MeshMessage* message);
  * @param[out] count the number of messages returned
  */
 error_t mesh_history_get(uint32_t before_seq, struct MeshMessage* messages, size_t max_count, size_t* count);
+
+// endregion
+
+// region Contacts
+
+/**
+ * Get the saved contacts of the active backend. A node that sends a direct message is saved automatically.
+ * @retval ERROR_INVALID_STATE when the service is not running
+ */
+error_t mesh_get_contacts(struct MeshContact* contacts, size_t max_count, size_t* count);
+
+/**
+ * Save a contact for the active backend, or rename it when the address is saved already. The choice is persisted.
+ * @param[in] name the name to show, or NULL to take it from the nodes that were heard
+ * @retval ERROR_INVALID_STATE when the service is not running
+ * @retval ERROR_INVALID_ARGUMENT when the active backend doesn't accept the address, e.g. a public key of the wrong length
+ */
+error_t mesh_add_contact(const struct MeshAddress* address, const char* name);
+
+/**
+ * Remove a contact of the active backend. The stored messages remain.
+ * @retval ERROR_NOT_FOUND when there is no such contact
+ */
+error_t mesh_remove_contact(const struct MeshAddress* address);
+
+/**
+ * Get a URI of a contact of the active backend that other mesh apps can scan as a QR code to add it.
+ * @param[in] contact the contact's address, or NULL for this node
+ * @param[out] uri the URI
+ * @retval ERROR_NOT_SUPPORTED when the backend has no such URI
+ * @retval ERROR_NOT_FOUND when @a contact isn't a saved contact
+ * @retval ERROR_BUFFER_OVERFLOW when the URI doesn't fit
+ */
+error_t mesh_get_contact_uri(const struct MeshAddress* contact, char* uri, size_t uri_size);
 
 // endregion
 
@@ -238,6 +291,14 @@ error_t mesh_get_channels(struct MeshChannel* channels, size_t max_count, size_t
  */
 error_t mesh_set_channel(const struct MeshChannel* channel);
 
+/**
+ * Leave a channel. The stored messages remain. Channel 0 is the primary channel and can't be removed.
+ * @retval ERROR_NOT_FOUND when there is no such channel
+ * @retval ERROR_INVALID_ARGUMENT for channel 0
+ * @retval ERROR_NOT_SUPPORTED when the backend has no channels
+ */
+error_t mesh_remove_channel(uint8_t index);
+
 // endregion
 
 // region Events
@@ -253,6 +314,8 @@ enum MeshEventType {
     MESH_EVENT_NODE,
     /** The active backend received a frame that isn't a message, see MeshEvent.frame. It isn't stored. */
     MESH_EVENT_FRAME,
+    /** A contact was added or removed */
+    MESH_EVENT_CONTACT,
 };
 
 enum MeshFrameKind {

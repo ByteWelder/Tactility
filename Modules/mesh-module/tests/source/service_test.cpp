@@ -14,6 +14,7 @@
 #include <tactility/filesystem/file_system.h>
 #include <tactility/paths.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -101,6 +102,16 @@ bool loopbackOnReceive(void* backend, const uint8_t* data, size_t length, float 
 
 void loopbackOnTick(void*) {}
 
+error_t loopbackGetContactUri(void*, const MeshAddress* contact, const char* name, char* uri, size_t uriSize) {
+    snprintf(uri, uriSize, "loopback://%s/%02x", name, contact != nullptr ? contact->bytes[0] : 0);
+    return ERROR_NONE;
+}
+
+bool loopbackIsValidContactAddress(void*, const MeshAddress* address) { return address->length == 1; }
+
+std::atomic<int> nameChangeCount = 0;
+void loopbackOnNodeNameChanged(void*) { nameChangeCount++; }
+
 error_t loopbackSendText(void* backend, uint32_t seq, const MeshAddress*, uint8_t channel, const char* text) {
     uint8_t frame[1 + MESH_TEXT_MAX_LENGTH];
     frame[0] = channel;
@@ -121,6 +132,9 @@ const MeshBackendApi loopbackApi = {
     .send_text = loopbackSendText,
     .get_channels = nullptr,
     .set_channel = nullptr,
+    .get_contact_uri = loopbackGetContactUri,
+    .is_valid_contact_address = loopbackIsValidContactAddress,
+    .on_node_name_changed = loopbackOnNodeNameChanged,
 };
 
 // endregion
@@ -207,6 +221,35 @@ TEST_CASE("mesh service sends and receives through the active backend") {
         }));
         CHECK(waitFor([] { return mesh_get_state() == MESH_STATE_ON; }));
         REQUIRE_EQ(mesh_set_preset("Default"), ERROR_NONE);
+    }
+
+    SUBCASE("a new node name is announced by the backend") {
+        REQUIRE_EQ(radio_set_region(&local, RADIO_REGION_EU_868), ERROR_NONE);
+        REQUIRE_EQ(service_manager_start(MESH_SERVICE_ID), ERROR_NONE);
+        REQUIRE(waitFor([] { return mesh_get_state() == MESH_STATE_ON; }));
+
+        // Without a chosen name, a random one is made up once
+        char generated[MESH_NAME_MAX_LENGTH + 1];
+        CHECK_EQ(mesh_get_node_name(generated, sizeof(generated)), ERROR_NONE);
+        const std::string generatedName = generated;
+        REQUIRE_EQ(generatedName.size(), std::string("TactilityUser-").size() + 8);
+        CHECK_EQ(generatedName.substr(0, 14), "TactilityUser-");
+        CHECK_EQ(generatedName.substr(14).find_first_not_of("0123456789abcdef"), std::string::npos);
+        // The service keeps its settings for the whole process, so the data folder of this test is read directly
+        MeshSettings first;
+        MeshSettings second;
+        mesh_settings_load(&first);
+        mesh_settings_load(&second);
+        CHECK_EQ(std::string(first.node_name).substr(0, 14), "TactilityUser-");
+        CHECK_EQ(std::string(first.node_name), std::string(second.node_name));
+
+        const int before = nameChangeCount;
+        CHECK_EQ(mesh_set_node_name(""), ERROR_INVALID_ARGUMENT);
+        CHECK_EQ(mesh_set_node_name("Ken's deck"), ERROR_NONE);
+        char name[MESH_NAME_MAX_LENGTH + 1];
+        CHECK_EQ(mesh_get_node_name(name, sizeof(name)), ERROR_NONE);
+        CHECK_EQ(std::string(name), "Ken's deck");
+        CHECK(waitFor([before] { return nameChangeCount > before; }));
     }
 
     SUBCASE("concurrent synchronous calls finish") {
@@ -324,6 +367,69 @@ TEST_CASE("mesh service sends and receives through the active backend") {
         }));
         CHECK(mesh_history_get(0, history, 4, &count) == ERROR_NONE);
         CHECK_EQ(count, 2);
+
+        // The sender of the incoming message was saved as a contact
+        MeshContact contacts[4];
+        REQUIRE_EQ(mesh_get_contacts(contacts, 4, &count), ERROR_NONE);
+        REQUIRE_EQ(count, 1);
+        CHECK_EQ(std::string(contacts[0].name), "peer");
+        CHECK_EQ(std::string(contacts[0].backend), "loopback");
+
+        // Contacts can be added, renamed and removed
+        const MeshAddress alice = { .length = 1, .bytes = { 0x50 } };
+        const MeshAddress unknown = { .length = 1, .bytes = { 0x51 } };
+        const MeshAddress tooLong = { .length = 2, .bytes = { 0x52, 0x53 } };
+        CHECK_EQ(mesh_add_contact(&tooLong, "bad"), ERROR_INVALID_ARGUMENT);
+        CHECK_EQ(mesh_add_contact(&alice, "alice"), ERROR_NONE);
+        CHECK_EQ(mesh_add_contact(&alice, nullptr), ERROR_NONE);
+        CHECK_EQ(mesh_add_contact(&unknown, nullptr), ERROR_NONE);
+        REQUIRE_EQ(mesh_get_contacts(contacts, 4, &count), ERROR_NONE);
+        REQUIRE_EQ(count, 3);
+        CHECK_EQ(std::string(contacts[1].name), "alice");
+        // Without a name the address identifies the contact
+        CHECK_EQ(std::string(contacts[2].name), "51");
+
+        // Conversations only hold their own messages
+        uint32_t directSeq = 0;
+        uint32_t channelSeq = 0;
+        REQUIRE_EQ(mesh_send_text(&alice, 0, "hi alice", &directSeq), ERROR_NONE);
+        REQUIRE_EQ(mesh_send_text(nullptr, 5, "hello channel", &channelSeq), ERROR_NONE);
+        MeshMessage conversation[4];
+        CHECK_EQ(mesh_conversation_get(&alice, 0, 0, conversation, 4, &count), ERROR_NONE);
+        REQUIRE_EQ(count, 1);
+        CHECK_EQ(conversation[0].seq, directSeq);
+        CHECK_EQ(std::string(conversation[0].text), "hi alice");
+        CHECK_EQ(mesh_conversation_get(nullptr, 5, 0, conversation, 4, &count), ERROR_NONE);
+        REQUIRE_EQ(count, 1);
+        CHECK_EQ(conversation[0].seq, channelSeq);
+        CHECK_EQ(mesh_conversation_get(nullptr, 6, 0, conversation, 4, &count), ERROR_NONE);
+        CHECK_EQ(count, 0);
+        CHECK_EQ(mesh_conversation_get(&unknown, 0, 0, conversation, 4, &count), ERROR_NONE);
+        CHECK_EQ(count, 0);
+        // The delivery state shows how far the message got
+        CHECK(waitFor([directSeq] { return getDelivery(directSeq) == MESH_DELIVERY_SENT; }));
+
+        // The URI of a saved contact and of this node come from the backend
+        char uri[64];
+        CHECK_EQ(mesh_get_contact_uri(&alice, uri, sizeof(uri)), ERROR_NONE);
+        CHECK_EQ(std::string(uri), "loopback://alice/50");
+        CHECK_EQ(mesh_get_contact_uri(nullptr, uri, sizeof(uri)), ERROR_NONE);
+        CHECK_EQ(std::string(uri).substr(0, 11), "loopback://");
+        CHECK_EQ(mesh_get_contact_uri(&unknown, uri, sizeof(uri)), ERROR_NONE);
+        const MeshAddress stranger = { .length = 1, .bytes = { 0x77 } };
+        CHECK_EQ(mesh_get_contact_uri(&stranger, uri, sizeof(uri)), ERROR_NOT_FOUND);
+
+        CHECK_EQ(mesh_remove_contact(&alice), ERROR_NONE);
+        CHECK_EQ(mesh_remove_contact(&alice), ERROR_NOT_FOUND);
+        REQUIRE_EQ(mesh_get_contacts(contacts, 4, &count), ERROR_NONE);
+        CHECK_EQ(count, 2);
+        // The messages remain
+        CHECK_EQ(mesh_conversation_get(&alice, 0, 0, conversation, 4, &count), ERROR_NONE);
+        CHECK_EQ(count, 1);
+
+        // The primary channel stays, and the loopback backend has no channels
+        CHECK_EQ(mesh_remove_channel(0), ERROR_INVALID_ARGUMENT);
+        CHECK_EQ(mesh_remove_channel(2), ERROR_NOT_SUPPORTED);
 
         CHECK_EQ(mesh_cancel(seq), ERROR_INVALID_STATE);
         CHECK_EQ(mesh_raw_send("other", reply, sizeof(reply)), ERROR_INVALID_STATE);

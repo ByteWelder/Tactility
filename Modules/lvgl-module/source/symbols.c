@@ -23,6 +23,7 @@
 #include <lvgl/widgets/list.h>
 #include <lvgl/widgets/page_indicator.h>
 #include <lvgl/widgets/step_indicator.h>
+#include <lvgl/widgets/qr.h>
 #include <lvgl/widgets/spinner.h>
 #include <lvgl/widgets/statusbar.h>
 #include <lvgl/widgets/text_button.h>
@@ -148,6 +149,11 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_list_create),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_text),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_button),
+    // lvgl_qr
+    DEFINE_MODULE_SYMBOL(lvgl_qr_create),
+    DEFINE_MODULE_SYMBOL(lvgl_qr_set_data),
+    DEFINE_MODULE_SYMBOL(lvgl_qr_set_colors),
+
     // lvgl_spinner
     DEFINE_MODULE_SYMBOL(lvgl_spinner_create),
     // lvgl_toolbar

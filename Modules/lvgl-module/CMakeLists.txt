@@ -52,6 +52,7 @@ list(APPEND REQUIRES_LIST
     binfont-module
     lodepng-module
     lvgl
+    QRCode
 )
 
 if (DEFINED ENV{ESP_IDF_VERSION})

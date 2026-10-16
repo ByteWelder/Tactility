@@ -33,6 +33,10 @@ private:
         uint32_t segment;
         uint32_t offset;
         enum MeshDeliveryState delivery;
+        /** Channel index, meaningful for messages without a peer */
+        uint8_t channel;
+        /** Hash of the peer address, 0 for channel messages */
+        uint32_t peerHash;
     };
 
     static constexpr uint32_t PENDING = UINT32_MAX;
@@ -50,6 +54,7 @@ private:
     tt::std::string getSegmentPath(uint32_t segment) const;
     /** @return the end offset of the last valid record */
     uint32_t scanSegment(uint32_t segment);
+    static IndexEntry makeIndexEntry(const MeshMessage& message, uint32_t segment, uint32_t offset);
     void applyRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t segment, uint32_t offset);
     error_t appendRecord(uint8_t type, const uint8_t* payload, size_t length, uint32_t seq);
     IndexEntry* findEntry(uint32_t seq);
@@ -79,6 +84,12 @@ public:
 
     /** Newest first, see mesh_history_get() */
     size_t getHistory(uint32_t beforeSeq, MeshMessage* messages, size_t maxCount) const;
+
+    /**
+     * Newest first, like getHistory(), limited to the messages of one conversation of @a backend.
+     * @param[in] peer the peer of a direct conversation, or nullptr for the conversation of @a channel
+     */
+    size_t getConversation(const char* backend, const MeshAddress* peer, uint8_t channel, uint32_t beforeSeq, MeshMessage* messages, size_t maxCount) const;
 
     /** Sequence numbers of outgoing messages of @a backend in the given delivery state, oldest first */
     tt::std::vector<uint32_t> findOutgoing(const char* backend, enum MeshDeliveryState delivery) const;
