@@ -27,7 +27,7 @@ public:
 
     explicit TimeZoneView(OnSelected onSelected);
 
-    /** Waits for a running detection, which can take a few seconds. Destroy it without holding the LVGL lock. */
+    /** Cancels a running detection and waits for its lookup to end, which can take a few seconds */
     ~TimeZoneView();
 
     TimeZoneView(const TimeZoneView&) = delete;
@@ -59,6 +59,8 @@ private:
     std::unique_ptr<Timer> filterTimer;
     std::unique_ptr<Thread> detectThread;
     std::atomic<bool> detecting = false;
+    // Set when the view is destroyed, so a running detection ends without using it
+    std::atomic<bool> cancelled = false;
 
     // Valid while the widgets exist, guarded by the LVGL lock
     lv_obj_t* textarea = nullptr;

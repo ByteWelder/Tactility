@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fails when the files of tt changed since a base revision, but TT_VERSION in tt.py wasn't increased.
+"""Fails when the files of tt or its packaging changed since a base revision, but TT_VERSION in tt.py wasn't increased.
 Usage: check-tt-version.py <base revision>, e.g. origin/main"""
 
 import importlib.util
@@ -10,6 +10,8 @@ import sys
 
 ROOT_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 VERSION_PATTERN = re.compile(r'^TT_VERSION = "([^"]+)"', re.MULTILINE)
+# Changes to what tt.zip contains, e.g. an added or removed file
+PACKAGING_FILE_NAME = "Buildscripts/release-tt.py"
 
 
 def load_file_names():
@@ -39,7 +41,7 @@ def main():
         sys.exit(2)
     base = sys.argv[1]
     file_names = load_file_names()
-    diff = git("diff", "--name-only", f"{base}...HEAD", "--", *file_names)
+    diff = git("diff", "--name-only", f"{base}...HEAD", "--", *file_names, PACKAGING_FILE_NAME)
     if diff.returncode != 0:
         print(f"git diff failed: {diff.stderr.strip()}", file=sys.stderr)
         sys.exit(2)

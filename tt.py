@@ -20,7 +20,7 @@ import time
 import urllib.request
 import zipfile
 
-TT_VERSION = "1.1.0"
+TT_VERSION = "1.1.1"
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
 INDEX_VALIDITY_SECONDS = 3600
@@ -173,15 +173,47 @@ def install_platforms(version, version_directory, index, platforms):
             file.write(index.get("gitCommit", ""))
 
 
+def read_text(path):
+    try:
+        with open(path) as file:
+            return file.read().strip()
+    except OSError:
+        return None
+
+
+def is_installed_build(version_directory, index):
+    """True when the installed tools and platforms are of the build that the index describes"""
+    installed_tools_hash = read_text(os.path.join(version_directory, "tools.sha256"))
+    if installed_tools_hash is not None and installed_tools_hash != index.get("tools", {}).get("sha256"):
+        return False
+    for name in os.listdir(version_directory):
+        commit = read_text(os.path.join(version_directory, name, "commit"))
+        if name.startswith("platform-") and commit is not None and commit != index.get("gitCommit", ""):
+            return False
+    return True
+
+
 def prepare_sdk(version, platforms):
     """Installs what's missing of the SDK version. Installed tools and platforms are only replaced by "tt update-sdk", so they stay from the same build."""
     version_directory = version_path(HOME_DIRECTORY, version)
+    index = None
+    # "target.platforms=all" means every platform of the SDK
+    if platforms == ["all"]:
+        os.makedirs(version_directory, exist_ok=True)
+        index = load_index(version, version_directory)
+        platforms = sorted(index.get("platforms", {}))
     has_tools = os.path.isdir(os.path.join(version_directory, "tools"))
     missing_platforms = [platform for platform in platforms if not os.path.isdir(os.path.join(version_directory, f"platform-{platform}", "TactilitySDK"))]
     if has_tools and not missing_platforms:
         return version_directory
     os.makedirs(version_directory, exist_ok=True)
-    index = load_index(version, version_directory)
+    if index is None:
+        index = load_index(version, version_directory)
+    # The CDN only has the latest build of a version, so a newer build can't be mixed with the installed one
+    if not is_installed_build(version_directory, index):
+        if has_tools:
+            fail(f"SDK {version} was published again since it was installed: run 'tt update-sdk' first")
+        fail(f"SDK {version} was published again since it was installed: remove {version_directory} and try again")
     if not has_tools:
         install_tools(version, version_directory, index)
     install_platforms(version, version_directory, index, missing_platforms)
@@ -255,7 +287,9 @@ def main(arguments):
             fail(f"tools not found: {tools_directory}")
     else:
         sdk_path = HOME_DIRECTORY
-        tools_directory = os.path.join(prepare_sdk(version, platforms), "tools")
+        # update-sdk replaces the installed build, so it only needs the tools
+        required_platforms = [] if command == "update-sdk" else platforms
+        tools_directory = os.path.join(prepare_sdk(version, required_platforms), "tools")
     environment = tool_environment(version, sdk_path, is_local)
     if is_help:
         print_help(version, tools_directory)

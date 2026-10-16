@@ -78,6 +78,7 @@ TimeZoneView::TimeZoneView(OnSelected onSelected) : onSelected(std::move(onSelec
 
 TimeZoneView::~TimeZoneView() {
     filterTimer->stop();
+    cancelled = true;
     if (detectThread != nullptr) {
         detectThread->join();
     }
@@ -268,7 +269,16 @@ void TimeZoneView::detect() {
         failure = "The time zone couldn't be detected. Check the internet connection and try again.";
     }
 
-    lvgl_lock();
+    // Waits for the LVGL lock without blocking the destructor, which can be called with the lock held
+    while (!lvgl_try_lock(pdMS_TO_TICKS(50))) {
+        if (cancelled) {
+            return;
+        }
+    }
+    if (cancelled) {
+        lvgl_unlock();
+        return;
+    }
     detecting = false;
     mutex.lock();
     message = failure;

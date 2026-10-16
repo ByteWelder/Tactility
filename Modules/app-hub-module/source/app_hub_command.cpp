@@ -40,6 +40,7 @@ static int report_error(const char* action, error_t error) {
 /**
  * Queues an operation and waits for its result.
  * The subscription is made before queueing, so the operation can't finish unnoticed.
+ * It times out after OPERATION_TIMEOUT without events of the operation, so a long update of many apps doesn't.
  * @param[in] finished_type the event that ends the operation and carries its result
  * @param[in] on_event called for the other events of the operation (optional)
  */
@@ -62,7 +63,7 @@ static error_t run_and_wait(
     error = operation(id, &operation_id);
     if (error == ERROR_NONE) {
         error = ERROR_TIMEOUT;
-        const TickType_t start = get_ticks();
+        TickType_t start = get_ticks();
         TickType_t elapsed = 0;
         bool finished = false;
         while (!finished && elapsed < OPERATION_TIMEOUT) {
@@ -72,6 +73,7 @@ static error_t run_and_wait(
                     if (event.operation_id != operation_id) {
                         continue;
                     }
+                    start = get_ticks();
                     if (event.type == finished_type) {
                         error = event.result;
                         finished = true;

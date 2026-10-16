@@ -2,6 +2,7 @@
 #include <http/private/http_parsing.h>
 
 #include <cctype>
+#include <climits>
 #include <cstdlib>
 #include <string_view>
 
@@ -108,6 +109,22 @@ bool http_parse_header_line(const std::string& line, std::string& name, std::str
     }
     value = trim(line.substr(colon + 1));
     return !name.empty();
+}
+
+bool http_parse_content_length(const std::string& value, long& length) {
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos) {
+        return false;
+    }
+    long result = 0;
+    for (const char c : value) {
+        const long digit = c - '0';
+        if (result > (LONG_MAX - digit) / 10) {
+            return false;
+        }
+        result = result * 10 + digit;
+    }
+    length = result;
+    return true;
 }
 
 bool http_parse_chunk_size(const std::string& line, size_t& size) {

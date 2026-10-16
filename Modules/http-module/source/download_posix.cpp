@@ -299,6 +299,8 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
 
     // -1 means the length is unknown: the body is chunked or ends when the server closes the connection
     long contentLength = -1;
+    std::string contentLengthValue;
+    bool hasContentLength = false;
     bool chunked = false;
     while (true) {
         if (!connection.readLine(line)) {
@@ -313,7 +315,8 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
             continue;
         }
         if (name == "content-length") {
-            contentLength = strtol(value.c_str(), nullptr, 10);
+            contentLengthValue = value;
+            hasContentLength = true;
         } else if (name == "transfer-encoding" && value.find("chunked") != std::string::npos) {
             chunked = true;
         }
@@ -321,6 +324,10 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
 
     if (statusCode < 200 || statusCode >= 300) {
         return http_download_make_error_event("Server response is not OK", statusCode);
+    }
+    // A chunked body ignores the Content-Length
+    if (hasContentLength && !chunked && !http_parse_content_length(contentLengthValue, contentLength)) {
+        return http_download_make_error_event("Invalid Content-Length", statusCode);
     }
     if (http_download_is_cancelled(link)) {
         return http_download_make_cancelled_event(statusCode);

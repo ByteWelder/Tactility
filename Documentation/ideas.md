@@ -7,7 +7,6 @@
 
 ## Higher Priority
 
-- Remove screenshot app and replace with tt.py + screenshot.py: "tt screenshot [filepath]". if filepath isn't specified, save as screenshot-[yyyy-mm-dd].png
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails

@@ -20,5 +20,8 @@ bool http_parse_status_line(const std::string& line, int& statusCode);
 /** Parses a header line such as "Content-Length: 42". The name is returned in lower case, the value without surrounding whitespace. */
 bool http_parse_header_line(const std::string& line, std::string& name, std::string& value);
 
+/** Parses a Content-Length value: decimal digits only, without sign or overflow */
+bool http_parse_content_length(const std::string& value, long& length);
+
 /** Parses the size line of a chunk in a chunked body, e.g. "1a2b" or "1a2b;name=value" */
 bool http_parse_chunk_size(const std::string& line, size_t& size);

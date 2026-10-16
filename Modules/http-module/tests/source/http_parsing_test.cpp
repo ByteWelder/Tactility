@@ -46,6 +46,21 @@ TEST_CASE("http_parse_header_line lowercases the name and trims the value") {
     CHECK_FALSE(http_parse_header_line(": empty name", name, value));
 }
 
+TEST_CASE("http_parse_content_length accepts decimal digits only") {
+    long length = -1;
+    REQUIRE(http_parse_content_length("42", length));
+    CHECK_EQ(length, 42);
+    REQUIRE(http_parse_content_length("0", length));
+    CHECK_EQ(length, 0);
+    CHECK_FALSE(http_parse_content_length("", length));
+    CHECK_FALSE(http_parse_content_length("-5", length));
+    CHECK_FALSE(http_parse_content_length("+5", length));
+    CHECK_FALSE(http_parse_content_length("12abc", length));
+    CHECK_FALSE(http_parse_content_length("1 2", length));
+    CHECK_FALSE(http_parse_content_length("99999999999999999999999", length));
+    CHECK_EQ(length, 0);
+}
+
 TEST_CASE("http_parse_chunk_size reads hexadecimal sizes and ignores extensions") {
     size_t size = 0;
     REQUIRE(http_parse_chunk_size("1a2B", size));
