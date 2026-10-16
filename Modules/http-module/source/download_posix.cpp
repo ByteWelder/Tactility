@@ -301,6 +301,7 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
     long contentLength = -1;
     std::string contentLengthValue;
     bool hasContentLength = false;
+    bool hasConflictingContentLengths = false;
     bool chunked = false;
     while (true) {
         if (!connection.readLine(line)) {
@@ -315,6 +316,10 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
             continue;
         }
         if (name == "content-length") {
+            // Repeated headers must have the same value, or the body's end is ambiguous
+            if (hasContentLength && value != contentLengthValue) {
+                hasConflictingContentLengths = true;
+            }
             contentLengthValue = value;
             hasContentLength = true;
         } else if (name == "transfer-encoding" && value.find("chunked") != std::string::npos) {
@@ -326,7 +331,7 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
         return http_download_make_error_event("Server response is not OK", statusCode);
     }
     // A chunked body ignores the Content-Length
-    if (hasContentLength && !chunked && !http_parse_content_length(contentLengthValue, contentLength)) {
+    if (hasContentLength && !chunked && (hasConflictingContentLengths || !http_parse_content_length(contentLengthValue, contentLength))) {
         return http_download_make_error_event("Invalid Content-Length", statusCode);
     }
     if (http_download_is_cancelled(link)) {
