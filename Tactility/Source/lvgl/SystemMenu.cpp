@@ -304,8 +304,8 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     // The arrow keys move between the tiles. Toggles that are focused directly would be switched by them.
     lvgl_grid_navigation_add(grid);
 
-    // Without a pointer device, tapping outside of the card or swiping up isn't possible
-    if (!lvgl_indev_exists(LV_INDEV_TYPE_POINTER)) {
+    // A keyboard or encoder can't tap outside of the card or swipe up, so it needs a button to close the menu
+    if (lvgl_indev_exists(LV_INDEV_TYPE_KEYPAD) || lvgl_indev_exists(LV_INDEV_TYPE_ENCODER)) {
         auto* close_button = createTile(card, LVGL_ICON_SHARED_CLOSE);
         lv_obj_add_event_cb(close_button, onCloseClicked, LV_EVENT_SHORT_CLICKED, nullptr);
         lv_group_focus_obj(close_button);
