@@ -3,6 +3,9 @@
 #include <sdkconfig.h>
 #endif
 
+#include "tactility/memory.h"
+
+
 #include <app/elf_check.h>
 #include <app/loader.h>
 #include <app/location.h>
@@ -47,7 +50,8 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
         return ERROR_RESOURCE;
     }
 
-    auto* data = static_cast<uint8_t*>(malloc(static_cast<size_t>(size)));
+    static constexpr MemoryPolicy policy = { .required = 0, .desired = 0, .alignment = 0};
+    auto* data = static_cast<uint8_t*>(memory_alloc_with_policy(static_cast<size_t>(size), &policy));
     if (data == nullptr) {
         fclose(file);
         return ERROR_OUT_OF_MEMORY;
@@ -57,7 +61,7 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
     fclose(file);
 
     if (read != static_cast<size_t>(size)) {
-        free(data);
+        memory_free(data);
         return ERROR_RESOURCE;
     }
 
@@ -141,7 +145,7 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     }
 
     if (esp_elf_init(&runtime->elf) != ESP_OK) {
-        free(runtime->file_data);
+        memory_free(runtime->file_data);
         delete runtime;
         LOG_E(TAG, "Failed to init elf");
         return ERROR_RESOURCE;
@@ -149,14 +153,13 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
 
     if (esp_elf_relocate(&runtime->elf, runtime->file_data) != 0) {
         // esp_elf_relocate() already frees elf->pdata/ptext itself on a relocation failure
-        free(runtime->file_data);
         delete runtime;
         LOG_E(TAG, "Failed to map elf. Possibly out of memory.");
         return ERROR_RESOURCE;
     }
 
     // Relocation copied everything it needs (segments, symbol names) out of the file buffer
-    free(runtime->file_data);
+    memory_free(runtime->file_data);
     runtime->file_data = nullptr;
 
     *out_runtime = runtime;

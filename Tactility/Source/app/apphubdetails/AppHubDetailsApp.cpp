@@ -136,6 +136,10 @@ void onOperationEvent(Context* ctx, const AppHubEvent& event) {
 }
 
 void updateViews(Context* ctx) {
+    // Covered by another window (e.g. a dialog): createWidgets() updates the views when it's shown again
+    if (ctx->toolbar == nullptr) {
+        return;
+    }
     lvgl_toolbar_clear_actions(ctx->toolbar);
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
     lv_obj_set_hidden(ctx->updateLabel, true);
@@ -200,6 +204,14 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     updateViews(ctx);
 }
 
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->toolbar = nullptr;
+    ctx->spinner = nullptr;
+    ctx->updateButton = nullptr;
+    ctx->updateLabel = nullptr;
+}
+
 int32_t appMain(int argc, char* argv[]) {
     uint32_t appInstanceId = app_scheduler_current_app_id();
     // argv layout: [0]=appId
@@ -218,7 +230,7 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
     check(app_hub_event_subscribe(&ctx.appHubSub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {

@@ -66,18 +66,19 @@ class TtTest(unittest.TestCase):
     def default_tools(self):
         return {name: read_tool(name) for name in ("update-self.py", "update-sdk.py", "_bootstrap.py")} | {"echo.py": ECHO_TOOL}
 
-    def publish_sdk(self, tools, commit="commit1", sdk_content="# sdk"):
+    def publish_sdk(self, tools, commit="commit1", sdk_content="# sdk", platforms=("posix",)):
         version_directory = os.path.join(self.cdn, "sdk", VERSION)
         os.makedirs(version_directory, exist_ok=True)
         tools_zip = make_zip(tools)
         with open(os.path.join(version_directory, "tools.zip"), "wb") as file:
             file.write(tools_zip)
-        with open(os.path.join(version_directory, "TactilitySDK-posix.zip"), "wb") as file:
-            file.write(make_zip({"TactilitySDK.cmake": sdk_content}))
+        for platform in platforms:
+            with open(os.path.join(version_directory, f"TactilitySDK-{platform}.zip"), "wb") as file:
+                file.write(make_zip({"TactilitySDK.cmake": sdk_content}))
         index = {
             "version": VERSION,
             "gitCommit": commit,
-            "platforms": {"posix": "TactilitySDK-posix.zip"},
+            "platforms": {platform: f"TactilitySDK-{platform}.zip" for platform in platforms},
             "tools": {"file": "tools.zip", "sha256": hashlib.sha256(tools_zip).hexdigest()},
         }
         with open(os.path.join(version_directory, "index.json"), "w") as file:
@@ -160,22 +161,68 @@ class TtTest(unittest.TestCase):
         self.assertIn("echo", result.stdout)
         self.assertIn(VERSION, result.stdout)
 
-    def test_changed_tools_are_downloaded_again(self):
+    def test_installed_tools_and_platforms_are_only_replaced_by_update_sdk(self):
         self.write_manifest(self.work)
         self.assertEqual(self.run_tt("echo").returncode, 3)
-        self.publish_sdk({"echo.py": "import sys\nsys.exit(4)\n"})
-        self.assertEqual(self.run_tt("echo").returncode, 3)
+        tools = self.default_tools() | {"echo.py": "import sys\nimport _bootstrap\n_bootstrap.run()\nsys.exit(4)\n"}
+        self.publish_sdk(tools, commit="commit2", sdk_content="# sdk 2")
         self.expire_index()
+        self.expire_update_check()
+        result = self.run_tt("echo")
+        self.assertEqual(result.returncode, 3)
+        self.assertEqual(self.read_sdk_file(), "# sdk")
+        self.assertIn("run 'tt update-sdk'", result.stderr)
+        result = self.run_tt("update-sdk")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Downloading the tools", result.stdout)
+        self.assertIn("was updated", result.stdout)
         self.assertEqual(self.run_tt("echo").returncode, 4)
+        self.assertEqual(self.read_sdk_file(), "# sdk 2")
 
-    def test_failed_download_keeps_the_cache(self):
+    def test_all_platforms_installs_every_platform_of_the_sdk(self):
+        self.publish_sdk(self.default_tools(), platforms=("posix", "esp32"))
+        self.write_manifest(self.work, platforms="all")
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        for platform in ("posix", "esp32"):
+            self.assertTrue(os.path.isdir(self.sdk_path(f"platform-{platform}", "TactilitySDK")), platform)
+
+    def test_missing_platform_of_a_republished_sdk_asks_for_update_sdk(self):
+        self.publish_sdk(self.default_tools(), platforms=("posix", "esp32"))
+        self.write_manifest(self.work)
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        self.publish_sdk(self.default_tools(), commit="commit2", sdk_content="# sdk 2", platforms=("posix", "esp32"))
+        self.expire_index()
+        self.write_manifest(self.work, platforms="posix,esp32")
+        result = self.run_tt("echo")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("run 'tt update-sdk' first", result.stderr)
+        self.assertFalse(os.path.exists(self.sdk_path("platform-esp32")))
+        self.assertEqual(self.run_tt("update-sdk").returncode, 0)
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        for platform in ("posix", "esp32"):
+            with open(self.sdk_path(f"platform-{platform}", "commit")) as file:
+                self.assertEqual(file.read(), "commit2", platform)
+
+    def test_failed_update_sdk_keeps_the_installed_build(self):
+        self.write_manifest(self.work)
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        tools = self.default_tools() | {"echo.py": "import sys\nsys.exit(4)\n"}
+        self.publish_sdk(tools, commit="commit2", sdk_content="# sdk 2")
+        os.remove(os.path.join(self.cdn, "sdk", VERSION, "TactilitySDK-posix.zip"))
+        result = self.run_tt("update-sdk")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("was not changed", result.stderr)
+        self.assertEqual(self.read_sdk_file(), "# sdk")
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        self.assertEqual(sorted(name for name in os.listdir(self.sdk_path()) if name.endswith((".new", ".old"))), [])
+
+    def test_installed_sdk_works_offline(self):
         self.write_manifest(self.work)
         self.assertEqual(self.run_tt("echo").returncode, 3)
         shutil.rmtree(self.cdn)
         self.expire_index()
         result = self.run_tt("echo")
         self.assertEqual(result.returncode, 3, result.stderr)
-        self.assertIn("cached", result.stderr)
 
     def test_tools_with_a_wrong_checksum_are_refused(self):
         self.write_manifest(self.work)
@@ -225,16 +272,19 @@ class TtTest(unittest.TestCase):
     def test_update_replaces_itself_and_installs_wrappers(self):
         tt_copy = os.path.join(self.root, "tt.py")
         shutil.copy(TT_PATH, tt_copy)
-        self.publish_tt({"tt.py": "# updated\n", "tt": "#!/bin/sh\n", "tt.cmd": "@echo off\r\n"})
+        with open(os.path.join(self.root, "tt.cmd"), "w") as file:
+            file.write("@echo off\r\n")
+        self.publish_tt({"tt.py": "# updated\n", "tt": "#!/bin/sh\n", "tt.ps1": "exit 0\r\n"})
         self.write_manifest(self.work)
         result = self.run_tt("update-self", tt_path=tt_copy)
         self.assertEqual(result.returncode, 0, result.stderr)
         with open(tt_copy) as file:
             self.assertEqual(file.read(), "# updated\n")
         self.assertTrue(os.access(os.path.join(self.root, "tt"), os.X_OK))
-        self.assertTrue(os.access(os.path.join(self.root, "tt.cmd"), os.X_OK))
+        self.assertTrue(os.access(os.path.join(self.root, "tt.ps1"), os.X_OK))
         self.assertTrue(os.access(tt_copy, os.X_OK))
-        self.assertEqual(sorted(os.listdir(self.root)), ["cdn", "home", "tt", "tt.cmd", "tt.py", "work"])
+        # The obsolete tt.cmd is removed
+        self.assertEqual(sorted(os.listdir(self.root)), ["cdn", "home", "tt", "tt.ps1", "tt.py", "work"])
 
     def test_update_rejects_invalid_python(self):
         tt_copy = os.path.join(self.root, "tt.py")

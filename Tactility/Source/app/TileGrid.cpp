@@ -90,6 +90,40 @@ void updatePageIndicatorWidth(void* data) {
     }
 }
 
+// A page indicator below the grid gets the width of its parent.
+// It shows the page number when its dots are wider than its max width, which must be in pixels.
+void updateCenteredPageIndicatorWidth(lv_obj_t* indicator) {
+    const int32_t margins = lv_obj_get_style_margin_left(indicator, LV_PART_MAIN) + lv_obj_get_style_margin_right(indicator, LV_PART_MAIN);
+    const int32_t max_width = std::max<int32_t>(0, lv_obj_get_content_width(lv_obj_get_parent(indicator)) - margins);
+    // Setting a style marks the layout as dirty, which would resize the parent and call this again
+    if (lv_obj_get_style_max_width(indicator, LV_PART_MAIN) != max_width) {
+        lv_obj_set_style_max_width(indicator, max_width, LV_STATE_DEFAULT);
+    }
+}
+
+void onCenteredPageIndicatorParentSizeChanged(lv_event_t* event) {
+    updateCenteredPageIndicatorWidth(static_cast<lv_obj_t*>(lv_event_get_user_data(event)));
+}
+
+void onCenteredPageIndicatorDeleted(lv_event_t* event) {
+    lv_obj_t* indicator = lv_event_get_target_obj(event);
+    lv_obj_remove_event_cb_with_user_data(lv_obj_get_parent(indicator), onCenteredPageIndicatorParentSizeChanged, indicator);
+}
+
+/** Call after moving the page indicator below the grid */
+void centerPageIndicator(lv_obj_t* indicator) {
+    lv_obj_set_width(indicator, LV_PCT(100));
+    lv_obj_add_event_cb(lv_obj_get_parent(indicator), onCenteredPageIndicatorParentSizeChanged, LV_EVENT_SIZE_CHANGED, indicator);
+    lv_obj_add_event_cb(indicator, onCenteredPageIndicatorDeleted, LV_EVENT_DELETE, nullptr);
+    updateCenteredPageIndicatorWidth(indicator);
+}
+
+/** Call before moving the page indicator away from below the grid */
+void uncenterPageIndicator(lv_obj_t* indicator) {
+    lv_obj_remove_event_cb_with_user_data(lv_obj_get_parent(indicator), onCenteredPageIndicatorParentSizeChanged, indicator);
+    lv_obj_remove_event_cb(indicator, onCenteredPageIndicatorDeleted);
+}
+
 void onBottomBarSizeChanged(lv_event_t* event) {
     lv_async_call_cancel(updatePageIndicatorWidth, lv_event_get_target_obj(event));
     lv_async_call(updatePageIndicatorWidth, lv_event_get_target_obj(event));
@@ -446,6 +480,11 @@ void TileGrid::createWidgets(lv_obj_t* parent) {
     barSideContainer = nullptr;
     barButtons.clear();
     createGrid(parent);
+    // Centered below the grid
+    pageIndicator = lvgl_page_indicator_create(parent);
+    centerPageIndicator(pageIndicator);
+    // Keeps the dots off the screen's bottom edge
+    lv_obj_set_style_margin_bottom(pageIndicator, lvgl_theme_is_compact() ? LV_DPX(2) : LV_DPX(8), LV_STATE_DEFAULT);
     finishCreate(parent);
 }
 
@@ -526,8 +565,7 @@ void TileGrid::setBarSideContainer(lv_obj_t* sideContainer) {
         // The page indicator is centered below the grid
         lv_obj_set_parent(pageIndicator, barParent);
         lv_obj_move_to_index(pageIndicator, lv_obj_get_index(grid) + 1);
-        lv_obj_set_width(pageIndicator, LV_PCT(100));
-        lv_obj_remove_local_style_prop(pageIndicator, LV_STYLE_MAX_WIDTH, LV_PART_MAIN);
+        centerPageIndicator(pageIndicator);
         // Keeps the dots off the screen's bottom edge
         lv_obj_set_style_margin_bottom(pageIndicator, lvgl_theme_is_compact() ? 1 : 2, LV_STATE_DEFAULT);
     } else {
@@ -538,9 +576,13 @@ void TileGrid::setBarSideContainer(lv_obj_t* sideContainer) {
         lv_obj_remove_local_style_prop(bottomBar, LV_STYLE_BG_OPA, LV_PART_MAIN);
         lv_obj_remove_local_style_prop(bottomBar, LV_STYLE_PAD_ROW, LV_PART_MAIN);
         lv_obj_set_hidden(barSpacer, false);
+        uncenterPageIndicator(pageIndicator);
         lv_obj_set_parent(pageIndicator, bottomBar);
         lv_obj_set_width(pageIndicator, LV_SIZE_CONTENT);
         lv_obj_remove_local_style_prop(pageIndicator, LV_STYLE_MARGIN_BOTTOM, LV_PART_MAIN);
+        // The bar's size can stay the same, which wouldn't update the max width
+        lv_async_call_cancel(updatePageIndicatorWidth, bottomBar);
+        lv_async_call(updatePageIndicatorWidth, bottomBar);
     }
     // The keys move through the bar where it's shown: below the statusbar's icons in the side strip, or below the grid
     setGroupOrder(grid, bottomBar, sideContainer != nullptr);

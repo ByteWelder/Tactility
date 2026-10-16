@@ -55,7 +55,7 @@ if __name__ == "__main__":
         if not install_tt(directory):
             sys.exit(1)
         print(f"Installed tt in {directory}")
-    command = "tt" if os.name == "nt" else "./tt"
+    command = "py tt.py" if os.name == "nt" else "./tt"
     print_warning(f"tactility.py was replaced by tt: use tt from now on, e.g. '{command} app build'")
     print_warning(f"Run '{command} help' for more info")
     sys.exit(1)

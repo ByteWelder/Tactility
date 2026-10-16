@@ -4,7 +4,7 @@
 
 TEST_CASE("http_download_start requires a subscribed subscription") {
     HttpDownloadSubscription sub {};
-    CHECK_EQ(http_download_start("http://example.com/file", "/cert.pem", "/target.bin", &sub), ERROR_INVALID_ARGUMENT);
+    CHECK_EQ(http_download_start("https://example.com/file", "/nonexistent/cert.pem", "/target.bin", &sub), ERROR_INVALID_ARGUMENT);
 }
 
 TEST_CASE("http_download_poll times out before the download finishes") {
@@ -21,13 +21,13 @@ TEST_CASE("http_download_poll times out before the download finishes") {
     task_event_group_destruct(&event_group);
 }
 
-TEST_CASE("http_download_start on this (non-ESP-IDF) platform always fails the download") {
+TEST_CASE("http_download_start fails the download when the certificate can't be read") {
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
     HttpDownloadSubscription sub {};
     CHECK_EQ(http_download_subscribe(&sub, &event_group), ERROR_NONE);
-    CHECK_EQ(http_download_start("http://example.com/file", "/cert.pem", "/target.bin", &sub), ERROR_NONE);
+    CHECK_EQ(http_download_start("https://example.com/file", "/nonexistent/cert.pem", "/target.bin", &sub), ERROR_NONE);
 
     CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
 
@@ -55,7 +55,7 @@ TEST_CASE("http_download_unsubscribe is safe to call right after start, without 
 
     HttpDownloadSubscription sub {};
     CHECK_EQ(http_download_subscribe(&sub, &event_group), ERROR_NONE);
-    CHECK_EQ(http_download_start("http://example.com/file", "/cert.pem", "/target.bin", &sub), ERROR_NONE);
+    CHECK_EQ(http_download_start("https://example.com/file", "/nonexistent/cert.pem", "/target.bin", &sub), ERROR_NONE);
 
     // No cancel, no poll for the terminal event - just unsubscribe and tear down immediately,
     // racing whatever the download task is doing.
@@ -77,7 +77,7 @@ TEST_CASE("http_download_cancel before start makes the download finish as cancel
     HttpDownloadSubscription sub {};
     CHECK_EQ(http_download_subscribe(&sub, &event_group), ERROR_NONE);
     CHECK_EQ(http_download_cancel(&sub), ERROR_NONE);
-    CHECK_EQ(http_download_start("http://example.com/file", "/cert.pem", "/target.bin", &sub), ERROR_NONE);
+    CHECK_EQ(http_download_start("https://example.com/file", "/nonexistent/cert.pem", "/target.bin", &sub), ERROR_NONE);
 
     CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
 

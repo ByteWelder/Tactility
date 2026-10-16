@@ -19,6 +19,8 @@
 #include <lvgl/widgets/focus_container.h>
 #include <lvgl/widgets/icon_button.h>
 
+#include <TactilityCpp/Memory.h>
+
 #include <algorithm>
 #include <cstring>
 #include <ctime>
@@ -61,7 +63,12 @@ struct StatusbarData {
     }
 };
 
-static StatusbarData statusbar_data;
+// Allocated once in external memory when available
+static StatusbarData& statusbar_data() {
+    static StatusbarData* instance = tt::newObject<StatusbarData>();
+    check(instance != nullptr);
+    return *instance;
+}
 
 struct Statusbar {
     lv_obj_t obj;
@@ -99,8 +106,8 @@ static TickType_t getNextUpdateTime() {
 }
 
 static void notify_instances() {
-    mutex_lock(&statusbar_data.instances_mutex);
-    for (auto* statusbar = statusbar_data.instances; statusbar != nullptr; statusbar = statusbar->next) {
+    mutex_lock(&statusbar_data().instances_mutex);
+    for (auto* statusbar = statusbar_data().instances; statusbar != nullptr; statusbar = statusbar->next) {
         LOG_D(TAG, "Update event");
         if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
             update_main(statusbar);
@@ -110,28 +117,28 @@ static void notify_instances() {
             LOG_W(TAG, "Mutex acquisition timeout (%s)", "Statusbar");
         }
     }
-    mutex_unlock(&statusbar_data.instances_mutex);
+    mutex_unlock(&statusbar_data().instances_mutex);
 }
 
 static void on_update_time(void* /*context*/) {
     time_t now = ::time(nullptr);
     tm* tm_struct = localtime(&now);
 
-    if (recursive_mutex_try_lock(&statusbar_data.mutex, 100 / portTICK_PERIOD_MS)) {
+    if (recursive_mutex_try_lock(&statusbar_data().mutex, 100 / portTICK_PERIOD_MS)) {
         bool changed = false;
         if (tm_struct->tm_year >= (2025 - 1900)) {
-            statusbar_data.time_hours = tm_struct->tm_hour;
-            statusbar_data.time_minutes = tm_struct->tm_min;
-            statusbar_data.time_set = true;
+            statusbar_data().time_hours = tm_struct->tm_hour;
+            statusbar_data().time_minutes = tm_struct->tm_min;
+            statusbar_data().time_set = true;
             changed = true;
 
             // Reschedule
-            timer_reset_with_interval(statusbar_data.time_update_timer, getNextUpdateTime());
+            timer_reset_with_interval(statusbar_data().time_update_timer, getNextUpdateTime());
         } else {
-            timer_reset_with_interval(statusbar_data.time_update_timer, pdMS_TO_TICKS(60000U));
+            timer_reset_with_interval(statusbar_data().time_update_timer, pdMS_TO_TICKS(60000U));
         }
 
-        recursive_mutex_unlock(&statusbar_data.mutex);
+        recursive_mutex_unlock(&statusbar_data().mutex);
         if (changed) {
             notify_instances();
         }
@@ -154,9 +161,9 @@ static lv_obj_class_t statusbar_class = {
 };
 
 static void onTimeChanged(struct SystemEvent* /*event*/, void* /*context*/) {
-    recursive_mutex_lock(&statusbar_data.mutex);
-    timer_reset_with_interval(statusbar_data.time_update_timer, 5);
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
+    timer_reset_with_interval(statusbar_data().time_update_timer, 5);
+    recursive_mutex_unlock(&statusbar_data().mutex);
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -170,26 +177,26 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     // would let a concurrent lvgl_statusbar_icon_add()/_remove()/_set_image()/_set_visibility() call
     // from another task run update_icon() on a still-null icons[] slot before this
     // instance's own creation loop below has had a chance to fill it in.
-    recursive_mutex_lock(&statusbar_data.mutex);
-    if (statusbar_data.time_update_timer == nullptr) {
-        statusbar_data.time_update_timer = timer_alloc(TIMER_TYPE_ONCE, 200 / portTICK_PERIOD_MS, on_update_time, nullptr);
-        check(statusbar_data.time_update_timer != nullptr);
-        timer_start(statusbar_data.time_update_timer);
+    recursive_mutex_lock(&statusbar_data().mutex);
+    if (statusbar_data().time_update_timer == nullptr) {
+        statusbar_data().time_update_timer = timer_alloc(TIMER_TYPE_ONCE, 200 / portTICK_PERIOD_MS, on_update_time, nullptr);
+        check(statusbar_data().time_update_timer != nullptr);
+        timer_start(statusbar_data().time_update_timer);
         system_event_callback_add(KERNEL_EVENT_TIME_CHANGED, onTimeChanged, nullptr);
     }
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
 }
 
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     auto* statusbar = (Statusbar*)obj;
-    mutex_lock(&statusbar_data.instances_mutex);
-    for (auto** link = &statusbar_data.instances; *link != nullptr; link = &(*link)->next) {
+    mutex_lock(&statusbar_data().instances_mutex);
+    for (auto** link = &statusbar_data().instances; *link != nullptr; link = &(*link)->next) {
         if (*link == statusbar) {
             *link = statusbar->next;
             break;
         }
     }
-    mutex_unlock(&statusbar_data.instances_mutex);
+    mutex_unlock(&statusbar_data().instances_mutex);
 }
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
@@ -202,9 +209,9 @@ static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
 }
 
 static void show_menu() {
-    recursive_mutex_lock(&statusbar_data.mutex);
-    auto* callback = statusbar_data.menu_callback;
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
+    auto* callback = statusbar_data().menu_callback;
+    recursive_mutex_unlock(&statusbar_data().mutex);
     if (callback != nullptr) {
         callback();
     }
@@ -257,15 +264,15 @@ static void onStatusbarGesture(lv_event_t* /*event*/) {
 extern "C" {
 
 void lvgl_statusbar_set_menu_callback(void (*callback)()) {
-    recursive_mutex_lock(&statusbar_data.mutex);
-    statusbar_data.menu_callback = callback;
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
+    statusbar_data().menu_callback = callback;
+    recursive_mutex_unlock(&statusbar_data().mutex);
 }
 
 void lvgl_statusbar_set_time_format_24h(bool format_24h) {
-    recursive_mutex_lock(&statusbar_data.mutex);
-    statusbar_data.time_format_24h = format_24h;
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
+    statusbar_data().time_format_24h = format_24h;
+    recursive_mutex_unlock(&statusbar_data().mutex);
     notify_instances();
 }
 
@@ -362,7 +369,7 @@ lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent) {
     }
 
 
-    recursive_mutex_lock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(icon_row);
         lv_obj_set_size(image, icon_size, icon_size); // regular padding doesn't work
@@ -370,17 +377,17 @@ lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent) {
         lv_obj_set_style_pad_all(image, 0, LV_STATE_DEFAULT);
         statusbar->icons[i] = image;
 
-        update_icon(image, &(statusbar_data.icons[i]));
+        update_icon(image, &(statusbar_data().icons[i]));
     }
     // Only now is statusbar->icons[] fully populated - see statusbar_constructor()'s comment for
     // why the instance can't be registered any earlier. Registering before unlocking (rather
     // than after) closes a narrow window where a concurrent icon change could be missed by
     // this instance after the icons are populated but before it's registered.
-    mutex_lock(&statusbar_data.instances_mutex);
-    statusbar->next = statusbar_data.instances;
-    statusbar_data.instances = statusbar;
-    mutex_unlock(&statusbar_data.instances_mutex);
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    mutex_lock(&statusbar_data().instances_mutex);
+    statusbar->next = statusbar_data().instances;
+    statusbar_data().instances = statusbar;
+    mutex_unlock(&statusbar_data().instances_mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
 
     // Only the icon row is focused, it joins the group by itself
     if (lv_obj_get_group(obj) != nullptr) {
@@ -393,17 +400,17 @@ lv_obj_t* lvgl_statusbar_create(lv_obj_t* parent) {
 }
 
 static void update_time(Statusbar* statusbar) {
-    if (statusbar_data.time_set) {
-        bool format24 = statusbar_data.time_format_24h;
-        int hours = format24 ? statusbar_data.time_hours : statusbar_data.time_hours % 12;
-        lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data.time_minutes);
+    if (statusbar_data().time_set) {
+        bool format24 = statusbar_data().time_format_24h;
+        int hours = format24 ? statusbar_data().time_hours : statusbar_data().time_hours % 12;
+        lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data().time_minutes);
     } else {
         lv_label_set_text(statusbar->time, "");
     }
 }
 
 // In the side strip, the time and the action buttons always show. The icons get the height that's left, and the newest ones are hidden when they don't fit.
-// Call while holding statusbar_data.mutex, after update_icon() set the icons' visibility.
+// Call while holding statusbar_data().mutex, after update_icon() set the icons' visibility.
 static void apply_side_icon_limit(Statusbar* statusbar) {
     if (!statusbar->side) {
         return;
@@ -427,7 +434,7 @@ static void apply_side_icon_limit(Statusbar* statusbar) {
         }
     }
     std::sort(shown, shown + shown_count, [](int a, int b) {
-        return statusbar_data.icons[a].added_order < statusbar_data.icons[b].added_order;
+        return statusbar_data().icons[a].added_order < statusbar_data().icons[b].added_order;
     });
     for (int i = static_cast<int>(fitting); i < shown_count; ++i) {
         lv_obj_set_hidden(statusbar->icons[shown[i]], true);
@@ -435,12 +442,12 @@ static void apply_side_icon_limit(Statusbar* statusbar) {
 }
 
 static void update_icons(Statusbar* statusbar) {
-    if (recursive_mutex_try_lock(&statusbar_data.mutex, 200 / portTICK_PERIOD_MS)) {
+    if (recursive_mutex_try_lock(&statusbar_data().mutex, 200 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
-            update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
+            update_icon(statusbar->icons[i], &(statusbar_data().icons[i]));
         }
         apply_side_icon_limit(statusbar);
-        recursive_mutex_unlock(&statusbar_data.mutex);
+        recursive_mutex_unlock(&statusbar_data().mutex);
     }
 }
 
@@ -487,20 +494,20 @@ static void copy_image(char* target, const char* image) {
 extern "C" {
 
 int8_t lvgl_statusbar_icon_add(const char* image, bool visible) {
-    recursive_mutex_lock(&statusbar_data.mutex);
+    recursive_mutex_lock(&statusbar_data().mutex);
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
-        if (!statusbar_data.icons[i].claimed) {
-            statusbar_data.icons[i].claimed = true;
-            statusbar_data.icons[i].visible = visible;
-            copy_image(statusbar_data.icons[i].image, image);
-            statusbar_data.icons[i].added_order = statusbar_data.next_added_order++;
+        if (!statusbar_data().icons[i].claimed) {
+            statusbar_data().icons[i].claimed = true;
+            statusbar_data().icons[i].visible = visible;
+            copy_image(statusbar_data().icons[i].image, image);
+            statusbar_data().icons[i].added_order = statusbar_data().next_added_order++;
             result = i;
             LOG_D(TAG, "id %d: added", (int)i);
             break;
         }
     }
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
     if (result < 0) {
         LOG_W(TAG, "No icon slot left, the icon isn't shown");
     }
@@ -514,12 +521,12 @@ void lvgl_statusbar_icon_remove(int8_t id) {
         return;
     }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    recursive_mutex_lock(&statusbar_data.mutex);
-    StatusbarIcon* icon = &statusbar_data.icons[id];
+    recursive_mutex_lock(&statusbar_data().mutex);
+    StatusbarIcon* icon = &statusbar_data().icons[id];
     icon->claimed = false;
     icon->visible = false;
     icon->image[0] = '\0';
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
     notify_instances();
 }
 
@@ -529,11 +536,11 @@ void lvgl_statusbar_icon_set_image(int8_t id, const char* image) {
         return;
     }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    recursive_mutex_lock(&statusbar_data.mutex);
-    StatusbarIcon* icon = &statusbar_data.icons[id];
+    recursive_mutex_lock(&statusbar_data().mutex);
+    StatusbarIcon* icon = &statusbar_data().icons[id];
     check(icon->claimed);
     copy_image(icon->image, image);
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
     notify_instances();
 }
 
@@ -543,11 +550,11 @@ void lvgl_statusbar_icon_set_visibility(int8_t id, bool visible) {
         return;
     }
     check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    recursive_mutex_lock(&statusbar_data.mutex);
-    StatusbarIcon* icon = &statusbar_data.icons[id];
+    recursive_mutex_lock(&statusbar_data().mutex);
+    StatusbarIcon* icon = &statusbar_data().icons[id];
     check(icon->claimed);
     icon->visible = visible;
-    recursive_mutex_unlock(&statusbar_data.mutex);
+    recursive_mutex_unlock(&statusbar_data().mutex);
     notify_instances();
 }
 

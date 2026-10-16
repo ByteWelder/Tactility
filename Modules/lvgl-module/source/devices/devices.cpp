@@ -4,12 +4,15 @@
 #include <lvgl/devices/pointer.h>
 #include <lvgl/devices/trackball.h>
 #include <lvgl/lvgl.h>
+#include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
+
+#include <TactilityCpp/Memory.h>
 
 #include <lvgl.h>
 
@@ -55,7 +58,16 @@ struct IdleRepaintContext {
 // One slot per display bound in lvgl_devices_attach()'s loop below that turns out to be
 // DISPLAY_CAPABILITY_SLOW_REFRESH; a board with multiple such displays needs independent idle
 // tracking for each; slots are 1:1 with idle_repaint_contexts' index, not a compacted list.
-static IdleRepaintContext idle_repaint_contexts[LVGL_DEVICES_MAX_PER_TYPE] = {};
+struct IdleRepaintContexts {
+    IdleRepaintContext slots[LVGL_DEVICES_MAX_PER_TYPE] = {};
+};
+
+// Allocated once in external memory when available
+static IdleRepaintContext* idle_repaint_contexts() {
+    static IdleRepaintContexts* instance = tt::newObject<IdleRepaintContexts>();
+    check(instance != nullptr);
+    return instance->slots;
+}
 
 extern "C" {
 
@@ -144,7 +156,7 @@ void lvgl_devices_attach() {
             // cases without extra plumbing at app-close time specifically.
             if (display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_SLOW_REFRESH)) {
                 display_clear(kernel_display_device);
-                IdleRepaintContext* ctx = &idle_repaint_contexts[i];
+                IdleRepaintContext* ctx = &idle_repaint_contexts()[i];
                 if (ctx->timer == nullptr) {
                     ctx->lvgl_display = added_display;
                     ctx->kernel_display_device = kernel_display_device;
@@ -257,7 +269,7 @@ void lvgl_devices_detach() {
     }
 
     for (size_t i = 0; i < LVGL_DEVICES_MAX_PER_TYPE; i++) {
-        IdleRepaintContext* ctx = &idle_repaint_contexts[i];
+        IdleRepaintContext* ctx = &idle_repaint_contexts()[i];
         if (ctx->timer != nullptr) {
             lv_timer_delete(ctx->timer);
             *ctx = {};

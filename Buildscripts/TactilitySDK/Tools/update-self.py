@@ -11,6 +11,8 @@ import zipfile
 
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 FILE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9_.-]*$")
+# Files of older versions of tt: tt.cmd made cmd.exe parse the arguments a second time, tt.ps1 replaces it
+OBSOLETE_FILE_NAMES = ["tt.cmd"]
 
 
 def fail(message):
@@ -44,16 +46,15 @@ def main():
         fail("the downloaded tt.py is invalid")
     for file_name, content in contents.items():
         path = os.path.join(directory, file_name)
-        # A running tt.cmd is read while it executes, so an unchanged file is left alone
-        if os.path.isfile(path):
-            with open(path, "rb") as file:
-                if file.read() == content:
-                    continue
         temporary_path = f"{path}.new"
         with open(temporary_path, "wb") as file:
             file.write(content)
         os.chmod(temporary_path, 0o755)
         os.replace(temporary_path, path)
+    for file_name in OBSOLETE_FILE_NAMES:
+        path = os.path.join(directory, file_name)
+        if file_name not in contents and os.path.isfile(path):
+            os.remove(path)
     print("tt was updated")
 
 

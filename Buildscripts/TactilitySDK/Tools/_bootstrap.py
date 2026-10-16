@@ -56,6 +56,8 @@ def check_cdn(state, sdk_version):
         index = fetch_json(f"{CDN_URL}/sdk/{sdk_version}/index.json")
         if isinstance(index, dict):
             state.setdefault("sdk", {})[sdk_version] = index.get("gitCommit")
+            tools = index.get("tools")
+            state.setdefault("sdk_tools", {})[sdk_version] = tools.get("sha256") if isinstance(tools, dict) else None
     write_state(state)
 
 
@@ -75,6 +77,14 @@ def installed_commits(version_directory):
     return commits
 
 
+def installed_tools_hash(version_directory):
+    try:
+        with open(os.path.join(version_directory, "tools.sha256")) as file:
+            return file.read().strip()
+    except OSError:
+        return None
+
+
 def run():
     tt_version = os.environ.get("TT_VERSION")
     if tt_version is None:
@@ -91,8 +101,14 @@ def run():
     latest = state.get("version")
     if isinstance(latest, str) and parse_version(latest) > parse_version(tt_version):
         print(f"tt: version {latest} is available (currently {tt_version}): run 'tt update-self'", file=sys.stderr)
-    latest_commit = state.get("sdk", {}).get(sdk_version) if sdk_version is not None else None
-    if latest_commit and sdk_path is not None and any(commit != latest_commit for commit in installed_commits(os.path.join(sdk_path, "sdk", sdk_version))):
+    if sdk_version is None or sdk_path is None:
+        return
+    version_directory = os.path.join(sdk_path, "sdk", sdk_version)
+    latest_commit = state.get("sdk", {}).get(sdk_version)
+    latest_tools = state.get("sdk_tools", {}).get(sdk_version)
+    has_newer_platforms = latest_commit and any(commit != latest_commit for commit in installed_commits(version_directory))
+    has_newer_tools = latest_tools and installed_tools_hash(version_directory) != latest_tools
+    if has_newer_platforms or has_newer_tools:
         print(f"tt: a newer build of SDK {sdk_version} is available: run 'tt update-sdk'", file=sys.stderr)
 
 

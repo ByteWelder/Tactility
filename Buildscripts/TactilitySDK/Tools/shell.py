@@ -495,6 +495,21 @@ def run_shell(args):
         return 1
     return exit_code
 
+
+def run_command(host, port, command, timeout=REQUEST_TIMEOUT_SECONDS):
+    """Runs a command without a terminal. @return (exit code, output text)"""
+    connection = open_session(host, port, "shell", command=command)
+    output = bytearray()
+    try:
+        while True:
+            frame_type, payload = connection.read_frame(timeout)
+            if frame_type == FRAME_DATA:
+                output += payload
+            elif frame_type == FRAME_EXIT and len(payload) == 4:
+                return struct.unpack(">i", payload)[0], output.decode("utf-8", errors="replace").replace("\r", "")
+    finally:
+        connection.close()
+
 # endregion
 
 

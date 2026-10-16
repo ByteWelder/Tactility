@@ -153,12 +153,13 @@ shared_symbol_code_point_names = [
     "help", # Diceware help
     "hub", # App Hub
     "info", # System Info
-    "image", # Screenshot app
+    "image", # Files app
     "keyboard_arrow_up",
     "lightbulb",
     "language", # Globe
     "lists", # Chat app toolbar
     "list_alt", # Settings apps: opens a selection dialog
+    "hourglass", # App Hub: an operation for the app is pending
     "mail",
     "menu",
     "memory", # System Info

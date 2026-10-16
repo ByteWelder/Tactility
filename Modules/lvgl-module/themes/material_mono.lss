@@ -33,9 +33,12 @@
 @widget badge: lvgl_badge_class;
 @widget page_indicator: lvgl_page_indicator_class;
 @widget page_indicator_dot: lvgl_page_indicator_dot_class;
+@widget step_indicator: lvgl_step_indicator_class;
+@widget step_indicator_segment: lvgl_step_indicator_segment_class;
 @widget flex_list: lvgl_list_class;
 @widget flex_list_text: lvgl_list_text_class;
 @widget flex_list_button: lvgl_list_button_class;
+@widget text_button: lvgl_text_button_class;
 
 // ============================================================
 // 1. Base tokens
@@ -152,6 +155,12 @@
 @page-indicator-color: @color-on-surface;
 @page-indicator-dot-size: if($isCompact, 6, 8dp);
 @page-indicator-gap: if($isCompact, 4, 6dp);
+
+// Step indicator (lvgl_step_indicator_create): a line segment per step, finished steps filled, unfinished steps outlined
+@step-indicator-color: @color-on-surface;
+@step-indicator-thickness: 6dp;
+@step-indicator-margin: 6dp;
+@step-indicator-gap: @step-indicator-margin;
 
 // Badge (lvgl_badge_create): a small dot that marks an item, e.g. a favourite
 @badge-color: @color-on-surface;
@@ -430,6 +439,26 @@ page_indicator_dot_current {
     bgOpa: cover;
 }
 
+step_indicator {
+    bgOpa: transp;
+    borderWidth: 0;
+    padAll: @step-indicator-margin;
+    padGap: @step-indicator-gap;
+}
+
+step_indicator_segment {
+    height: @step-indicator-thickness;
+    radius: circle;
+    bgColor: @step-indicator-color;
+    bgOpa: transp;
+    borderColor: @step-indicator-color;
+    borderWidth: 1;
+}
+
+step_indicator_segment_finished {
+    bgOpa: cover;
+}
+
 badge {
     width: @badge-size;
     height: @badge-size;
@@ -457,6 +486,19 @@ button {
     textColor: @button-label-color;
     borderColor: @button-border-color;
     borderWidth: @button-border-width;
+    radius: @button-shape;
+    padHor: @button-pad-hor;
+    padVer: @button-pad-ver;
+    padGap: @button-gap;
+    // Room for the focus ring, which the parent would clip
+    marginAll: @focus-width + @focus-offset;
+}
+
+// A button without a container, for low-emphasis actions
+text_button {
+    bgOpa: transp;
+    textColor: @button-label-color;
+    borderWidth: 0;
     radius: @button-shape;
     padHor: @button-pad-hor;
     padVer: @button-pad-ver;
@@ -719,7 +761,7 @@ list {
     borderWidth: @border;
     radius: @shape-container;
     padHor: 0;
-    padVer: @list-pad;
+    padVer: 0;
     padGap: 0;
     clipCorner: true;
 }
@@ -1059,6 +1101,13 @@ apply(menu_sidebar_header_cont > button, menu_main_header_cont > button, win > o
     focus_ring: state.focusKey;
 }
 
+apply(text_button) {
+    text_button: default;
+    inverted: state.pressed;
+    focus_ring: state.focusKey;
+    disabled: state.disabled;
+}
+
 apply(button, msgbox_footer_button) {
     button: default;
     inverted: state.pressed;
@@ -1118,6 +1167,15 @@ apply(label) {
 apply(page_indicator_dot) {
     page_indicator_dot: default;
     page_indicator_dot_current: state.checked;
+}
+
+apply(step_indicator) {
+    step_indicator: default;
+}
+
+apply(step_indicator_segment) {
+    step_indicator_segment: default;
+    step_indicator_segment_finished: state.checked;
 }
 
 apply(badge) {
@@ -1270,6 +1328,7 @@ apply(flex_list_text) {
 
 apply(flex_list_button) {
     list_item: default;
+    inverted: state.checked;
     inverted: state.pressed;
     inverted: state.focusKey;
     disabled: state.disabled;

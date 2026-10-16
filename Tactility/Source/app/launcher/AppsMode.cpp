@@ -33,7 +33,6 @@ constexpr IconEntry ICONS[] = {
     {"tactility.i2cscanner",        LVGL_ICON_SHARED_CABLE},
     {"tactility.meshinspect",       LVGL_ICON_SHARED_LISTS},
     {"tactility.notes",             LVGL_ICON_SHARED_EDIT_NOTE},
-    {"tactility.screenshot",        LVGL_ICON_SHARED_IMAGE},
     {"tactility.systeminfo",        LVGL_ICON_SHARED_DEVICES},
     {"tactility.terminal",          LVGL_ICON_SHARED_TERMINAL},
     {"tactility.webserversettings", LVGL_ICON_SHARED_CLOUD},

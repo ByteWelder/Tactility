@@ -22,8 +22,10 @@
 #include <lvgl/widgets/icon_button.h>
 #include <lvgl/widgets/list.h>
 #include <lvgl/widgets/page_indicator.h>
+#include <lvgl/widgets/step_indicator.h>
 #include <lvgl/widgets/spinner.h>
 #include <lvgl/widgets/statusbar.h>
+#include <lvgl/widgets/text_button.h>
 #include <lvgl/widgets/toolbar.h>
 
 #include <tactility/module.h>
@@ -129,6 +131,10 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_page_indicator_create),
     DEFINE_MODULE_SYMBOL(lvgl_page_indicator_set_page_count),
     DEFINE_MODULE_SYMBOL(lvgl_page_indicator_set_page),
+    // lvgl_step_indicator
+    DEFINE_MODULE_SYMBOL(lvgl_step_indicator_create),
+    DEFINE_MODULE_SYMBOL(lvgl_step_indicator_set_step_count),
+    DEFINE_MODULE_SYMBOL(lvgl_step_indicator_set_finished_count),
     // lvgl_card
     DEFINE_MODULE_SYMBOL(lvgl_card_create),
     // lvgl_chip
@@ -136,6 +142,8 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     // lvgl_icon_button
     DEFINE_MODULE_SYMBOL(lvgl_icon_button_create),
     DEFINE_MODULE_SYMBOL(lvgl_icon_button_create_variant),
+    // lvgl_text_button
+    DEFINE_MODULE_SYMBOL(lvgl_text_button_create),
     // lvgl_list
     DEFINE_MODULE_SYMBOL(lvgl_list_create),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_text),

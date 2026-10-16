@@ -34,6 +34,7 @@ const char* const lvgl_icon_shared_names[] = {
     "language",
     "lists",
     "list_alt",
+    "hourglass",
     "mail",
     "menu",
     "memory",

@@ -6,7 +6,7 @@
 #include <stddef.h>
 
 /**
- * Fallback provider that looks up the location of the public IP address with ip-api.com.
+ * Fallback provider that looks up the location of the public IP address with json.geoiplookup.io.
  * The result is reused while the network (local IP address and gateway) is unchanged.
  */
 extern const LocationProviderApi ip_location_provider;
@@ -17,25 +17,17 @@ error_t ip_provider_track_network(void);
 /** Stop tracking the network and release the cached result. The provider must not run. */
 void ip_provider_untrack_network(void);
 
-#define IP_API_MESSAGE_MAX_LENGTH 63
-
-struct IpApiResponse {
-    /** HTTP status code */
-    int status_code;
-    /** Requests left in the rate limit window, -1 when unknown */
-    int rate_remaining;
-    /** Seconds until the rate limit window resets, -1 when unknown */
-    int rate_reset_seconds;
+struct IpLookupResponse {
     bool success;
-    /** Reason of failure, empty on success */
-    char message[IP_API_MESSAGE_MAX_LENGTH + 1];
     double latitude;
     double longitude;
+    /** IANA time zone name, empty when unknown */
+    char time_zone[LOCATION_TIME_ZONE_MAX_LENGTH + 1];
 };
 
 /**
- * Parse an HTTP response of the newline separated ip-api endpoint, requested with fields "status,message,lat,lon"
- * @param[in] response the NUL-terminated response, including the status line and headers
+ * Parse the JSON response of json.geoiplookup.io
+ * @param[in] response the NUL-terminated response body
  * @return false when the response is malformed
  */
-bool ip_api_parse_response(const char* response, IpApiResponse* out);
+bool ip_lookup_parse_response(const char* response, IpLookupResponse* out);

@@ -12,6 +12,8 @@ import _device_host
 
 ttbuild_version = "8.0.0"
 verbose = False
+# Compile the ESP-IDF and SDK components through ccache (see TactilitySDK.esp32.cmake)
+use_ccache = True
 # The development server client (shell.py) is next to this script
 tool_directory = os.path.dirname(os.path.abspath(__file__))
 # The SDKs are in TACTILITY_SDK_PATH/sdk/<version>, which tt sets along with the version it selected.
@@ -34,7 +36,7 @@ def print_help():
     print("")
     print("  build                          Build the app. Optionally specify a platform.")
     print("    Supported platforms are lower case. Example: esp32s3")
-    print("    Supported platforms are read from manifest.properties")
+    print("    Supported platforms are read from manifest.properties (target.platforms=all for every installed SDK platform)")
     print("    Parameters:")
     print("      (optional) --architecture [input], -a [input]")
     print("")
@@ -65,6 +67,7 @@ def print_help():
     print("Options:")
     print("  -p, --path [input]             Path to the app directory (defaults to current directory)")
     print("  --help                         Show this commandline info")
+    print("  --no-ccache                    Don't reuse ESP-IDF/SDK objects from other app builds via ccache")
     print("  --skip-build                   Run everything except the idf.py/CMake commands")
     print("  --verbose                      Show extra console output")
     print("")
@@ -182,6 +185,7 @@ ARG_SPECS = {
     "platform": ("-a", "--architecture", True),
     "verbose": (None, "--verbose", False),
     "skip-build": (None, "--skip-build", False),
+    "no-ccache": (None, "--no-ccache", False),
     "help": (None, "--help", False),
 }
 
@@ -344,9 +348,19 @@ def get_binary_dirs(manifest):
     else:
         return [(manifest["app.id"], ".")]
 
+# "target.platforms=all" means every platform that an SDK is installed for
+def get_manifest_platforms(manifest):
+    platforms = [platform.strip() for platform in manifest["target.platforms"].split(",")]
+    if platforms != ["all"]:
+        return platforms
+    version_directory = os.path.join(sdk_root_path, "sdk", manifest["target.sdk"])
+    prefix = "platform-"
+    if not os.path.isdir(version_directory):
+        exit_with_error(f"No SDK {manifest['target.sdk']} installed, so 'all' platforms can't be determined")
+    return sorted(name[len(prefix):] for name in os.listdir(version_directory) if name.startswith(prefix))
+
 def is_valid_manifest_platform(manifest, platform):
-    manifest_platforms = manifest["target.platforms"].split(",")
-    return platform in manifest_platforms
+    return platform in get_manifest_platforms(manifest)
 
 def validate_manifest_platform(manifest, platform):
     if not is_valid_manifest_platform(manifest, platform):
@@ -354,7 +368,7 @@ def validate_manifest_platform(manifest, platform):
 
 def get_manifest_target_platforms(manifest, requested_platform):
     if requested_platform == "" or requested_platform is None:
-        return manifest["target.platforms"].split(",")
+        return get_manifest_platforms(manifest)
     else:
         validate_manifest_platform(manifest, requested_platform)
         return [requested_platform]
@@ -472,6 +486,10 @@ def build_all(version, platforms, skip_build):
                 return False
     return True
 
+# Always passed, because a -D value persists in CMakeCache.txt
+def get_ccache_define():
+    return f"TACTILITY_CCACHE={'ON' if use_ccache else 'OFF'}"
+
 def wait_for_process(process):
     buffer = []
     if sys.platform != "win32":
@@ -514,7 +532,7 @@ def build_first(version, platform, skip_build):
     cmake_path = get_cmake_path(platform)
     print_status_busy(f"Building {platform} ELF")
     shell_needed = sys.platform == "win32"
-    build_command = ["idf.py", "-B", cmake_path, "build"]
+    build_command = ["idf.py", "-B", cmake_path, "-D", get_ccache_define(), "build"]
     if verbose:
         print(f"Running command: {' '.join(build_command)}")
     with subprocess.Popen(build_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell_needed) as process:
@@ -544,7 +562,7 @@ def build_consecutively(version, platform, skip_build):
     cmake_path = get_cmake_path(platform)
     print_status_busy(f"Building {platform} ELF")
     shell_needed = sys.platform == "win32"
-    build_command = ["idf.py", "-B", cmake_path, "elf"]
+    build_command = ["idf.py", "-B", cmake_path, "-D", get_ccache_define(), "elf"]
     if verbose:
         print(f"Running command: {' '.join(build_command)}")
     with subprocess.Popen(build_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell_needed) as process:
@@ -758,6 +776,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     verbose = parsed_command.arguments.has("verbose")
+    use_ccache = not parsed_command.arguments.has("no-ccache")
 
     app_path = parsed_command.arguments.get("path")
     if app_path is not None:
