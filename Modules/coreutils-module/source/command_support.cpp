@@ -3,23 +3,34 @@
 #include <app/dir.h>
 #include <app/io.h>
 
+#include <tactility/memory.h>
 #include <tactility/paths.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 namespace {
 
 // Reads the calling app instance's own cwd (app/dir.h) - inherited from whichever instance
 // started this one (e.g. the interactive shell, after a `cd`), so this always agrees with `pwd`.
 // "/" if unset/unavailable (matches this module's old hardcoded default).
-const char* currentDirectory() {
-    static char buffer[FILE_MAX_PATH_STRING_LENGTH];
-    if (app_dir_get_cwd(buffer, sizeof(buffer)) != ERROR_NONE) {
+// The buffer is allocated per call, in external memory when available. Apps have small stacks,
+// and a shared static buffer would be overwritten by other apps that run at the same time.
+struct MemoryDeleter {
+    void operator()(char* memory) const { memory_free(memory); }
+};
+
+using DirectoryBuffer = std::unique_ptr<char[], MemoryDeleter>;
+
+const char* currentDirectory(DirectoryBuffer& buffer) {
+    constexpr MemoryPolicy policy = { .required = 0, .desired = MEMORY_CAPABILITY_EXTERNAL, .alignment = 0 };
+    buffer.reset(static_cast<char*>(memory_alloc_with_policy(FILE_MAX_PATH_STRING_LENGTH, &policy)));
+    if (buffer == nullptr || app_dir_get_cwd(buffer.get(), FILE_MAX_PATH_STRING_LENGTH) != ERROR_NONE) {
         return "/";
     }
-    return buffer;
+    return buffer.get();
 }
 
 /**
@@ -88,7 +99,8 @@ void normalizePath(char* path) {
 // Module-local equivalent of ShellFs::resolvePath(): resolves against this app instance's own
 // cwd (currentDirectory(), above) - inherited from whichever instance started it.
 bool resolvePath(const char* path, char* out, size_t outSize) {
-    const char* current = currentDirectory();
+    DirectoryBuffer currentBuffer;
+    const char* current = currentDirectory(currentBuffer);
 
     if (path == nullptr || path[0] == '\0') {
         snprintf(out, outSize, "%s", current);

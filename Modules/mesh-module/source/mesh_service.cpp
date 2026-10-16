@@ -14,6 +14,7 @@
 #include <TactilityCpp/std/deque.h>
 #include <TactilityCpp/std/vector.h>
 
+#include <tactility/check.h>
 #include <tactility/concurrent/event_group.h>
 #include <tactility/concurrent/mutex.h>
 #include <tactility/concurrent/task_event_group.h>
@@ -63,22 +64,29 @@ void unlock() { mutex_unlock(&globalMutex.handle); }
 /** Serializes callOnServiceThread() callers. Taken before the global lock, never while holding it */
 GlobalMutex callMutex;
 
-const MeshBackendApi* backends[MAX_BACKENDS] = {};
-size_t backendCount = 0;
+/** The registry, settings and subscriptions. Allocated once in external memory and guarded by the global lock. */
+struct Globals {
+    const MeshBackendApi* backends[MAX_BACKENDS] = {};
+    size_t backendCount = 0;
+    MeshSettings settings {};
+    bool settingsLoaded = false;
+    MeshEventSubscription* subscriptions = nullptr;
+};
 
-MeshSettings settings {};
-bool settingsLoaded = false;
-
-MeshEventSubscription* subscriptions = nullptr;
+Globals& globals() {
+    static Globals* instance = tt::newObject<Globals>();
+    check(instance != nullptr);
+    return *instance;
+}
 
 uint64_t getMillis() {
     return get_micros_since_boot() / 1000;
 }
 
 const MeshBackendApi* findBackend(const char* id) {
-    for (size_t i = 0; i < backendCount; i++) {
-        if (strncmp(backends[i]->id, id, MESH_BACKEND_ID_MAX_LENGTH) == 0) {
-            return backends[i];
+    for (size_t i = 0; i < globals().backendCount; i++) {
+        if (strncmp(globals().backends[i]->id, id, MESH_BACKEND_ID_MAX_LENGTH) == 0) {
+            return globals().backends[i];
         }
     }
     return nullptr;
@@ -102,10 +110,10 @@ Device* findRadio() {
 
 /** Requires the global lock and loaded settings */
 const MeshBackendApi* getSelectedBackend() {
-    if (settings.backend[0] != '\0') {
-        return findBackend(settings.backend);
+    if (globals().settings.backend[0] != '\0') {
+        return findBackend(globals().settings.backend);
     }
-    return (backendCount > 0) ? backends[0] : nullptr;
+    return (globals().backendCount > 0) ? globals().backends[0] : nullptr;
 }
 
 size_t getPresetCount(const MeshBackendApi* api) {
@@ -130,15 +138,15 @@ size_t findPreset(const MeshBackendApi* api, const char* name) {
 }
 
 void ensureSettingsLoaded() {
-    if (!settingsLoaded) {
-        mesh_settings_load(&settings);
-        settingsLoaded = true;
+    if (!globals().settingsLoaded) {
+        mesh_settings_load(&globals().settings);
+        globals().settingsLoaded = true;
     }
 }
 
 /** Requires the global lock */
 void queueEvent(const MeshEvent& event) {
-    for (auto* sub = subscriptions; sub != nullptr; sub = sub->internal.next) {
+    for (auto* sub = globals().subscriptions; sub != nullptr; sub = sub->internal.next) {
         if (sub->internal.count >= MESH_EVENT_QUEUE_CAPACITY) {
             continue;
         }
@@ -226,6 +234,7 @@ struct MeshHost {
     RadioTxId txId = 0;
     Frame txFrame;
     tt::std::deque<AirtimeRecord> airtime;
+    RadioRxEvent rxEvent {};
     bool dutyCycleLogged = false;
     uint64_t lastTickMs = 0;
 
@@ -377,7 +386,7 @@ void configure(MeshHost* host) {
 
     lock();
     const MeshBackendApi* api = getSelectedBackend();
-    const size_t preset = (api != nullptr) ? findPreset(api, settings.preset) : 0;
+    const size_t preset = (api != nullptr) ? findPreset(api, globals().settings.preset) : 0;
     unlock();
     if (api == nullptr) {
         setStateLocked(host, MESH_STATE_NO_BACKEND);
@@ -566,8 +575,8 @@ bool attachRadio(MeshHost* host) {
 
 void drainRadioEvents(MeshHost* host) {
     if (host->rxSubscribed) {
-        // Static: RadioRxEvent is large and only used on this thread
-        static RadioRxEvent rxEvent;
+        // A host member: RadioRxEvent is large and only used on this thread
+        auto& rxEvent = host->rxEvent;
         while (radio_rx_event_poll(&host->rxSub, &rxEvent) == ERROR_NONE) {
             if (host->api != nullptr) {
                 if (!host->api->on_receive(host->backend, rxEvent.data, rxEvent.length, rxEvent.rssi, rxEvent.snr)) {
@@ -767,7 +776,7 @@ const ServiceManifest mesh_service_manifest = {
 bool mesh_service_should_auto_start() {
     lock();
     ensureSettingsLoaded();
-    const bool enabled = settings.enabled;
+    const bool enabled = globals().settings.enabled;
     unlock();
     return enabled;
 }
@@ -781,10 +790,10 @@ error_t mesh_backend_register(const MeshBackendApi* api) {
     error_t result = ERROR_NONE;
     if (findBackend(api->id) != nullptr) {
         result = ERROR_ALREADY_EXISTS;
-    } else if (backendCount >= MAX_BACKENDS) {
+    } else if (globals().backendCount >= MAX_BACKENDS) {
         result = ERROR_RESOURCE;
     } else {
-        backends[backendCount++] = api;
+        globals().backends[globals().backendCount++] = api;
         if (service != nullptr && service->state == MESH_STATE_NO_BACKEND) {
             MeshHost* host = service;
             post(host, [host] { configure(host); });
@@ -797,10 +806,10 @@ error_t mesh_backend_register(const MeshBackendApi* api) {
 error_t mesh_backend_unregister(const MeshBackendApi* api) {
     lock();
     error_t result = ERROR_NOT_FOUND;
-    for (size_t i = 0; i < backendCount; i++) {
-        if (backends[i] == api) {
-            backends[i] = backends[--backendCount];
-            backends[backendCount] = nullptr;
+    for (size_t i = 0; i < globals().backendCount; i++) {
+        if (globals().backends[i] == api) {
+            globals().backends[i] = globals().backends[--globals().backendCount];
+            globals().backends[globals().backendCount] = nullptr;
             result = ERROR_NONE;
             break;
         }
@@ -947,7 +956,7 @@ error_t mesh_host_get_data_path(MeshHost* host, const char* child_path, char* ou
 void mesh_host_get_node_name(MeshHost*, char* name, size_t name_size) {
     lock();
     ensureSettingsLoaded();
-    strncpy(name, settings.node_name, name_size - 1);
+    strncpy(name, globals().settings.node_name, name_size - 1);
     name[name_size - 1] = '\0';
     unlock();
 }
@@ -980,8 +989,8 @@ const char* mesh_state_to_string(MeshState state) {
 error_t mesh_set_enabled(bool enabled) {
     lock();
     ensureSettingsLoaded();
-    settings.enabled = enabled;
-    const MeshSettings copy = settings;
+    globals().settings.enabled = enabled;
+    const MeshSettings copy = globals().settings;
     unlock();
 
     const error_t saved = mesh_settings_save(&copy);
@@ -992,7 +1001,7 @@ error_t mesh_set_enabled(bool enabled) {
 bool mesh_is_enabled(void) {
     lock();
     ensureSettingsLoaded();
-    const bool enabled = settings.enabled;
+    const bool enabled = globals().settings.enabled;
     unlock();
     return enabled;
 }
@@ -1010,9 +1019,9 @@ error_t mesh_set_node_name(const char* name) {
     }
     lock();
     ensureSettingsLoaded();
-    strncpy(settings.node_name, name, MESH_NAME_MAX_LENGTH);
-    settings.node_name[MESH_NAME_MAX_LENGTH] = '\0';
-    const MeshSettings copy = settings;
+    strncpy(globals().settings.node_name, name, MESH_NAME_MAX_LENGTH);
+    globals().settings.node_name[MESH_NAME_MAX_LENGTH] = '\0';
+    const MeshSettings copy = globals().settings;
     unlock();
     return mesh_settings_save(&copy);
 }
@@ -1036,7 +1045,7 @@ bool mesh_is_available(void) {
 
 size_t mesh_get_backend_count(void) {
     lock();
-    const size_t count = backendCount;
+    const size_t count = globals().backendCount;
     unlock();
     return count;
 }
@@ -1044,8 +1053,8 @@ size_t mesh_get_backend_count(void) {
 error_t mesh_get_backend_id(size_t index, char* id, size_t id_size) {
     lock();
     error_t result = ERROR_NOT_FOUND;
-    if (index < backendCount && id_size > 0) {
-        strncpy(id, backends[index]->id, id_size - 1);
+    if (index < globals().backendCount && id_size > 0) {
+        strncpy(id, globals().backends[index]->id, id_size - 1);
         id[id_size - 1] = '\0';
         result = ERROR_NONE;
     }
@@ -1060,12 +1069,12 @@ error_t mesh_set_backend(const char* id) {
         return ERROR_NOT_FOUND;
     }
     ensureSettingsLoaded();
-    if (strncmp(settings.backend, id, MESH_BACKEND_ID_MAX_LENGTH) != 0) {
-        settings.preset[0] = '\0';
+    if (strncmp(globals().settings.backend, id, MESH_BACKEND_ID_MAX_LENGTH) != 0) {
+        globals().settings.preset[0] = '\0';
     }
-    strncpy(settings.backend, id, MESH_BACKEND_ID_MAX_LENGTH);
-    settings.backend[MESH_BACKEND_ID_MAX_LENGTH] = '\0';
-    const MeshSettings copy = settings;
+    strncpy(globals().settings.backend, id, MESH_BACKEND_ID_MAX_LENGTH);
+    globals().settings.backend[MESH_BACKEND_ID_MAX_LENGTH] = '\0';
+    const MeshSettings copy = globals().settings;
     if (service != nullptr) {
         MeshHost* host = service;
         post(host, [host] { configure(host); });
@@ -1077,7 +1086,7 @@ error_t mesh_set_backend(const char* id) {
 error_t mesh_get_backend(char* id, size_t id_size) {
     lock();
     ensureSettingsLoaded();
-    const char* selected = settings.backend;
+    const char* selected = globals().settings.backend;
     if (service != nullptr && service->activeBackend[0] != '\0') {
         selected = service->activeBackend;
     }
@@ -1123,9 +1132,9 @@ error_t mesh_set_preset(const char* name) {
         unlock();
         return ERROR_NOT_FOUND;
     }
-    strncpy(settings.preset, name, MESH_NAME_MAX_LENGTH);
-    settings.preset[MESH_NAME_MAX_LENGTH] = '\0';
-    const MeshSettings copy = settings;
+    strncpy(globals().settings.preset, name, MESH_NAME_MAX_LENGTH);
+    globals().settings.preset[MESH_NAME_MAX_LENGTH] = '\0';
+    const MeshSettings copy = globals().settings;
     if (service != nullptr) {
         MeshHost* host = service;
         post(host, [host] { configure(host); });
@@ -1140,7 +1149,7 @@ error_t mesh_get_preset(char* name, size_t name_size) {
     const MeshBackendApi* api = getSelectedBackend();
     error_t result = ERROR_NOT_FOUND;
     if (api != nullptr && getPresetCount(api) > 0 && name_size > 0) {
-        strncpy(name, api->presets[findPreset(api, settings.preset)], name_size - 1);
+        strncpy(name, api->presets[findPreset(api, globals().settings.preset)], name_size - 1);
         name[name_size - 1] = '\0';
         result = ERROR_NONE;
     }
@@ -1168,7 +1177,7 @@ error_t mesh_send_text(const MeshAddress* to, uint8_t channel, const char* text,
         message.peer = *to;
     }
     message.channel = channel;
-    strncpy(message.sender_name, settings.node_name, MESH_NAME_MAX_LENGTH);
+    strncpy(message.sender_name, globals().settings.node_name, MESH_NAME_MAX_LENGTH);
     const int64_t now = (int64_t)time(nullptr);
     message.wall_time = (now >= MIN_VALID_WALL_TIME) ? now : 0;
     message.time_source = (now >= MIN_VALID_WALL_TIME) ? MESH_TIME_SOURCE_SYSTEM : MESH_TIME_SOURCE_NONE;
@@ -1295,7 +1304,7 @@ error_t mesh_event_subscribe(MeshEventSubscription* sub, TaskEventGroup* event_g
     }
 
     lock();
-    for (auto* existing = subscriptions; existing != nullptr; existing = existing->internal.next) {
+    for (auto* existing = globals().subscriptions; existing != nullptr; existing = existing->internal.next) {
         if (existing == sub) {
             unlock();
             task_event_group_release_bit(event_group, bit);
@@ -1306,8 +1315,8 @@ error_t mesh_event_subscribe(MeshEventSubscription* sub, TaskEventGroup* event_g
     sub->internal.event_group = event_group;
     sub->internal.head = 0;
     sub->internal.count = 0;
-    sub->internal.next = subscriptions;
-    subscriptions = sub;
+    sub->internal.next = globals().subscriptions;
+    globals().subscriptions = sub;
     unlock();
     return ERROR_NONE;
 }
@@ -1315,7 +1324,7 @@ error_t mesh_event_subscribe(MeshEventSubscription* sub, TaskEventGroup* event_g
 error_t mesh_event_unsubscribe(MeshEventSubscription* sub) {
     error_t result = ERROR_NOT_FOUND;
     lock();
-    for (auto** link = &subscriptions; *link != nullptr; link = &(*link)->internal.next) {
+    for (auto** link = &globals().subscriptions; *link != nullptr; link = &(*link)->internal.next) {
         if (*link == sub) {
             *link = sub->internal.next;
             result = ERROR_NONE;
