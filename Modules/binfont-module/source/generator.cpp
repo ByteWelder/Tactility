@@ -17,7 +17,8 @@ struct AllocationState {
 };
 
 void* stbtt_allocate(size_t size, void* user) {
-    void* pointer = memory_alloc(size);
+    static constexpr MemoryPolicy policy = { .required = 0, .desired = 0, .alignment = 0};
+    void* pointer = memory_alloc_with_policy(size,  &policy);
     if (pointer == nullptr && user != nullptr) {
         static_cast<AllocationState*>(user)->failed = true;
     }

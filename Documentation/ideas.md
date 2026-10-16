@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Experiment with default malloc() to SPIRAM
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
