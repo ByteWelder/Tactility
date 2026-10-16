@@ -29,8 +29,8 @@
 namespace {
 
 constexpr auto* API_URL = "https://json.geoiplookup.io/";
-// The intermediate certificate that signs the API's certificate
-constexpr auto* API_CERTIFICATE = "certificates/WE1.pem";
+// The root certificate of the API's certificate chain
+constexpr auto* API_CERTIFICATE = "certificates/GTS_Root_R4.pem";
 constexpr uint64_t RETRY_INTERVAL_MS = 60 * 1000;
 // Bounds the request rate when the network connects repeatedly
 constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;

@@ -39,7 +39,7 @@ std::string app_hub_catalog_get_certificate_path() {
     if (system == nullptr || file_system_get_path(system, path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
-    return std::string(path) + "/certificates/WE1.pem";
+    return std::string(path) + "/certificates/GTS_Root_R4.pem";
 }
 
 std::string app_hub_catalog_get_url() {
