@@ -165,11 +165,15 @@ void View::updatePeerList() {
         // Scan results section
         auto scan_results = state->getScanResults();
         auto* available_section = createSection(peers_list, "Available");
-        if (!scan_results.empty()) {
-            for (size_t i = 0; i < scan_results.size(); ++i) {
+        // Devices without a name are skipped. The index stays that of the scan results, which the click handler uses.
+        bool hasNamedResults = false;
+        for (size_t i = 0; i < scan_results.size(); ++i) {
+            if (!scan_results[i].name.empty()) {
                 createPeerListItem(available_section, scan_results[i], false, i);
+                hasNamedResults = true;
             }
-        } else if (!state->isScanning()) {
+        }
+        if (!hasNamedResults && !state->isScanning()) {
             lvgl_list_add_text(available_section, "No devices found.");
         }
         // Never hide peers_list: it always contains the "Enable on boot" row.
@@ -212,7 +216,18 @@ void View::init(void* newContext, lv_obj_t* parent) {
     lv_obj_set_style_border_width(peers_list, 0, LV_STATE_DEFAULT);
 }
 
+void View::destroyWidgets() {
+    root = nullptr;
+    enable_switch = nullptr;
+    scanning_spinner = nullptr;
+    peers_list = nullptr;
+}
+
 void View::update() {
+    // The widgets are gone while another window covers this one
+    if (root == nullptr) {
+        return;
+    }
     updateBtToggle();
     updateScanning();
     updatePeerList();

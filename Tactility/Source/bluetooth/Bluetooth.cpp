@@ -115,9 +115,36 @@ BtEventSubscription btEventSub {};
 Thread* btEventThread = nullptr;
 std::atomic<bool> btEventThreadRunning {false};
 
+// Scans repeat while the radio is on, so new devices show up without opening the app.
+// Only used by the bridge thread.
+constexpr TickType_t AUTO_SCAN_INTERVAL = pdMS_TO_TICKS(10000);
+bool autoScanEnabled = false;
+bool autoScanPending = false;
+TickType_t nextAutoScanTick = 0;
+
+static void scheduleAutoScan(TickType_t delay) {
+    autoScanPending = autoScanEnabled;
+    nextAutoScanTick = xTaskGetTickCount() + delay;
+}
+
+static void runAutoScan() {
+    autoScanPending = false;
+    Device* dev;
+    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) != ERROR_NONE) {
+        scheduleAutoScan(AUTO_SCAN_INTERVAL);
+        return;
+    }
+    if (!bluetooth_is_scanning(dev) && bluetooth_scan_start(dev) != ERROR_NONE) {
+        scheduleAutoScan(AUTO_SCAN_INTERVAL);
+    }
+    device_put(dev);
+}
+
 static void bt_event_bridge(BtEvent event) {
     switch (event.type) {
         case BT_EVENT_RADIO_STATE_CHANGED:
+            autoScanEnabled = event.radio_state == BT_RADIO_STATE_ON;
+            scheduleAutoScan(0);
             switch (event.radio_state) {
                 case BT_RADIO_STATE_ON:
                     getMainDispatcher().dispatch([] {
@@ -175,6 +202,7 @@ static void bt_event_bridge(BtEvent event) {
             break;
 
         case BT_EVENT_SCAN_FINISHED:
+            scheduleAutoScan(AUTO_SCAN_INTERVAL);
             getMainDispatcher().dispatch([] { autoConnectHidHost(); });
             break;
 
@@ -275,6 +303,9 @@ int32_t btEventThreadMain() {
         BtEvent event {};
         while (bluetooth_event_poll(&btEventSub, &event) == ERROR_NONE) {
             bt_event_bridge(event);
+        }
+        if (autoScanPending && static_cast<int32_t>(xTaskGetTickCount() - nextAutoScanTick) >= 0) {
+            runAutoScan();
         }
     }
     return 0;

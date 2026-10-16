@@ -33,6 +33,8 @@ public:
     View(Bindings* bindings, State* state) : bindings(bindings), state(state) {}
 
     void init(void* context, lv_obj_t* parent);
+    /** Forgets the widgets after their window was buried and deleted. Call with the LVGL lock held. */
+    void destroyWidgets();
     void update();
 };
 

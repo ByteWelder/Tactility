@@ -275,13 +275,41 @@ bool ble_hid_switch_profile(struct Device* device, BleHidProfile profile) {
 
     ble_gap_adv_stop();
 
+    // NimBLE only allows GATT changes without discovery, which a repeating scan keeps starting
+    if (ble_gap_disc_active()) {
+        ble_gap_disc_cancel();
+        if (ble_get_scan_active(device)) {
+            ble_set_scan_active(device, false);
+            struct BtEvent finished = {};
+            finished.type = BT_EVENT_SCAN_FINISHED;
+            ble_publish_event(device, finished);
+        }
+    }
+
+    // A connection that is being set up, such as an auto-connect to a keyboard, blocks it too
+    if (ble_gap_conn_active()) {
+        ble_gap_conn_cancel();
+    }
+
     BleHidDeviceCtx* hid_ctx = (BleHidDeviceCtx*)device_get_driver_data(device);
     if (hid_ctx && hid_ctx->hid_conn_handle.load() != BLE_HS_CONN_HANDLE_NONE) {
         ble_gap_terminate(hid_ctx->hid_conn_handle.load(), BLE_ERR_REM_USER_CONN_TERM);
         hid_ctx->hid_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     }
 
-    ble_gatts_reset();
+    // ble_svc_gap_init() asserts when NimBLE refuses the change, so check first
+    if (ble_gap_adv_active() || ble_gap_disc_active() || ble_gap_conn_active()) {
+        LOG_W(TAG, "switchGattProfile: GAP procedure still active (adv=%d disc=%d conn=%d)",
+            ble_gap_adv_active(), ble_gap_disc_active(), ble_gap_conn_active());
+        return false;
+    }
+
+    // Refuses with BLE_HS_EBUSY while a connection exists, which ble_svc_gap_init() would assert on
+    const int reset_rc = ble_gatts_reset();
+    if (reset_rc != 0) {
+        LOG_W(TAG, "switchGattProfile: ble_gatts_reset failed rc=%d", reset_rc);
+        return false;
+    }
     ble_svc_gap_init();
     ble_svc_gatt_init();
 
@@ -357,6 +385,11 @@ void ble_hid_init_gatt() {
 // stored as its driver data.
 
 static error_t hid_device_start(struct Device* device, enum BtHidDeviceMode mode) {
+    // NimBLE can't change GATT services while connected, and the HID host holds a connection
+    if (ble_hid_get_host_active(device)) {
+        LOG_W(TAG, "Can't start the HID device while a HID host connection is active");
+        return ERROR_INVALID_STATE;
+    }
     // Clean up any leftover context from a previous session (e.g. BLE was disabled
     // while connected: dispatch_disable() skips the normal hid_device_stop cleanup).
     BleHidDeviceCtx* old_ctx = (BleHidDeviceCtx*)device_get_driver_data(device);
