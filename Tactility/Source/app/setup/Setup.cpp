@@ -469,7 +469,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     ctx.steps.push_back({
         .title = "Location Services",
-        .description = "Do you want to allow apps to retrieve your location? It uses GPS and/or contacts ip-api.com",
+        .description = "Do you want to allow apps to retrieve your location? It uses GPS and/or contacts geoiplookup.io",
         .run = [&ctx] {
             // The order of LOCATION_CHOICES: precise, approximate, disabled
             if (ctx.locationChoice == 0 || ctx.locationChoice == 1) {

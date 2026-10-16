@@ -176,7 +176,7 @@ void TimeZoneView::onDetectPressed(lv_event_t* event) {
     if (view->detectThread != nullptr) {
         view->detectThread->join();
     }
-    view->detectThread = std::make_unique<Thread>("timezone_detect", 4096, [view] {
+    view->detectThread = std::make_unique<Thread>("timezone_detect", 5120, [view] {
         view->detect();
         return 0;
     });

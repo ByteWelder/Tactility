@@ -9,6 +9,8 @@
 
 #include <cJSON.h>
 
+#include <new>
+
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #endif
@@ -17,6 +19,7 @@
 #include <cstdio>
 #include <cstring>
 #include <format>
+#include <cstdlib>
 #include <memory>
 #include <string_view>
 
@@ -112,8 +115,9 @@ static std::unique_ptr<char[]> read_file(const char* path) {
     if (fseek(file, 0, SEEK_END) == 0) {
         const long size = ftell(file);
         if (size >= 0 && fseek(file, 0, SEEK_SET) == 0) {
-            data = std::make_unique<char[]>(size + 1);
-            if (fread(data.get(), 1, size, file) == static_cast<size_t>(size)) {
+            // Exceptions are disabled, so a failed allocation must not abort
+            data.reset(new (std::nothrow) char[size + 1]);
+            if (data != nullptr && fread(data.get(), 1, size, file) == static_cast<size_t>(size)) {
                 data[size] = '\0';
             } else {
                 data = nullptr;
@@ -124,19 +128,114 @@ static std::unique_ptr<char[]> read_file(const char* path) {
     return data;
 }
 
-bool app_hub_catalog_parse(const char* path, AppHubCatalog& catalog) {
-    auto data = read_file(path);
+namespace {
+
+constexpr char FIELD_SEPARATOR = '\t';
+constexpr char LIST_SEPARATOR = ',';
+constexpr size_t FIELD_COUNT = 10;
+// Bounds the stack buffer of a reader. A longer entry makes the conversion fail.
+constexpr size_t LINE_MAX_SIZE = 1024;
+
+/** Control characters, such as the field separator, can't be in a catalog line */
+void append_text(std::string& line, const std::string& text) {
+    for (const char character : text) {
+        line += (static_cast<unsigned char>(character) < ' ') ? ' ' : character;
+    }
+    line += FIELD_SEPARATOR;
+}
+
+bool append_list(std::string& line, const std::vector<std::string>& items) {
+    for (size_t i = 0; i < items.size(); i++) {
+        if (items[i].find(LIST_SEPARATOR) != std::string::npos) {
+            return false;
+        }
+        if (i > 0) {
+            line += LIST_SEPARATOR;
+        }
+        append_text(line, items[i]);
+        line.pop_back();
+    }
+    line += FIELD_SEPARATOR;
+    return true;
+}
+
+bool format_entry(const AppHubCatalogEntry& entry, std::string& line) {
+    line.clear();
+    append_text(line, entry.id);
+    append_text(line, entry.version_name);
+    line += std::to_string(entry.version_code) + FIELD_SEPARATOR;
+    append_text(line, entry.name);
+    append_text(line, entry.description);
+    append_text(line, entry.target_sdk);
+    if (!append_list(line, entry.target_platforms) || !append_list(line, entry.requires_device_id)) {
+        return false;
+    }
+    line += std::to_string(entry.requires_ram) + FIELD_SEPARATOR;
+    append_text(line, entry.file);
+    line.back() = '\n';
+    return line.size() < LINE_MAX_SIZE;
+}
+
+std::vector<std::string> split(std::string_view text, char separator) {
+    std::vector<std::string> parts;
+    size_t start = 0;
+    while (true) {
+        const size_t end = text.find(separator, start);
+        if (end == std::string_view::npos) {
+            parts.emplace_back(text.substr(start));
+            return parts;
+        }
+        parts.emplace_back(text.substr(start, end - start));
+        start = end + 1;
+    }
+}
+
+std::vector<std::string> split_list(const std::string& text) {
+    return text.empty() ? std::vector<std::string> {} : split(text, LIST_SEPARATOR);
+}
+
+bool parse_line(std::string_view line, AppHubCatalogEntry& entry) {
+    const auto fields = split(line, FIELD_SEPARATOR);
+    if (fields.size() != FIELD_COUNT) {
+        return false;
+    }
+    char* end = nullptr;
+    const long version_code = strtol(fields[2].c_str(), &end, 10);
+    if (fields[2].empty() || *end != '\0') {
+        return false;
+    }
+    const long requires_ram = strtol(fields[8].c_str(), &end, 10);
+    if (fields[8].empty() || *end != '\0') {
+        return false;
+    }
+    entry.id = fields[0];
+    entry.version_name = fields[1];
+    entry.version_code = static_cast<int32_t>(version_code);
+    entry.name = fields[3];
+    entry.description = fields[4];
+    entry.target_sdk = fields[5];
+    entry.target_platforms = split_list(fields[6]);
+    entry.requires_device_id = split_list(fields[7]);
+    entry.requires_ram = static_cast<int32_t>(requires_ram);
+    entry.file = fields[9];
+    return true;
+}
+
+} // namespace
+
+bool app_hub_catalog_convert(const char* json_path, const char* catalog_path) {
+    auto data = read_file(json_path);
     if (data == nullptr) {
-        LOG_E(TAG, "Failed to read %s", path);
+        LOG_E(TAG, "Failed to read %s", json_path);
         return false;
     }
 
     cJSON* json = cJSON_Parse(data.get());
+    data = nullptr;
     if (json == nullptr) {
-        LOG_E(TAG, "Failed to parse %s", path);
+        LOG_E(TAG, "Failed to parse %s", json_path);
         return false;
     }
-
     const cJSON* apps = cJSON_GetObjectItemCaseSensitive(json, "apps");
     if (!cJSON_IsArray(apps)) {
         LOG_E(TAG, "apps is not an array");
@@ -144,21 +243,80 @@ bool app_hub_catalog_parse(const char* path, AppHubCatalog& catalog) {
         return false;
     }
 
-    AppHubCatalog parsed;
-    parsed.resize(cJSON_GetArraySize(apps));
-    size_t index = 0;
+    FILE* file = fopen(catalog_path, "wb");
+    if (file == nullptr) {
+        LOG_E(TAG, "Failed to open %s", catalog_path);
+        cJSON_Delete(json);
+        return false;
+    }
+    bool success = true;
+    std::string line;
     const cJSON* item;
     cJSON_ArrayForEach(item, apps) {
-        if (!parse_entry(item, parsed[index++])) {
+        AppHubCatalogEntry entry;
+        if (!parse_entry(item, entry)) {
             LOG_E(TAG, "Failed to read entry");
-            cJSON_Delete(json);
-            return false;
+            success = false;
+            break;
+        }
+        if (!format_entry(entry, line)) {
+            LOG_E(TAG, "%s can't be stored", entry.id.c_str());
+            success = false;
+            break;
+        }
+        if (fwrite(line.data(), 1, line.size(), file) != line.size()) {
+            LOG_E(TAG, "Failed to write %s", catalog_path);
+            success = false;
+            break;
         }
     }
-
     cJSON_Delete(json);
-    catalog = std::move(parsed);
-    return true;
+    success = (fclose(file) == 0) && success;
+    if (!success) {
+        remove(catalog_path);
+    }
+    return success;
+}
+
+bool app_hub_catalog_for_each(const char* catalog_path, AppHubCatalogVisitor visitor, void* context) {
+    FILE* file = fopen(catalog_path, "rb");
+    if (file == nullptr) {
+        return false;
+    }
+    bool success = true;
+    char line[LINE_MAX_SIZE];
+    while (fgets(line, sizeof(line), file) != nullptr) {
+        const size_t length = strlen(line);
+        AppHubCatalogEntry entry;
+        if (length == 0 || line[length - 1] != '\n' || !parse_line(std::string_view(line, length - 1), entry)) {
+            LOG_E(TAG, "Malformed catalog %s", catalog_path);
+            success = false;
+            break;
+        }
+        if (!visitor(entry, context)) {
+            break;
+        }
+    }
+    fclose(file);
+    return success;
+}
+
+bool app_hub_catalog_find(const char* catalog_path, const char* id, AppHubCatalogEntry& entry) {
+    struct Search {
+        const char* id;
+        AppHubCatalogEntry& entry;
+        bool found;
+    } search { id, entry, false };
+    app_hub_catalog_for_each(catalog_path, [](const AppHubCatalogEntry& candidate, void* context) {
+        auto* search = static_cast<Search*>(context);
+        if (candidate.id != search->id) {
+            return true;
+        }
+        search->entry = candidate;
+        search->found = true;
+        return false;
+    }, &search);
+    return search.found;
 }
 
 const char* app_hub_catalog_get_platform() {

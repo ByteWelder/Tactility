@@ -9,6 +9,8 @@ list(APPEND REQUIRES_LIST
     TactilityKernelCpp
     service-module
     gps-module
+    http-module
+    cjson-module
     minmea
 )
 

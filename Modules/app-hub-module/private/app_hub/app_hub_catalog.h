@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <TactilityCpp/Allocator.h>
-
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,10 +22,33 @@ struct AppHubCatalogEntry {
     std::string file;
 };
 
-using AppHubCatalog = std::vector<AppHubCatalogEntry, tt::OptExternalAllocator<AppHubCatalogEntry>>;
+/**
+ * The catalog isn't kept in memory. A downloaded apps.json is converted once into a catalog file with one line per app,
+ * which is read one entry at a time.
+ */
 
-/** Parse an apps.json file */
-bool app_hub_catalog_parse(const char* path, AppHubCatalog& catalog);
+/**
+ * Convert an apps.json file into a catalog file
+ * @param[in] json_path the apps.json file
+ * @param[in] catalog_path the catalog file to write, which is removed when the conversion fails
+ * @return false when the JSON is invalid or the catalog file can't be written
+ */
+bool app_hub_catalog_convert(const char* json_path, const char* catalog_path);
+
+/** @return true to continue, false to stop */
+using AppHubCatalogVisitor = bool (*)(const AppHubCatalogEntry& entry, void* context);
+
+/**
+ * Visit the entries of a catalog file in order
+ * @return false when the file can't be read or is malformed
+ */
+bool app_hub_catalog_for_each(const char* catalog_path, AppHubCatalogVisitor visitor, void* context);
+
+/**
+ * @param[out] entry the entry with the id
+ * @return false when the entry isn't in the catalog file
+ */
+bool app_hub_catalog_find(const char* catalog_path, const char* id, AppHubCatalogEntry& entry);
 
 /** @return the platform name of this device in the catalog's target platforms, e.g. "esp32s3" or "posix-x86_64" */
 const char* app_hub_catalog_get_platform();

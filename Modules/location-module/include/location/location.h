@@ -120,13 +120,13 @@ error_t location_unsubscribe(struct LocationSubscription* sub);
 bool location_is_in_use(void);
 
 /**
- * Look up the IANA time zone name (e.g. "Europe/Brussels") of the device's public IP address with ip-api.com.
- * Blocks for up to about 10 seconds, so call it from an app's own task.
+ * Look up the IANA time zone name (e.g. "Europe/Brussels") of the device's public IP address with json.geoiplookup.io.
+ * Blocks for up to about 15 seconds, so call it from an app's own task.
  * @param[out] out_name the time zone name
  * @param[in] out_size the size of @a out_name, at least LOCATION_TIME_ZONE_MAX_LENGTH + 1 for any name
  * @retval ERROR_INVALID_STATE location services are disabled
  * @retval ERROR_RESOURCE the request failed, e.g. without network
- * @retval ERROR_NOT_FOUND ip-api.com returned no time zone
+ * @retval ERROR_NOT_FOUND json.geoiplookup.io returned no time zone
  * @retval ERROR_BUFFER_OVERFLOW the name doesn't fit in @a out_name
  */
 error_t location_lookup_time_zone(char* out_name, size_t out_size);

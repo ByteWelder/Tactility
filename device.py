@@ -267,6 +267,24 @@ def write_spiram_variables(output_file, device_properties: dict):
             output_file.write("CONFIG_SPIRAM_RODATA=y\n")
             output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
+def write_iram_reduction(output_file, device_properties: dict):
+    # Without PSRAM, internal RAM is scarce: keep these in flash, which costs some speed
+    has_spiram = get_property_or_exit(device_properties, "hardware.spiRam")
+    if has_spiram == "true":
+        return
+    output_file.write("# Reduce IRAM usage on devices without PSRAM\n")
+    for option in (
+        "ESP_PHY_IRAM_OPT",
+        "LOG_IN_IRAM",
+        "ESP_TIMER_IN_IRAM",
+        "ESP_INTR_IN_IRAM",
+        "ESP_SYSTEM_IN_IRAM",
+        "LIBC_MISC_IN_IRAM",
+        "ESP_HW_SUPPORT_FUNC_IN_IRAM",
+        "SPI_FLASH_PLACE_FUNCTIONS_IN_IRAM",
+    ):
+        output_file.write(f"CONFIG_{option}=n\n")
+
 def write_performance_improvements(output_file, device_properties: dict):
     idf_target = get_property_or_exit(device_properties, "hardware.target").lower()
     if idf_target == "esp32s3":
@@ -305,6 +323,11 @@ def write_lvgl_variables(output_file, device_properties: dict):
     output_file.write("CONFIG_LV_USE_THEME_DEFAULT=n\n")
     output_file.write("CONFIG_LV_USE_THEME_SIMPLE=n\n")
     output_file.write("CONFIG_LV_USE_THEME_MONO=n\n")
+    # Devices without PSRAM can run out of the memory that LVGL's file cache allocates on the first read of a file
+    fs_cache_size_text = get_property_or_none(device_properties, "lvgl.fsCacheSize")
+    if fs_cache_size_text is not None:
+        fs_cache_size = safe_int(fs_cache_size_text, f"File cache size must be an integer, but was: '{fs_cache_size_text}'")
+        output_file.write(f"CONFIG_LV_FS_STDIO_CACHE_SIZE={fs_cache_size}\n")
     font_size_text = get_property_or_none(device_properties, "font.defaultSize")
     if font_size_text is None:
         font_size_text = get_property_or_default(device_properties, "lvgl.fontSize", "14")
@@ -423,6 +446,7 @@ def write_properties(output_file, device_properties: dict, device_id: str, is_de
     write_flash_variables(output_file, device_properties)
     write_partition_table(output_file, device_properties, is_dev)
     write_spiram_variables(output_file, device_properties)
+    write_iram_reduction(output_file, device_properties)
     write_performance_improvements(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
     write_bluetooth_variables(output_file, device_properties)

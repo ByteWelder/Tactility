@@ -1,45 +1,45 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <location/ip_provider.h>
 
+#include <http/download.h>
+
 #include <tactility/concurrent/task_event_group.h>
 #include <tactility/concurrent/thread.h>
+#include <tactility/filesystem/file_system.h>
+#include <tactility/filesystem/fs.h>
 #include <tactility/log.h>
+#include <tactility/paths.h>
 #include <tactility/system_event.h>
 #include <tactility/time.h>
 
 #include <TactilityCpp/Memory.h>
 #include <TactilityCpp/std/string.h>
 
-#include <fcntl.h>
-#include <netdb.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <cJSON.h>
 
 #include <algorithm>
 #include <atomic>
-#include <cerrno>
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <string_view>
-#include <strings.h>
 
 #define TAG "location_ip"
 
 namespace {
 
-// The free ip-api endpoint only supports plain HTTP
-constexpr auto* API_HOST = "ip-api.com";
-constexpr auto* API_PATH = "/line/?fields=status,message,lat,lon,timezone";
+constexpr auto* API_URL = "https://json.geoiplookup.io/";
+// The intermediate certificate that signs the API's certificate
+constexpr auto* API_CERTIFICATE = "certificates/WE1.pem";
 constexpr uint64_t RETRY_INTERVAL_MS = 60 * 1000;
 // Bounds the request rate when the network connects repeatedly
 constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;
 // Wake up interval to check whether the fallback became needed
 constexpr uint32_t CHECK_INTERVAL_MS = 10 * 1000;
-constexpr int SOCKET_TIMEOUT_SECONDS = 5;
-constexpr size_t RESPONSE_MAX_LENGTH = 1024;
+constexpr uint64_t LOOKUP_TIMEOUT_MS = 15 * 1000;
+// Bounds the wait for the download, which doesn't stop when the provider is stopped
+constexpr uint32_t LOOKUP_POLL_INTERVAL_MS = 100;
+constexpr size_t RESPONSE_MAX_LENGTH = 2048;
 // IP geolocation is accurate to roughly city level
 constexpr float ACCURACY_METERS = 25000.0f;
 
@@ -81,96 +81,83 @@ uint64_t getUptimeMs() {
     return get_micros_since_boot() / 1000;
 }
 
-// The FreeRTOS POSIX port's tick signal can interrupt blocking socket calls, so they retry on EINTR
-
-bool connectWithTimeout(int fd, const sockaddr* address, socklen_t addressLength) {
-    const int flags = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    int result = connect(fd, address, addressLength);
-    if (result < 0 && errno == EINPROGRESS) {
-        fd_set writeSet;
-        do {
-            FD_ZERO(&writeSet);
-            FD_SET(fd, &writeSet);
-            timeval timeout { .tv_sec = SOCKET_TIMEOUT_SECONDS, .tv_usec = 0 };
-            result = select(fd + 1, nullptr, &writeSet, nullptr, &timeout);
-        } while (result < 0 && errno == EINTR);
-        int error = 0;
-        socklen_t errorLength = sizeof(error);
-        if (result == 1 && getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &errorLength) == 0 && error == 0) {
-            result = 0;
-        } else {
-            result = -1;
-        }
+bool getCertificatePath(char* out_path, size_t out_size) {
+    // The system file system is mounted at "/system" on ESP32, but it's a folder elsewhere on the simulator
+    FileSystem* system = file_system_find_by_name("system");
+    char system_path[FILE_MAX_PATH_STRING_LENGTH];
+    if (system == nullptr || file_system_get_path(system, system_path, sizeof(system_path)) != ERROR_NONE) {
+        return false;
     }
-    fcntl(fd, F_SETFL, flags);
-    return result == 0;
+    const int written = snprintf(out_path, out_size, "%s/%s", system_path, API_CERTIFICATE);
+    return written > 0 && static_cast<size_t>(written) < out_size;
 }
 
-bool sendAll(int fd, const char* data, size_t length) {
-    size_t sent = 0;
-    while (sent < length) {
-        const ssize_t result = send(fd, data + sent, length - sent, 0);
-        if (result < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            return false;
-        }
-        sent += static_cast<size_t>(result);
+/**
+ * Downloads the lookup result into a temp file named @a file_name and parses it
+ * @param[in] group the event group to wait on, with a free bit for the download
+ * @param[in] running the lookup is cancelled when this becomes false
+ * @return false when the lookup failed or was cancelled
+ */
+bool fetchLookup(const char* file_name, TaskEventGroup* group, const std::atomic<bool>& running, IpLookupResponse* out) {
+    char certificate_path[FILE_MAX_PATH_STRING_LENGTH];
+    char temp_path[FILE_MAX_PATH_STRING_LENGTH];
+    char target_path[FILE_MAX_PATH_STRING_LENGTH];
+    if (!getCertificatePath(certificate_path, sizeof(certificate_path)) || paths_get_temp_path(temp_path, sizeof(temp_path)) != ERROR_NONE) {
+        return false;
     }
-    return true;
-}
-
-/** Receive until the server closes the connection */
-bool receiveAll(int fd, char* buffer, size_t bufferSize) {
-    size_t received = 0;
-    while (received < bufferSize - 1) {
-        const ssize_t result = recv(fd, buffer + received, bufferSize - 1 - received, 0);
-        if (result < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
+    if (!directory_exists(temp_path)) {
+        const error_t error = directory_make(temp_path, true);
+        if (error != ERROR_NONE && error != ERROR_ALREADY_EXISTS) {
             return false;
         }
-        if (result == 0) {
+    }
+    const int written = snprintf(target_path, sizeof(target_path), "%s/%s", temp_path, file_name);
+    if (written <= 0 || static_cast<size_t>(written) >= sizeof(target_path)) {
+        return false;
+    }
+
+    HttpDownloadSubscription subscription {};
+    if (http_download_subscribe(&subscription, group) != ERROR_NONE) {
+        return false;
+    }
+    if (http_download_start(API_URL, certificate_path, target_path, &subscription) != ERROR_NONE) {
+        http_download_unsubscribe(&subscription);
+        return false;
+    }
+    const uint64_t deadline = getUptimeMs() + LOOKUP_TIMEOUT_MS;
+    HttpDownloadEvent event {};
+    bool finished = false;
+    while (running && getUptimeMs() < deadline) {
+        if (http_download_poll(&subscription, &event) == ERROR_NONE) {
+            finished = true;
             break;
         }
-        received += static_cast<size_t>(result);
+        task_event_group_wait_any(group, nullptr, millis_to_ticks(LOOKUP_POLL_INTERVAL_MS));
     }
-    buffer[received] = '\0';
-    return received > 0;
-}
-
-bool httpGet(const char* host, const char* path, char* response, size_t responseSize) {
-    addrinfo hints {};
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    addrinfo* addresses = nullptr;
-    if (getaddrinfo(host, "80", &hints, &addresses) != 0 || addresses == nullptr) {
+    if (!finished) {
+        http_download_cancel(&subscription);
+    }
+    http_download_unsubscribe(&subscription);
+    if (!finished || event.type != HTTP_DOWNLOAD_EVENT_SUCCESS) {
+        if (finished && event.type == HTTP_DOWNLOAD_EVENT_ERROR) {
+            LOG_W(TAG, "Request failed: %s (HTTP %d)", event.error.message, static_cast<int>(event.status_code));
+        }
         return false;
     }
 
-    const int fd = socket(addresses->ai_family, addresses->ai_socktype, addresses->ai_protocol);
-    if (fd < 0) {
-        freeaddrinfo(addresses);
+    tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
+    size_t size = response.size() - 1;
+    const error_t error = file_read_binary(target_path, reinterpret_cast<uint8_t*>(response.data()), &size);
+    remove(target_path);
+    if (error != ERROR_NONE) {
         return false;
     }
-
-    timeval timeout { .tv_sec = SOCKET_TIMEOUT_SECONDS, .tv_usec = 0 };
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    char request[160];
-    const int requestLength = snprintf(request, sizeof(request), "GET %s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
-
-    const bool success = connectWithTimeout(fd, addresses->ai_addr, addresses->ai_addrlen) &&
-        sendAll(fd, request, static_cast<size_t>(requestLength)) &&
-        receiveAll(fd, response, responseSize);
-
-    close(fd);
-    freeaddrinfo(addresses);
-    return success;
+    response[size] = '\0';
+    if (!ip_lookup_parse_response(response.c_str(), out)) {
+        LOG_W(TAG, "Malformed response");
+        return false;
+    }
+    return true;
 }
 
 void report(IpProvider& provider, double latitude, double longitude) {
@@ -198,39 +185,23 @@ void report(IpProvider& provider, double latitude, double longitude) {
 
 /** @return the delay until the next lookup is allowed */
 uint64_t lookup(IpProvider& provider, uint64_t network) {
-    tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
-    if (!httpGet(API_HOST, API_PATH, response.data(), response.size())) {
-        LOG_W(TAG, "Request failed");
+    IpLookupResponse parsed;
+    if (!fetchLookup("location_ip.json", &provider.group, provider.running, &parsed)) {
         return RETRY_INTERVAL_MS;
     }
-
-    IpApiResponse parsed;
-    if (!ip_api_parse_response(response.c_str(), &parsed)) {
-        LOG_W(TAG, "Malformed response");
+    if (!parsed.success) {
+        LOG_W(TAG, "Lookup failed");
         return RETRY_INTERVAL_MS;
     }
-
-    uint64_t delay = RETRY_INTERVAL_MS;
-    if (parsed.status_code != 200) {
-        LOG_W(TAG, "HTTP status %d", parsed.status_code);
-    } else if (!parsed.success) {
-        LOG_W(TAG, "Lookup failed: %s", parsed.message);
-    } else {
-        if (cache == nullptr) {
-            cache = tt::newObject<CachedLookup>();
-        }
-        if (cache != nullptr) {
-            *cache = { .network = network, .latitude = parsed.latitude, .longitude = parsed.longitude };
-        }
-        report(provider, parsed.latitude, parsed.longitude);
-        LOG_D(TAG, "Lookup succeeded");
-        delay = MIN_INTERVAL_MS;
+    if (cache == nullptr) {
+        cache = tt::newObject<CachedLookup>();
     }
-
-    if (parsed.rate_remaining == 0 && parsed.rate_reset_seconds > 0) {
-        delay = std::max(delay, static_cast<uint64_t>(parsed.rate_reset_seconds) * 1000);
+    if (cache != nullptr) {
+        *cache = { .network = network, .latitude = parsed.latitude, .longitude = parsed.longitude };
     }
-    return delay;
+    report(provider, parsed.latitude, parsed.longitude);
+    LOG_D(TAG, "Lookup succeeded");
+    return MIN_INTERVAL_MS;
 }
 
 int32_t threadMain(void* context) {
@@ -343,24 +314,6 @@ bool isTimeZoneCharacter(char character) {
         character == '_' || character == '+' || character == '-' || character == '/';
 }
 
-std::string_view nextLine(std::string_view& text) {
-    const size_t end = text.find('\n');
-    std::string_view line = text.substr(0, end);
-    text = end == std::string_view::npos ? std::string_view {} : text.substr(end + 1);
-    if (!line.empty() && line.back() == '\r') {
-        line.remove_suffix(1);
-    }
-    return line;
-}
-
-int parseHeaderNumber(std::string_view line, const char* name) {
-    const size_t nameLength = strlen(name);
-    if (line.size() <= nameLength || line[nameLength] != ':' || strncasecmp(line.data(), name, nameLength) != 0) {
-        return -1;
-    }
-    return atoi(tt::std::string(line.substr(nameLength + 1)).c_str());
-}
-
 } // namespace
 
 error_t ip_provider_track_network(void) {
@@ -379,10 +332,13 @@ error_t location_lookup_time_zone(char* out_name, size_t out_size) {
     if (!location_is_enabled()) {
         return ERROR_INVALID_STATE;
     }
-    tt::std::string response(RESPONSE_MAX_LENGTH, '\0');
-    IpApiResponse parsed;
-    if (!httpGet(API_HOST, API_PATH, response.data(), response.size()) || !ip_api_parse_response(response.c_str(), &parsed) ||
-        parsed.status_code != 200 || !parsed.success) {
+    TaskEventGroup group {};
+    task_event_group_construct(&group);
+    const std::atomic<bool> running = true;
+    IpLookupResponse parsed;
+    const bool fetched = fetchLookup("location_time_zone.json", &group, running, &parsed);
+    task_event_group_destruct(&group);
+    if (!fetched || !parsed.success) {
         return ERROR_RESOURCE;
     }
     const size_t length = strlen(parsed.time_zone);
@@ -396,80 +352,43 @@ error_t location_lookup_time_zone(char* out_name, size_t out_size) {
     return ERROR_NONE;
 }
 
-bool ip_api_parse_response(const char* response, IpApiResponse* out) {
-    *out = IpApiResponse {
-        .status_code = 0,
-        .rate_remaining = -1,
-        .rate_reset_seconds = -1,
+bool ip_lookup_parse_response(const char* response, IpLookupResponse* out) {
+    *out = IpLookupResponse {
         .success = false,
-        .message = {},
         .latitude = NAN,
         .longitude = NAN,
         .time_zone = {},
     };
 
-    std::string_view text = response;
-    const std::string_view statusLine = nextLine(text);
-    if (!statusLine.starts_with("HTTP/1.")) {
+    cJSON* json = cJSON_Parse(response);
+    if (!cJSON_IsObject(json)) {
+        cJSON_Delete(json);
         return false;
     }
-    const size_t space = statusLine.find(' ');
-    if (space == std::string_view::npos) {
-        return false;
+    bool valid = false;
+    const cJSON* success = cJSON_GetObjectItemCaseSensitive(json, "success");
+    if (cJSON_IsFalse(success)) {
+        valid = true;
+    } else if (cJSON_IsTrue(success)) {
+        const cJSON* latitude = cJSON_GetObjectItemCaseSensitive(json, "latitude");
+        const cJSON* longitude = cJSON_GetObjectItemCaseSensitive(json, "longitude");
+        const cJSON* timeZone = cJSON_GetObjectItemCaseSensitive(json, "timezone_name");
+        if (cJSON_IsNumber(latitude) && cJSON_IsNumber(longitude) &&
+            std::isfinite(latitude->valuedouble) && std::isfinite(longitude->valuedouble) &&
+            std::fabs(latitude->valuedouble) <= 90.0 && std::fabs(longitude->valuedouble) <= 180.0) {
+            const std::string_view name = cJSON_IsString(timeZone) ? timeZone->valuestring : "";
+            if (name.size() <= LOCATION_TIME_ZONE_MAX_LENGTH && std::ranges::all_of(name, isTimeZoneCharacter)) {
+                out->latitude = latitude->valuedouble;
+                out->longitude = longitude->valuedouble;
+                memcpy(out->time_zone, name.data(), name.size());
+                out->time_zone[name.size()] = '\0';
+                out->success = true;
+                valid = true;
+            }
+        }
     }
-    out->status_code = atoi(tt::std::string(statusLine.substr(space + 1)).c_str());
-
-    while (true) {
-        if (text.empty()) {
-            return false;
-        }
-        const std::string_view header = nextLine(text);
-        if (header.empty()) {
-            break;
-        }
-        const int remaining = parseHeaderNumber(header, "X-Rl");
-        if (remaining >= 0) {
-            out->rate_remaining = remaining;
-        }
-        const int resetSeconds = parseHeaderNumber(header, "X-Ttl");
-        if (resetSeconds >= 0) {
-            out->rate_reset_seconds = resetSeconds;
-        }
-    }
-
-    if (out->status_code != 200) {
-        return true;
-    }
-
-    // Fields are returned one per line, in the order of the API documentation
-    const std::string_view status = nextLine(text);
-    if (status == "success") {
-        const tt::std::string latitude(nextLine(text));
-        const tt::std::string longitude(nextLine(text));
-        char* latitudeEnd;
-        char* longitudeEnd;
-        out->latitude = strtod(latitude.c_str(), &latitudeEnd);
-        out->longitude = strtod(longitude.c_str(), &longitudeEnd);
-        if (latitude.empty() || *latitudeEnd != '\0' || longitude.empty() || *longitudeEnd != '\0' ||
-            !std::isfinite(out->latitude) || !std::isfinite(out->longitude) ||
-            std::fabs(out->latitude) > 90.0 || std::fabs(out->longitude) > 180.0) {
-            return false;
-        }
-        const std::string_view timeZone = nextLine(text);
-        if (timeZone.size() > LOCATION_TIME_ZONE_MAX_LENGTH || !std::ranges::all_of(timeZone, isTimeZoneCharacter)) {
-            return false;
-        }
-        memcpy(out->time_zone, timeZone.data(), timeZone.size());
-        out->time_zone[timeZone.size()] = '\0';
-        out->success = true;
-    } else if (status == "fail") {
-        const std::string_view message = nextLine(text).substr(0, IP_API_MESSAGE_MAX_LENGTH);
-        memcpy(out->message, message.data(), message.size());
-        out->message[message.size()] = '\0';
-    } else {
-        return false;
-    }
-    return true;
+    cJSON_Delete(json);
+    return valid;
 }
 
 const LocationProviderApi ip_location_provider = {
