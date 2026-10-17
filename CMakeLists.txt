@@ -48,7 +48,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "TactilityKernel"
         "TactilityKernelCpp"
         "TactilityFreeRtos"
-        "Libraries/esp_epaper"
         "Libraries/lv_screenshot"
         "Libraries/minitar"
         "Libraries/ed25519"

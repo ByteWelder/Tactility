@@ -15,7 +15,7 @@
 #include <bindings/sx1262.h>
 #include <bindings/xl9555.h>
 #include <bindings/cst66xx.h>
-#include <bindings/esp_epaper.h>
+#include <bindings/uc8253.h>
 #include <bindings/tca8418.h>
 #include <bindings/sy6970.h>
 #include <bindings/bq27220.h>
@@ -166,15 +166,13 @@
 		max-transfer-size = <65536>;
 
 		display@0 {
-			compatible = "tuanpmt,esp-epaper";
+			compatible = "ultrachip,uc8253";
 			pin-dc = <&gpio0 35 GPIO_FLAG_NONE>;
 			pin-reset = <&gpio0 9 GPIO_FLAG_NONE>;
 			pin-busy = <&gpio0 37 GPIO_FLAG_NONE>;
 			pin-cs = <&gpio0 34 GPIO_FLAG_NONE>;
 			clock-speed-hz = <10000000>;
 			panel-type = "gdeq031t10";
-			// Fast (~1s) refresh. Idle refreshes use a full-quality pass to clear ghosting.
-			update-mode = <1>;
 		};
 
 		sdcard@1 {

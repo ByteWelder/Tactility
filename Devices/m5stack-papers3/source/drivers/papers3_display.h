@@ -2,16 +2,13 @@
 
 #include <stdint.h>
 
-#include <epdiy.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct Papers3DisplayConfig {
-    int temperature_celsius;
-    enum EpdDrawMode quality_draw_mode;
-    enum EpdRotation rotation;
+    /** Clockwise rotation in degrees: 0, 90, 180 or 270. 0 is the panel's native 960x540 landscape. */
+    uint32_t rotation;
 };
 
 #ifdef __cplusplus
