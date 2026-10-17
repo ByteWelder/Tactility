@@ -77,6 +77,7 @@ struct Context {
     /** Index 0 is "Disabled", the rest are backend ids */
     std::vector<std::string> serviceIds;
     std::vector<std::string> presetNames;
+    /** Device names of the radios, in the order of the selection dialog */
     std::vector<std::string> radioNames;
     // Valid while the window is shown
     lv_obj_t* serviceLabel = nullptr;
@@ -146,6 +147,27 @@ void loadChannels(Context* ctx) {
     }
 }
 
+/** The device names of the radios, and the names to show for them: the kind of radio, plus the device name when there are several of a kind */
+void loadRadios(std::vector<std::string>& names, std::vector<std::string>& labels) {
+    names.clear();
+    labels.clear();
+    std::vector<MeshRadioKind> kinds;
+    const size_t count = mesh_get_radio_count();
+    for (size_t i = 0; i < count; i++) {
+        char name[MESH_NAME_MAX_LENGTH + 1];
+        MeshRadioKind kind;
+        if (mesh_get_radio_name(i, name, sizeof(name)) == ERROR_NONE && mesh_get_radio_kind(i, &kind) == ERROR_NONE) {
+            names.emplace_back(name);
+            kinds.push_back(kind);
+        }
+    }
+    for (size_t i = 0; i < names.size(); i++) {
+        const char* kindText = (kinds[i] == MESH_RADIO_LORA) ? "LoRa" : "ESP-NOW";
+        const auto sameKind = std::count(kinds.begin(), kinds.end(), kinds[i]);
+        labels.push_back(sameKind > 1 ? std::string(kindText) + " " + names[i] : std::string(kindText));
+    }
+}
+
 /** Reads everything that updateLabels() shows. Queries the service thread, so it's called without the LVGL lock. */
 void loadState(Context* ctx) {
     loadChannels(ctx);
@@ -156,8 +178,16 @@ void loadState(Context* ctx) {
     // A choice only matters when there is more than one radio
     char radio[MESH_NAME_MAX_LENGTH + 1] = "-";
     mesh_get_radio(radio, sizeof(radio));
+    std::vector<std::string> radioNames;
+    std::vector<std::string> radioLabels;
+    loadRadios(radioNames, radioLabels);
     ctx->radioText = radio;
-    ctx->radioChoice = mesh_get_radio_count() >= 2;
+    for (size_t i = 0; i < radioNames.size(); i++) {
+        if (radioNames[i] == radio) {
+            ctx->radioText = radioLabels[i];
+        }
+    }
+    ctx->radioChoice = radioNames.size() >= 2;
     ctx->regionText = settings::radio::getRegionLabel(settings::radio::loadRegion());
     char preset[MESH_NAME_MAX_LENGTH + 1];
     ctx->hasPresets = mesh_is_enabled() && mesh_get_preset(preset, sizeof(preset)) == ERROR_NONE;
@@ -293,16 +323,10 @@ void startRadioSelection(Context* ctx) {
     if (ctx->radioDialogId != 0) {
         return;
     }
-    ctx->radioNames.clear();
-    const size_t count = mesh_get_radio_count();
-    for (size_t i = 0; i < count; i++) {
-        char name[MESH_NAME_MAX_LENGTH + 1];
-        if (mesh_get_radio_name(i, name, sizeof(name)) == ERROR_NONE) {
-            ctx->radioNames.emplace_back(name);
-        }
-    }
+    std::vector<std::string> labels;
+    loadRadios(ctx->radioNames, labels);
     if (ctx->radioNames.size() > 1) {
-        ctx->radioDialogId = selectiondialog::start(ctx->appInstanceId, "Radio", ctx->radioNames);
+        ctx->radioDialogId = selectiondialog::start(ctx->appInstanceId, "Radio", labels);
     }
 }
 

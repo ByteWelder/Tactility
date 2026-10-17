@@ -155,6 +155,18 @@ size_t mesh_get_radio_count(void);
  */
 error_t mesh_get_radio_name(size_t index, char* name, size_t name_size);
 
+enum MeshRadioKind {
+    MESH_RADIO_LORA,
+    MESH_RADIO_ESPNOW
+};
+
+/**
+ * @param[in] index the radio index, below mesh_get_radio_count()
+ * @param[out] kind what the radio does
+ * @retval ERROR_NOT_FOUND for an invalid index
+ */
+error_t mesh_get_radio_kind(size_t index, enum MeshRadioKind* kind);
+
 /**
  * Select the radio to use. The choice is persisted by name.
  * @param[in] name the name of a radio, or NULL or empty for the default radio: the first radio that isn't ESP-NOW,

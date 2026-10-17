@@ -45,6 +45,7 @@ static const ModuleSymbol mesh_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(mesh_is_available),
     DEFINE_MODULE_SYMBOL(mesh_get_radio_count),
     DEFINE_MODULE_SYMBOL(mesh_get_radio_name),
+    DEFINE_MODULE_SYMBOL(mesh_get_radio_kind),
     DEFINE_MODULE_SYMBOL(mesh_set_radio),
     DEFINE_MODULE_SYMBOL(mesh_get_radio),
     DEFINE_MODULE_SYMBOL(mesh_get_backend_count),

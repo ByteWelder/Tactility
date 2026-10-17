@@ -342,6 +342,12 @@ TEST_CASE("mesh service sends and receives through the active backend") {
         CHECK_EQ(mesh_get_radio_name(2, name, sizeof(name)), ERROR_NONE);
         CHECK_EQ(std::string(name), "radio_espnow");
         CHECK_EQ(mesh_get_radio_name(3, name, sizeof(name)), ERROR_NOT_FOUND);
+        MeshRadioKind kind;
+        CHECK_EQ(mesh_get_radio_kind(0, &kind), ERROR_NONE);
+        CHECK_EQ(kind, MESH_RADIO_LORA);
+        CHECK_EQ(mesh_get_radio_kind(2, &kind), ERROR_NONE);
+        CHECK_EQ(kind, MESH_RADIO_ESPNOW);
+        CHECK_EQ(mesh_get_radio_kind(3, &kind), ERROR_NOT_FOUND);
         CHECK_EQ(mesh_get_radio(name, sizeof(name)), ERROR_NONE);
         CHECK_EQ(std::string(name), "radio_local");
         CHECK_EQ(mesh_get_preset_count(), 2);

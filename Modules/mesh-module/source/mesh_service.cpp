@@ -1274,6 +1274,27 @@ size_t mesh_get_radio_count(void) {
     return count;
 }
 
+error_t mesh_get_radio_kind(size_t index, MeshRadioKind* kind) {
+    struct Search {
+        size_t index;
+        MeshRadioKind* kind;
+        error_t result;
+    } search = { index, kind, ERROR_NOT_FOUND };
+    device_for_each_of_type(&RADIO_TYPE, &search, [](Device* device, void* context) {
+        auto* search = static_cast<Search*>(context);
+        if (!isMeshRadio(device)) {
+            return true;
+        }
+        if (search->index-- > 0) {
+            return true;
+        }
+        *search->kind = usesLora(device) ? MESH_RADIO_LORA : MESH_RADIO_ESPNOW;
+        search->result = ERROR_NONE;
+        return false;
+    });
+    return search.result;
+}
+
 error_t mesh_get_radio_name(size_t index, char* name, size_t name_size) {
     struct Search {
         size_t index;
