@@ -99,10 +99,6 @@ namespace app {
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ::AppManifest manifest; }
 #endif
-
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
-    namespace chat { extern const ::AppManifest manifest; }
-#endif
 }
 
 // endregion
@@ -183,10 +179,6 @@ static void registerInternalApps() {
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     app_manager_add(&app::screenshot::manifest);
-#endif
-
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
-    app_manager_add(&app::chat::manifest);
 #endif
 
     if (device_exists_of_type(&GROVE_TYPE)) {

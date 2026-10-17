@@ -107,14 +107,10 @@
 		pwm = <&buzzer_pwm>;
 	};
 
-	// M5Stack PaperS3 E-Ink display (EPDiy library, ED047TC1 panel)
+	// M5Stack PaperS3 E-Ink display (ED047TC1 panel)
 	display {
 		compatible = "m5stack,papers3-display";
-		temperature-celsius = <20>;
-		// EPD_ROT_PORTRAIT rendered 180deg rotated on real hardware; INVERTED_PORTRAIT is
-		// exactly 180deg from it (verified against epdiy's _rotate()) and is this panel's
-		// correct orientation.
-		rotation = <EPD_ROT_INVERTED_PORTRAIT>;
+		rotation = <270>;
 	};
 
 	usbdevice0 {

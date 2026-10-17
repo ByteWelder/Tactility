@@ -1,0 +1,41 @@
+description: >
+  Monochrome e-paper panels with an SSD1680/SSD1685 family controller, driven over SPI. The node
+  must be a child of an SPI controller and shares its host, clock and MOSI pins. The driver manages
+  the DC, RESET, BUSY and CS pins itself.
+
+compatible: "solomon-systech,ssd16xx"
+
+bus: spi
+
+properties:
+  pin-dc:
+    type: phandles
+    required: true
+    description: Data/Command GPIO pin
+  pin-reset:
+    type: phandles
+    required: false
+    default: GPIO_PIN_SPEC_NONE
+    description: Reset GPIO pin
+  pin-busy:
+    type: phandles
+    required: true
+    description: Busy GPIO pin (active high)
+  pin-cs:
+    type: phandles
+    required: true
+    description: Chip-select GPIO pin
+  clock-speed-hz:
+    type: int
+    default: 4000000
+    description: SPI clock frequency in Hz (must be > 0)
+  panel-type:
+    type: text
+    required: true
+    description: Panel name. Supported values are "gdey029t71h".
+  rotation:
+    type: int
+    default: 0
+    description: >
+      Fixed display rotation applied at start. 0 = 0 degrees, 1 = 90 degrees,
+      2 = 180 degrees, 3 = 270 degrees counter-clockwise (matching LV_DISPLAY_ROTATION_*).
