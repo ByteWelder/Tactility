@@ -356,7 +356,7 @@ static int command_inspect(int argc, char* argv[]) {
         }
         char* end = nullptr;
         const unsigned long value = strtoul(argv[i], &end, 10);
-        if (end == argv[i] || *end != '\0' || value == 0) {
+        if (argv[i][0] < '0' || argv[i][0] > '9' || end == argv[i] || *end != '\0' || value == 0) {
             printf("usage: mesh inspect [amount] [-f|--follow]\n");
             return 1;
         }
