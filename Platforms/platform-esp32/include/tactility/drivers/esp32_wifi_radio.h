@@ -11,13 +11,13 @@ extern "C" {
 
 /**
  * Shared ownership over the single ESP32 WiFi radio's esp_wifi_init()/esp_wifi_start() lifecycle.
- * Station mode (esp32_wifi driver) and the WebServer's Access Point mode both need the radio and
+ * Station mode (esp32_wifi driver), ESP-NOW and the WebServer's Access Point mode need the radio and
  * must not blindly call esp_wifi_init()/esp_wifi_deinit() themselves - doing so unconditionally
  * breaks whichever owner got there second (failing outright with ESP_ERR_INVALID_STATE, or having
  * its radio torn out from under it when the other side releases). Callers acquire the mode bit they
  * need (WIFI_MODE_STA or WIFI_MODE_AP); the radio is brought up on the first acquire (merging into
  * WIFI_MODE_APSTA if another owner is already active) and only torn down once every owner has
- * released.
+ * released. Several owners can hold the same mode bit, and the bit stays active until its last owner released.
  *
  * @param mode_bit WIFI_MODE_STA or WIFI_MODE_AP (not WIFI_MODE_APSTA/WIFI_MODE_NULL).
  * @retval true the mode bit is now active (radio is initialized, started, and its current mode

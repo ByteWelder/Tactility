@@ -76,6 +76,13 @@ struct Esp32WifiCtx {
 Mutex g_radioMutex{};
 int g_radioOwnerCount = 0;
 wifi_mode_t g_radioMode = WIFI_MODE_NULL;
+// Owners per mode bit, as several owners can share one: a bit leaves the mode when its last owner released
+int g_staOwnerCount = 0;
+int g_apOwnerCount = 0;
+
+int& modeOwnerCount(wifi_mode_t mode_bit) {
+    return mode_bit == WIFI_MODE_AP ? g_apOwnerCount : g_staOwnerCount;
+}
 
 WifiAuthenticationType to_wifi_authentication_type(wifi_auth_mode_t mode) {
     switch (mode) {
@@ -684,6 +691,7 @@ bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit) {
 
     g_radioMode = new_mode;
     g_radioOwnerCount++;
+    modeOwnerCount(mode_bit)++;
     mutex_unlock(&g_radioMutex);
     return true;
 }
@@ -696,7 +704,10 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
         return; // Guards against a mismatched acquire/release pair.
     }
 
-    g_radioMode = static_cast<wifi_mode_t>(g_radioMode & ~mode_bit);
+    if (--modeOwnerCount(mode_bit) <= 0) {
+        modeOwnerCount(mode_bit) = 0;
+        g_radioMode = static_cast<wifi_mode_t>(g_radioMode & ~mode_bit);
+    }
     g_radioOwnerCount--;
 
     if (g_radioOwnerCount <= 0) {
@@ -704,6 +715,8 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
         esp_wifi_set_mode(WIFI_MODE_NULL);
         esp_wifi_deinit();
         g_radioOwnerCount = 0;
+        g_staOwnerCount = 0;
+        g_apOwnerCount = 0;
         g_radioMode = WIFI_MODE_NULL;
     } else {
         esp_wifi_set_mode(g_radioMode);
