@@ -319,15 +319,17 @@ static void inspect_print_message_by_seq(const tt::std::map<uint8_t, MeshChannel
 }
 
 /** Prints the most recent messages, oldest first */
-static void inspect_print_history(const tt::std::map<uint8_t, MeshChannel>& channels) {
+/** @return the seq of the newest printed message, 0 when there is none */
+static uint32_t inspect_print_history(const tt::std::map<uint8_t, MeshChannel>& channels) {
     tt::std::vector<MeshMessage> history(INSPECT_HISTORY_LIMIT);
     size_t count = 0;
     if (mesh_history_get(0, history.data(), INSPECT_HISTORY_LIMIT, &count) != ERROR_NONE) {
-        return;
+        return 0;
     }
     for (size_t i = count; i > 0; i--) {
         inspect_print_message(channels, history[i - 1]);
     }
+    return count > 0 ? history[0].seq : 0;
 }
 
 /** @return true when Ctrl+C was typed, which arrives as a byte on stdin */
@@ -361,9 +363,7 @@ static int command_inspect() {
     fflush(stdout);
     tt::std::map<uint8_t, MeshChannel> channels;
     inspect_load_channel_names(channels);
-    inspect_print_history(channels);
-
-    uint32_t lastSeq = 0;
+    uint32_t lastSeq = inspect_print_history(channels);
     bool stop = false;
     while (!stop) {
         // Wakes up on events, and regularly to look for Ctrl+C
@@ -376,7 +376,7 @@ static int command_inspect() {
             switch (meshEvent.type) {
                 case MESH_EVENT_MESSAGE:
                     // The history may hold a message that also arrived as an event
-                    if (meshEvent.seq != lastSeq) {
+                    if (meshEvent.seq > lastSeq) {
                         inspect_print_message_by_seq(channels, meshEvent.seq);
                         lastSeq = meshEvent.seq;
                     }
