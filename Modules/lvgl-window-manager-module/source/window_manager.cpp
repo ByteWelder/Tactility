@@ -316,6 +316,18 @@ error_t window_manager_start(void) {
     if (has_top) {
         lv_obj_t* new_widget = build_window_widget(content_widget, top_create_widgets, top_user_data);
 
+        // The build is canceled when LVGL stopped before it ran. Then the module isn't started.
+        if (new_widget == nullptr) {
+            LOG_E(TAG, "Building the topmost window failed");
+            mutex_lock(&s.mutex);
+            s.started = false;
+            s.real_root_widget = nullptr;
+            s.content_root_widget = nullptr;
+            mutex_unlock(&s.mutex);
+            mutex_unlock(&s.lifecycle_mutex);
+            return ERROR_RESOURCE;
+        }
+
         mutex_lock(&s.mutex);
         bool still_topmost = !s.windows.empty() && s.windows.back().id == top_id;
         if (still_topmost) {
@@ -438,6 +450,18 @@ WindowId window_manager_create_ext(AppInstanceId app_instance_id, WindowCreateWi
     lv_obj_t* new_widget = build_window_widget(content, create_widgets, user_data);
 
     mutex_lock(&s.mutex);
+    if (new_widget == nullptr) {
+        // The build is canceled when LVGL stopped before it ran. The window never became active.
+        auto failed = std::find_if(s.windows.begin(), s.windows.end(),
+            [new_id](const WindowRecord& window) { return window.id == new_id; });
+        if (failed != s.windows.end()) {
+            s.windows.erase(failed);
+        }
+        mutex_unlock(&s.mutex);
+        LOG_E(TAG, "Building the window failed");
+        mutex_unlock(&s.lifecycle_mutex);
+        return 0;
+    }
     bool still_topmost = !s.windows.empty() && s.windows.back().id == new_id;
     if (still_topmost) {
         s.top_widget = new_widget;
@@ -510,6 +534,14 @@ void window_manager_remove(WindowId id) {
 
     delete_widget(old_widget, removed_destroy_widgets, removed_user_data);
     lv_obj_t* new_widget = has_next ? build_window_widget(content, next_create_widgets, next_user_data) : nullptr;
+
+    if (has_next && new_widget == nullptr) {
+        // The build is canceled when LVGL stopped before it ran. The window has no widget then, and the next
+        // window_manager_start() builds it again.
+        LOG_E(TAG, "Building the window that resurfaced failed");
+        mutex_unlock(&s.lifecycle_mutex);
+        return;
+    }
 
     mutex_lock(&s.mutex);
     bool still_topmost = has_next && !s.windows.empty() && s.windows.back().id == next_id;

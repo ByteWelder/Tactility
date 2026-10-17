@@ -207,6 +207,11 @@ static void releaseRadio() {
 }
 
 bool init(const EspNowConfig& config, esp_now_recv_cb_t recvCallback) {
+    if (radioAcquired) {
+        LOG_E(TAG, "Already initialized");
+        return false;
+    }
+
     // The WiFi service starts the co-processor link the same way. Acquiring the shared radio serializes the two,
     // so the link isn't reset again while the other one is still bringing it up.
     if (!esp32_wifi_radio_acquire(WIFI_MODE_STA)) {

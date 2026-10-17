@@ -237,11 +237,11 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
 
     // Another owner (e.g. ESP-NOW) can have the radio running already. Its WIFI_EVENT_STA_START has been
     // delivered by then, or is still on its way. If it was delivered, nothing starts the new netif, so it's started below.
-    const bool radio_already_started = esp32_wifi_radio_is_started();
+    bool radio_already_started = false;
 
     // Warning: this is the memory-intensive operation. It uses over 100kB of
     // RAM with default settings.
-    if (!esp32_wifi_radio_acquire(WIFI_MODE_STA)) {
+    if (!esp32_wifi_radio_acquire_ex(WIFI_MODE_STA, &radio_already_started)) {
         LOG_E(TAG, "Failed to acquire WiFi radio for station mode");
         esp_netif_destroy(ctx->netif);
         ctx->netif = nullptr;
@@ -694,9 +694,15 @@ error_t stop_device(Device* device) {
 extern "C" {
 
 bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit) {
+    bool was_started;
+    return esp32_wifi_radio_acquire_ex(mode_bit, &was_started);
+}
+
+bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started) {
     mutex_lock(&g_radioMutex);
 
     bool first_owner = g_radioOwnerCount == 0;
+    *was_started = !first_owner;
     if (first_owner) {
         wifi_init_config_t init_config = WIFI_INIT_CONFIG_DEFAULT();
         esp_err_t err = esp_wifi_init(&init_config);

@@ -26,20 +26,23 @@ static uint8_t savedProtocolBitmap = 0;
 static bool deinitWifi();
 
 static bool initWifi(const EspNowConfig& config) {
-    WifiRadioState radio_state = WIFI_RADIO_STATE_OFF;
+    if (wifiAcquired) {
+        LOG_E(TAG, "Already initialized");
+        return false;
+    }
+
     WifiStationState station_state = WIFI_STATION_STATE_DISCONNECTED;
     Device* wifi_device = nullptr;
     if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
-        wifi_get_radio_state(wifi_device, &radio_state);
         wifi_get_station_state(wifi_device, &station_state);
         device_put(wifi_device);
     }
-    bool wifi_already_running = (radio_state != WIFI_RADIO_STATE_OFF && radio_state != WIFI_RADIO_STATE_OFF_PENDING);
 
     const wifi_mode_t mode = (config.mode == Mode::Station) ? WIFI_MODE_STA : WIFI_MODE_AP;
 
     // The radio is shared with the WiFi service and the web server, so it only stops when the last of them released it
-    if (!esp32_wifi_radio_acquire(mode)) {
+    bool wifi_already_running = false;
+    if (!esp32_wifi_radio_acquire_ex(mode, &wifi_already_running)) {
         LOG_E(TAG, "Failed to acquire the WiFi radio");
         return false;
     }

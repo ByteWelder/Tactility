@@ -28,6 +28,12 @@ extern "C" {
 bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit);
 
 /**
+ * Same as esp32_wifi_radio_acquire().
+ * @param[out] was_started true when another owner had the radio running before this call, decided under the same lock as the acquire
+ */
+bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started);
+
+/**
  * Releases a previously-acquired mode bit. If this was the last owner (resulting mode would be
  * WIFI_MODE_NULL), fully stops and deinitializes the radio; otherwise just drops that bit from the
  * active mode, leaving the radio running for the remaining owner.
