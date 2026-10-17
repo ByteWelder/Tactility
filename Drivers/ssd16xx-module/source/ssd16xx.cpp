@@ -80,8 +80,8 @@ struct Ssd16xxInternal {
     // Changes not yet picked up by the task, guarded by lock
     bool dirty;
     // The remaining members are only used by the task
-    // Set when an SPI transfer failed, cleared at the start of each update
-    bool transfer_failed;
+    // Set when an SPI transfer failed or the panel stayed busy, cleared at the start of each update
+    bool update_failed;
     // Failed updates in a row, reset by each new display request
     int retry_count;
     // Both controller buffers hold the displayed image, so partial updates are possible
@@ -100,7 +100,7 @@ static void write_bytes(Ssd16xxInternal* internal, const uint8_t* data, size_t l
         transaction.tx_buffer = data;
         if (spi_device_polling_transmit(internal->spi, &transaction) != ESP_OK) {
             LOG_E(TAG, "SPI transmit failed");
-            internal->transfer_failed = true;
+            internal->update_failed = true;
             return;
         }
         data += chunk;
@@ -143,6 +143,7 @@ static void wait_busy(Ssd16xxInternal* internal) {
     while (gpio_get_level(static_cast<gpio_num_t>(internal->pin_busy))) {
         if (xTaskGetTickCount() - start > pdMS_TO_TICKS(BUSY_TIMEOUT_MS)) {
             LOG_W(TAG, "Timeout waiting for panel");
+            internal->update_failed = true;
             return;
         }
         vTaskDelay(pdMS_TO_TICKS(2));
@@ -217,14 +218,14 @@ static void power_down(Ssd16xxInternal* internal) {
 // Returns false when a transfer failed, which leaves the base image invalid.
 static bool full_refresh(Ssd16xxInternal* internal) {
     const size_t size = snapshot_frame(internal);
-    internal->transfer_failed = false;
+    internal->update_failed = false;
 
     spi_controller_lock(internal->spi_controller);
     set_full_window(internal);
     write_command_with_buffer(internal, 0x24, internal->snapshot, size);
     set_full_window(internal);
     write_command_with_buffer(internal, 0x26, internal->snapshot, size);
-    if (internal->transfer_failed) {
+    if (internal->update_failed) {
         spi_controller_unlock(internal->spi_controller);
         internal->base_valid = false;
         return false;
@@ -235,7 +236,7 @@ static bool full_refresh(Ssd16xxInternal* internal) {
     wait_busy(internal);
 
     internal->powered = false;
-    internal->base_valid = !internal->transfer_failed;
+    internal->base_valid = !internal->update_failed;
     return internal->base_valid;
 }
 
@@ -243,12 +244,12 @@ static bool full_refresh(Ssd16xxInternal* internal) {
 // Returns false when a transfer failed, which leaves the base image invalid.
 static bool partial_update(Ssd16xxInternal* internal) {
     const size_t size = snapshot_frame(internal);
-    internal->transfer_failed = false;
+    internal->update_failed = false;
 
     spi_controller_lock(internal->spi_controller);
     set_full_window(internal);
     write_command_with_buffer(internal, 0x24, internal->snapshot, size);
-    if (internal->transfer_failed) {
+    if (internal->update_failed) {
         spi_controller_unlock(internal->spi_controller);
         internal->base_valid = false;
         return false;
@@ -258,7 +259,7 @@ static bool partial_update(Ssd16xxInternal* internal) {
     spi_controller_unlock(internal->spi_controller);
     internal->powered = true;
     wait_busy(internal);
-    internal->base_valid = !internal->transfer_failed;
+    internal->base_valid = !internal->update_failed;
     return internal->base_valid;
 }
 
