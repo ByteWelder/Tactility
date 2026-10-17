@@ -145,6 +145,30 @@ error_t mesh_get_node_name(char* name, size_t name_size);
 /** @return true when a started radio can be used for mesh networking */
 bool mesh_is_available(void);
 
+/** @return the number of started radios that can be used for mesh networking: LoRa radios, and ESP-NOW radios */
+size_t mesh_get_radio_count(void);
+
+/**
+ * @param[in] index the radio index, below mesh_get_radio_count()
+ * @param[out] name the name of the radio device
+ * @retval ERROR_NOT_FOUND for an invalid index
+ */
+error_t mesh_get_radio_name(size_t index, char* name, size_t name_size);
+
+/**
+ * Select the radio to use. The choice is persisted by name.
+ * @param[in] name the name of a radio, or NULL or empty for the default radio: the first radio that isn't ESP-NOW,
+ * or the first ESP-NOW radio when there is no other
+ * @retval ERROR_NOT_FOUND when there is no such radio
+ */
+error_t mesh_set_radio(const char* name);
+
+/**
+ * Get the name of the radio that is used: the selected radio, or the default radio
+ * @retval ERROR_NOT_FOUND when there is no radio
+ */
+error_t mesh_get_radio(char* name, size_t name_size);
+
 // endregion
 
 // region Backends
@@ -316,6 +340,8 @@ enum MeshEventType {
     MESH_EVENT_FRAME,
     /** A contact was added or removed */
     MESH_EVENT_CONTACT,
+    /** A channel was added, replaced or removed */
+    MESH_EVENT_CHANNEL,
 };
 
 enum MeshFrameKind {

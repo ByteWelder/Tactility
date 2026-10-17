@@ -9,6 +9,15 @@ Two kernel modules cover LVGL:
 - **`lvgl-window-manager-module`** (`Modules/lvgl-window-manager-module/`, `<lvgl_window_manager/*.h>`) manages a single stacked window per app instance on top of `lvgl-module`. `window_manager_start()`/`window_manager_stop()` create/tear down the root widget (plus optional chrome from a configured `WindowManagerScreenInitFn`); `window_manager_create()`/`window_manager_remove()` push/pop an app's window and (re)populate it via a `WindowCreateWidgetsFn`. Only the topmost window ever has live widgets - burying and resurfacing a window deletes and rebuilds its widget tree rather than hiding/showing it. That rebuild-on-remove path can run `create_widgets` on a *different* app's thread (whichever app's `window_manager_remove()` call caused this window to resurface), so `create_widgets` must only rebuild already-committed state, never decide what happens next - state transitions belong in the app's own `main()` event loop, driven by real `APP_EVENT_RESULT`s.
   Widget pointers an app keeps become dangling once its window is buried (e.g. by a dialog it started). Use `window_manager_create_ext()` with a `destroy_widgets` callback that clears them, and skip widget updates from the app's own thread while they're cleared.
 
+## No file operations on the LVGL thread
+
+Code that runs on the LVGL thread must not do file operations (including reading or writing settings): `create_widgets`, LVGL event callbacks, timers, and anything under the LVGL lock.
+A file read can block the whole UI, and `create_widgets` can run on another app's thread with a small stack, or a stack in external RAM that can't access flash.
+
+- Do the file work in the app's own task and keep the results in the app's context. `create_widgets` and update functions only show what's cached.
+- Callbacks signal the app's task, e.g. with an event group bit.
+- The same applies to calls that block on a service, e.g. `mesh_*` calls that wait for the service thread.
+
 ## Keyboard navigation
 
 - Put groups of related focusable widgets (pills/chips, rows of buttons, toggle tiles) in a grid navigation container with `lvgl_grid_navigation_add()` (`lvgl/grid_navigation.h`). Only the container joins the input group: left/right moves within the group and up/down moves between groups.

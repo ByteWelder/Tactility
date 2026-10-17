@@ -140,6 +140,8 @@ private:
     void goToPreviousPage();
     void goToNextPage();
     void populate();
+    bool isPagingVisible() const;
+    void setPagingVisible(bool visible);
 
     static void onDeferredRepopulate(void* userData);
     static void onDeferredResize(void* userData);

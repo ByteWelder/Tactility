@@ -69,6 +69,7 @@ network_wifi_2_bar ebd6
 network_wifi_3_bar ebe1
 note_add e89c
 palette e40a
+person_remove ef66
 phone_android f2db
 play_arrow e037
 power_settings_new f8c7

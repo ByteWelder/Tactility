@@ -1,4 +1,5 @@
 #include <app/event.h>
+#include <app/location.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 #include <app/start.h>
@@ -6,13 +7,13 @@
 #include <cstring>
 #include <vector>
 
-#include <lvgl.h>
 #include <lvgl/theme.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <Tactility/app/TileGrid.h>
 #include <Tactility/app/launcher/LauncherMode.h>
@@ -206,7 +207,7 @@ extern const ::AppManifest manifest = {
     .category = APP_CATEGORY_SYSTEM,
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = { .depth = 5120, .desired_memory_capability = 0 }
+    .stack = { .depth = 5120, .desired_memory_capability = 0 },
 };
 
 } // namespace

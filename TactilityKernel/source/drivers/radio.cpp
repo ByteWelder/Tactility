@@ -120,6 +120,12 @@ static int8_t get_highest_power(enum RadioRegion region) {
     return highest;
 }
 
+/** Regions limit the sub-GHz bands. ESP-NOW is limited by the Wi-Fi stack, which knows the country. */
+static bool is_limited_by_region(Device* device) {
+    enum RadioModulation modulation = RADIO_MODULATION_NONE;
+    return RADIO_API(device)->get_modulation(device, &modulation) != ERROR_NONE || modulation != RADIO_MODULATION_ESPNOW;
+}
+
 /** Check the configured frequency, bandwidth and power against a single band of the region */
 static error_t check_configuration_in_region(Device* device, enum RadioRegion region) {
     int32_t frequency;
@@ -446,7 +452,7 @@ error_t radio_get_state(struct Device* device, enum RadioState* state) {
 error_t radio_set_enabled(struct Device* device, bool enabled) {
     if (enabled) {
         const auto region = radio_get_region(device);
-        if (region != RADIO_REGION_UNSET) {
+        if (region != RADIO_REGION_UNSET && is_limited_by_region(device)) {
             const error_t result = check_configuration_in_region(device, region);
             if (result != ERROR_NONE) {
                 return result;
@@ -474,7 +480,7 @@ bool radio_can_receive(struct Device* device, enum RadioModulation modulation) {
 
 error_t radio_set_parameter(struct Device* device, enum RadioParameter parameter, int32_t value) {
     const auto region = radio_get_region(device);
-    if (region != RADIO_REGION_UNSET) {
+    if (region != RADIO_REGION_UNSET && is_limited_by_region(device)) {
         if (parameter == RADIO_PARAMETER_FREQUENCY && !is_in_any_band(region, value)) {
             return ERROR_OUT_OF_RANGE;
         }

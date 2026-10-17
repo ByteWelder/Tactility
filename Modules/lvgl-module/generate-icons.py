@@ -168,6 +168,7 @@ shared_symbol_code_point_names = [
     "music_note",
     "note_add",
     "palette",
+    "person_remove", # Mesh: remove a contact or leave a channel
     "power_settings_new", # Power off for T-Lora Pager
     "refresh", # e.g. App Hub reload button
     "search",

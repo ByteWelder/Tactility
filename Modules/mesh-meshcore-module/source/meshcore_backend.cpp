@@ -348,7 +348,28 @@ constexpr size_t PRESET_EU_NL = 1;
 
 const char* const presets[] = { "Default", "EU NL", nullptr };
 
-error_t getRadioProfile(void*, RadioRegion region, size_t preset, MeshRadioProfile* profile) {
+error_t getRadioProfile(void*, RadioRegion region, RadioModulation modulation, size_t preset, MeshRadioProfile* profile) {
+    // MeshCore's ESP-NOW transport broadcasts unencrypted frames on the Wi-Fi channel that the radio is on, at 20 dBm.
+    // The region doesn't matter, as the Wi-Fi stack limits the power for the country.
+    if (modulation == RADIO_MODULATION_ESPNOW) {
+        *profile = {
+            .modulation = RADIO_MODULATION_ESPNOW,
+            .frequency = 0,
+            .bandwidth = 0,
+            .spreading_factor = 0,
+            .coding_rate = 0,
+            .sync_word = 0,
+            .preamble_length = 0,
+            .power = 20,
+            .channel = 1,
+        };
+        return ERROR_NONE;
+    }
+
+    if (modulation != RADIO_MODULATION_LORA) {
+        return ERROR_NOT_SUPPORTED;
+    }
+
     // MeshCore's recommended presets. Sync word 0x12 is LoRa's private network sync word.
     switch (region) {
         case RADIO_REGION_EU_868:

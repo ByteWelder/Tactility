@@ -1,8 +1,6 @@
-#if TT_FEATURE_MESH
 
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/meshchat/MeshChatCommon.h>
-#include <Tactility/app/qrcode/QrCode.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -21,6 +19,7 @@
 #include <tactility/log.h>
 
 #include <lvgl/fonts.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
@@ -41,10 +40,12 @@ struct Context {
     uint32_t appInstanceId;
     TaskEventGroup* eventGroup = nullptr;
     uint32_t removeBit = 0;
-    uint32_t qrBit = 0;
+    uint32_t infoBit = 0;
     uint32_t removeDialogId = 0;
     uint32_t messageDialogId = 0;
     bool isContact = true;
+    /** A channel with a key that isn't derived from its name, so it has to be shared */
+    bool isPrivateChannel = false;
     MeshAddress peer {};
     uint8_t channel = 0;
     ::std::string title;
@@ -114,7 +115,8 @@ void createMessageItem(Context* ctx, const MeshMessage& message) {
     auto* item = lv_obj_create(ctx->list);
     lv_obj_set_size(item, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(item, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(item, LV_DPX(4), LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_hor(item, LV_DPX(4), LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_ver(item, LV_DPX(2), LV_STATE_DEFAULT);
     lv_obj_set_style_pad_row(item, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(item, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(item, LV_OPA_TRANSP, LV_STATE_DEFAULT);
@@ -167,19 +169,25 @@ void onSendPressed(lv_event_t* event) {
     }
 }
 
-void onQrPressed(lv_event_t* event) {
-    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    task_event_group_signal(ctx->eventGroup, ctx->qrBit);
-}
-
 void onRemovePressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     task_event_group_signal(ctx->eventGroup, ctx->removeBit);
 }
 
+void onInfoPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->infoBit);
+}
+
 void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     app_event_emit_close(ctx->appInstanceId);
+}
+
+/** Adds a toolbar action that shows a shared icon, which the text font doesn't have */
+void addIconAction(lv_obj_t* toolbar, const char* icon, lv_event_cb_t callback, void* userData) {
+    auto* button = lvgl_toolbar_add_text_button_action(toolbar, icon, callback, userData);
+    lv_obj_set_style_text_font(button, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -190,12 +198,12 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
     auto* toolbar = lvgl_toolbar_create(parent, ctx->title.c_str());
     lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
-    if (ctx->isContact) {
-        lvgl_toolbar_add_text_button_action(toolbar, "QR", onQrPressed, ctx);
+    if (ctx->isPrivateChannel) {
+        addIconAction(toolbar, LVGL_ICON_SHARED_INFO, onInfoPressed, ctx);
     }
     // The primary channel can't be left
     if (ctx->isContact || ctx->channel != 0) {
-        lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_TRASH, onRemovePressed, ctx);
+        addIconAction(toolbar, LVGL_ICON_SHARED_PERSON_REMOVE, onRemovePressed, ctx);
     }
 
     ctx->statusLabel = lv_label_create(parent);
@@ -207,7 +215,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_width(ctx->list, LV_PCT(100));
     lv_obj_set_flex_grow(ctx->list, 1);
     lv_obj_set_flex_flow(ctx->list, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_row(ctx->list, LV_DPX(4), LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_row(ctx->list, LV_DPX(2), LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(ctx->list, 0, LV_STATE_DEFAULT);
     // Lets the keys scroll the history
     if (auto* group = lv_group_get_default()) {
@@ -223,6 +231,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_flex_flow(inputBar, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(inputBar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_all(inputBar, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(inputBar, LV_DPX(4), LV_STATE_DEFAULT);
     lv_obj_set_style_pad_column(inputBar, LV_DPX(4), LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(inputBar, 0, LV_STATE_DEFAULT);
     lv_obj_set_scrollable(inputBar, false);
@@ -308,19 +317,36 @@ void onDelivery(Context* ctx, uint32_t seq, MeshDeliveryState delivery) {
     }
 }
 
-void showContactQr(Context* ctx) {
-    char uri[256];
-    const error_t error = mesh_get_contact_uri(&ctx->peer, uri, sizeof(uri));
-    if (error == ERROR_NONE) {
-        qrcode::start(uri);
-    } else if (ctx->messageDialogId == 0) {
-        LOG_W(TAG, "Failed to get the contact: %s", error_to_string(error));
-        ctx->messageDialogId = alertdialog::start(
-            ctx->appInstanceId,
-            "Couldn't create QR code",
-            error == ERROR_NOT_SUPPORTED ? "This mesh network can't share a contact as a QR code." : error_to_string(error)
-        );
+/** Looks up the channel. @return false when it isn't known */
+bool getChannel(const Context* ctx, MeshChannel* channel) {
+    MeshChannel channels[8];
+    size_t count = 0;
+    if (mesh_get_channels(channels, 8, &count) != ERROR_NONE) {
+        return false;
     }
+    for (size_t i = 0; i < count; i++) {
+        if (channels[i].index == ctx->channel) {
+            *channel = channels[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+void showChannelKey(Context* ctx) {
+    if (ctx->messageDialogId != 0) {
+        return;
+    }
+    MeshChannel channel;
+    if (!getChannel(ctx, &channel) || channel.key_length == 0) {
+        ctx->messageDialogId = alertdialog::start(ctx->appInstanceId, "Channel key", "The key isn't available.");
+        return;
+    }
+    MeshAddress key {};
+    memcpy(key.bytes, channel.key, channel.key_length);
+    key.length = channel.key_length;
+    const ::std::string text = addressToHex(key);
+    ctx->messageDialogId = alertdialog::start(ctx->appInstanceId, "Channel key", text.c_str());
 }
 
 void startRemoveDialog(Context* ctx) {
@@ -359,6 +385,8 @@ int32_t appMain(int argc, char* argv[]) {
         }
     } else {
         ctx.channel = (uint8_t)atoi(argv[1]);
+        MeshChannel channel;
+        ctx.isPrivateChannel = ctx.channel != 0 && getChannel(&ctx, &channel) && channel.name[0] != '#';
     }
     ctx.title = argv[2];
 
@@ -366,7 +394,7 @@ int32_t appMain(int argc, char* argv[]) {
     task_event_group_construct(&eventGroup);
     ctx.eventGroup = &eventGroup;
     check(task_event_group_claim_bit(&eventGroup, &ctx.removeBit) == ERROR_NONE);
-    check(task_event_group_claim_bit(&eventGroup, &ctx.qrBit) == ERROR_NONE);
+    check(task_event_group_claim_bit(&eventGroup, &ctx.infoBit) == ERROR_NONE);
 
     AppEventSubscription appEvents {};
     check(app_event_subscribe(&appEvents, &eventGroup) == ERROR_NONE);
@@ -395,8 +423,8 @@ int32_t appMain(int argc, char* argv[]) {
         if (flags & ctx.removeBit) {
             startRemoveDialog(&ctx);
         }
-        if (flags & ctx.qrBit) {
-            showContactQr(&ctx);
+        if (flags & ctx.infoBit) {
+            showChannelKey(&ctx);
         }
 
         MeshEvent meshEvent {};
@@ -451,9 +479,8 @@ extern const ::AppManifest conversationManifest = {
     .category = APP_CATEGORY_USER,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = {}
+    .stack = { .depth = 5120, .desired_memory_capability = 0 },
 };
 
 } // namespace tt::app::meshchat
 
-#endif

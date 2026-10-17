@@ -23,6 +23,7 @@ constexpr auto* KEY_ENABLED = "enabled";
 constexpr auto* KEY_BACKEND = "backend";
 constexpr auto* KEY_PRESET = "preset";
 constexpr auto* KEY_NODE_NAME = "nodeName";
+constexpr auto* KEY_RADIO = "radio";
 // Earlier versions stored this as the name when the user hadn't chosen one
 constexpr auto* LEGACY_DEFAULT_NODE_NAME = "Tactility";
 
@@ -58,6 +59,9 @@ static void read_settings_file(MeshSettings* settings) {
     }
     if (properties_file_get(file, KEY_NODE_NAME, value, sizeof(value)) == ERROR_NONE && value[0] != '\0') {
         strncpy(settings->node_name, value, MESH_NAME_MAX_LENGTH);
+    }
+    if (properties_file_get(file, KEY_RADIO, value, sizeof(value)) == ERROR_NONE) {
+        strncpy(settings->radio, value, MESH_NAME_MAX_LENGTH);
     }
     properties_file_close(file);
 }
@@ -96,5 +100,6 @@ error_t mesh_settings_save(const MeshSettings* settings) {
     properties_file_set(file, KEY_BACKEND, settings->backend);
     properties_file_set(file, KEY_PRESET, settings->preset);
     properties_file_set(file, KEY_NODE_NAME, settings->node_name);
+    properties_file_set(file, KEY_RADIO, settings->radio);
     return properties_file_close(file);
 }

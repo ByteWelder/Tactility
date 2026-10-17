@@ -63,7 +63,11 @@ void loopbackDestroy(void*) {}
 
 const char* const loopbackPresets[] = { "Default", "Other", nullptr };
 
-error_t loopbackGetRadioProfile(void*, RadioRegion, size_t preset, MeshRadioProfile* profile) {
+error_t loopbackGetRadioProfile(void*, RadioRegion, RadioModulation modulation, size_t preset, MeshRadioProfile* profile) {
+    if (modulation == RADIO_MODULATION_ESPNOW) {
+        *profile = { .modulation = RADIO_MODULATION_ESPNOW, .power = 20, .channel = 6 };
+        return ERROR_NONE;
+    }
     *profile = {
         .modulation = RADIO_MODULATION_LORA,
         .frequency = 869525000,
@@ -135,6 +139,76 @@ const MeshBackendApi loopbackApi = {
     .get_contact_uri = loopbackGetContactUri,
     .is_valid_contact_address = loopbackIsValidContactAddress,
     .on_node_name_changed = loopbackOnNodeNameChanged,
+};
+
+// endregion
+
+// region A radio that only does ESP-NOW
+
+struct EspNowFake {
+    bool enabled = false;
+    RadioModulation modulation = RADIO_MODULATION_NONE;
+    int32_t channel = 0;
+    int32_t power = 0;
+};
+EspNowFake espNowFake;
+
+error_t espNowGetState(Device*, RadioState* state) {
+    *state = espNowFake.enabled ? RADIO_STATE_ON : RADIO_STATE_OFF;
+    return ERROR_NONE;
+}
+error_t espNowSetEnabled(Device*, bool enabled) {
+    espNowFake.enabled = enabled;
+    return ERROR_NONE;
+}
+error_t espNowSetModulation(Device*, RadioModulation modulation) {
+    if (modulation != RADIO_MODULATION_ESPNOW) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    espNowFake.modulation = modulation;
+    return ERROR_NONE;
+}
+error_t espNowGetModulation(Device*, RadioModulation* modulation) {
+    *modulation = espNowFake.modulation;
+    return ERROR_NONE;
+}
+bool espNowCanDo(Device*, RadioModulation modulation) { return modulation == RADIO_MODULATION_ESPNOW; }
+error_t espNowSetParameter(Device*, RadioParameter parameter, int32_t value) {
+    if (parameter == RADIO_PARAMETER_CHANNEL) {
+        espNowFake.channel = value;
+        return ERROR_NONE;
+    }
+    if (parameter == RADIO_PARAMETER_POWER) {
+        espNowFake.power = value;
+        return ERROR_NONE;
+    }
+    return ERROR_NOT_SUPPORTED;
+}
+error_t espNowGetParameter(Device*, RadioParameter, int32_t*) { return ERROR_NOT_SUPPORTED; }
+error_t espNowTransmit(Device*, const uint8_t*, size_t, RadioTxId*) { return ERROR_NONE; }
+
+const RadioApi espNowApi = {
+    .get_radio_state = espNowGetState,
+    .set_enabled = espNowSetEnabled,
+    .set_modulation = espNowSetModulation,
+    .get_modulation = espNowGetModulation,
+    .can_transmit = espNowCanDo,
+    .can_receive = espNowCanDo,
+    .set_parameter = espNowSetParameter,
+    .get_parameter = espNowGetParameter,
+    .transmit = espNowTransmit,
+    .get_rssi = nullptr,
+    .is_receiving = nullptr,
+};
+
+Driver espNowDriver = {
+    .name = "mesh_test_espnow_driver",
+    .compatible = (const char*[]) { "mesh_test,espnow", nullptr },
+    .start_device = nullptr,
+    .stop_device = nullptr,
+    .api = &espNowApi,
+    .device_type = &RADIO_TYPE,
+    .internal = nullptr,
 };
 
 // endregion
@@ -252,6 +326,57 @@ TEST_CASE("mesh service sends and receives through the active backend") {
         CHECK(waitFor([before] { return nameChangeCount > before; }));
     }
 
+    SUBCASE("the radio can be selected") {
+        static Device espNow { .name = "radio_espnow", .config = nullptr, .parent = nullptr };
+        espNowFake = {};
+        REQUIRE_EQ(driver_construct_add(&espNowDriver), ERROR_NONE);
+        REQUIRE_EQ(device_construct_add(&espNow, "mesh_test,espnow"), ERROR_NONE);
+        REQUIRE_EQ(device_start(&espNow), ERROR_NONE);
+        REQUIRE_EQ(radio_set_region(&local, RADIO_REGION_EU_868), ERROR_NONE);
+        REQUIRE_EQ(service_manager_start(MESH_SERVICE_ID), ERROR_NONE);
+        REQUIRE(waitFor([] { return mesh_get_state() == MESH_STATE_ON; }));
+
+        // The default is the first radio that isn't ESP-NOW
+        CHECK_EQ(mesh_get_radio_count(), 3);
+        char name[MESH_NAME_MAX_LENGTH + 1];
+        CHECK_EQ(mesh_get_radio_name(2, name, sizeof(name)), ERROR_NONE);
+        CHECK_EQ(std::string(name), "radio_espnow");
+        CHECK_EQ(mesh_get_radio_name(3, name, sizeof(name)), ERROR_NOT_FOUND);
+        CHECK_EQ(mesh_get_radio(name, sizeof(name)), ERROR_NONE);
+        CHECK_EQ(std::string(name), "radio_local");
+        CHECK_EQ(mesh_get_preset_count(), 2);
+        CHECK_FALSE(espNowFake.enabled);
+
+        CHECK_EQ(mesh_set_radio("missing"), ERROR_NOT_FOUND);
+
+        // A radio that doesn't do LoRa gets the ESP-NOW profile of the backend, and has no presets
+        REQUIRE_EQ(mesh_set_radio("radio_espnow"), ERROR_NONE);
+        CHECK(waitFor([] { return espNowFake.enabled && mesh_get_state() == MESH_STATE_ON; }));
+        CHECK_EQ(espNowFake.modulation, RADIO_MODULATION_ESPNOW);
+        CHECK_EQ(espNowFake.channel, 6);
+        CHECK_EQ(espNowFake.power, 20);
+        CHECK_EQ(mesh_get_radio(name, sizeof(name)), ERROR_NONE);
+        CHECK_EQ(std::string(name), "radio_espnow");
+        CHECK_EQ(mesh_get_preset_count(), 0);
+        CHECK_EQ(radio_acquire(&local, "someone-else"), ERROR_NONE);
+        CHECK_EQ(radio_release(&local), ERROR_NONE);
+
+        // Back to the default
+        REQUIRE_EQ(mesh_set_radio(""), ERROR_NONE);
+        CHECK(waitFor([] { return !espNowFake.enabled && mesh_get_state() == MESH_STATE_ON; }));
+        CHECK_EQ(mesh_get_radio(name, sizeof(name)), ERROR_NONE);
+        CHECK_EQ(std::string(name), "radio_local");
+        CHECK_EQ(mesh_get_preset_count(), 2);
+
+        REQUIRE_EQ(service_manager_stop(MESH_SERVICE_ID), ERROR_NONE);
+        REQUIRE_EQ(radio_set_region(&espNow, RADIO_REGION_UNSET), ERROR_NONE);
+        REQUIRE_EQ(device_stop(&espNow), ERROR_NONE);
+        REQUIRE_EQ(device_remove(&espNow), ERROR_NONE);
+        REQUIRE_EQ(device_destruct(&espNow), ERROR_NONE);
+        REQUIRE_EQ(driver_remove_destruct(&espNowDriver), ERROR_NONE);
+        REQUIRE_EQ(service_manager_start(MESH_SERVICE_ID), ERROR_NONE);
+    }
+
     SUBCASE("concurrent synchronous calls finish") {
         REQUIRE_EQ(radio_set_region(&local, RADIO_REGION_EU_868), ERROR_NONE);
         REQUIRE_EQ(service_manager_start(MESH_SERVICE_ID), ERROR_NONE);
@@ -291,7 +416,7 @@ TEST_CASE("mesh service sends and receives through the active backend") {
 
         // Tune the remote radio like the backend profile
         MeshRadioProfile profile;
-        loopbackGetRadioProfile(nullptr, RADIO_REGION_EU_868, 0, &profile);
+        loopbackGetRadioProfile(nullptr, RADIO_REGION_EU_868, RADIO_MODULATION_LORA, 0, &profile);
         REQUIRE_EQ(radio_set_modulation(&remote, profile.modulation), ERROR_NONE);
         radio_set_parameter(&remote, RADIO_PARAMETER_FREQUENCY, profile.frequency);
         radio_set_parameter(&remote, RADIO_PARAMETER_BANDWIDTH, profile.bandwidth);

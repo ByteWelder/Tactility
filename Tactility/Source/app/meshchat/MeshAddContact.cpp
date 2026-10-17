@@ -1,4 +1,3 @@
-#if TT_FEATURE_MESH
 
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/meshchat/MeshChatCommon.h>
@@ -278,4 +277,3 @@ extern const ::AppManifest addContactManifest = {
 
 } // namespace tt::app::meshchat
 
-#endif

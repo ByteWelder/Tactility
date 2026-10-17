@@ -14,6 +14,7 @@
 #include <tactility/check.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <lvgl.h>
 
@@ -50,17 +51,27 @@ void onButtonDeleted(lv_event_t* e) {
     delete static_cast<ButtonContext*>(lv_event_get_user_data(e));
 }
 
+void confirm(Context* ctx, lv_obj_t* textarea) {
+    LOG_I(TAG, "OK pressed");
+    ctx->resultText = lv_textarea_get_text(textarea);
+    ctx->resultCode = 0;
+    app_event_emit_close(ctx->appInstanceId);
+}
+
+/** The Enter key in the text field acts as the first button */
+void onTextareaReady(lv_event_t* e) {
+    confirm(static_cast<Context*>(lv_event_get_user_data(e)), lv_event_get_target_obj(e));
+}
+
 void onButtonPressed(lv_event_t* e) {
     auto* btnCtx = static_cast<ButtonContext*>(lv_event_get_user_data(e));
     if (btnCtx->textarea != nullptr) {
-        LOG_I(TAG, "OK pressed");
-        btnCtx->ctx->resultText = lv_textarea_get_text(btnCtx->textarea);
-        btnCtx->ctx->resultCode = 0;
+        confirm(btnCtx->ctx, btnCtx->textarea);
     } else {
         LOG_I(TAG, "Cancel pressed");
         btnCtx->ctx->resultCode = 1;
+        app_event_emit_close(btnCtx->ctx->appInstanceId);
     }
-    app_event_emit_close(btnCtx->ctx->appInstanceId);
 }
 
 void createButton(Context* ctx, lv_obj_t* parent, const std::string& text, lv_obj_t* textarea) {
@@ -93,6 +104,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_width(textarea, LV_PCT(80));
     lv_obj_align_to(textarea, message_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
     lv_textarea_set_one_line(textarea, true);
+    lv_obj_add_event_cb(textarea, onTextareaReady, LV_EVENT_READY, ctx);
     if (argv[2][0] != '\0') {
         lv_textarea_set_text(textarea, argv[2]);
     }
@@ -177,9 +189,9 @@ extern const ::AppManifest manifest = {
     .id = "tactility.inputdialog",
     .name = "Input Dialog",
     .category = APP_CATEGORY_SYSTEM,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = {}
+    .stack = { .depth =  3072, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
 };
 
 }

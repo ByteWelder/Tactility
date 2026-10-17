@@ -341,8 +341,11 @@ void destroy(void* context) {
     tt::deleteObject(static_cast<Backend*>(context));
 }
 
-error_t getRadioProfile(void* context, RadioRegion region, size_t, MeshRadioProfile* profile) {
+error_t getRadioProfile(void* context, RadioRegion region, RadioModulation modulation, size_t, MeshRadioProfile* profile) {
     auto* backend = static_cast<Backend*>(context);
+    if (modulation != RADIO_MODULATION_LORA) {
+        return ERROR_NOT_SUPPORTED;
+    }
     for (const auto& info : REGIONS) {
         if (info.region != region) {
             continue;

@@ -67,15 +67,13 @@ namespace app {
     namespace systeminfo { extern const ::AppManifest manifest; }
     namespace terminal { extern const ::AppManifest manifest; }
     namespace timedatesettings { extern const ::AppManifest manifest; }
-#if TT_FEATURE_MESH
     namespace meshchat {
-        extern const ::AppManifest manifest;
+        extern const ::AppManifest contactsManifest;
+        extern const ::AppManifest channelsManifest;
         extern const ::AppManifest conversationManifest;
         extern const ::AppManifest addContactManifest;
     }
-    namespace meshinspect { extern const ::AppManifest manifest; }
     namespace meshsettings { extern const ::AppManifest manifest; }
-#endif
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
     namespace touchcalibration { extern const ::AppManifest manifest; }
 #endif
@@ -171,15 +169,13 @@ static void registerInternalApps() {
         app_manager_add(&app::trackballsettings::manifest);
     }
 
-#if TT_FEATURE_MESH
     if (settings::radio::hasRadio()) {
-        app_manager_add(&app::meshchat::manifest);
+        app_manager_add(&app::meshchat::contactsManifest);
+        app_manager_add(&app::meshchat::channelsManifest);
         app_manager_add(&app::meshchat::conversationManifest);
         app_manager_add(&app::meshchat::addContactManifest);
-        app_manager_add(&app::meshinspect::manifest);
         app_manager_add(&app::meshsettings::manifest);
     }
-#endif
 
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     app_manager_add(&app::usbsettings::manifest);
