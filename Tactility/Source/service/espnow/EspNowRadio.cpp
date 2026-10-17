@@ -138,12 +138,13 @@ int32_t radioThread(void* context) {
     enable(EspNowConfig(key, Mode::Station, (uint8_t)channel, true, false));
 
     if (!waitUntilEnabled(radio)) {
+        // ESP-NOW may still finish starting on its own task, so it's turned off in both cases
+        disable();
         if (!isStopRequested(radio)) {
             LOG_E(TAG, "ESP-NOW didn't start");
             setState(radio, RADIO_STATE_ERROR);
             return 1;
         }
-        disable();
         setState(radio, RADIO_STATE_OFF);
         return 0;
     }
