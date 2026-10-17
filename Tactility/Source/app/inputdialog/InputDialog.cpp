@@ -39,6 +39,8 @@ struct Context {
     // emitting APP_EVENT_CLOSE) and this dialog's own thread (reader, after waking from it).
     int32_t resultCode = 1; // Cancelled - safety-net default if closed without pressing a button
     std::string resultText = {};
+    /** Set by the first button or key that finishes the dialog, so later ones can't change the result */
+    bool finished = false;
 };
 
 struct ButtonContext {
@@ -52,6 +54,10 @@ void onButtonDeleted(lv_event_t* e) {
 }
 
 void confirm(Context* ctx, lv_obj_t* textarea) {
+    if (ctx->finished) {
+        return;
+    }
+    ctx->finished = true;
     LOG_I(TAG, "OK pressed");
     ctx->resultText = lv_textarea_get_text(textarea);
     ctx->resultCode = 0;
@@ -68,6 +74,10 @@ void onButtonPressed(lv_event_t* e) {
     if (btnCtx->textarea != nullptr) {
         confirm(btnCtx->ctx, btnCtx->textarea);
     } else {
+        if (btnCtx->ctx->finished) {
+            return;
+        }
+        btnCtx->ctx->finished = true;
         LOG_I(TAG, "Cancel pressed");
         btnCtx->ctx->resultCode = 1;
         app_event_emit_close(btnCtx->ctx->appInstanceId);
