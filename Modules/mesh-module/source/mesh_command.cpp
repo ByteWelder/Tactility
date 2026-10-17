@@ -19,11 +19,13 @@
 #include <cmath>
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 
 constexpr size_t CHANNEL_LIMIT = 8;
-constexpr size_t INSPECT_HISTORY_LIMIT = 20;
+constexpr size_t INSPECT_DEFAULT_AMOUNT = 20;
+constexpr size_t INSPECT_MAX_AMOUNT = 200;
 constexpr char CTRL_C = 0x03;
 
 static void print_usage() {
@@ -36,7 +38,7 @@ static void print_usage() {
         "  preset [<name>]\n"
         "  channels\n"
         "  join <#channel>\n"
-        "  inspect  (follow messages and frames, Ctrl+C stops)\n"
+        "  inspect [amount] [-f|--follow]\n"
     );
 }
 
@@ -320,10 +322,10 @@ static void inspect_print_message_by_seq(const tt::std::map<uint8_t, MeshChannel
 
 /** Prints the most recent messages, oldest first */
 /** @return the seq of the newest printed message, 0 when there is none */
-static uint32_t inspect_print_history(const tt::std::map<uint8_t, MeshChannel>& channels) {
-    tt::std::vector<MeshMessage> history(INSPECT_HISTORY_LIMIT);
+static uint32_t inspect_print_history(const tt::std::map<uint8_t, MeshChannel>& channels, size_t amount) {
+    tt::std::vector<MeshMessage> history(amount);
     size_t count = 0;
-    if (mesh_history_get(0, history.data(), INSPECT_HISTORY_LIMIT, &count) != ERROR_NONE) {
+    if (mesh_history_get(0, history.data(), amount, &count) != ERROR_NONE) {
         return 0;
     }
     for (size_t i = count; i > 0; i--) {
@@ -332,17 +334,42 @@ static uint32_t inspect_print_history(const tt::std::map<uint8_t, MeshChannel>& 
     return count > 0 ? history[0].seq : 0;
 }
 
-/** @return true when Ctrl+C was typed, which arrives as a byte on stdin */
-static bool inspect_ctrl_c_typed() {
-    bool typed = false;
+/** @return the key that asks to stop ('q' or Ctrl+C, which arrives as a byte on stdin), or 0 when none was typed */
+static char inspect_stop_key_typed() {
+    char typed = 0;
     char byte = 0;
     while (app_io_await(STDIN_FILENO, APP_FILE_WAIT_READABLE, 0) == ERROR_NONE && app_io_read(STDIN_FILENO, &byte, 1) == 1) {
-        typed |= (byte == CTRL_C);
+        if (byte == CTRL_C || byte == 'q' || byte == 'Q') {
+            typed = byte;
+        }
     }
     return typed;
 }
 
-static int command_inspect() {
+static int command_inspect(int argc, char* argv[]) {
+    size_t amount = INSPECT_DEFAULT_AMOUNT;
+    bool follow = false;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--follow") == 0) {
+            follow = true;
+            continue;
+        }
+        char* end = nullptr;
+        const unsigned long value = strtoul(argv[i], &end, 10);
+        if (end == argv[i] || *end != '\0' || value == 0) {
+            printf("usage: mesh inspect [amount] [-f|--follow]\n");
+            return 1;
+        }
+        amount = std::min<size_t>(value, INSPECT_MAX_AMOUNT);
+    }
+
+    if (!follow) {
+        tt::std::map<uint8_t, MeshChannel> channels;
+        inspect_load_channel_names(channels);
+        inspect_print_history(channels, amount);
+        return 0;
+    }
+
     TaskEventGroup eventGroup {};
     task_event_group_construct(&eventGroup);
     AppEventSubscription appEvents {};
@@ -359,17 +386,22 @@ static int command_inspect() {
         return report_error("inspect", subscribed);
     }
 
-    printf("state: %s (Ctrl+C to stop)\n", mesh_state_to_string(mesh_get_state()));
+    printf("state: %s (Ctrl+C or q to stop)\n", mesh_state_to_string(mesh_get_state()));
     fflush(stdout);
     tt::std::map<uint8_t, MeshChannel> channels;
     inspect_load_channel_names(channels);
-    uint32_t lastSeq = inspect_print_history(channels);
+    uint32_t lastSeq = inspect_print_history(channels, amount);
+    const char* stopReason = nullptr;
     bool stop = false;
     while (!stop) {
         // Wakes up on events, and regularly to look for Ctrl+C
         uint32_t flags = 0;
         task_event_group_wait_any(&eventGroup, &flags, pdMS_TO_TICKS(100));
-        stop = inspect_ctrl_c_typed();
+        const char key = inspect_stop_key_typed();
+        if (key != 0) {
+            stop = true;
+            stopReason = key == CTRL_C ? "Ctrl+C" : "q";
+        }
 
         MeshEvent meshEvent {};
         while (mesh_event_poll(&meshEvents, &meshEvent) == ERROR_NONE) {
@@ -404,12 +436,17 @@ static int command_inspect() {
         AppEvent appEvent {};
         while (app_event_poll(&appEvents, &appEvent) == ERROR_NONE) {
             // SIGTERM arrives as a close event, and Ctrl+C from a shell that sends signals as SIGINT
-            if (appEvent.type == APP_EVENT_CLOSE || (appEvent.type == APP_EVENT_SIGNAL && (appEvent.signal.sig == SIGINT || appEvent.signal.sig == SIGHUP))) {
+            if (appEvent.type == APP_EVENT_CLOSE) {
                 stop = true;
+                stopReason = "closed";
+            } else if (appEvent.type == APP_EVENT_SIGNAL && (appEvent.signal.sig == SIGINT || appEvent.signal.sig == SIGHUP)) {
+                stop = true;
+                stopReason = appEvent.signal.sig == SIGINT ? "SIGINT" : "SIGHUP";
             }
         }
     }
 
+    printf("stopped: %s\n", stopReason);
     mesh_event_unsubscribe(&meshEvents);
     app_event_unsubscribe(&appEvents);
     task_event_group_destruct(&eventGroup);
@@ -438,7 +475,7 @@ static int32_t mesh_command_main(int argc, char* argv[]) {
     } else if (strcmp(command, "join") == 0) {
         return command_join(argc, argv);
     } else if (strcmp(command, "inspect") == 0) {
-        return command_inspect();
+        return command_inspect(argc, argv);
     }
 
     printf("mesh: unknown command: %s\n", command);
