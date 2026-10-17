@@ -43,6 +43,7 @@ static constexpr Panel PANELS[] = {
 static constexpr uint32_t SPI_CHUNK_BYTES = 4096;
 static constexpr uint32_t BUSY_TIMEOUT_MS = 10000;
 static constexpr uint32_t COALESCE_MS = 30;
+static constexpr uint32_t RETRY_DELAY_MS = 200;
 
 static constexpr uint32_t CMD_UPDATE = 1U << 0;
 static constexpr uint32_t CMD_FULL_REFRESH = 1U << 1;
@@ -98,6 +99,8 @@ struct Uc8253Internal {
     // Changes not yet picked up by the task, guarded by lock
     Region pending;
     // Only used by the task
+    // Set when an SPI transfer failed, cleared at the start of each update
+    bool transfer_failed;
     // Both controller buffers hold the displayed image, so partial updates are possible
     bool base_valid;
     bool asleep;
@@ -113,6 +116,7 @@ static void write_bytes(Uc8253Internal* internal, const uint8_t* data, size_t le
         transaction.tx_buffer = data;
         if (spi_device_polling_transmit(internal->spi, &transaction) != ESP_OK) {
             LOG_E(TAG, "SPI transmit failed");
+            internal->transfer_failed = true;
             return;
         }
         data += chunk;
@@ -236,15 +240,22 @@ static void write_window(Uc8253Internal* internal, uint8_t buffer_command, const
 
 // Redraws the whole panel. The fast waveform takes about a second and ghosts. The slow
 // waveform takes longer and clears ghosting.
-static void full_update(Uc8253Internal* internal, bool fast) {
+// Returns false when a transfer failed, which leaves the base image invalid.
+static bool full_update(Uc8253Internal* internal, bool fast) {
     const Panel& panel = *internal->panel;
     const Region full = { 0, 0, panel.width, panel.height };
     const size_t size = snapshot_window(internal, full);
+    internal->transfer_failed = false;
 
     spi_controller_lock(internal->spi_controller);
     init_panel(internal);
     write_command_with_buffer(internal, 0x10, internal->snapshot, size);
     write_command_with_buffer(internal, 0x13, internal->snapshot, size);
+    if (internal->transfer_failed) {
+        spi_controller_unlock(internal->spi_controller);
+        internal->base_valid = false;
+        return false;
+    }
     if (fast) {
         // Forced temperature selects the fast waveform
         write_command(internal, 0xE0, { 0x02 });
@@ -256,16 +267,24 @@ static void full_update(Uc8253Internal* internal, bool fast) {
     power_off(internal);
     spi_controller_unlock(internal->spi_controller);
 
-    internal->base_valid = true;
+    internal->base_valid = !internal->transfer_failed;
+    return internal->base_valid;
 }
 
 // Refreshes only the window, which takes about 0.7 seconds
-static void partial_update(Uc8253Internal* internal, const Region& region) {
+// Returns false when a transfer failed, which leaves the base image invalid.
+static bool partial_update(Uc8253Internal* internal, const Region& region) {
     const size_t size = snapshot_window(internal, region);
+    internal->transfer_failed = false;
 
     spi_controller_lock(internal->spi_controller);
     init_panel(internal);
     write_window(internal, 0x13, region, size);
+    if (internal->transfer_failed) {
+        spi_controller_unlock(internal->spi_controller);
+        internal->base_valid = false;
+        return false;
+    }
 
     write_command(internal, 0x91);
     set_window(internal, region);
@@ -282,6 +301,9 @@ static void partial_update(Uc8253Internal* internal, const Region& region) {
     init_panel(internal);
     write_window(internal, 0x10, region, size);
     spi_controller_unlock(internal->spi_controller);
+
+    internal->base_valid = !internal->transfer_failed;
+    return internal->base_valid;
 }
 
 static void enter_sleep(Uc8253Internal* internal) {
@@ -308,6 +330,16 @@ static void leave_sleep(Uc8253Internal* internal) {
     portENTER_CRITICAL(&internal->lock);
     internal->pending.merge(full);
     portEXIT_CRITICAL(&internal->lock);
+}
+
+// Queues the whole target again after a failed transfer
+static void retry_update(Uc8253Internal* internal) {
+    const Region full = { 0, 0, internal->panel->width, internal->panel->height };
+    portENTER_CRITICAL(&internal->lock);
+    internal->pending.merge(full);
+    portEXIT_CRITICAL(&internal->lock);
+    vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_MS));
+    xTaskNotify(internal->task, CMD_UPDATE, eSetBits);
 }
 
 static void update_task(void* arg) {
@@ -337,7 +369,9 @@ static void update_task(void* arg) {
                 portENTER_CRITICAL(&internal->lock);
                 internal->pending = EMPTY_REGION;
                 portEXIT_CRITICAL(&internal->lock);
-                full_update(internal, false);
+                if (!full_update(internal, false)) {
+                    retry_update(internal);
+                }
             }
             xSemaphoreGive(internal->request_done);
         }
@@ -358,10 +392,9 @@ static void update_task(void* arg) {
         portEXIT_CRITICAL(&internal->lock);
 
         if (!pending.empty()) {
-            if (internal->base_valid) {
-                partial_update(internal, pending);
-            } else {
-                full_update(internal, true);
+            const bool ok = internal->base_valid ? partial_update(internal, pending) : full_update(internal, true);
+            if (!ok) {
+                retry_update(internal);
             }
         }
     }
