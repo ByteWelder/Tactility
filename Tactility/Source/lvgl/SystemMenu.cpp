@@ -23,9 +23,7 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
-#if TT_FEATURE_MESH
 #include <mesh/mesh.h>
-#endif
 
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/device.h>
@@ -68,14 +66,10 @@ static bool hasBluetooth() {
 
 /** Mesh can be toggled once it was configured: a backend is selected and the region is set */
 static bool hasMesh() {
-#if TT_FEATURE_MESH
     char backend[MESH_BACKEND_ID_MAX_LENGTH + 1];
     return mesh_is_available() &&
         mesh_get_backend(backend, sizeof(backend)) == ERROR_NONE &&
         settings::radio::loadRegion() != RADIO_REGION_UNSET;
-#else
-    return false;
-#endif
 }
 
 static bool isWifiEnabled() {
@@ -148,7 +142,6 @@ static void setBluetoothEnabled(void* context) {
 
 #endif
 
-#if TT_FEATURE_MESH
 
 static bool isMeshEnabled() {
     return mesh_is_enabled();
@@ -161,7 +154,6 @@ static void setMeshEnabled(void* context) {
     }
 }
 
-#endif
 
 // Changing the radio and device states can block, so it happens on the main task
 struct ToggleOption {
@@ -290,13 +282,11 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
         createOption(grid, &bluetooth_option);
     }
 #endif
-#if TT_FEATURE_MESH
     // There is no "off" variant of this icon: the toggle's checked state shows whether mesh is on
     static constexpr ToggleOption mesh_option = { LVGL_ICON_SHARED_HUB, LVGL_ICON_SHARED_HUB, isMeshEnabled, setMeshEnabled };
     if (hasMesh()) {
         createOption(grid, &mesh_option);
     }
-#endif
     if (supportsPowerOff()) {
         auto* power_tile = createTile(grid, LVGL_ICON_SHARED_POWER_SETTINGS_NEW);
         lv_obj_add_event_cb(power_tile, onPowerOffClicked, LV_EVENT_SHORT_CLICKED, nullptr);

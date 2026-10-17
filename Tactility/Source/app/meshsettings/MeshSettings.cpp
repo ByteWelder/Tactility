@@ -1,6 +1,12 @@
-#if TT_FEATURE_MESH
+#include "app/location.h"
+#ifdef ESP_PLATFORM
+#include <esp_random.h>
+#else
+#include <random>
+#endif
 
 #include <Tactility/app/inputdialog/InputDialog.h>
+#include <Tactility/app/meshsettings/MeshChannels.h>
 #include <Tactility/app/selectiondialog/SelectionDialog.h>
 #include <Tactility/settings/RadioSettings.h>
 
@@ -44,19 +50,40 @@ struct Context {
     uint32_t selectRegionBit = 0;
     uint32_t selectPresetBit = 0;
     uint32_t addChannelBit = 0;
+    uint32_t changeNameBit = 0;
+    uint32_t selectRadioBit = 0;
     uint32_t serviceDialogId = 0;
     uint32_t regionDialogId = 0;
     uint32_t presetDialogId = 0;
     uint32_t channelDialogId = 0;
+    uint32_t nameDialogId = 0;
+    uint32_t radioDialogId = 0;
     AppStream channelStream {};
     char channelBuffer[MESH_NAME_MAX_LENGTH + 1] = {};
+    AppStream nameStream {};
+    char nameBuffer[MESH_NAME_MAX_LENGTH + 1] = {};
+    // Shown by updateLabels(), which can run on another app's thread and so must not query the services.
+    // The app's own thread fills these with loadState().
+    std::string serviceText;
+    std::string nameText;
+    std::string radioText = "-";
+    bool radioChoice = false;
+    std::string regionText;
+    std::string presetText;
+    bool hasPresets = false;
+    std::string statusText;
     /** Channel names of the active backend, empty when it has no channels */
     std::string channelsText;
     /** Index 0 is "Disabled", the rest are backend ids */
     std::vector<std::string> serviceIds;
     std::vector<std::string> presetNames;
+    /** Device names of the radios, in the order of the selection dialog */
+    std::vector<std::string> radioNames;
     // Valid while the window is shown
     lv_obj_t* serviceLabel = nullptr;
+    lv_obj_t* nameLabel = nullptr;
+    lv_obj_t* radioRow = nullptr;
+    lv_obj_t* radioLabel = nullptr;
     lv_obj_t* regionLabel = nullptr;
     lv_obj_t* presetRow = nullptr;
     lv_obj_t* presetLabel = nullptr;
@@ -92,17 +119,16 @@ void updateLabels(Context* ctx) {
     if (ctx->serviceLabel == nullptr) {
         return;
     }
-    lv_label_set_text(ctx->serviceLabel, getCurrentService().c_str());
-    lv_label_set_text(ctx->regionLabel, settings::radio::getRegionLabel(settings::radio::loadRegion()));
-    char preset[MESH_NAME_MAX_LENGTH + 1];
-    const bool hasPresets = mesh_is_enabled() && mesh_get_preset(preset, sizeof(preset)) == ERROR_NONE;
-    lv_obj_set_hidden(ctx->presetRow, !hasPresets);
-    if (hasPresets) {
-        lv_label_set_text(ctx->presetLabel, preset);
-    }
+    lv_label_set_text(ctx->serviceLabel, ctx->serviceText.c_str());
+    lv_label_set_text(ctx->nameLabel, ctx->nameText.c_str());
+    lv_obj_set_hidden(ctx->radioRow, !ctx->radioChoice);
+    lv_label_set_text(ctx->radioLabel, ctx->radioText.c_str());
+    lv_label_set_text(ctx->regionLabel, ctx->regionText.c_str());
+    lv_obj_set_hidden(ctx->presetRow, !ctx->hasPresets);
+    lv_label_set_text(ctx->presetLabel, ctx->presetText.c_str());
     lv_obj_set_hidden(ctx->channelsRow, ctx->channelsText.empty());
     lv_label_set_text(ctx->channelsLabel, ctx->channelsText.c_str());
-    lv_label_set_text(ctx->statusLabel, getStatus().c_str());
+    lv_label_set_text(ctx->statusLabel, ctx->statusText.c_str());
 }
 
 /** Queries the service thread, so it's called without the LVGL lock */
@@ -121,9 +147,98 @@ void loadChannels(Context* ctx) {
     }
 }
 
+/** The device names of the radios, and the names to show for them: the kind of radio, plus the device name when there are several of a kind */
+void loadRadios(std::vector<std::string>& names, std::vector<std::string>& labels) {
+    names.clear();
+    labels.clear();
+    std::vector<MeshRadioKind> kinds;
+    const size_t count = mesh_get_radio_count();
+    for (size_t i = 0; i < count; i++) {
+        char name[MESH_NAME_MAX_LENGTH + 1];
+        MeshRadioKind kind;
+        if (mesh_get_radio_name(i, name, sizeof(name)) == ERROR_NONE && mesh_get_radio_kind(i, &kind) == ERROR_NONE) {
+            names.emplace_back(name);
+            kinds.push_back(kind);
+        }
+    }
+    for (size_t i = 0; i < names.size(); i++) {
+        const char* kindText = (kinds[i] == MESH_RADIO_LORA) ? "LoRa" : "ESP-NOW";
+        const auto sameKind = std::count(kinds.begin(), kinds.end(), kinds[i]);
+        labels.push_back(sameKind > 1 ? std::string(kindText) + " " + names[i] : std::string(kindText));
+    }
+}
+
+/** Reads everything that updateLabels() shows. Queries the service thread, so it's called without the LVGL lock. */
+void loadState(Context* ctx) {
+    loadChannels(ctx);
+    ctx->serviceText = getCurrentService();
+    char name[MESH_NAME_MAX_LENGTH + 1];
+    mesh_get_node_name(name, sizeof(name));
+    ctx->nameText = name;
+    // A choice only matters when there is more than one radio
+    char radio[MESH_NAME_MAX_LENGTH + 1] = "-";
+    mesh_get_radio(radio, sizeof(radio));
+    std::vector<std::string> radioNames;
+    std::vector<std::string> radioLabels;
+    loadRadios(radioNames, radioLabels);
+    ctx->radioText = radio;
+    for (size_t i = 0; i < radioNames.size(); i++) {
+        if (radioNames[i] == radio) {
+            ctx->radioText = radioLabels[i];
+        }
+    }
+    ctx->radioChoice = radioNames.size() >= 2;
+    ctx->regionText = settings::radio::getRegionLabel(settings::radio::loadRegion());
+    char preset[MESH_NAME_MAX_LENGTH + 1];
+    ctx->hasPresets = mesh_is_enabled() && mesh_get_preset(preset, sizeof(preset)) == ERROR_NONE;
+    ctx->presetText = ctx->hasPresets ? preset : "";
+    ctx->statusText = getStatus();
+}
+
 void onAddChannelPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     task_event_group_signal(ctx->eventGroup, ctx->addChannelBit);
+}
+
+void onSelectRadioPressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->selectRadioBit);
+}
+
+void onChangeNamePressed(lv_event_t* event) {
+    auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
+    task_event_group_signal(ctx->eventGroup, ctx->changeNameBit);
+}
+
+void startNameDialog(Context* ctx) {
+    if (ctx->nameDialogId != 0) {
+        return;
+    }
+    char name[MESH_NAME_MAX_LENGTH + 1];
+    mesh_get_node_name(name, sizeof(name));
+    ctx->nameDialogId = inputdialog::start(
+        ctx->appInstanceId,
+        "Name",
+        "The name that other nodes see",
+        name,
+        ctx->nameStream,
+        ctx->nameBuffer,
+        sizeof(ctx->nameBuffer),
+        ctx->eventGroup
+    );
+}
+
+void onNameDialogResult(Context* ctx, int32_t result) {
+    if (result == 0) {
+        char name[sizeof(Context::nameBuffer)] = {};
+        const size_t length = app_stream_read(&ctx->nameStream, name, sizeof(name) - 1);
+        name[length] = '\0';
+        const error_t error = mesh_set_node_name(name);
+        if (error != ERROR_NONE) {
+            LOG_E(TAG, "Failed to set the name: %s", error_to_string(error));
+        }
+    }
+    app_stream_unsubscribe(&ctx->nameStream);
 }
 
 void startChannelDialog(Context* ctx) {
@@ -142,41 +257,15 @@ void startChannelDialog(Context* ctx) {
     );
 }
 
-void joinChannel(const char* name) {
-    if (name[name[0] == '#' ? 1 : 0] == '\0') {
-    return;
-    }
-
-    // A new channel gets the next free index
-    MeshChannel channels[8];
-    size_t count = 0;
-    uint8_t index = 0;
-    if (mesh_get_channels(channels, 8, &count) == ERROR_NONE) {
-        for (size_t i = 0; i < count; i++) {
-            if (strcmp(channels[i].name, name) == 0) {
-                index = channels[i].index;
-                break;
-            }
-            index = std::max<uint8_t>(index, channels[i].index + 1);
-        }
-    }
-
-    MeshChannel channel {};
-    channel.index = index;
-    strncpy(channel.name, name, MESH_NAME_MAX_LENGTH);
-    channel.key_length = 0;
-    const error_t error = mesh_set_channel(&channel);
-    if (error != ERROR_NONE) {
-        LOG_E(TAG, "Failed to join channel %s: %s", name, error_to_string(error));
-    }
-}
-
 void onChannelDialogResult(Context* ctx, int32_t result) {
     if (result == 0) {
         char name[sizeof(Context::channelBuffer)] = {};
         const size_t length = app_stream_read(&ctx->channelStream, name, sizeof(name) - 1);
         name[length] = '\0';
-        joinChannel(name);
+        const error_t error = joinHashtagChannel(name);
+        if (error != ERROR_NONE) {
+            LOG_E(TAG, "Failed to join channel %s: %s", name, error_to_string(error));
+        }
     }
     app_stream_unsubscribe(&ctx->channelStream);
 }
@@ -227,6 +316,26 @@ void onServiceSelected(Context* ctx, int32_t selected) {
     } else {
         mesh_set_backend(ctx->serviceIds[selected].c_str());
         mesh_set_enabled(true);
+    }
+}
+
+void startRadioSelection(Context* ctx) {
+    if (ctx->radioDialogId != 0) {
+        return;
+    }
+    std::vector<std::string> labels;
+    loadRadios(ctx->radioNames, labels);
+    if (ctx->radioNames.size() > 1) {
+        ctx->radioDialogId = selectiondialog::start(ctx->appInstanceId, "Radio", labels);
+    }
+}
+
+void onRadioSelected(Context* ctx, int32_t selected) {
+    if (selected >= 0 && selected < static_cast<int32_t>(ctx->radioNames.size())) {
+        const error_t error = mesh_set_radio(ctx->radioNames[selected].c_str());
+        if (error != ERROR_NONE) {
+            LOG_E(TAG, "Failed to select the radio: %s", error_to_string(error));
+        }
     }
 }
 
@@ -337,6 +446,14 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     ctx->serviceLabel = createTitleAndValue(serviceRow, "Mesh network");
     createChangeButton(serviceRow, onSelectServicePressed, ctx);
 
+    auto* nameRow = createRow(card);
+    ctx->nameLabel = createTitleAndValue(nameRow, "Name");
+    createChangeButton(nameRow, onChangeNamePressed, ctx);
+
+    ctx->radioRow = createRow(card);
+    ctx->radioLabel = createTitleAndValue(ctx->radioRow, "Radio");
+    createChangeButton(ctx->radioRow, onSelectRadioPressed, ctx);
+
     auto* regionRow = createRow(card);
     ctx->regionLabel = createTitleAndValue(regionRow, "Region");
     createChangeButton(regionRow, onSelectRegionPressed, ctx);
@@ -360,6 +477,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
     ctx->serviceLabel = nullptr;
+    ctx->nameLabel = nullptr;
+    ctx->radioRow = nullptr;
+    ctx->radioLabel = nullptr;
     ctx->regionLabel = nullptr;
     ctx->presetRow = nullptr;
     ctx->presetLabel = nullptr;
@@ -379,7 +499,9 @@ int32_t appMain(int argc, char* argv[]) {
     check(task_event_group_claim_bit(&eventGroup, &ctx.selectRegionBit) == ERROR_NONE);
     check(task_event_group_claim_bit(&eventGroup, &ctx.selectPresetBit) == ERROR_NONE);
     check(task_event_group_claim_bit(&eventGroup, &ctx.addChannelBit) == ERROR_NONE);
-    loadChannels(&ctx);
+    check(task_event_group_claim_bit(&eventGroup, &ctx.changeNameBit) == ERROR_NONE);
+    check(task_event_group_claim_bit(&eventGroup, &ctx.selectRadioBit) == ERROR_NONE);
+    loadState(&ctx);
 
     AppEventSubscription appEvents {};
     check(app_event_subscribe(&appEvents, &eventGroup) == ERROR_NONE);
@@ -405,11 +527,17 @@ int32_t appMain(int argc, char* argv[]) {
         if (flags & ctx.addChannelBit) {
             startChannelDialog(&ctx);
         }
+        if (flags & ctx.changeNameBit) {
+            startNameDialog(&ctx);
+        }
+        if (flags & ctx.selectRadioBit) {
+            startRadioSelection(&ctx);
+        }
 
         bool changed = false;
         MeshEvent meshEvent {};
         while (mesh_event_poll(&meshEvents, &meshEvent) == ERROR_NONE) {
-            changed |= meshEvent.type == MESH_EVENT_STATE;
+            changed |= meshEvent.type == MESH_EVENT_STATE || meshEvent.type == MESH_EVENT_CHANNEL;
         }
 
         AppEvent event {};
@@ -431,6 +559,12 @@ int32_t appMain(int argc, char* argv[]) {
                 } else if (event.result.launch_id == ctx.channelDialogId) {
                     ctx.channelDialogId = 0;
                     onChannelDialogResult(&ctx, event.result.result);
+                } else if (event.result.launch_id == ctx.radioDialogId) {
+                    ctx.radioDialogId = 0;
+                    onRadioSelected(&ctx, event.result.result);
+                } else if (event.result.launch_id == ctx.nameDialogId) {
+                    ctx.nameDialogId = 0;
+                    onNameDialogResult(&ctx, event.result.result);
                 }
                 app_manager_stop(event.result.launch_id);
                 changed = true;
@@ -438,7 +572,7 @@ int32_t appMain(int argc, char* argv[]) {
         }
 
         if (changed) {
-            loadChannels(&ctx);
+            loadState(&ctx);
             lvgl_lock();
             updateLabels(&ctx);
             lvgl_unlock();
@@ -454,15 +588,82 @@ int32_t appMain(int argc, char* argv[]) {
 
 } // namespace
 
+/** A new channel gets the next free index, and a channel with the same name keeps its index */
+static error_t findChannelIndex(const char* name, uint8_t* index) {
+    MeshChannel channels[8];
+    size_t count = 0;
+    const error_t error = mesh_get_channels(channels, 8, &count);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    *index = 0;
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(channels[i].name, name) == 0) {
+            *index = channels[i].index;
+            return ERROR_NONE;
+        }
+        *index = std::max<uint8_t>(*index, channels[i].index + 1);
+    }
+    return ERROR_NONE;
+}
+
+error_t joinHashtagChannel(const char* name) {
+    if (name[name[0] == '#' ? 1 : 0] == '\0') {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    MeshChannel channel {};
+    const error_t error = findChannelIndex(name, &channel.index);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    strncpy(channel.name, name, MESH_NAME_MAX_LENGTH);
+    channel.key_length = 0;
+    return mesh_set_channel(&channel);
+}
+
+/** Sets a channel with a key on the next free index */
+static error_t setKeyedChannel(const char* name, const uint8_t* key, size_t keyLength) {
+    if (name[0] == '\0' || keyLength == 0 || keyLength > MESH_CHANNEL_KEY_MAX_LENGTH) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    MeshChannel channel {};
+    const error_t error = findChannelIndex(name, &channel.index);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+    strncpy(channel.name, name, MESH_NAME_MAX_LENGTH);
+    channel.key_length = static_cast<uint8_t>(keyLength);
+    memcpy(channel.key, key, keyLength);
+    return mesh_set_channel(&channel);
+}
+
+error_t createPrivateChannel(const char* name) {
+    uint8_t key[16];
+#ifdef ESP_PLATFORM
+    esp_fill_random(key, sizeof(key));
+#else
+    std::random_device device;
+    for (auto& byte : key) {
+        byte = static_cast<uint8_t>(device());
+    }
+#endif
+    return setKeyedChannel(name, key, sizeof(key));
+}
+
+error_t joinPrivateChannel(const char* name, const uint8_t* key, size_t keyLength) {
+    return setKeyedChannel(name, key, keyLength);
+}
+
 extern const ::AppManifest manifest = {
     .id = "tactility.meshsettings",
     .name = "Mesh",
     .category = APP_CATEGORY_SETTINGS,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = 0,
-    .stack = {}
+    .stack = { .depth = 6144, .desired_memory_capability = 0 },
 };
 
 } // namespace tt::app::meshsettings
 
-#endif

@@ -29,6 +29,8 @@ struct MeshRadioProfile {
     int32_t sync_word;
     int32_t preamble_length;
     int32_t power;
+    /** Radio channel for radios that are tuned by channel, e.g. a Wi-Fi channel for ESP-NOW. 0 when the frequency tunes the radio. */
+    int32_t channel;
 };
 
 struct MeshBackendApi {
@@ -45,10 +47,11 @@ struct MeshBackendApi {
     const char* const* presets;
 
     /**
-     * @param[in] preset index in presets, 0 when the backend has none
-     * @retval ERROR_NOT_SUPPORTED when the backend can't operate in @a region with @a preset
+     * @param[in] modulation RADIO_MODULATION_LORA, or RADIO_MODULATION_ESPNOW for a radio that can't do LoRa
+     * @param[in] preset index in presets, 0 when the backend has none. Presets are for LoRa.
+     * @retval ERROR_NOT_SUPPORTED when the backend can't operate in @a region with @a modulation and @a preset
      */
-    error_t (*get_radio_profile)(void* backend, enum RadioRegion region, size_t preset, struct MeshRadioProfile* profile);
+    error_t (*get_radio_profile)(void* backend, enum RadioRegion region, enum RadioModulation modulation, size_t preset, struct MeshRadioProfile* profile);
 
     /** Called once the radio is on with the backend's profile */
     void (*on_start)(void* backend);
@@ -71,6 +74,26 @@ struct MeshBackendApi {
 
     /** Optional */
     error_t (*set_channel)(void* backend, const struct MeshChannel* channel);
+
+    /**
+     * Optional. Write a URI that other apps turn into a contact, to show as a QR code.
+     * @param[in] contact the contact's address, or NULL for this node
+     * @param[in] name the name of the contact, or of this node
+     * @retval ERROR_BUFFER_OVERFLOW when the URI doesn't fit
+     */
+    error_t (*get_contact_uri)(void* backend, const struct MeshAddress* contact, const char* name, char* uri, size_t uri_size);
+
+    /** Optional. Whether @a address can be the address of a contact, e.g. a public key of the right length. */
+    bool (*is_valid_contact_address)(void* backend, const struct MeshAddress* address);
+
+    /** Optional. The name this node announces changed, so the backend can announce it again. */
+    void (*on_node_name_changed)(void* backend);
+
+    /**
+     * Optional. The service doesn't call it for channel 0.
+     * @retval ERROR_NOT_FOUND when there is no such channel
+     */
+    error_t (*remove_channel)(void* backend, uint8_t index);
 };
 
 /**

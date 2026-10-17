@@ -11,6 +11,8 @@ struct MeshSettings {
     /** Empty for the backend's default preset */
     char preset[MESH_NAME_MAX_LENGTH + 1];
     char node_name[MESH_NAME_MAX_LENGTH + 1];
+    /** The name of the radio device, empty for the default radio */
+    char radio[MESH_NAME_MAX_LENGTH + 1];
 };
 
 /** Loads the settings, or defaults when there are none */

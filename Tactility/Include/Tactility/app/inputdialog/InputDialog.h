@@ -20,6 +20,7 @@ namespace tt::app::inputdialog {
  * app_stream_unsubscribe(&stream); on any other result, just app_stream_unsubscribe(&stream).
  * The caller must call app_manager_stop() on the returned instance id once that event arrives,
  * to fully reap this instance.
+ * The first button (OK) is the positive button. The Enter key in the text field presses it.
  * @param[in,out] stream caller-owned storage bound to the started app's stdout; must stay valid
  * until app_stream_unsubscribe() is called on it (see above).
  * @param[in] buffer caller-owned backing storage for @a stream's ring buffer; must stay valid

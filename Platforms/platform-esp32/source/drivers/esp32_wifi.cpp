@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <mutex>
 #include <new>
 
 #define TAG "esp32_wifi"
@@ -76,6 +77,43 @@ struct Esp32WifiCtx {
 Mutex g_radioMutex{};
 int g_radioOwnerCount = 0;
 wifi_mode_t g_radioMode = WIFI_MODE_NULL;
+// Owners per mode bit, as several owners can share one: a bit leaves the mode when its last owner released
+int g_staOwnerCount = 0;
+int g_apOwnerCount = 0;
+
+// Netifs that were started and not stopped or destroyed since
+std::mutex g_startedNetifMutex;
+const void* g_startedNetifs[4] = {};
+
+bool mark_netif_started(const void* netif) {
+    std::lock_guard<std::mutex> lock(g_startedNetifMutex);
+    const void** free_slot = nullptr;
+    for (auto& slot : g_startedNetifs) {
+        if (slot == netif) {
+            return false;
+        }
+        if (slot == nullptr && free_slot == nullptr) {
+            free_slot = &slot;
+        }
+    }
+    if (free_slot != nullptr) {
+        *free_slot = netif;
+    }
+    return true;
+}
+
+void mark_netif_stopped(const void* netif) {
+    std::lock_guard<std::mutex> lock(g_startedNetifMutex);
+    for (auto& slot : g_startedNetifs) {
+        if (slot == netif) {
+            slot = nullptr;
+        }
+    }
+}
+
+int& modeOwnerCount(wifi_mode_t mode_bit) {
+    return mode_bit == WIFI_MODE_AP ? g_apOwnerCount : g_staOwnerCount;
+}
 
 WifiAuthenticationType to_wifi_authentication_type(wifi_auth_mode_t mode) {
     switch (mode) {
@@ -197,9 +235,13 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
         return ERROR_RESOURCE;
     }
 
+    // Another owner (e.g. ESP-NOW) can have the radio running already. Its WIFI_EVENT_STA_START has been
+    // delivered by then, or is still on its way. If it was delivered, nothing starts the new netif, so it's started below.
+    bool radio_already_started = false;
+
     // Warning: this is the memory-intensive operation. It uses over 100kB of
     // RAM with default settings.
-    if (!esp32_wifi_radio_acquire(WIFI_MODE_STA)) {
+    if (!esp32_wifi_radio_acquire_ex(WIFI_MODE_STA, &radio_already_started)) {
         LOG_E(TAG, "Failed to acquire WiFi radio for station mode");
         esp_netif_destroy(ctx->netif);
         ctx->netif = nullptr;
@@ -226,6 +268,11 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
         esp_netif_destroy(ctx->netif);
         ctx->netif = nullptr;
         return esp_err_to_error(err);
+    }
+
+    // A start event that is still on its way starts the netif too, which __wrap_esp_netif_action_start() ignores
+    if (radio_already_started) {
+        esp_netif_action_start(ctx->netif, WIFI_EVENT, WIFI_EVENT_STA_START, nullptr);
     }
 
     mutex_lock(&ctx->mutex);
@@ -647,9 +694,15 @@ error_t stop_device(Device* device) {
 extern "C" {
 
 bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit) {
+    bool was_started;
+    return esp32_wifi_radio_acquire_ex(mode_bit, &was_started);
+}
+
+bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started) {
     mutex_lock(&g_radioMutex);
 
     bool first_owner = g_radioOwnerCount == 0;
+    *was_started = !first_owner;
     if (first_owner) {
         wifi_init_config_t init_config = WIFI_INIT_CONFIG_DEFAULT();
         esp_err_t err = esp_wifi_init(&init_config);
@@ -661,7 +714,8 @@ bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit) {
     }
 
     auto new_mode = static_cast<wifi_mode_t>(g_radioMode | mode_bit);
-    esp_err_t err = esp_wifi_set_mode(new_mode);
+    // Setting the same mode again can make the station restart, which sends another WIFI_EVENT_STA_START
+    esp_err_t err = (new_mode == g_radioMode && !first_owner) ? ESP_OK : esp_wifi_set_mode(new_mode);
     if (err != ESP_OK) {
         LOG_E(TAG, "esp32_wifi_radio_acquire: esp_wifi_set_mode failed: %s", esp_err_to_name(err));
         if (first_owner) {
@@ -684,8 +738,16 @@ bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit) {
 
     g_radioMode = new_mode;
     g_radioOwnerCount++;
+    modeOwnerCount(mode_bit)++;
     mutex_unlock(&g_radioMutex);
     return true;
+}
+
+bool esp32_wifi_radio_is_started(void) {
+    mutex_lock(&g_radioMutex);
+    const bool started = g_radioOwnerCount > 0;
+    mutex_unlock(&g_radioMutex);
+    return started;
 }
 
 void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
@@ -696,7 +758,11 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
         return; // Guards against a mismatched acquire/release pair.
     }
 
-    g_radioMode = static_cast<wifi_mode_t>(g_radioMode & ~mode_bit);
+    const wifi_mode_t previous_mode = g_radioMode;
+    if (--modeOwnerCount(mode_bit) <= 0) {
+        modeOwnerCount(mode_bit) = 0;
+        g_radioMode = static_cast<wifi_mode_t>(g_radioMode & ~mode_bit);
+    }
     g_radioOwnerCount--;
 
     if (g_radioOwnerCount <= 0) {
@@ -704,12 +770,39 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
         esp_wifi_set_mode(WIFI_MODE_NULL);
         esp_wifi_deinit();
         g_radioOwnerCount = 0;
+        g_staOwnerCount = 0;
+        g_apOwnerCount = 0;
         g_radioMode = WIFI_MODE_NULL;
-    } else {
+    } else if (g_radioMode != previous_mode) {
         esp_wifi_set_mode(g_radioMode);
     }
 
     mutex_unlock(&g_radioMutex);
+}
+
+// Starting a netif twice asserts in lwip, and the co-processor can send WIFI_EVENT_STA_START more than once
+// (e.g. when ESP-NOW and WiFi both start the radio). These wrappers make starting a netif idempotent.
+// They are linked in with -Wl,--wrap in the top-level CMakeLists.txt.
+extern void __real_esp_netif_action_start(void* esp_netif, esp_event_base_t base, int32_t event_id, void* data);
+extern void __real_esp_netif_action_stop(void* esp_netif, esp_event_base_t base, int32_t event_id, void* data);
+extern void __real_esp_netif_destroy(esp_netif_t* esp_netif);
+
+void __wrap_esp_netif_action_start(void* esp_netif, esp_event_base_t base, int32_t event_id, void* data) {
+    if (!mark_netif_started(esp_netif)) {
+        LOG_W(TAG, "Ignoring a duplicate start of a netif");
+        return;
+    }
+    __real_esp_netif_action_start(esp_netif, base, event_id, data);
+}
+
+void __wrap_esp_netif_action_stop(void* esp_netif, esp_event_base_t base, int32_t event_id, void* data) {
+    mark_netif_stopped(esp_netif);
+    __real_esp_netif_action_stop(esp_netif, base, event_id, data);
+}
+
+void __wrap_esp_netif_destroy(esp_netif_t* esp_netif) {
+    mark_netif_stopped(esp_netif);
+    __real_esp_netif_destroy(esp_netif);
 }
 
 Driver esp32_wifi_driver = {

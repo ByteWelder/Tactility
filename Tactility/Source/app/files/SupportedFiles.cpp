@@ -27,6 +27,8 @@ constexpr auto text_file_extensions = std::to_array<std::string_view>({
     ".html", ".htm",
     ".css", ".scss", ".sass", ".less",
     ".xml", ".svg",
+
+    ".codepoints",
 });
 
 bool isSupportedAppFile(const std::string& filename) {

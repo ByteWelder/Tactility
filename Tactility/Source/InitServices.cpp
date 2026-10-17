@@ -6,17 +6,16 @@
 
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/service/espnow/EspNowRadio.h>
 #include <Tactility/settings/RadioSettings.h>
 
 #include <location/module.h>
 #include <app_hub/module.h>
 #include <development/module.h>
 #include <wifi/module.h>
-#if TT_FEATURE_MESH
 #include <mesh/module.h>
 #include <mesh_meshcore/module.h>
 #include <mesh_meshtastic/module.h>
-#endif
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <tactility/posix_services.h>
@@ -55,11 +54,9 @@ void registerAndStartServices() {
     check(module_ensure_started(&app_hub_module) == ERROR_NONE);
     // Before the mesh service starts, as it needs the region to turn on the radio
     settings::radio::applyRegion();
-#if TT_FEATURE_MESH
     check(module_ensure_started(&mesh_module) == ERROR_NONE);
     check(module_ensure_started(&mesh_meshcore_module) == ERROR_NONE);
     check(module_ensure_started(&mesh_meshtastic_module) == ERROR_NONE);
-#endif
     check(module_ensure_started(&development_module) == ERROR_NONE);
     addService(service::webserver::manifest);
 #if defined(__linux__) || defined(__APPLE__)
@@ -68,6 +65,8 @@ void registerAndStartServices() {
 
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
     addService(service::espnow::manifest);
+    // Lets mesh networking run over ESP-NOW
+    service::espnow::registerRadio();
 #endif
 #if defined(ESP_PLATFORM)
     if (device_exists_of_type(&RTC_TYPE)) {

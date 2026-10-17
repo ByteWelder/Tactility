@@ -6,6 +6,9 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/source/*.
 add_executable(LvglModuleTests EXCLUDE_FROM_ALL
     ${TEST_SOURCES}
     ${PROJECT_SOURCE_DIR}/../source/insets_math.cpp
+    ${PROJECT_SOURCE_DIR}/../source/widgets/qr.cpp
+    # LVGL allocates through the kernel
+    ${PROJECT_SOURCE_DIR}/../source/lv_mem_custom.c
 )
 
 target_include_directories(LvglModuleTests PRIVATE
@@ -19,4 +22,5 @@ add_test(NAME LvglModuleTests COMMAND LvglModuleTests)
 target_link_libraries(LvglModuleTests PUBLIC
     TactilityKernel
     lvgl
+    QRCode
 )

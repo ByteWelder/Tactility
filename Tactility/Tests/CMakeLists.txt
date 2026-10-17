@@ -55,6 +55,9 @@ target_link_libraries(TactilityTests PRIVATE
     http-module
     location-module
     mbedtls-module
+    mesh-module
+    mesh-meshcore-module
+    mesh-meshtastic-module
     posix-symbols-module
     pthread-module
     gps-generic-module

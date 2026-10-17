@@ -30,6 +30,11 @@ enum RadioModulation {
     RADIO_MODULATION_MSK,
     /** On-off keying (ASK) */
     RADIO_MODULATION_OOK,
+    /**
+     * ESP-NOW over Wi-Fi in the 2.4 GHz band. Select the Wi-Fi channel with RADIO_PARAMETER_CHANNEL.
+     * The Wi-Fi stack applies the transmit power limits of the country, so regions don't restrict it.
+     */
+    RADIO_MODULATION_ESPNOW,
 };
 
 /**
@@ -83,6 +88,8 @@ enum RadioParameter {
     RADIO_PARAMETER_LBT,
     /** Listen-before-talk RSSI threshold in dBm: the channel counts as busy at or above it */
     RADIO_PARAMETER_LBT_RSSI_THRESHOLD,
+    /** Channel number, for radios that are tuned by channel rather than by frequency (ESP-NOW: Wi-Fi channel 1-14) */
+    RADIO_PARAMETER_CHANNEL,
 };
 
 enum RadioState {

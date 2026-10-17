@@ -60,16 +60,20 @@ namespace app {
     namespace notes { extern const ::AppManifest manifest; }
     namespace power { extern const ::AppManifest manifest; }
     namespace poweroff { extern const ::AppManifest manifest; }
+    namespace qrcode { extern const ::AppManifest manifest; }
     namespace selectiondialog { extern const ::AppManifest manifest; }
     namespace setup { extern const ::AppManifest manifest; }
     namespace shell { extern const ::AppManifest manifest; extern const ::AppManifest sh_manifest; }
     namespace systeminfo { extern const ::AppManifest manifest; }
     namespace terminal { extern const ::AppManifest manifest; }
     namespace timedatesettings { extern const ::AppManifest manifest; }
-#if TT_FEATURE_MESH
-    namespace meshinspect { extern const ::AppManifest manifest; }
+    namespace meshchat {
+        extern const ::AppManifest contactsManifest;
+        extern const ::AppManifest channelsManifest;
+        extern const ::AppManifest conversationManifest;
+        extern const ::AppManifest addContactManifest;
+    }
     namespace meshsettings { extern const ::AppManifest manifest; }
-#endif
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
     namespace touchcalibration { extern const ::AppManifest manifest; }
 #endif
@@ -132,6 +136,7 @@ static void registerInternalApps() {
     if (device_exists_of_type(&POWER_SUPPLY_TYPE)) {
         app_manager_add(&app::poweroff::manifest);
     }
+    app_manager_add(&app::qrcode::manifest);
     app_manager_add(&app::selectiondialog::manifest);
     app_manager_add(&app::setup::manifest);
     app_manager_add(&app::shell::manifest);
@@ -164,12 +169,13 @@ static void registerInternalApps() {
         app_manager_add(&app::trackballsettings::manifest);
     }
 
-#if TT_FEATURE_MESH
     if (settings::radio::hasRadio()) {
-        app_manager_add(&app::meshinspect::manifest);
+        app_manager_add(&app::meshchat::contactsManifest);
+        app_manager_add(&app::meshchat::channelsManifest);
+        app_manager_add(&app::meshchat::conversationManifest);
+        app_manager_add(&app::meshchat::addContactManifest);
         app_manager_add(&app::meshsettings::manifest);
     }
-#endif
 
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     app_manager_add(&app::usbsettings::manifest);

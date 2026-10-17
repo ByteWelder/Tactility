@@ -341,8 +341,11 @@ void destroy(void* context) {
     tt::deleteObject(static_cast<Backend*>(context));
 }
 
-error_t getRadioProfile(void* context, RadioRegion region, size_t, MeshRadioProfile* profile) {
+error_t getRadioProfile(void* context, RadioRegion region, RadioModulation modulation, size_t, MeshRadioProfile* profile) {
     auto* backend = static_cast<Backend*>(context);
+    if (modulation != RADIO_MODULATION_LORA) {
+        return ERROR_NOT_SUPPORTED;
+    }
     for (const auto& info : REGIONS) {
         if (info.region != region) {
             continue;
@@ -366,6 +369,14 @@ error_t getRadioProfile(void* context, RadioRegion region, size_t, MeshRadioProf
 }
 
 void onStart(void* context) {
+    sendNodeInfo(static_cast<Backend*>(context));
+}
+
+bool isValidContactAddress(void*, const MeshAddress* address) {
+    return address->length == 4;
+}
+
+void onNodeNameChanged(void* context) {
     sendNodeInfo(static_cast<Backend*>(context));
 }
 
@@ -489,6 +500,16 @@ error_t setChannel(void* context, const MeshChannel* channel) {
     return ERROR_NONE;
 }
 
+error_t removeChannel(void* context, uint8_t index) {
+    auto* backend = static_cast<Backend*>(context);
+    const size_t removed = std::erase_if(backend->channels, [index](const Channel& existing) { return existing.index == index; });
+    if (removed == 0) {
+        return ERROR_NOT_FOUND;
+    }
+    saveChannels(backend);
+    return ERROR_NONE;
+}
+
 // endregion
 
 } // namespace
@@ -505,4 +526,7 @@ const MeshBackendApi meshtastic_backend_api = {
     .send_text = sendText,
     .get_channels = getChannels,
     .set_channel = setChannel,
+    .is_valid_contact_address = isValidContactAddress,
+    .on_node_name_changed = onNodeNameChanged,
+    .remove_channel = removeChannel,
 };

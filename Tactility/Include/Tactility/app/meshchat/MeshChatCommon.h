@@ -1,0 +1,72 @@
+#pragma once
+
+
+#include <mesh/mesh.h>
+
+#include <lvgl.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+/** A macro, because the manifest's id is a char array that needs a string literal */
+#define CONVERSATION_APP_ID "tactility.meshconversation"
+#define ADD_CONTACT_APP_ID "tactility.meshaddcontact"
+#define MESH_SETTINGS_APP_ID "tactility.meshsettings"
+
+namespace tt::app::meshchat {
+
+/** Arguments of the conversation app: [0] kind, [1] contact address in hex or channel index, [2] title */
+constexpr auto* KIND_CONTACT = "contact";
+constexpr auto* KIND_CHANNEL = "channel";
+
+/** Explains why the mesh service can't do anything, e.g. no region set or the radio failed to start */
+inline ::std::string getNotReadyText() {
+    return ::std::string("Mesh isn't running: ") + mesh_state_to_string(mesh_get_state()) + ". Check the Mesh settings.";
+}
+
+/** Starts an app by id with the given arguments */
+void startApp(const char* id, int argc, const char* const argv[]);
+
+/** A scrollable, borderless column below the toolbar and status label that holds the lists and buttons of a screen */
+lv_obj_t* createContent(lv_obj_t* parent);
+
+/**
+ * A card that holds list items. The items are direct children of the card,
+ * because every nesting level adds to the LVGL task's draw stack.
+ * Its margin is the theme's container padding.
+ * @param[in] parent the result of createContent()
+ */
+lv_obj_t* createCard(lv_obj_t* parent);
+
+inline ::std::string addressToHex(const MeshAddress& address) {
+    ::std::string text;
+    char hex[3];
+    for (size_t i = 0; i < address.length; i++) {
+        snprintf(hex, sizeof(hex), "%02x", address.bytes[i]);
+        text += hex;
+    }
+    return text;
+}
+
+inline bool hexToAddress(const char* hex, MeshAddress* address) {
+    const size_t length = strlen(hex);
+    if (length == 0 || length % 2 != 0 || length / 2 > MESH_ADDRESS_MAX_LENGTH) {
+        return false;
+    }
+    *address = {};
+    for (size_t i = 0; i < length / 2; i++) {
+        char pair[3] = { hex[i * 2], hex[i * 2 + 1], '\0' };
+        char* end = nullptr;
+        address->bytes[i] = (uint8_t)strtoul(pair, &end, 16);
+        if (end != pair + 2) {
+            return false;
+        }
+    }
+    address->length = (uint8_t)(length / 2);
+    return true;
+}
+
+}
+

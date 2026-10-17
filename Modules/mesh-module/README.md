@@ -18,5 +18,4 @@ Mesh networking service (`tactility.mesh`) with pluggable protocol backends, suc
 - All backend calls run on the service thread. Apps get events with the same subscribe/poll pattern as the kernel's
   radio events.
 
-The service only starts when enabled with `mesh_set_enabled()`. Firmware for devices without
-`hardware.mesh=true` in `device.properties` doesn't link the mesh stack at all.
+The service only starts when enabled with `mesh_set_enabled()`.

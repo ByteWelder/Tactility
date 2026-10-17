@@ -23,3 +23,10 @@ TEST_CASE("Duty cycle depends on region and sub-band") {
     CHECK_EQ(mesh_airtime_duty_cycle_percent(RADIO_REGION_EU_868, 868100000), 1);
     CHECK_EQ(mesh_airtime_duty_cycle_percent(RADIO_REGION_US_915, 906875000), 100);
 }
+
+TEST_CASE("ESP-NOW frames take milliseconds") {
+    MeshRadioProfile profile {};
+    profile.modulation = RADIO_MODULATION_ESPNOW;
+    // 100 bytes of headers and 100 bytes of payload at 0.5 Mbit/s
+    CHECK_EQ(mesh_airtime_estimate_ms(profile, 100), 4);
+}

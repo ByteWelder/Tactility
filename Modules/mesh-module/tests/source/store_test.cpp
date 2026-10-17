@@ -220,3 +220,51 @@ TEST_CASE("MeshStore keeps a full budget of segments when it recovers from a tor
     CHECK_EQ(reopened.get(message.seq, &read), ERROR_NONE);
     CHECK_EQ(std::string(read.text), "after");
 }
+
+TEST_CASE("MeshStore reads the messages of one conversation") {
+    const std::string directory = makeTempDirectory();
+    const MeshAddress alice = { .length = 4, .bytes = { 1, 2, 3, 4 } };
+    const MeshAddress bob = { .length = 4, .bytes = { 5, 6, 7, 8 } };
+
+    const auto add = [](MeshStore& store, const char* backend, const MeshAddress* peer, uint8_t channel, const char* text) {
+        auto message = makeMessage(text, false, MESH_DELIVERY_RECEIVED);
+        strcpy(message.backend, backend);
+        message.peer = (peer != nullptr) ? *peer : MeshAddress {};
+        message.channel = channel;
+        REQUIRE_EQ(store.add(&message), ERROR_NONE);
+    };
+
+    // The index is built from the log after a reopen, and from the buffer before it
+    for (int round = 0; round < 2; round++) {
+        MeshStore store;
+        REQUIRE_EQ(store.open(directory.c_str()), ERROR_NONE);
+        if (round == 0) {
+            add(store, "test", &alice, 0, "alice 1");
+            add(store, "test", nullptr, 0, "channel 0");
+            add(store, "test", &bob, 0, "bob 1");
+            add(store, "test", &alice, 0, "alice 2");
+            add(store, "other", &alice, 0, "other backend");
+            add(store, "test", nullptr, 3, "channel 3");
+        }
+
+        MeshMessage messages[8];
+        REQUIRE_EQ(store.getConversation("test", &alice, 0, 0, messages, 8), 2);
+        CHECK_EQ(std::string(messages[0].text), "alice 2");
+        CHECK_EQ(std::string(messages[1].text), "alice 1");
+
+        REQUIRE_EQ(store.getConversation("test", nullptr, 3, 0, messages, 8), 1);
+        CHECK_EQ(std::string(messages[0].text), "channel 3");
+        REQUIRE_EQ(store.getConversation("test", nullptr, 0, 0, messages, 8), 1);
+        CHECK_EQ(std::string(messages[0].text), "channel 0");
+        CHECK_EQ(store.getConversation("test", nullptr, 7, 0, messages, 8), 0);
+
+        REQUIRE_EQ(store.getConversation("other", &alice, 0, 0, messages, 8), 1);
+        CHECK_EQ(std::string(messages[0].text), "other backend");
+
+        // Paging back from a message
+        REQUIRE_EQ(store.getConversation("test", &alice, 0, 4, messages, 8), 1);
+        CHECK_EQ(std::string(messages[0].text), "alice 1");
+        CHECK_EQ(store.getConversation("test", &alice, 0, 0, messages, 1), 1);
+        store.close();
+    }
+}

@@ -52,6 +52,14 @@ void meshcore_channel_from_key(const uint8_t key[16], MeshCoreChannel* channel);
 /** Key of a hashtag channel (e.g. "#test"): the first 16 bytes of the SHA-256 of its name */
 void meshcore_hashtag_channel_key(const char* name, uint8_t key[16]);
 
+/**
+ * Build the URI that MeshCore apps scan as a QR code to add a contact:
+ * meshcore://contact/add?name=<name>&public_key=<hex>&type=<type>
+ * @param[in] type the contact type: 1 for a companion, 2 for a repeater, 3 for a room server, 4 for a sensor
+ * @return false when it doesn't fit in @a uri
+ */
+bool meshcore_build_contact_uri(const char* name, const uint8_t publicKey[MESHCORE_PUBLIC_KEY_SIZE], uint8_t type, char* uri, size_t uriSize);
+
 /** Shared secret between our identity and a peer's public key */
 void meshcore_shared_secret(const MeshCoreIdentity& identity, const uint8_t peerPublicKey[MESHCORE_PUBLIC_KEY_SIZE], uint8_t secret[MESHCORE_SECRET_SIZE]);
 

@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Experiment with LVGL stack in SPIRAM - LVGL shouldn't do file IO anyway.
 - Experiment with default malloc() to SPIRAM
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
@@ -36,6 +37,7 @@
 
 ## Medium Priority
 
+- A device profile selection screen for Simulator: select device profiles such as T-Lora Pager, T-Deck Plus, CL-32, Cardputer and T-Embed which changes the resolution and theming defaults after restarting.
 - A fullscreen tiny keyboard that works with single stroke gestures (similar to Palm OS Graffiti)
 - CL-32 display driver performance
 - Move more window management code from Tactility/ to window-manager

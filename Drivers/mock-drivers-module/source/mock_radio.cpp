@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr int PARAMETER_COUNT = RADIO_PARAMETER_LBT_RSSI_THRESHOLD + 1;
+constexpr int PARAMETER_COUNT = RADIO_PARAMETER_CHANNEL + 1;
 constexpr float MOCK_RX_RSSI = -60.0f;
 constexpr float MOCK_RX_SNR = 9.5f;
 constexpr float MOCK_NOISE_FLOOR = -120.0f;

@@ -3,7 +3,9 @@
 #include <mesh_meshcore/meshcore_packet.h>
 #include <mesh_meshcore/meshcore_protocol.h>
 
+#include <cstdlib>
 #include <cstring>
+#include <string>
 
 TEST_CASE("MeshCore packets survive a serialize and parse round trip") {
     MeshCorePacket packet;
@@ -137,4 +139,23 @@ TEST_CASE("MeshCore direct messages decrypt at the recipient and produce matchin
     uint32_t parsedAckHash = 0;
     REQUIRE(meshcore_parse_ack(ack, &parsedAckHash));
     CHECK_EQ(parsedAckHash, sentAckHash);
+}
+
+TEST_CASE("MeshCore contact URIs match the format of the MeshCore app") {
+    uint8_t key[MESHCORE_PUBLIC_KEY_SIZE];
+    const char* hex = "9cd8fcf22a47333b591d96a2b848b73f457b1bb1a3ea2453a885f9e5787765b1";
+    for (size_t i = 0; i < sizeof(key); i++) {
+        char pair[3] = { hex[i * 2], hex[i * 2 + 1], '\0' };
+        key[i] = (uint8_t)strtoul(pair, nullptr, 16);
+    }
+
+    char uri[256];
+    REQUIRE(meshcore_build_contact_uri("Example Contact", key, 1, uri, sizeof(uri)));
+    CHECK_EQ(std::string(uri), "meshcore://contact/add?name=Example+Contact&public_key=9cd8fcf22a47333b591d96a2b848b73f457b1bb1a3ea2453a885f9e5787765b1&type=1");
+
+    REQUIRE(meshcore_build_contact_uri("Ken's deck&co", key, 2, uri, sizeof(uri)));
+    CHECK_EQ(std::string(uri).substr(0, 52), "meshcore://contact/add?name=Ken%27s+deck%26co&public");
+
+    // Too small for the URI
+    CHECK_FALSE(meshcore_build_contact_uri("Example Contact", key, 1, uri, 60));
 }

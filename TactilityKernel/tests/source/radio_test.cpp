@@ -13,6 +13,7 @@ struct FakeRadio {
     int32_t frequency = 868000000;
     int32_t bandwidth = 125000;
     int32_t power = 14;
+    RadioModulation modulation = RADIO_MODULATION_LORA;
 };
 
 FakeRadio fake_radio;
@@ -27,10 +28,13 @@ error_t fake_set_enabled(Device*, bool enabled) {
     return ERROR_NONE;
 }
 
-error_t fake_set_modulation(Device*, RadioModulation) { return ERROR_NONE; }
+error_t fake_set_modulation(Device*, RadioModulation modulation) {
+    fake_radio.modulation = modulation;
+    return ERROR_NONE;
+}
 
 error_t fake_get_modulation(Device*, RadioModulation* modulation) {
-    *modulation = RADIO_MODULATION_LORA;
+    *modulation = fake_radio.modulation;
     return ERROR_NONE;
 }
 
@@ -201,6 +205,25 @@ TEST_CASE("radio_set_enabled checks the configuration against a single band") {
 
     // Disabling is never blocked
     CHECK_EQ(radio_set_enabled(device, false), ERROR_NONE);
+}
+
+TEST_CASE("radio regions don't limit ESP-NOW") {
+    FakeRadioFixture fixture;
+    Device* device = &fixture.device;
+
+    // The most restrictive region
+    CHECK_EQ(radio_set_region(device, RADIO_REGION_EU_433), ERROR_NONE);
+    CHECK_EQ(radio_set_parameter(device, RADIO_PARAMETER_POWER, 20), ERROR_OUT_OF_RANGE);
+
+    // The Wi-Fi stack knows the limits of the country, and it doesn't use the bands of a region
+    CHECK_EQ(radio_set_modulation(device, RADIO_MODULATION_ESPNOW), ERROR_NONE);
+    CHECK_EQ(radio_set_parameter(device, RADIO_PARAMETER_POWER, 20), ERROR_NONE);
+    CHECK_EQ(radio_set_parameter(device, RADIO_PARAMETER_FREQUENCY, 100000000), ERROR_NONE);
+    CHECK_EQ(radio_set_enabled(device, true), ERROR_NONE);
+    CHECK_EQ(radio_set_enabled(device, false), ERROR_NONE);
+
+    CHECK_EQ(radio_set_modulation(device, RADIO_MODULATION_LORA), ERROR_NONE);
+    CHECK_EQ(radio_set_enabled(device, true), ERROR_OUT_OF_RANGE);
 }
 
 TEST_CASE("radio_set_region rejects unknown regions") {

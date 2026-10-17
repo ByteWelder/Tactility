@@ -10,6 +10,7 @@
 
 #include <tactility/check.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <lvgl.h>
 #include <lvgl/widgets/card.h>
@@ -178,7 +179,7 @@ extern const AppManifest manifest = {
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = {}
+    .stack = { .depth =  3072, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
 };
 
 }

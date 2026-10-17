@@ -139,12 +139,17 @@ void on_overlay_key(lv_event_t* event) {
     }
 }
 
-lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_widgets, void* user_data) {
-    if (content == nullptr) {
-        return nullptr;
-    }
-    lvgl_lock();
-    lv_obj_t* widget = lv_obj_create(content);
+struct BuildRequest {
+    lv_obj_t* content;
+    WindowCreateWidgetsFn create_widgets;
+    void* user_data;
+    lv_obj_t* widget = nullptr;
+};
+
+// Runs with the LVGL lock held
+void build_window_widget_locked(void* argument) {
+    auto* request = static_cast<BuildRequest*>(argument);
+    lv_obj_t* widget = lv_obj_create(request->content);
     lv_obj_set_size(widget, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_pad_all(widget, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(widget, 0, LV_STATE_DEFAULT);
@@ -153,15 +158,24 @@ lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_wi
     // for its own root object. Without it, a sub-pixel flex-layout overflow here can show the
     // theme's scrollbar styling as a thin line hugging this widget's edges.
     lv_obj_set_scrollable(widget, false);
-    if (create_widgets != nullptr) {
+    if (request->create_widgets != nullptr) {
         // Windows belong to the app layer, also while the overlay is the active layer
         lv_group_t* default_group = lv_group_get_default();
         lv_group_set_default(lvgl_keyboard_get_app_group());
-        create_widgets(widget, user_data);
+        request->create_widgets(widget, request->user_data);
         lv_group_set_default(default_group);
     }
-    lvgl_unlock();
-    return widget;
+    request->widget = widget;
+}
+
+lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_widgets, void* user_data) {
+    if (content == nullptr) {
+        return nullptr;
+    }
+    // The widgets can load files, e.g. images, so tasks without a stack for that have the LVGL task build them
+    BuildRequest request { content, create_widgets, user_data };
+    lvgl_run_on_task(build_window_widget_locked, &request);
+    return request.widget;
 }
 
 // destroy_widgets, if set, is called inside the same LVGL-locked section as the deletion - see
@@ -302,6 +316,18 @@ error_t window_manager_start(void) {
     if (has_top) {
         lv_obj_t* new_widget = build_window_widget(content_widget, top_create_widgets, top_user_data);
 
+        // The build is canceled when LVGL stopped before it ran. Then the module isn't started.
+        if (new_widget == nullptr) {
+            LOG_E(TAG, "Building the topmost window failed");
+            mutex_lock(&s.mutex);
+            s.started = false;
+            s.real_root_widget = nullptr;
+            s.content_root_widget = nullptr;
+            mutex_unlock(&s.mutex);
+            mutex_unlock(&s.lifecycle_mutex);
+            return ERROR_RESOURCE;
+        }
+
         mutex_lock(&s.mutex);
         bool still_topmost = !s.windows.empty() && s.windows.back().id == top_id;
         if (still_topmost) {
@@ -424,6 +450,18 @@ WindowId window_manager_create_ext(AppInstanceId app_instance_id, WindowCreateWi
     lv_obj_t* new_widget = build_window_widget(content, create_widgets, user_data);
 
     mutex_lock(&s.mutex);
+    if (new_widget == nullptr) {
+        // The build is canceled when LVGL stopped before it ran. The window never became active.
+        auto failed = std::find_if(s.windows.begin(), s.windows.end(),
+            [new_id](const WindowRecord& window) { return window.id == new_id; });
+        if (failed != s.windows.end()) {
+            s.windows.erase(failed);
+        }
+        mutex_unlock(&s.mutex);
+        LOG_E(TAG, "Building the window failed");
+        mutex_unlock(&s.lifecycle_mutex);
+        return 0;
+    }
     bool still_topmost = !s.windows.empty() && s.windows.back().id == new_id;
     if (still_topmost) {
         s.top_widget = new_widget;
@@ -496,6 +534,14 @@ void window_manager_remove(WindowId id) {
 
     delete_widget(old_widget, removed_destroy_widgets, removed_user_data);
     lv_obj_t* new_widget = has_next ? build_window_widget(content, next_create_widgets, next_user_data) : nullptr;
+
+    if (has_next && new_widget == nullptr) {
+        // The build is canceled when LVGL stopped before it ran. The window has no widget then, and the next
+        // window_manager_start() builds it again.
+        LOG_E(TAG, "Building the window that resurfaced failed");
+        mutex_unlock(&s.lifecycle_mutex);
+        return;
+    }
 
     mutex_lock(&s.mutex);
     bool still_topmost = has_next && !s.windows.empty() && s.windows.back().id == next_id;

@@ -90,6 +90,12 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     # elf_loader's Xtensa relocation drops GLOB_DAT/JMP_SLOT addends. See Modules/app-esp32-module/source/elf_relocate.cpp.
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_elf_arch_relocate" APPEND)
 
+    # Starting a netif twice asserts in lwip, and the co-processor can send the station start event more than once.
+    # See Platforms/platform-esp32/source/drivers/esp32_wifi.cpp.
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_netif_action_start" APPEND)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_netif_action_stop" APPEND)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_netif_destroy" APPEND)
+
     # exit() from an app ends only that app (see app_scheduler_exit_current()) instead of aborting.
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=exit" APPEND)
 

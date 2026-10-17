@@ -252,3 +252,53 @@ bool meshcore_parse_ack(const MeshCorePacket& packet, uint32_t* ackHash) {
     *ackHash = readU32(packet.payload);
     return true;
 }
+
+bool meshcore_build_contact_uri(const char* name, const uint8_t publicKey[MESHCORE_PUBLIC_KEY_SIZE], uint8_t type, char* uri, size_t uriSize) {
+    size_t length = 0;
+    const auto append = [&](char character) {
+        if (length + 1 >= uriSize) {
+            return false;
+        }
+        uri[length++] = character;
+        return true;
+    };
+    const auto appendText = [&](const char* text) {
+        for (; *text != '\0'; text++) {
+            if (!append(*text)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    static const char HEX_DIGITS[] = "0123456789abcdef";
+    if (!appendText("meshcore://contact/add?name=")) {
+        return false;
+    }
+    // Percent-encoded, with a plus for a space like the MeshCore app does
+    for (const char* character = name; *character != '\0'; character++) {
+        const auto byte = static_cast<uint8_t>(*character);
+        const bool unreserved = (byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z') || (byte >= '0' && byte <= '9') ||
+            byte == '-' || byte == '.' || byte == '_' || byte == '~';
+        const bool ok = unreserved ? append(*character)
+            : (byte == ' ' ? append('+') : (append('%') && append(HEX_DIGITS[byte >> 4]) && append(HEX_DIGITS[byte & 0x0F])));
+        if (!ok) {
+            return false;
+        }
+    }
+    if (!appendText("&public_key=")) {
+        return false;
+    }
+    for (size_t i = 0; i < MESHCORE_PUBLIC_KEY_SIZE; i++) {
+        if (!append(HEX_DIGITS[publicKey[i] >> 4]) || !append(HEX_DIGITS[publicKey[i] & 0x0F])) {
+            return false;
+        }
+    }
+    char suffix[16];
+    snprintf(suffix, sizeof(suffix), "&type=%u", (unsigned)type);
+    if (!appendText(suffix)) {
+        return false;
+    }
+    uri[length] = '\0';
+    return true;
+}

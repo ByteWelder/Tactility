@@ -17,7 +17,7 @@ Module sx126x_module = {
     .stop = nullptr,
     .drivers = sx126x_drivers,
     .symbols = nullptr,
-    .internal = nullptr
+    .internal = nullptr,
 };
 
 } // extern "C"

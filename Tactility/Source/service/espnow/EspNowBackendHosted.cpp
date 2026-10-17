@@ -16,6 +16,8 @@ extern "C" {
 }
 #include <esp_now.h>
 
+#include <tactility/drivers/esp32_wifi_radio.h>
+
 #include <Tactility/Semaphore.h>
 #include <Tactility/RecursiveMutex.h>
 
@@ -56,6 +58,7 @@ static std::atomic<esp_now_recv_cb_t> userRecvCallback{nullptr};
 static uint32_t espnowVersion = 0;
 
 static std::atomic<uint32_t> lastReportedInitVersion{0};
+static bool radioAcquired = false;
 
 static void onRespGeneric(uint32_t msgId, const uint8_t* data, size_t dataLen, void* ctx) {
     (void)msgId; (void)ctx;
@@ -196,15 +199,37 @@ static bool registerCallbacksOnce() {
     return true;
 }
 
+static void releaseRadio() {
+    if (radioAcquired) {
+        esp32_wifi_radio_release(WIFI_MODE_STA);
+        radioAcquired = false;
+    }
+}
+
 bool init(const EspNowConfig& config, esp_now_recv_cb_t recvCallback) {
+    if (radioAcquired) {
+        LOG_E(TAG, "Already initialized");
+        return false;
+    }
+
+    // The WiFi service starts the co-processor link the same way. Acquiring the shared radio serializes the two,
+    // so the link isn't reset again while the other one is still bringing it up.
+    if (!esp32_wifi_radio_acquire(WIFI_MODE_STA)) {
+        LOG_E(TAG, "Failed to acquire the WiFi radio");
+        return false;
+    }
+    radioAcquired = true;
+
     constexpr uint32_t HOSTED_TRANSPORT_WAIT_TIMEOUT_MS = 10000;
     if (!waitForHostedTransport(HOSTED_TRANSPORT_WAIT_TIMEOUT_MS)) {
         LOG_E(TAG, "esp_hosted transport didn't come up within %" PRIu32 "ms - is WiFi enabled?",
             HOSTED_TRANSPORT_WAIT_TIMEOUT_MS);
+        releaseRadio();
         return false;
     }
 
     if (!registerCallbacksOnce()) {
+        releaseRadio();
         return false;
     }
 
@@ -241,6 +266,7 @@ bool init(const EspNowConfig& config, esp_now_recv_cb_t recvCallback) {
     if (err != ESP_OK) {
         LOG_E(TAG, "Remote esp_now_init() failed after %d attempts: %d", MAX_INIT_ATTEMPTS, err);
         userRecvCallback = nullptr;
+        releaseRadio();
         return false;
     }
 
@@ -259,6 +285,7 @@ bool deinit() {
     esp_err_t err = doRequest(ESPNOW_BRIDGE_REQ_DEINIT, reinterpret_cast<uint8_t*>(&req), sizeof(req));
     userRecvCallback = nullptr;
     espnowVersion = 0;
+    releaseRadio();
     if (err != ESP_OK) {
         LOG_E(TAG, "Remote esp_now_deinit() failed: %d", err);
         return false;

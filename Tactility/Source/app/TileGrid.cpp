@@ -273,6 +273,23 @@ void TileGrid::requestRepopulate(bool keepSelection) {
     lv_async_call(onDeferredRepopulate, this);
 }
 
+bool TileGrid::isPagingVisible() const {
+    if (pageIndicator != nullptr) {
+        return !lv_obj_is_hidden(pageIndicator);
+    }
+    return prevButton != nullptr && !lv_obj_is_hidden(prevButton);
+}
+
+void TileGrid::setPagingVisible(bool visible) {
+    if (pageIndicator != nullptr) {
+        lv_obj_set_hidden(pageIndicator, !visible);
+    }
+    if (prevButton != nullptr) {
+        lv_obj_set_hidden(prevButton, !visible);
+        lv_obj_set_hidden(nextButton, !visible);
+    }
+}
+
 void TileGrid::populate() {
     // Captured before lv_obj_clean() deletes the currently focused tile below: creating
     // replacement tiles doesn't restore the focus, so the item id is remembered here and
@@ -295,13 +312,24 @@ void TileGrid::populate() {
 
     // Centers a full page of rows, so a partially filled last page keeps its rows in the same positions.
     lv_obj_set_style_pad_top(grid, 0, LV_STATE_DEFAULT);
-    const PageLayout layout = computePageLayout(grid);
+    PageLayout layout = computePageLayout(grid);
+    const uint32_t item_count = items.size();
+    uint32_t page_count = std::max<uint32_t>(1, (item_count + layout.pageSize - 1) / layout.pageSize);
+
+    // The page indicator and buttons take room from the grid, and are only shown with multiple pages.
+    // Showing them changes the grid size and so the page size, so the layout is computed again with them in place.
+    const bool wasPagingVisible = isPagingVisible();
+    setPagingVisible(page_count > 1);
+    if (wasPagingVisible != (page_count > 1)) {
+        lv_obj_update_layout(lv_obj_get_parent(grid));
+        layout = computePageLayout(grid);
+        page_count = std::max<uint32_t>(1, (item_count + layout.pageSize - 1) / layout.pageSize);
+        setPagingVisible(page_count > 1);
+    }
     populatedWidth = lv_obj_get_width(grid);
     populatedHeight = lv_obj_get_height(grid);
     lv_obj_set_style_pad_top(grid, layout.topOffset, LV_STATE_DEFAULT);
 
-    const uint32_t item_count = items.size();
-    const uint32_t page_count = std::max<uint32_t>(1, (item_count + layout.pageSize - 1) / layout.pageSize);
     // Follows the focused item onto its new page, e.g. after a reorder moved it.
     if (!focusedId.empty()) {
         const auto it = std::ranges::find_if(items, [&](const TileGridItem& item) {
@@ -315,13 +343,8 @@ void TileGrid::populate() {
     pageCount = page_count;
 
     if (pageIndicator != nullptr) {
-        lv_obj_set_hidden(pageIndicator, page_count <= 1);
         lvgl_page_indicator_set_page_count(pageIndicator, page_count);
         lvgl_page_indicator_set_page(pageIndicator, page);
-    }
-    if (prevButton != nullptr) {
-        lv_obj_set_hidden(prevButton, page_count <= 1);
-        lv_obj_set_hidden(nextButton, page_count <= 1);
     }
 
     lv_obj_t* focusedTile = nullptr;

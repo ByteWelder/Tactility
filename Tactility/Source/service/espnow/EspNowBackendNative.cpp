@@ -10,13 +10,15 @@
 #include <esp_wifi.h>
 
 #include <tactility/device.h>
+#include <tactility/drivers/esp32_wifi_radio.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
 namespace tt::service::espnow::backend {
 
 constexpr auto* TAG = "EspNowBackendNative";
-static bool wifiStartedByEspNow = false;
+static bool wifiAcquired = false;
+static wifi_mode_t acquiredMode = WIFI_MODE_STA;
 static bool longRangeProtocolApplied = false;
 static wifi_interface_t longRangeInterface = WIFI_IF_STA;
 static uint8_t savedProtocolBitmap = 0;
@@ -24,54 +26,30 @@ static uint8_t savedProtocolBitmap = 0;
 static bool deinitWifi();
 
 static bool initWifi(const EspNowConfig& config) {
-    WifiRadioState radio_state = WIFI_RADIO_STATE_OFF;
+    if (wifiAcquired) {
+        LOG_E(TAG, "Already initialized");
+        return false;
+    }
+
     WifiStationState station_state = WIFI_STATION_STATE_DISCONNECTED;
     Device* wifi_device = nullptr;
     if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
-        wifi_get_radio_state(wifi_device, &radio_state);
         wifi_get_station_state(wifi_device, &station_state);
         device_put(wifi_device);
     }
-    bool wifi_already_running = (radio_state != WIFI_RADIO_STATE_OFF && radio_state != WIFI_RADIO_STATE_OFF_PENDING);
 
-    wifi_mode_t mode;
-    if (config.mode == Mode::Station) {
-        mode = wifi_mode_t::WIFI_MODE_STA;
-    } else {
-        mode = wifi_mode_t::WIFI_MODE_AP;
+    const wifi_mode_t mode = (config.mode == Mode::Station) ? WIFI_MODE_STA : WIFI_MODE_AP;
+
+    // The radio is shared with the WiFi service and the web server, so it only stops when the last of them released it
+    bool wifi_already_running = false;
+    if (!esp32_wifi_radio_acquire_ex(mode, &wifi_already_running)) {
+        LOG_E(TAG, "Failed to acquire the WiFi radio");
+        return false;
     }
+    wifiAcquired = true;
+    acquiredMode = mode;
 
-    // Only initialize WiFi if it's not already running; ESP-NOW coexists with STA mode
-    wifiStartedByEspNow = !wifi_already_running;
-    if (wifiStartedByEspNow) {
-        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-        if (esp_wifi_init(&cfg) != ESP_OK) {
-            LOG_E(TAG,"esp_wifi_init() failed");
-            wifiStartedByEspNow = false;
-            return false;
-        }
-
-        if (esp_wifi_set_storage(WIFI_STORAGE_RAM) != ESP_OK) {
-            LOG_E(TAG,"esp_wifi_set_storage() failed");
-            esp_wifi_deinit();
-            wifiStartedByEspNow = false;
-            return false;
-        }
-
-        if (esp_wifi_set_mode(mode) != ESP_OK) {
-            LOG_E(TAG,"esp_wifi_set_mode() failed");
-            esp_wifi_deinit();
-            wifiStartedByEspNow = false;
-            return false;
-        }
-
-        if (esp_wifi_start() != ESP_OK) {
-            LOG_E(TAG,"esp_wifi_start() failed");
-            esp_wifi_deinit();
-            wifiStartedByEspNow = false;
-            return false;
-        }
-
+    if (!wifi_already_running) {
         if (config.channel != 0 && esp_wifi_set_channel(config.channel, WIFI_SECOND_CHAN_NONE) != ESP_OK) {
             LOG_E(TAG,"esp_wifi_set_channel() failed");
             deinitWifi();
@@ -117,9 +95,7 @@ static bool initWifi(const EspNowConfig& config) {
 }
 
 static bool deinitWifi() {
-    // Restore the interface's protocol mask before either stopping WiFi or handing the radio
-    // back to WifiService - covers both paths, since an externally managed radio (wifiStartedByEspNow
-    // == false) is the case that actually needs its prior protocol bits put back.
+    // Restore the interface's protocol mask before releasing the radio, which other owners may keep using.
     if (longRangeProtocolApplied) {
         if (esp_wifi_set_protocol(longRangeInterface, savedProtocolBitmap) != ESP_OK) {
             LOG_W(TAG, "Failed to restore prior WiFi protocol bitmap");
@@ -127,13 +103,10 @@ static bool deinitWifi() {
         longRangeProtocolApplied = false;
     }
 
-    if (wifiStartedByEspNow) {
-        esp_wifi_stop();
-        esp_wifi_deinit();
-        wifiStartedByEspNow = false;
-        LOG_I(TAG, "WiFi stopped (was started by ESP-NOW)");
-    } else {
-        LOG_I(TAG, "WiFi left running (managed by WiFi service)");
+    if (wifiAcquired) {
+        esp32_wifi_radio_release(acquiredMode);
+        wifiAcquired = false;
+        LOG_I(TAG, "WiFi radio released");
     }
     return true;
 }

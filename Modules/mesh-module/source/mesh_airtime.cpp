@@ -17,6 +17,12 @@ uint32_t mesh_airtime_estimate_ms(const MeshRadioProfile& profile, size_t length
         return (uint32_t)std::ceil(preambleMs + payloadSymbols * symbolMs);
     }
 
+    if (profile.modulation == RADIO_MODULATION_ESPNOW) {
+        // Wi-Fi long range runs at 0.5 Mbit/s, and a frame has about 100 bytes of headers
+        constexpr double BIT_RATE = 500000.0;
+        return (uint32_t)std::ceil((100.0 + length) * 8.0 * 1000.0 / BIT_RATE);
+    }
+
     // FSK-family: preamble, sync word, length byte, payload and CRC. The data rate is not part of the
     // profile, so a conservative 4.8 kbit/s is assumed.
     constexpr double FALLBACK_BIT_RATE = 4800.0;
