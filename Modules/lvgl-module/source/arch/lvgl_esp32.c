@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #ifdef ESP_PLATFORM
 
+#include <esp_heap_caps.h>
+#include <esp_memory_utils.h>
 #include <esp_lvgl_port.h>
 
 #include <lvgl/lvgl.h>
@@ -10,6 +12,12 @@
 #include <tactility/error.h>
 #include <tactility/log.h>
 #include <tactility/time.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <freertos/task.h>
+
+#include <string.h>
 
 #define TAG "lvgl_esp32"
 
@@ -33,6 +41,50 @@ bool lvgl_try_lock(uint32_t timeoutTicks) {
 void lvgl_unlock(void) {
     if (!initialized) { return; }
     lvgl_port_unlock();
+}
+
+struct RunOnTaskRequest {
+    void (*function)(void*);
+    void* argument;
+    SemaphoreHandle_t done;
+};
+
+// Runs inside the LVGL task, which holds the LVGL lock
+static void run_on_task_callback(void* data) {
+    struct RunOnTaskRequest* request = data;
+    request->function(request->argument);
+    xSemaphoreGive(request->done);
+}
+
+void lvgl_run_on_task(void (*function)(void*), void* argument) {
+    const int stack_marker = 0;
+    const bool is_lvgl_task = strcmp(pcTaskGetName(NULL), "taskLVGL") == 0;
+    SemaphoreHandle_t done = NULL;
+    // A stack in internal RAM can read files, and the LVGL task itself can always run the function
+    if (initialized && !is_lvgl_task && !esp_ptr_internal(&stack_marker)) {
+        done = xSemaphoreCreateBinary();
+    }
+    if (done == NULL) {
+        lvgl_lock();
+        function(argument);
+        lvgl_unlock();
+        return;
+    }
+
+    struct RunOnTaskRequest request = { .function = function, .argument = argument, .done = done };
+    lvgl_lock();
+    lv_async_call(run_on_task_callback, &request);
+    lvgl_unlock();
+    // The LVGL task may be asleep for a while otherwise
+    lvgl_port_task_wake(LVGL_PORT_EVENT_USER, NULL);
+    while (xSemaphoreTake(done, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        if (!initialized) {
+            // LVGL stopped before it ran the function
+            lv_async_call_cancel(run_on_task_callback, &request);
+            break;
+        }
+    }
+    vSemaphoreDelete(done);
 }
 
 error_t lvgl_arch_start() {

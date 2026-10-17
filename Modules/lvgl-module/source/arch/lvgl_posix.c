@@ -62,6 +62,12 @@ void lvgl_unlock(void) {
     recursive_mutex_unlock(&lvgl_mutex);
 }
 
+void lvgl_run_on_task(void (*function)(void*), void* argument) {
+    lvgl_lock();
+    function(argument);
+    lvgl_unlock();
+}
+
 static void lvgl_task_set_interrupted(bool interrupted) {
     task_lock();
     lvgl_task_interrupt_requested = interrupted;

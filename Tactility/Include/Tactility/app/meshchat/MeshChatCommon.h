@@ -35,6 +35,8 @@ lv_obj_t* createContent(lv_obj_t* parent);
 /**
  * A card that holds list items. The items are direct children of the card,
  * because every nesting level adds to the LVGL task's draw stack.
+ * Its margin is the theme's container padding.
+ * @param[in] parent the result of createContent()
  */
 lv_obj_t* createCard(lv_obj_t* parent);
 

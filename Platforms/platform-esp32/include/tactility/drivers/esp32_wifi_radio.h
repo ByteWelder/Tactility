@@ -37,6 +37,9 @@ bool esp32_wifi_radio_acquire(wifi_mode_t mode_bit);
  */
 void esp32_wifi_radio_release(wifi_mode_t mode_bit);
 
+/** @return true when an owner holds the radio, so it is initialized and started */
+bool esp32_wifi_radio_is_started(void);
+
 #ifdef __cplusplus
 }
 #endif
