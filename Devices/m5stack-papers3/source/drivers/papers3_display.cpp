@@ -331,7 +331,9 @@ static void display_task(void* arg) {
             active = EMPTY_REGION;
             frames_left = 0;
             portENTER_CRITICAL(&internal->lock);
-            internal->pending = internal->flash_wipes_content ? EMPTY_REGION : FULL_REGION;
+            if (!internal->flash_wipes_content) {
+                internal->pending = FULL_REGION;
+            }
             portEXIT_CRITICAL(&internal->lock);
             xSemaphoreGive(internal->request_done);
         }

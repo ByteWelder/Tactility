@@ -91,7 +91,10 @@ static void write_bytes(Ssd16xxInternal* internal, const uint8_t* data, size_t l
         spi_transaction_t transaction = {};
         transaction.length = chunk * 8;
         transaction.tx_buffer = data;
-        spi_device_polling_transmit(internal->spi, &transaction);
+        if (spi_device_polling_transmit(internal->spi, &transaction) != ESP_OK) {
+            LOG_E(TAG, "SPI transmit failed");
+            return;
+        }
         data += chunk;
         length -= chunk;
     }
@@ -281,10 +284,11 @@ static void update_task(void* arg) {
 
         if (commands & CMD_FULL_REFRESH) {
             if (!internal->asleep) {
-                full_refresh(internal);
+                // Cleared before the snapshot, so draws during the refresh stay queued
                 portENTER_CRITICAL(&internal->lock);
                 internal->dirty = false;
                 portEXIT_CRITICAL(&internal->lock);
+                full_refresh(internal);
             }
             xSemaphoreGive(internal->request_done);
         }
