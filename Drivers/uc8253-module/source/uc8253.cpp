@@ -44,12 +44,14 @@ static constexpr uint32_t SPI_CHUNK_BYTES = 4096;
 static constexpr uint32_t BUSY_TIMEOUT_MS = 10000;
 static constexpr uint32_t COALESCE_MS = 30;
 static constexpr uint32_t RETRY_DELAY_MS = 200;
+static constexpr int MAX_RETRIES = 3;
 
 static constexpr uint32_t CMD_UPDATE = 1U << 0;
 static constexpr uint32_t CMD_FULL_REFRESH = 1U << 1;
 static constexpr uint32_t CMD_SLEEP = 1U << 2;
 static constexpr uint32_t CMD_WAKE = 1U << 3;
 static constexpr uint32_t CMD_EXIT = 1U << 4;
+static constexpr uint32_t CMD_RETRY = 1U << 5;
 
 static inline bool is_white(uint8_t luminance) {
     return luminance >= 128;
@@ -101,6 +103,8 @@ struct Uc8253Internal {
     // Only used by the task
     // Set when an SPI transfer failed, cleared at the start of each update
     bool transfer_failed;
+    // Failed updates in a row, reset by each new display request
+    int retry_count;
     // Both controller buffers hold the displayed image, so partial updates are possible
     bool base_valid;
     bool asleep;
@@ -332,14 +336,20 @@ static void leave_sleep(Uc8253Internal* internal) {
     portEXIT_CRITICAL(&internal->lock);
 }
 
-// Queues the whole target again after a failed transfer
+// Queues the whole target again after a failed transfer, with a growing delay. After
+// MAX_RETRIES the next display request tries again.
 static void retry_update(Uc8253Internal* internal) {
     const Region full = { 0, 0, internal->panel->width, internal->panel->height };
     portENTER_CRITICAL(&internal->lock);
     internal->pending.merge(full);
     portEXIT_CRITICAL(&internal->lock);
-    vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_MS));
-    xTaskNotify(internal->task, CMD_UPDATE, eSetBits);
+    if (internal->retry_count >= MAX_RETRIES) {
+        LOG_E(TAG, "Giving up after %d retries", MAX_RETRIES);
+        return;
+    }
+    vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_MS << internal->retry_count));
+    internal->retry_count++;
+    xTaskNotify(internal->task, CMD_RETRY, eSetBits);
 }
 
 static void update_task(void* arg) {
@@ -357,6 +367,10 @@ static void update_task(void* arg) {
 
         if (commands & CMD_SLEEP) {
             enter_sleep(internal);
+        }
+
+        if (commands & (CMD_UPDATE | CMD_FULL_REFRESH)) {
+            internal->retry_count = 0;
         }
 
         if (commands & CMD_WAKE) {
