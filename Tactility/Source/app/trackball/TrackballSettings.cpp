@@ -12,7 +12,7 @@
 #include <tactility/check.h>
 #include <tactility/drivers/trackball.h>
 
-#include <Tactility/Assets.h>
+#include <lvgl/ui_assets.h>
 #include <Tactility/settings/TrackballSettings.h>
 #include <Tactility/Tactility.h>
 
@@ -94,7 +94,7 @@ void applyLive(Context* ctx) {
     lvgl_lock();
     lvgl_trackball_set_settings(ctx->trackballIndev, &ctx->tbSettings);
     if (ctx->tbSettings.mode == LVGL_TRACKBALL_MODE_POINTER) {
-        lvgl_trackball_set_cursor_image(ctx->trackballIndev, TT_ASSETS_UI_CURSOR);
+        lvgl_trackball_set_cursor_image(ctx->trackballIndev, lvgl_get_cursor_image());
     }
     lvgl_unlock();
 }

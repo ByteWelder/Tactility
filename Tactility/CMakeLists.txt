@@ -166,7 +166,7 @@ endif ()
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
-        SRCS ${SOURCE_FILES} "${GENERATED_DIR}/devicetree.c"
+        SRCS ${SOURCE_FILES} "${GENERATED_DIR}/devicetree.c" "${GENERATED_DIR}/generated_assets.c"
         INCLUDE_DIRS Include/
         PRIV_INCLUDE_DIRS Private/
         REQUIRES ${TACTILITY_REQUIRES_LIST}
@@ -179,10 +179,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     endif ()
 
     if (NOT DEFINED TACTILITY_SKIP_SPIFFS)
-        # Read-only
-        fatfs_create_rawflash_image(system "${CMAKE_CURRENT_SOURCE_DIR}/../Data/system" FLASH_IN_PROJECT PRESERVE_TIME)
         # Read-write (skipped when user data lives on the SD card instead of internal flash)
         if (NOT CONFIG_TT_USER_DATA_LOCATION_SD)
+            # The folder is not in the repository
+            file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Data/data")
             fatfs_create_spiflash_image(data "${CMAKE_CURRENT_SOURCE_DIR}/../Data/data" FLASH_IN_PROJECT PRESERVE_TIME)
         endif ()
     endif ()
@@ -223,6 +223,24 @@ set_source_files_properties("${GENERATED_DIR}/devicetree.h" PROPERTIES GENERATED
 target_sources(${COMPONENT_LIB} PRIVATE "${GENERATED_DIR}/devicetree.c")
 target_include_directories(${COMPONENT_LIB} PRIVATE "${GENERATED_DIR}")
 add_dependencies(${COMPONENT_LIB} Generated)
+
+#
+# Assets: Data/system embedded as C byte arrays
+#
+
+# Rewrites its outputs only when the content changes. The assets are the whole Data/system tree,
+# so no fixed DEPENDS list is kept.
+add_custom_target(GeneratedAssets ALL
+    COMMAND python "${CMAKE_SOURCE_DIR}/Buildscripts/generate-assets.py"
+        "${CMAKE_SOURCE_DIR}/Data/system" "${GENERATED_DIR}"
+    BYPRODUCTS "${GENERATED_DIR}/generated_assets.c" "${GENERATED_DIR}/generated_assets.h"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating asset source files..."
+)
+set_source_files_properties("${GENERATED_DIR}/generated_assets.c" PROPERTIES GENERATED TRUE)
+set_source_files_properties("${GENERATED_DIR}/generated_assets.h" PROPERTIES GENERATED TRUE)
+target_sources(${COMPONENT_LIB} PRIVATE "${GENERATED_DIR}/generated_assets.c")
+add_dependencies(${COMPONENT_LIB} GeneratedAssets)
 
 #
 # Fonts

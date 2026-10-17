@@ -1,6 +1,5 @@
 #include <Tactility/app/timezone/TimeZoneView.h>
 
-#include <Tactility/MountPoints.h>
 #include <Tactility/StringUtils.h>
 
 #include <location/location.h>
@@ -15,7 +14,9 @@
 #include <lvgl/widgets/list.h>
 #include <lvgl/widgets/spinner.h>
 
-#include <cstdio>
+#include <generated_assets.h>
+
+#include <string_view>
 
 namespace tt::app::timezone {
 
@@ -26,10 +27,6 @@ namespace {
 // Bounds the list, so a short filter doesn't create hundreds of widgets
 constexpr size_t MAX_ENTRIES = 50;
 constexpr TickType_t FILTER_DELAY = pdMS_TO_TICKS(500);
-
-std::string getTimeZonesPath() {
-    return std::string(file::MOUNT_POINT_SYSTEM) + "/timezones.csv";
-}
 
 /** Parses a line like "Europe/Amsterdam","CET-1CEST,M3.5.0,M10.5.0/3" */
 bool parseEntry(const std::string& input, std::string& outName, std::string& outCode) {
@@ -48,20 +45,18 @@ bool parseEntry(const std::string& input, std::string& outName, std::string& out
 
 /** Calls @a visitor for each time zone until it returns false */
 void forEachTimeZone(const std::function<bool(const std::string& name, const std::string& code)>& visitor) {
-    auto* file = fopen(getTimeZonesPath().c_str(), "rb");
-    if (file == nullptr) {
-        LOG_E(TAG, "Failed to open %s", getTimeZonesPath().c_str());
-        return;
-    }
-    char line[96];
+    const std::string_view csv(reinterpret_cast<const char*>(asset_timezones_csv), asset_timezones_csv_size);
     std::string name;
     std::string code;
-    while (fgets(line, sizeof(line), file)) {
-        if (parseEntry(line, name, code) && !visitor(name, code)) {
+    size_t start = 0;
+    while (start < csv.size()) {
+        size_t end = csv.find('\n', start);
+        end = end == std::string_view::npos ? csv.size() : end + 1;
+        if (parseEntry(std::string(csv.substr(start, end - start)), name, code) && !visitor(name, code)) {
             break;
         }
+        start = end;
     }
-    fclose(file);
 }
 
 } // namespace

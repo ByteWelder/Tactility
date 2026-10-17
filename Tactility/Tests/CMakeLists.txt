@@ -11,7 +11,20 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/Source/*.
 file(GLOB_RECURSE TACTILITY_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/../Source/*.c*)
 list(FILTER TACTILITY_SOURCES EXCLUDE REGEX ".*/Main\\.cpp$")
 
-add_executable(TactilityTests EXCLUDE_FROM_ALL ${TEST_SOURCES} ${TACTILITY_SOURCES})
+# Tactility's embedded assets, see Tactility/CMakeLists.txt
+set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/Generated")
+file(MAKE_DIRECTORY "${GENERATED_DIR}")
+add_custom_target(TestsGeneratedAssets
+    COMMAND python "${CMAKE_SOURCE_DIR}/Buildscripts/generate-assets.py"
+        "${CMAKE_SOURCE_DIR}/Data/system" "${GENERATED_DIR}"
+    BYPRODUCTS "${GENERATED_DIR}/generated_assets.c" "${GENERATED_DIR}/generated_assets.h"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
+set_source_files_properties("${GENERATED_DIR}/generated_assets.c" PROPERTIES GENERATED TRUE)
+
+add_executable(TactilityTests EXCLUDE_FROM_ALL ${TEST_SOURCES} ${TACTILITY_SOURCES} "${GENERATED_DIR}/generated_assets.c")
+add_dependencies(TactilityTests TestsGeneratedAssets)
+target_include_directories(TactilityTests PRIVATE "${GENERATED_DIR}")
 
 target_include_directories(TactilityTests PRIVATE ${DOCTESTINC})
 target_include_directories(TactilityTests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../Include)

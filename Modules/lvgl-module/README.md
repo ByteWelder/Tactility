@@ -35,7 +35,7 @@ Icons are provided by the **Material Symbols** font, divided into three usage-sp
 All font sizes derive from one default text size: `font.defaultSize` in `device.properties` (`CONFIG_TT_FONT_DEFAULT_SIZE`, 14 on the simulator).
 Tactility calculates the other text and icon sizes from it in `Tactility/Source/lvgl/FontSizes.cpp`.
 
-Text fonts are rasterized on device at startup from `Data/system/fonts/AdwaitaSans.ttf` and cached as `.bin` files in the data path.
+Text fonts are rasterized on device at startup from the embedded `Data/system/fonts/AdwaitaSans.ttf` and cached as `.bin` files in the data path.
 `Tactility/Fonts/generate.py` creates that TTF subset from `Tactility/Fonts/AdwaitaSans-Regular.ttf` (requires `pip install fonttools`).
 
 Icon fonts are rasterized on device at startup from `Data/system/fonts/MaterialSymbolsRounded.ttf` (a subset with only the used icons) and cached as `.bin` files in the data path, so any icon size works.

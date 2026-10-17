@@ -11,6 +11,12 @@ struct PixelBuffer;
 
 namespace tt::app::boot {
 
+/** A PNG image in memory */
+struct BootLogo {
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+};
+
 /**
  * Draws boot screens directly to the display, for use while LVGL isn't running.
  * Content is drawn in the orientation from the display settings.
@@ -53,10 +59,10 @@ public:
 
     /**
      * Shows a logo with text lines below it, centered on a black background.
-     * @param[in] logoPath path to a PNG file, or empty for no logo
+     * @param[in] logo a PNG image, or empty for no logo
      * @param[in] lines text lines, wrapped when they're too long for the display
      */
-    void show(const std::string& logoPath, const std::vector<std::string>& lines);
+    void show(const BootLogo& logo, const std::vector<std::string>& lines);
 
     /**
      * Shows a QR code with text lines below it, centered on a black background. The set modules are white.

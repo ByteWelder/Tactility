@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
+#include <lvgl/ui_assets.h>
 #include <lvgl/widgets/spinner.h>
-
-// TODO: Don't depend on asset from a different project
-#define SPINNER_ASSET "A:/system/spinner.png"
 
 static void spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
 
@@ -27,7 +25,7 @@ lv_obj_t* lvgl_spinner_create(lv_obj_t* parent) {
     lv_obj_t* obj = lv_obj_class_create_obj(&tt_spinner_class, parent);
     lv_obj_class_init_obj(obj);
 
-    lv_image_set_src(obj, SPINNER_ASSET);
+    lv_image_set_src(obj, lvgl_get_spinner_image());
 
     return obj;
 }

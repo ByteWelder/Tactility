@@ -9,6 +9,12 @@ extern "C" {
 
 extern struct Module app_hub_module;
 
+/**
+ * @brief Sets the root certificate that verifies the app catalog server.
+ * @param[in] certificate_pem PEM text that must stay valid forever
+ */
+void app_hub_configure_certificate(const char* certificate_pem);
+
 #ifdef __cplusplus
 }
 #endif

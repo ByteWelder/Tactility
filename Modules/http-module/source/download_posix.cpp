@@ -83,26 +83,9 @@ public:
         mbedtls_x509_crt_free(&ca);
     }
 
-    bool loadCertificate(const std::string& certPath) {
-        auto* file = fopen(certPath.c_str(), "rb");
-        if (file == nullptr) {
-            return false;
-        }
-        fseek(file, 0, SEEK_END);
-        const long size = ftell(file);
-        fseek(file, 0, SEEK_SET);
-        if (size <= 0) {
-            fclose(file);
-            return false;
-        }
+    bool loadCertificate(const std::string& certPem) {
         // A PEM certificate is parsed as a NUL-terminated string
-        std::string certificate(static_cast<size_t>(size) + 1, '\0');
-        const size_t readBytes = fread(certificate.data(), 1, static_cast<size_t>(size), file);
-        fclose(file);
-        if (readBytes != static_cast<size_t>(size)) {
-            return false;
-        }
-        return mbedtls_x509_crt_parse(&ca, reinterpret_cast<const unsigned char*>(certificate.data()), certificate.size()) == 0;
+        return mbedtls_x509_crt_parse(&ca, reinterpret_cast<const unsigned char*>(certPem.c_str()), certPem.size() + 1) == 0;
     }
 
     bool connectSocket(const HttpUrl& url) {
@@ -259,7 +242,7 @@ public:
 
 }
 
-HttpDownloadEvent http_download_run(const std::string& url, const std::string& certPath, const std::string& targetPath, HttpDownloadLink* link) {
+HttpDownloadEvent http_download_run(const std::string& url, const std::string& certPem, const std::string& targetPath, HttpDownloadLink* link) {
     if (http_download_is_cancelled(link)) {
         return http_download_make_cancelled_event();
     }
@@ -273,8 +256,8 @@ HttpDownloadEvent http_download_run(const std::string& url, const std::string& c
     }
 
     TlsConnection connection;
-    if (!connection.loadCertificate(certPath)) {
-        return http_download_make_error_event("Failed to read certificate file");
+    if (!connection.loadCertificate(certPem)) {
+        return http_download_make_error_event("Failed to parse certificate");
     }
     if (!connection.connectSocket(parsedUrl) || !connection.handshake(parsedUrl, link)) {
         return http_download_make_error_event("Failed to open connection");

@@ -1,6 +1,5 @@
 #include <Tactility/lvgl/FontCache.h>
 
-#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
 
 #include <binfont/binfont.h>
@@ -37,10 +36,6 @@ static const std::string& getCacheDirectory() {
         return path;
     }();
     return directory;
-}
-
-std::string getSystemFontPath(const char* fileName) {
-    return std::format("{}/fonts/{}", file::MOUNT_POINT_SYSTEM, fileName);
 }
 
 uint8_t getGeneratedFontBpp() {
@@ -92,10 +87,12 @@ static bool writeCacheFile(const std::string& path, const uint8_t* data, size_t 
 }
 
 /** Rasterizes a font, see binfont_generate() */
-static bool generateFont(const std::string& fileName, const std::string& ttfPath, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints, uint8_t*& data, size_t& dataSize) {
+static bool generateFont(const std::string& fileName, const TtfSource& ttf, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints, uint8_t*& data, size_t& dataSize) {
     const auto codepoints = getCodepoints();
     const BinFontGeneratorConfig config = {
-        .ttf_path = ttfPath.c_str(),
+        .ttf_path = ttf.path.c_str(),
+        .ttf_data = ttf.data,
+        .ttf_size = ttf.size,
         .size = size,
         .bpp = bpp,
         .codepoints = codepoints.empty() ? nullptr : codepoints.data(),
@@ -105,14 +102,14 @@ static bool generateFont(const std::string& fileName, const std::string& ttfPath
     const auto start_time = get_millis();
     const error_t error = binfont_generate(&config, &data, &dataSize);
     if (error != ERROR_NONE) {
-        LOG_E(TAG, "Failed to generate %s from %s (%s)", fileName.c_str(), ttfPath.c_str(), error_to_string(error));
+        LOG_E(TAG, "Failed to generate %s from %s (%s)", fileName.c_str(), ttf.data != nullptr ? "memory" : ttf.path.c_str(), error_to_string(error));
         return false;
     }
     LOG_I(TAG, "Generated %s (%zu bytes) in %zu ms", fileName.c_str(), dataSize, get_millis() - start_time);
     return true;
 }
 
-BinFont* loadOrGenerateFont(const std::string& fileName, const std::string& ttfPath, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints) {
+BinFont* loadOrGenerateFont(const std::string& fileName, const TtfSource& ttf, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints) {
     const auto& directory = getCacheDirectory();
     const auto cache_path = directory.empty() ? std::string() : file::getChildPath(directory, fileName);
 
@@ -126,7 +123,7 @@ BinFont* loadOrGenerateFont(const std::string& fileName, const std::string& ttfP
 
     uint8_t* data = nullptr;
     size_t data_size = 0;
-    if (!generateFont(fileName, ttfPath, size, bpp, getCodepoints, data, data_size)) {
+    if (!generateFont(fileName, ttf, size, bpp, getCodepoints, data, data_size)) {
         return nullptr;
     }
 
@@ -141,7 +138,7 @@ BinFont* loadOrGenerateFont(const std::string& fileName, const std::string& ttfP
     return font;
 }
 
-bool ensureCachedFont(const std::string& fileName, const std::string& ttfPath, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints) {
+bool ensureCachedFont(const std::string& fileName, const TtfSource& ttf, uint16_t size, uint8_t bpp, const std::function<std::vector<uint32_t>()>& getCodepoints) {
     const auto& directory = getCacheDirectory();
     const auto cache_path = directory.empty() ? std::string() : file::getChildPath(directory, fileName);
     if (!cache_path.empty() && file::isFile(cache_path)) {
@@ -150,7 +147,7 @@ bool ensureCachedFont(const std::string& fileName, const std::string& ttfPath, u
 
     uint8_t* data = nullptr;
     size_t data_size = 0;
-    if (!generateFont(fileName, ttfPath, size, bpp, getCodepoints, data, data_size)) {
+    if (!generateFont(fileName, ttf, size, bpp, getCodepoints, data, data_size)) {
         return false;
     }
     // Without a cache, the font is only generated to verify that it can be

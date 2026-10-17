@@ -52,7 +52,6 @@ private:
 
     // Core HTML endpoints (hardcoded in firmware)
     static error_t handleRoot(struct HttpServerRequest* request, void* user_ctx);
-    static error_t handleSync(struct HttpServerRequest* request, void* user_ctx);
     static error_t handleReboot(struct HttpServerRequest* request, void* user_ctx);
 
     // File browser endpoints

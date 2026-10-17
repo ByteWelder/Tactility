@@ -60,6 +60,7 @@ esp_err_t initNvsFlashSafely() {
 
 wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
 
+#ifdef CONFIG_TT_USER_DATA_LOCATION_INTERNAL
 size_t getSectorSize() {
 #if defined(CONFIG_FATFS_SECTOR_512)
     return 512;
@@ -73,6 +74,7 @@ size_t getSectorSize() {
 #error Not implemented
 #endif
 }
+#endif
 
 } // namespace
 
@@ -84,6 +86,7 @@ error_t platform_esp32_start_partitions() {
     LOG_I(TAG, "Init partitions");
     ESP_ERROR_CHECK(initNvsFlashSafely());
 
+#ifdef CONFIG_TT_USER_DATA_LOCATION_INTERNAL
     const esp_vfs_fat_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 4,
@@ -92,16 +95,6 @@ error_t platform_esp32_start_partitions() {
         .use_one_fat = true,
     };
 
-    auto system_result = esp_vfs_fat_spiflash_mount_ro("/system", "system", &mount_config);
-    if (system_result != ESP_OK) {
-        LOG_E(TAG, "Failed to mount /system (%s)", esp_err_to_name(system_result));
-        return ERROR_RESOURCE;
-    }
-    LOG_I(TAG, "Mounted /system");
-    static auto system_fs_data = PartitionFsData("/system");
-    file_system_add("system", &partition_fs_api, &system_fs_data);
-
-#ifdef CONFIG_TT_USER_DATA_LOCATION_INTERNAL
     auto data_result = esp_vfs_fat_spiflash_mount_rw_wl("/data", "data", &mount_config, &data_wl_handle);
     if (data_result != ESP_OK) {
         LOG_E(TAG, "Failed to mount /data (%s)", esp_err_to_name(data_result));

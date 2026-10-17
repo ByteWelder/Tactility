@@ -811,26 +811,6 @@ async function loadWifiStatus() {
     }
 }
 
-async function syncAssets(btn) {
-    const status = document.getElementById('actionStatus');
-    btn.disabled = true;
-    btn.textContent = 'Syncing...';
-    try {
-        const r = await fetch('/admin/sync', { method: 'POST' });
-        if (status) {
-            status.textContent = r.ok ? 'Assets synchronized!' : 'Sync failed';
-            status.style.color = r.ok ? '#2ecc71' : '#e74c3c';
-        }
-    } catch (e) {
-        if (status) {
-            status.textContent = 'Error: ' + e.message;
-            status.style.color = '#e74c3c';
-        }
-    }
-    btn.disabled = false;
-    btn.textContent = 'Sync Assets';
-}
-
 async function captureScreenshot(btn) {
     const status = document.getElementById('actionStatus');
     const container = document.getElementById('screenshotContainer');

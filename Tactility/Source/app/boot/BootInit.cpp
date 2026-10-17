@@ -20,6 +20,7 @@
 #include <Tactility/MountPoints.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/boot/BootScreen.h>
+#include <generated_assets.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/hal/usb/UsbHost.h>
 #include <Tactility/lvgl/Fonts.h>
@@ -29,7 +30,6 @@
 #include <Tactility/settings/BootSettings.h>
 #include <Tactility/settings/DisplaySettings.h>
 
-#include <format>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/app/crashdiagnostics/CrashDiagnostics.h>
@@ -46,36 +46,32 @@ constexpr auto* DEFAULT_LAUNCHER_ID = "tactility.launcher";
 
 namespace {
 
-#ifdef ESP_PLATFORM
-constexpr auto PARTITION_PREFIX = std::string("/");
-#else
-constexpr auto PARTITION_PREFIX = std::string("");
-#endif
-
-// Equivalent of AppPaths::getAssetsPath() for the internal "Boot" app id, without needing a
-// live AppContext (which this app no longer has under the new app-module model).
-std::string getBootAssetsPath(const std::string& childPath) {
-    return std::format("{}{}/app/Boot/assets/{}", PARTITION_PREFIX, file::SYSTEM_PARTITION_NAME, childPath);
-}
-
 // TODO: Replace with automatic asset buckets like on Android
-std::string getSizedAssetPath(const BootScreen& screen, const char* small, const char* medium, const char* large) {
+BootLogo getSizedLogo(const BootScreen& screen, const BootLogo& small, const BootLogo& medium, const BootLogo& large) {
     const int smallest_dimension = screen.getSmallestDimension();
     if (smallest_dimension < 150) { // e.g. Cardputer
-        return getBootAssetsPath(small);
+        return small;
     } else if (smallest_dimension >= 320) {
-        return getBootAssetsPath(large);
+        return large;
     } else {
-        return getBootAssetsPath(medium);
+        return medium;
     }
 }
 
-std::string getLogoPath(const BootScreen& screen) {
-    return getSizedAssetPath(screen, "logo_small.png", "logo.png", "logo_large.png");
+BootLogo getLogo(const BootScreen& screen) {
+    return getSizedLogo(screen,
+        { asset_app_Boot_assets_logo_small_png, asset_app_Boot_assets_logo_small_png_SIZE },
+        { asset_app_Boot_assets_logo_png, asset_app_Boot_assets_logo_png_SIZE },
+        { asset_app_Boot_assets_logo_large_png, asset_app_Boot_assets_logo_large_png_SIZE }
+    );
 }
 
-std::string getUsbLogoPath(const BootScreen& screen) {
-    return getSizedAssetPath(screen, "logo_usb_small.png", "logo_usb.png", "logo_usb_large.png");
+BootLogo getUsbLogo(const BootScreen& screen) {
+    return getSizedLogo(screen,
+        { asset_app_Boot_assets_logo_usb_small_png, asset_app_Boot_assets_logo_usb_small_png_SIZE },
+        { asset_app_Boot_assets_logo_usb_png, asset_app_Boot_assets_logo_usb_png_SIZE },
+        { asset_app_Boot_assets_logo_usb_large_png, asset_app_Boot_assets_logo_usb_large_png_SIZE }
+    );
 }
 
 void setupDisplay() {
@@ -207,7 +203,7 @@ bool bootInit(TickType_t startTime) {
 
     BootScreen screen;
     if (screen.begin()) {
-        screen.show(is_usb_boot ? getUsbLogoPath(screen) : getLogoPath(screen), {});
+        screen.show(is_usb_boot ? getUsbLogo(screen) : getLogo(screen), {});
     }
 
     LOG_I(TAG, "Init display");
@@ -249,14 +245,14 @@ bool bootInit(TickType_t startTime) {
             break;
         case UsbBootResult::Started:
 #ifdef ESP_PLATFORM
-            screen.show(getUsbLogoPath(screen), { getInputPrompt("return to OS") });
+            screen.show(getUsbLogo(screen), { getInputPrompt("return to OS") });
             waitForInput();
             hal::usb::stop();
             esp_restart();
 #endif
             return false;
         case UsbBootResult::Failed:
-            screen.show("", { "Failed to start USB mass storage:", hal::usb::getLastError(), getInputPrompt("reboot") });
+            screen.show({}, { "Failed to start USB mass storage:", hal::usb::getLastError(), getInputPrompt("reboot") });
             waitForInputAndReboot();
             return false;
     }
@@ -264,7 +260,7 @@ bool bootInit(TickType_t startTime) {
     registerApps();
 
     if (sd_card_missing) {
-        screen.show("", { "SD card not found.", "Please insert one and reboot.", getInputPrompt("reboot") });
+        screen.show({}, { "SD card not found.", "Please insert one and reboot.", getInputPrompt("reboot") });
         waitForInputAndReboot();
         return false;
     }

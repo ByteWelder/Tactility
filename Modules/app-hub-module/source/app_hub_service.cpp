@@ -308,7 +308,7 @@ error_t download(const char* url, const char* targetPath) {
     if (http_download_subscribe(&sub, &state->workerEvents) != ERROR_NONE) {
         return ERROR_RESOURCE;
     }
-    if (http_download_start(url, app_hub_catalog_get_certificate_path().c_str(), targetPath, &sub) != ERROR_NONE) {
+    if (http_download_start(url, app_hub_catalog_get_certificate(), targetPath, &sub) != ERROR_NONE) {
         http_download_unsubscribe(&sub);
         return ERROR_RESOURCE;
     }
