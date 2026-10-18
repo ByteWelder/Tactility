@@ -162,7 +162,7 @@ static error_t start_device(Device* device) {
         .dpi_clock_freq_mhz = static_cast<float>(config->dpi_clock_freq_mhz),
         .in_color_format = color_format,
         .out_color_format = color_format,
-        .num_fbs = config->num_fbs,
+        .num_fbs = static_cast<uint8_t>(config->num_fbs > MAX_CACHED_FRAME_BUFFERS ? MAX_CACHED_FRAME_BUFFERS : config->num_fbs),
         .video_timing = {
             .h_size = config->horizontal_resolution,
             .v_size = config->vertical_resolution,
