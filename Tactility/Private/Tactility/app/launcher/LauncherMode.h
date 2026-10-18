@@ -21,6 +21,9 @@ struct LauncherMode {
     void (*onKey)(TileGrid& grid, const TileGridItem& item, uint32_t key);
 };
 
+/** Reads the favourites from their file into memory. File operation, see <tactility/file_ops.h>. */
+void loadFavourites(void* context);
+
 extern const LauncherMode APPS_MODE;
 extern const LauncherMode SETTINGS_MODE;
 

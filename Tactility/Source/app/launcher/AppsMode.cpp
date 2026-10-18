@@ -6,10 +6,12 @@
 #include <app/package_manifest.h>
 
 #include <lvgl/icons/shared.h>
+#include <tactility/file_ops.h>
 #include <tactility/log.h>
 
 #include <algorithm>
 #include <cstring>
+#include <new>
 #include <string>
 
 namespace tt::app::launcher {
@@ -19,6 +21,19 @@ namespace {
 constexpr auto* TAG = "Launcher";
 
 const Favourites favourites;
+
+struct SaveFavouritesJob {
+    std::vector<std::string> ids;
+};
+
+// File operation: runs on the file operations task, which frees the job
+void saveFavourites(void* context) {
+    auto* job = static_cast<SaveFavouritesJob*>(context);
+    if (!favourites.save(job->ids)) {
+        LOG_E(TAG, "Failed to save favourites");
+    }
+    delete job;
+}
 
 struct IconEntry {
     const char* id;
@@ -77,14 +92,14 @@ void collectIncompatibleAppIds(const AppPackage* package, void* context) {
 }
 
 std::vector<TileGridItem> collectItems() {
-    const std::vector<std::string> favouriteIds = favourites.load();
+    const std::vector<std::string> favouriteIds = favourites.ids();
 
     std::vector<::AppManifest> collected;
     app_manager_for_each_manifest(collectManifest, &collected);
     std::vector<std::string> incompatibleIds;
     app_manager_for_each_package(collectIncompatibleAppIds, &incompatibleIds);
-    std::erase_if(collected, [&](const ::AppManifest& manifest) {
-        return !isShown(manifest) || std::ranges::find(incompatibleIds, std::string(manifest.id)) != incompatibleIds.end();
+    ::std::erase_if(collected, [&](const ::AppManifest& manifest) {
+        return !isShown(manifest) || ::std::ranges::find(incompatibleIds, std::string(manifest.id)) != incompatibleIds.end();
     });
 
     std::vector<TileGridItem> items;
@@ -92,7 +107,7 @@ std::vector<TileGridItem> collectItems() {
     for (const auto& manifest : collected) {
         items.push_back({ manifest.id, manifest.name, appIcon(&manifest), Favourites::contains(favouriteIds, manifest.id) });
     }
-    std::ranges::sort(items, [](const TileGridItem& a, const TileGridItem& b) {
+    ::std::ranges::sort(items, [](const TileGridItem& a, const TileGridItem& b) {
         if (a.highlighted != b.highlighted) {
             return a.highlighted;
         }
@@ -102,8 +117,10 @@ std::vector<TileGridItem> collectItems() {
 }
 
 void toggleFavourite(TileGrid& grid, const char* appId, bool keepSelection) {
-    if (!favourites.toggle(appId)) {
-        LOG_E(TAG, "Failed to save favourites");
+    auto* job = new (::std::nothrow) SaveFavouritesJob { favourites.toggle(appId) };
+    if (job == nullptr || file_ops_queue(saveFavourites, job, nullptr) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to queue saving favourites");
+        delete job;
     }
     grid.requestRepopulate(keepSelection);
 }
@@ -119,6 +136,10 @@ void onKey(TileGrid& grid, const TileGridItem& item, uint32_t key) {
 }
 
 } // namespace
+
+void loadFavourites(void*) {
+    favourites.load();
+}
 
 const LauncherMode APPS_MODE = {
     .buttonIcon = LVGL_ICON_SHARED_APPS,

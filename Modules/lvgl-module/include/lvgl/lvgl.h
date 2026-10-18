@@ -42,12 +42,9 @@ bool lvgl_try_lock(uint32_t timeout);
 void lvgl_unlock(void);
 
 /**
- * @brief Runs a function with the LVGL lock held, on the LVGL task when the calling task can't do the work itself.
+ * @brief Runs a function with the LVGL lock held, on the calling task.
  *
- * Code that creates widgets can read files, e.g. to decode an image. Reading from flash needs a stack in
- * internal RAM, which tasks with a stack in external RAM don't have. Such tasks have the function run on the LVGL
- * task, and wait for it to finish. Other tasks run it themselves.
- * Don't call this while holding a lock that LVGL callbacks can wait for.
+ * The function must not read files. The LVGL task can have its stack in external RAM.
  * @param[in] function the function to run
  * @param[in] argument passed to @a function
  */

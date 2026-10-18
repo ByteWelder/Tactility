@@ -1,11 +1,10 @@
 #pragma once
 
-#include <tactility/concurrent/dispatcher.h>
-
 namespace tt {
 
-/** @return the handle of the dispatcher that getMainDispatcher() wraps */
-DispatcherHandle_t getMainDispatcherHandle();
+/** Queues a function on the main dispatcher's task without using the deprecated MainDispatcher class.
+ * @return true if the function was queued */
+bool dispatchOnMainDispatcher(void (*function)(void* context), void* context);
 
 void prepareFileSystems();
 

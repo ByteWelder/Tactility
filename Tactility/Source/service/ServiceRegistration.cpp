@@ -2,6 +2,7 @@
 
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/Mutex.h>
+#include <TactilityCpp/Memory.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 
@@ -45,7 +46,7 @@ std::unordered_map<std::string, AllocatedManifest>& allocatedManifests() {
 extern "C" {
 
 static void cppDestroyServiceTrampoline(const ::ServiceManifest* /*manifest*/, void* data) {
-    delete static_cast<std::shared_ptr<Service>*>(data);
+    deleteObject(static_cast<std::shared_ptr<Service>*>(data));
 }
 
 static error_t cppOnStartTrampoline(::ServiceInstance* instance, void* data) {

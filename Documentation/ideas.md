@@ -7,8 +7,7 @@
 
 ## Higher Priority
 
-- Experiment with LVGL stack in SPIRAM - LVGL shouldn't do file IO anyway.
-- Experiment with default malloc() to SPIRAM
+- Move EspNowRadio etc to Platforms/platform-esp32/
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
@@ -21,7 +20,6 @@
 - Cursor is hard-coded, needs size based on DPI
 - Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
-- esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot
 - Pick different font to improve monochrome screen readability (or change the weight). 

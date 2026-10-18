@@ -2,6 +2,9 @@
 
 #include <service/instance.h>
 
+#include <TactilityCpp/Allocator.h>
+#include <TactilityCpp/Memory.h>
+
 #include <memory>
 
 namespace tt::service {
@@ -23,6 +26,8 @@ public:
 };
 
 template<typename T>
-void* create(const ::ServiceManifest* /*manifest*/) { return new std::shared_ptr<Service>(std::shared_ptr<T>(new T)); }
+void* create(const ::ServiceManifest* /*manifest*/) {
+    return newObject<::std::shared_ptr<Service>>(::std::allocate_shared<T>(OptExternalAllocator<T>()));
+}
 
 }

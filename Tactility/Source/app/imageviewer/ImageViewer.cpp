@@ -15,6 +15,9 @@
 #include <lvgl/widgets/toolbar.h>
 #include <lvgl.h>
 
+#include <TactilityCpp/std/vector.h>
+
+#include <cstdio>
 #include <string>
 
 namespace tt::app::imageviewer {
@@ -27,8 +30,34 @@ namespace {
 
 struct Context {
     uint32_t appInstanceId;
-    std::string filePath;
+    ::std::string filePath;
+    // File contents are read in the app task, never on the LVGL task
+    tt::std::vector<uint8_t> fileData;
+    lv_image_dsc_t imageDsc {};
 };
+
+void loadFile(Context& ctx) {
+    FILE* file = fopen(ctx.filePath.c_str(), "rb");
+    if (file == nullptr) return;
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    if (size > 0) {
+        ctx.fileData.resize(static_cast<size_t>(size));
+        if (fread(ctx.fileData.data(), 1, ctx.fileData.size(), file) != ctx.fileData.size()) {
+            ctx.fileData.clear();
+        }
+    }
+    fclose(file);
+
+    if (!ctx.fileData.empty()) {
+        ctx.imageDsc.header.magic = LV_IMAGE_HEADER_MAGIC;
+        ctx.imageDsc.header.cf = LV_COLOR_FORMAT_RAW;
+        ctx.imageDsc.data_size = ctx.fileData.size();
+        ctx.imageDsc.data = ctx.fileData.data();
+    }
+}
 
 
 void onBackPressed(lv_event_t* event) {
@@ -68,10 +97,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     auto* file_label = lv_label_create(wrapper);
     lv_obj_align_to(file_label, wrapper, LV_ALIGN_BOTTOM_LEFT, 0, 0);
 
-    if (!ctx->filePath.empty()) {
-        std::string prefixed_path = lvgl::PATH_PREFIX + ctx->filePath;
-        LOG_I(TAG, "Opening %s", prefixed_path.c_str());
-        lv_img_set_src(image, prefixed_path.c_str());
+    if (!ctx->fileData.empty()) {
+        LOG_I(TAG, "Opening %s", ctx->filePath.c_str());
+        lv_image_set_src(image, &ctx->imageDsc);
         auto path = string::getLastPathSegment(ctx->filePath);
         lv_label_set_text(file_label, path.c_str());
     } else {
@@ -86,6 +114,7 @@ int32_t appMain(int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
     ctx.filePath = argv[0];
+    loadFile(ctx);
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
@@ -121,7 +150,7 @@ int32_t appMain(int argc, char* argv[]) {
 
 } // namespace
 
-void start(const std::string& file) {
+void start(const ::std::string& file) {
     const char* argv[] = { file.c_str() };
     uint32_t instanceId = 0;
     AppStartContext context = app_start_context_for_manifest(&manifest);
