@@ -79,7 +79,7 @@
 			frequency-khz = <20000>;
 		};
 
-		epd@1 {
+		display@1 {
 			compatible = "solomon-systech,ssd16xx";
 			pin-dc = <&gpio0 13 GPIO_FLAG_NONE>;
 			pin-reset = <&gpio0 12 GPIO_FLAG_NONE>;

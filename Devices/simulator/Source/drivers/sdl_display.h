@@ -12,6 +12,8 @@ extern "C" {
 struct SdlDisplayConfig {
     uint16_t horizontal_resolution;
     uint16_t vertical_resolution;
+    /** Frames are 8 bit luminance instead of RGB565 */
+    bool grayscale;
 };
 
 /**

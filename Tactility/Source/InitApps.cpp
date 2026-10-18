@@ -1,10 +1,12 @@
+#include "tactility/drivers/bluetooth.h"
+
+
 #include <Tactility/TactilityPrivate.h>
 
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #endif
 
-#include <Tactility/MountPoints.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/file/File.h>
 #include <Tactility/service/audio/Audio.h>
@@ -198,10 +200,10 @@ static void registerInternalApps() {
         app_manager_add(&app::power::manifest);
     }
 
-#if defined(CONFIG_BT_ENABLED) && CONFIG_BT_ENABLED
-    app_manager_add(&app::btmanage::manifest);
-    app_manager_add(&app::btpeersettings::manifest);
-#endif
+    if (device_exists_of_type(&BLUETOOTH_TYPE)) {
+        app_manager_add(&app::btmanage::manifest);
+        app_manager_add(&app::btpeersettings::manifest);
+    }
 }
 
 // Registers every mounted filesystem's app install directory with app-module (see

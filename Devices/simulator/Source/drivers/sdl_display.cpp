@@ -11,6 +11,7 @@
 #include <SDL2/SDL.h>
 
 #include <cstdlib>
+#include <vector>
 
 constexpr auto* TAG = "SdlDisplay";
 #define GET_CONFIG(device) (static_cast<const SdlDisplayConfig*>((device)->config))
@@ -160,8 +161,18 @@ error_t sdl_display_execute_draw_bitmap(Device* device, void* internal_ptr, int3
     }
 
     SDL_Rect rect = { x_start, y_start, x_end - x_start, y_end - y_start };
-    // RGB565 = 2 bytes/pixel.
-    if (SDL_UpdateTexture(internal->texture, &rect, color_data, (x_end - x_start) * 2) != 0) {
+    // The texture is always RGB565 = 2 bytes/pixel.
+    std::vector<uint16_t> converted;
+    if (GET_CONFIG(device)->grayscale) {
+        const auto* luminance = static_cast<const uint8_t*>(color_data);
+        converted.resize(static_cast<size_t>(rect.w) * rect.h);
+        for (size_t i = 0; i < converted.size(); i++) {
+            const uint16_t value = luminance[i];
+            converted[i] = ((value >> 3) << 11) | ((value >> 2) << 5) | (value >> 3);
+        }
+        color_data = converted.data();
+    }
+    if (SDL_UpdateTexture(internal->texture, &rect, color_data, rect.w * 2) != 0) {
         return ERROR_RESOURCE;
     }
 
@@ -179,8 +190,8 @@ static error_t sdl_display_draw_bitmap(Device* device, int32_t x_start, int32_t 
     return sdl_bridge_present(device, internal, x_start, y_start, x_end, y_end, color_data);
 }
 
-static enum DisplayColorFormat sdl_display_get_color_format(Device*) {
-    return DISPLAY_COLOR_FORMAT_RGB565;
+static enum DisplayColorFormat sdl_display_get_color_format(Device* device) {
+    return GET_CONFIG(device)->grayscale ? DISPLAY_COLOR_FORMAT_GRAYSCALE8 : DISPLAY_COLOR_FORMAT_RGB565;
 }
 
 static uint16_t sdl_display_get_resolution_x(Device* device) {
