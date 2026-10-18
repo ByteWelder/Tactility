@@ -31,9 +31,11 @@ struct Context {
     AppInstanceId dialogId = 0;
     /** Last read from the profile file, which is not on the LVGL thread */
     size_t selectedIndex = 0;
+    bool saveFailed = false;
 
     lv_obj_t* profileLabel = nullptr;
     lv_obj_t* rebootButton = nullptr;
+    lv_obj_t* errorLabel = nullptr;
 };
 
 void onBackPressed(lv_event_t* event) {
@@ -67,6 +69,7 @@ void updateWidgets(Context* ctx) {
     }
     lv_label_set_text(ctx->profileLabel, getProfile(ctx->selectedIndex).name);
     lv_obj_set_state(ctx->rebootButton, LV_STATE_DISABLED, ctx->selectedIndex == getActiveProfileIndex());
+    lv_obj_set_hidden(ctx->errorLabel, !ctx->saveFailed);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -117,6 +120,11 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_label_set_text(reboot_button_label, "Reboot");
     lv_obj_add_event_cb(ctx->rebootButton, onRebootPressed, LV_EVENT_SHORT_CLICKED, ctx);
 
+    ctx->errorLabel = lv_label_create(card);
+    lv_label_set_text(ctx->errorLabel, "Failed to save the profile");
+    lv_obj_set_style_text_color(ctx->errorLabel, lv_palette_main(LV_PALETTE_RED), LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ctx->errorLabel, lvgl_get_text_font(FONT_SIZE_SMALL), LV_STATE_DEFAULT);
+
     updateWidgets(ctx);
 }
 
@@ -124,6 +132,7 @@ void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
     ctx->profileLabel = nullptr;
     ctx->rebootButton = nullptr;
+    ctx->errorLabel = nullptr;
 }
 
 void startProfileDialog(Context* ctx) {
@@ -149,8 +158,11 @@ void onDialogResult(Context* ctx, int32_t selected) {
     if (selected < 0 || selected >= static_cast<int32_t>(PROFILE_COUNT)) {
         return;
     }
-    saveSelectedProfileIndex(selected);
-    ctx->selectedIndex = selected;
+    // A failed save keeps the selection that the next start loads
+    ctx->saveFailed = !saveSelectedProfileIndex(selected);
+    if (!ctx->saveFailed) {
+        ctx->selectedIndex = selected;
+    }
     lvgl_lock();
     updateWidgets(ctx);
     lvgl_unlock();

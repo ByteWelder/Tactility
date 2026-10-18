@@ -3,12 +3,18 @@
 #include <tactility/log.h>
 
 #include <cerrno>
+#include <climits>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 namespace simulator {
 
@@ -30,6 +36,8 @@ static const Profile PROFILES[PROFILE_COUNT] = {
 
 static size_t activeProfileIndex = 0;
 static char** processArguments = nullptr;
+/** Absolute, because argv[0] can be a bare name that was found through PATH. Empty when it can't be resolved. */
+static std::string executablePath;
 
 const Profile& getProfile(size_t index) {
     return PROFILES[index < PROFILE_COUNT ? index : 0];
@@ -80,7 +88,7 @@ static void clearSavedOrientation() {
 }
 
 bool saveSelectedProfileIndex(size_t index) {
-    clearSavedOrientation();
+    const bool changed = index != loadSelectedProfileIndex();
     mkdir(PROFILE_DIRECTORY, 0755);
     FILE* file = fopen(PROFILE_PATH, "w");
     if (file == nullptr) {
@@ -88,7 +96,13 @@ bool saveSelectedProfileIndex(size_t index) {
         return false;
     }
     const bool written = fprintf(file, "%s\n", getProfile(index).name) > 0;
-    return fclose(file) == 0 && written;
+    if (fclose(file) != 0 || !written) {
+        return false;
+    }
+    if (changed) {
+        clearSavedOrientation();
+    }
+    return true;
 }
 
 void initActiveProfile() {
@@ -100,8 +114,31 @@ size_t getActiveProfileIndex() {
     return activeProfileIndex;
 }
 
+static std::string resolveExecutablePath(const char* argv0) {
+    char path[PATH_MAX];
+#ifdef __APPLE__
+    uint32_t size = sizeof(path);
+    char resolved[PATH_MAX];
+    if (_NSGetExecutablePath(path, &size) == 0 && realpath(path, resolved) != nullptr) {
+        return resolved;
+    }
+#else
+    const ssize_t length = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (length > 0) {
+        path[length] = '\0';
+        return path;
+    }
+#endif
+    // Only a path with a slash can be resolved without searching PATH
+    if (strchr(argv0, '/') != nullptr && realpath(argv0, path) != nullptr) {
+        return path;
+    }
+    return "";
+}
+
 void setProcessArguments(char** argv) {
     processArguments = argv;
+    executablePath = resolveExecutablePath(argv[0]);
 }
 
 void reboot() {
@@ -110,10 +147,17 @@ void reboot() {
         return;
     }
     // The FreeRTOS tick timer would outlive exec() and kill the new image with SIGALRM
-    itimerval stop = {};
-    setitimer(ITIMER_REAL, &stop, nullptr);
-    execv(processArguments[0], processArguments);
+    itimerval previousTimer = {};
+    itimerval stopTimer = {};
+    setitimer(ITIMER_REAL, &stopTimer, &previousTimer);
+    if (!executablePath.empty()) {
+        execv(executablePath.c_str(), processArguments);
+    } else {
+        execvp(processArguments[0], processArguments);
+    }
     LOG_E(TAG, "Failed to reboot: %s", strerror(errno));
+    // This process keeps running, so it needs its ticks again
+    setitimer(ITIMER_REAL, &previousTimer, nullptr);
 }
 
 }

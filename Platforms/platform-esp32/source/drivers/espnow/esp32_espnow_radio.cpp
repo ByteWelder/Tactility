@@ -108,7 +108,9 @@ void transmitQueued(Radio* radio) {
         mutex_unlock(&radio->mutex);
 
         radio_tx_event_emit(radio->device, frame.id, RADIO_TRANSMISSION_STATE_TRANSMIT_PENDING);
-        const size_t maxLength = radio->version >= 2 ? MAX_DATA_LENGTH_V2 : MAX_DATA_LENGTH_V1;
+        const size_t protocolMaxLength = radio->version >= 2 ? MAX_DATA_LENGTH_V2 : MAX_DATA_LENGTH_V1;
+        // Receivers hand out at most RADIO_RX_MAX_PACKET_LENGTH bytes, so a longer frame would arrive truncated
+        const size_t maxLength = ::std::min<size_t>(protocolMaxLength, RADIO_RX_MAX_PACKET_LENGTH);
         const bool fits = frame.data.size() <= maxLength;
         // The frame is handed to the Wi-Fi stack, which doesn't report when it's out
         const bool sent = fits && backend::send(BROADCAST_ADDRESS, frame.data.data(), frame.data.size());

@@ -145,7 +145,7 @@ error_t apiSetRadioEnabled(Device* device, bool enabled) {
     for (size_t i = 0; i < MOCK_PEER_COUNT; i++) {
         if (disconnected[i]) fireConnectState(ctx, i);
     }
-    fireRadioState(ctx, ctx->radioState);
+    fireRadioState(ctx, enabled ? BT_RADIO_STATE_ON : BT_RADIO_STATE_OFF);
 
     LOG_I(TAG, "Bluetooth radio %s (mock)", enabled ? "on" : "off");
     return ERROR_NONE;

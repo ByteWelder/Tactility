@@ -30,6 +30,7 @@ runs:
         cp -r release/TactilitySDK $TACTILITY_PLATFORM_PATH/TactilitySDK
         mkdir -p test_sdk/sdk/$(cat version.txt)/tools
         cp Buildscripts/TactilitySDK/Tools/*.py test_sdk/sdk/$(cat version.txt)/tools/
+        python -c "import sys; sys.path.insert(0, 'Buildscripts/CDN'); from new_project import create_new_project_zip; create_new_project_zip('test_sdk/sdk/$(cat version.txt)')"
     - name: 'Test Integration'
       shell: bash
       env:
@@ -41,7 +42,6 @@ runs:
         TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
       run: |
         SDK_VERSION=$(cat version.txt)
-        python -c "import sys; sys.path.insert(0, 'Buildscripts/CDN'); from new_project import create_new_project_zip; create_new_project_zip('test_sdk/sdk/$SDK_VERSION')"
         # The answers are: generate, SDK version, package id, app id, app name and terminal app. An empty line takes the default.
         for terminal in "" "y"; do
           project_path="$RUNNER_TEMP/new-project-${terminal:-gui}"
