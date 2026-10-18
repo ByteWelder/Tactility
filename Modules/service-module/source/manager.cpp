@@ -2,13 +2,14 @@
 
 #include <service/manager.h>
 
+#include <TactilityCpp/Memory.h>
+#include <TactilityCpp/std/string.h>
+#include <TactilityCpp/std/unordered_map.h>
+
+#include <tactility/check.h>
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
 #include <tactility/system_event.h>
-
-#include <new>
-#include <string>
-#include <unordered_map>
 
 #define TAG "service_registration"
 
@@ -17,7 +18,7 @@
 extern "C" void service_instance_set_state(ServiceInstance* instance, ServiceState state);
 
 struct ManifestLedger {
-    std::unordered_map<std::string, const ServiceManifest*> manifests;
+    tt::std::unordered_map<tt::std::string, const ServiceManifest*> manifests;
     Mutex mutex {};
 
     ManifestLedger() { mutex_construct(&mutex); }
@@ -25,7 +26,7 @@ struct ManifestLedger {
 };
 
 struct InstanceLedger {
-    std::unordered_map<std::string, ServiceInstance*> instances;
+    tt::std::unordered_map<tt::std::string, ServiceInstance*> instances;
     Mutex mutex {};
 
     InstanceLedger() { mutex_construct(&mutex); }
@@ -33,13 +34,15 @@ struct InstanceLedger {
 };
 
 static ManifestLedger& get_manifest_ledger() {
-    static ManifestLedger ledger;
-    return ledger;
+    static ManifestLedger* ledger = tt::newObject<ManifestLedger>();
+    check(ledger != nullptr);
+    return *ledger;
 }
 
 static InstanceLedger& get_instance_ledger() {
-    static InstanceLedger ledger;
-    return ledger;
+    static InstanceLedger* ledger = tt::newObject<InstanceLedger>();
+    check(ledger != nullptr);
+    return *ledger;
 }
 
 #define manifest_ledger get_manifest_ledger()
@@ -100,7 +103,7 @@ error_t service_manager_start(const char* id) {
         return ERROR_INVALID_STATE;
     }
 
-    auto* instance = new(std::nothrow) ServiceInstance { .manifest = nullptr, .data = nullptr, .internal = nullptr };
+    auto* instance = tt::newObject<ServiceInstance>(ServiceInstance { .manifest = nullptr, .data = nullptr, .internal = nullptr });
     if (instance == nullptr) {
         mutex_unlock(&instance_ledger.mutex);
         return ERROR_OUT_OF_MEMORY;
@@ -109,7 +112,7 @@ error_t service_manager_start(const char* id) {
     error_t error = service_instance_construct(instance, manifest);
     if (error != ERROR_NONE) {
         mutex_unlock(&instance_ledger.mutex);
-        delete instance;
+        tt::deleteObject(instance);
         return error;
     }
 
@@ -137,7 +140,7 @@ error_t service_manager_start(const char* id) {
     mutex_unlock(&instance_ledger.mutex);
 
     service_instance_destruct(instance);
-    delete instance;
+    tt::deleteObject(instance);
 
     return ERROR_RESOURCE;
 }
@@ -167,7 +170,7 @@ error_t service_manager_stop(const char* id) {
     mutex_unlock(&instance_ledger.mutex);
 
     service_instance_destruct(instance);
-    delete instance;
+    tt::deleteObject(instance);
 
     ServiceStoppedEvent stop_event = { .id = id };
     system_event_emit(KERNEL_EVENT_SERVICE_STOPPED, &stop_event, sizeof(stop_event));

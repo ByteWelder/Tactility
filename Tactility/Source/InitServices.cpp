@@ -9,6 +9,7 @@
 #include <Tactility/service/espnow/EspNowRadio.h>
 #include <Tactility/settings/RadioSettings.h>
 
+#include <generated_assets.h>
 #include <location/module.h>
 #include <app_hub/module.h>
 #include <development/module.h>
@@ -50,6 +51,8 @@ void registerAndStartServices() {
         addService(service::audio::manifest);
     }
     check(module_ensure_started(&wifi_module) == ERROR_NONE);
+    location_configure_certificate(reinterpret_cast<const char*>(asset_certificates_GTS_Root_R4_pem));
+    app_hub_configure_certificate(reinterpret_cast<const char*>(asset_certificates_GTS_Root_R4_pem));
     check(module_ensure_started(&location_module) == ERROR_NONE);
     check(module_ensure_started(&app_hub_module) == ERROR_NONE);
     // Before the mesh service starts, as it needs the region to turn on the radio

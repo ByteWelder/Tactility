@@ -172,7 +172,7 @@ static void onToggleChanged(lv_event_t* event) {
     const auto* option = static_cast<const ToggleOption*>(lv_event_get_user_data(event));
     const bool enabled = lv_obj_has_state(toggle, LV_STATE_CHECKED);
     lv_label_set_text(lv_obj_get_child(toggle, 0), getToggleIcon(option, enabled));
-    dispatcher_dispatch_timed(getMainDispatcherHandle(), toContext(enabled), option->setEnabled, portMAX_DELAY);
+    tt::dispatchOnMainDispatcher(option->setEnabled, toContext(enabled));
 }
 
 static void onCloseClicked(lv_event_t* /*event*/) {

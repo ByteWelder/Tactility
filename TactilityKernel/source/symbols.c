@@ -48,6 +48,7 @@
 #include <tactility/drivers/usb_msc_device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/error.h>
+#include <tactility/file_ops.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/memory.h>
 #include <tactility/module.h>
@@ -518,6 +519,12 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(usb_midi_device_send),
     DEFINE_MODULE_SYMBOL(usb_midi_device_is_connected),
     DEFINE_MODULE_SYMBOL(USB_MIDI_DEVICE_TYPE),
+    // file_ops
+    DEFINE_MODULE_SYMBOL(file_ops_subscribe),
+    DEFINE_MODULE_SYMBOL(file_ops_unsubscribe),
+    DEFINE_MODULE_SYMBOL(file_ops_queue),
+    DEFINE_MODULE_SYMBOL(file_ops_poll),
+    DEFINE_MODULE_SYMBOL(file_ops_await),
     // concurrent/dispatcher
     DEFINE_MODULE_SYMBOL(dispatcher_alloc),
     DEFINE_MODULE_SYMBOL(dispatcher_free),

@@ -2,7 +2,7 @@
 
 #ifdef ESP_PLATFORM
 
-#include <Tactility/Assets.h>
+#include <lvgl/ui_assets.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/service/audio/Audio.h>
 
@@ -441,7 +441,7 @@ void startUsbHidInput() {
     if (sys_layer != nullptr) {
         ctx->mouse_cursor = lv_image_create(sys_layer);
         lv_obj_set_clickable(ctx->mouse_cursor, false);
-        lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
+        lv_image_set_src(ctx->mouse_cursor, lvgl_get_cursor_image());
         lv_obj_set_hidden(ctx->mouse_cursor, true);
     }
     lvgl_unlock();

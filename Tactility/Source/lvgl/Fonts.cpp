@@ -1,10 +1,11 @@
 #include <Tactility/lvgl/Fonts.h>
 
-#include <Tactility/file/File.h>
 #include <Tactility/lvgl/FontCache.h>
 #include <Tactility/lvgl/FontSizes.h>
 #include <Tactility/lvgl/FontVersions.h>
 #include <Tactility/settings/AppearanceSettings.h>
+
+#include <generated_assets.h>
 
 #include <binfont/binfont.h>
 #include <binfont/generator.h>
@@ -33,7 +34,7 @@ using CodepointProvider = std::function<std::vector<uint32_t>()>;
 
 /** A TTF and the codepoints to rasterize from it */
 struct FontSource {
-    std::string ttfPath;
+    TtfSource ttf;
     uint32_t version;
     /** An empty list rasterizes all codepoints of the TTF */
     CodepointProvider getCodepoints;
@@ -43,7 +44,7 @@ struct FontSource {
 /** A font in the font cache */
 struct FontRequest {
     std::string fileName;
-    std::string ttfPath;
+    TtfSource ttf;
     uint16_t size;
     uint8_t bpp;
     CodepointProvider getCodepoints;
@@ -79,10 +80,10 @@ struct LoadedFont {
     lv_font_t* lvFont;
 };
 
-/** ESP32 devices without PSRAM skip the large fonts to save memory */
+/** ESP32 devices without PSRAM skip the large fonts to save memory, unless the fonts are part of the firmware, which doesn't use RAM */
 static bool hasLimitedMemory() {
 #ifdef ESP_PLATFORM
-    return memory_external_total() == 0;
+    return memory_external_total() == 0 && !hasGeneratedFonts();
 #else
     return false;
 #endif
@@ -120,11 +121,11 @@ size_t getTtfCharacterCount(const std::string& path) {
     return count;
 }
 
-static FontSource getSystemSource(const char* systemFileName, uint32_t systemVersion) {
-    return { getSystemFontPath(systemFileName), systemVersion, [] { return std::vector<uint32_t>(); }, false };
+static FontSource getSystemSource(const uint8_t* systemData, size_t systemSize, uint32_t systemVersion) {
+    return { { "", systemData, systemSize }, systemVersion, [] { return std::vector<uint32_t>(); }, false };
 }
 
-static FontSource getSource(const std::string& customPath, const char* systemFileName, uint32_t systemVersion) {
+static FontSource getSource(const std::string& customPath, const uint8_t* systemData, size_t systemSize, uint32_t systemVersion) {
     if (!customPath.empty()) {
         const uint32_t version = getFontFileVersion(customPath);
         if (version != 0) {
@@ -135,39 +136,46 @@ static FontSource getSource(const std::string& customPath, const char* systemFil
                 }
                 return std::vector<uint32_t>();
             };
-            return { customPath, version, get_codepoints, true };
+            return { { customPath }, version, get_codepoints, true };
         }
         LOG_W(TAG, "%s not found, using the system font", customPath.c_str());
     }
-    return getSystemSource(systemFileName, systemVersion);
+    return getSystemSource(systemData, systemSize, systemVersion);
 }
 
 static FontSource getTextSource(const FontConfiguration& configuration) {
-    return getSource(configuration.regularFontPath, "AdwaitaSans.ttf", TT_TEXT_FONT_VERSION);
+    return getSource(configuration.regularFontPath, asset_fonts_AdwaitaSans_ttf, asset_fonts_AdwaitaSans_ttf_size, TT_TEXT_FONT_VERSION);
 }
 
 static FontSource getMonoSource(const FontConfiguration& configuration) {
-    return getSource(configuration.monoFontPath, "AdwaitaMono.ttf", TT_MONO_FONT_VERSION);
+    return getSource(configuration.monoFontPath, asset_fonts_AdwaitaMono_ttf, asset_fonts_AdwaitaMono_ttf_size, TT_MONO_FONT_VERSION);
 }
 
 static FontRequest getTextRequest(const FontConfiguration& configuration, const FontSource& source, const TextFontDefinition& definition, uint8_t bpp) {
     const uint16_t size = getTextFontSize(configuration.defaultSize, definition.id);
-    return { getCachedFontFileName(TEXT_CACHE_PREFIX, definition.name, size, bpp, source.version), source.ttfPath, size, bpp, source.getCodepoints };
+    return { getCachedFontFileName(TEXT_CACHE_PREFIX, definition.name, size, bpp, source.version), source.ttf, size, bpp, source.getCodepoints };
 }
 
 static FontRequest getMonoRequest(const FontConfiguration& configuration, const FontSource& source, uint8_t bpp) {
-    return { getCachedFontFileName(MONO_CACHE_PREFIX, "mono", configuration.defaultSize, bpp, source.version), source.ttfPath, configuration.defaultSize, bpp, source.getCodepoints };
+    return { getCachedFontFileName(MONO_CACHE_PREFIX, "mono", configuration.defaultSize, bpp, source.version), source.ttf, configuration.defaultSize, bpp, source.getCodepoints };
 }
 
 /** Parses a .codepoints file: one "<name> <hex codepoint>" pair per line */
 static std::unordered_map<std::string, uint32_t> loadIconCodepoints() {
     std::unordered_map<std::string, uint32_t> codepoints;
-    file::readLines(getSystemFontPath("MaterialSymbolsRounded.codepoints"), true, [&codepoints](const char* line) {
-        const char* separator = strchr(line, ' ');
-        if (separator != nullptr) {
-            codepoints[std::string(line, separator - line)] = static_cast<uint32_t>(strtoul(separator + 1, nullptr, 16));
+    const char* line = reinterpret_cast<const char*>(asset_fonts_MaterialSymbolsRounded_codepoints);
+    const char* end = line + asset_fonts_MaterialSymbolsRounded_codepoints_size;
+    while (line < end) {
+        const char* line_end = static_cast<const char*>(memchr(line, '\n', end - line));
+        if (line_end == nullptr) {
+            line_end = end;
         }
-    });
+        const char* separator = static_cast<const char*>(memchr(line, ' ', line_end - line));
+        if (separator != nullptr) {
+            codepoints[std::string(line, separator - line)] = static_cast<uint32_t>(strtoul(std::string(separator + 1, line_end).c_str(), nullptr, 16));
+        }
+        line = line_end + 1;
+    }
     return codepoints;
 }
 
@@ -189,19 +197,42 @@ static FontRequest getIconRequest(const FontConfiguration& configuration, const 
     };
     return {
         getCachedFontFileName(ICON_CACHE_PREFIX, definition.name, size, bpp, LVGL_ICON_FONT_VERSION),
-        getSystemFontPath("MaterialSymbolsRounded.ttf"),
+        { "", asset_fonts_MaterialSymbolsRounded_ttf, asset_fonts_MaterialSymbolsRounded_ttf_size },
         size,
         bpp,
         get_codepoints
     };
 }
 
+/** Fonts that aren't part of the firmware are loaded into RAM without external memory */
+static void warnWhenInRam(const FontRequest& request) {
+    if (memory_external_total() == 0) {
+        LOG_W(TAG, "%s is not part of the firmware, so it is or will be in RAM", request.fileName.c_str());
+    }
+}
+
 static BinFont* load(const FontRequest& request) {
-    return loadOrGenerateFont(request.fileName, request.ttfPath, request.size, request.bpp, request.getCodepoints);
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    if (findGeneratedFont(request.fileName, data, size)) {
+        BinFont* font = nullptr;
+        if (binfont_open_memory(data, size, false, &font) == ERROR_NONE) {
+            return font;
+        }
+        LOG_E(TAG, "Failed to open %s from the firmware", request.fileName.c_str());
+    }
+    warnWhenInRam(request);
+    return loadOrGenerateFont(request.fileName, request.ttf, request.size, request.bpp, request.getCodepoints);
 }
 
 static bool ensureCached(const FontRequest& request) {
-    return ensureCachedFont(request.fileName, request.ttfPath, request.size, request.bpp, request.getCodepoints);
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    if (findGeneratedFont(request.fileName, data, size)) {
+        return true;
+    }
+    warnWhenInRam(request);
+    return ensureCachedFont(request.fileName, request.ttf, request.size, request.bpp, request.getCodepoints);
 }
 
 static lv_font_t* createLvglFont(BinFont* font) {
@@ -229,7 +260,15 @@ static void unloadFonts() {
     loadedFonts.clear();
 }
 
+bool isFontChangeSupported() {
+    constexpr size_t MINIMUM_TOTAL_MEMORY = 2 * 1024 * 1024;
+    return memory_heap_total() + memory_external_total() >= MINIMUM_TOTAL_MEMORY;
+}
+
 FontConfiguration loadFontConfiguration() {
+    if (!isFontChangeSupported()) {
+        return { .defaultSize = static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE), .regularFontPath = "", .monoFontPath = "" };
+    }
     const auto settings = settings::appearance::loadOrGetDefault();
     return {
         .defaultSize = settings.fontSize != 0 ? settings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE),
@@ -277,7 +316,7 @@ void loadFonts(const FontConfiguration& configuration) {
         BinFont* font = load(request);
         if (font == nullptr && text_source.custom) {
             LOG_W(TAG, "Falling back to the system font for %s text", definition.name);
-            request = getTextRequest(configuration, getSystemSource("AdwaitaSans.ttf", TT_TEXT_FONT_VERSION), definition, bpp);
+            request = getTextRequest(configuration, getSystemSource(asset_fonts_AdwaitaSans_ttf, asset_fonts_AdwaitaSans_ttf_size, TT_TEXT_FONT_VERSION), definition, bpp);
             font = load(request);
         }
         if (font == nullptr) {
@@ -334,7 +373,7 @@ BinFont* loadMonoFont() {
     BinFont* font = load(getMonoRequest(configuration, source, bpp));
     if (font == nullptr && source.custom) {
         LOG_W(TAG, "Falling back to the system monospace font");
-        font = load(getMonoRequest(configuration, getSystemSource("AdwaitaMono.ttf", TT_MONO_FONT_VERSION), bpp));
+        font = load(getMonoRequest(configuration, getSystemSource(asset_fonts_AdwaitaMono_ttf, asset_fonts_AdwaitaMono_ttf_size, TT_MONO_FONT_VERSION), bpp));
     }
     return font;
 }

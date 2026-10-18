@@ -1,10 +1,15 @@
 #include "doctest.h"
 
+#include <Tactility/lvgl/FontCache.h>
+#include <Tactility/lvgl/FontVersions.h>
 #include <Tactility/lvgl/Fonts.h>
 
 #include <binfont/binfont.h>
+#include <binfont/generator.h>
 #include <lvgl/fonts.h>
+#include <tactility/memory.h>
 
+#include <cstring>
 #include <unistd.h>
 
 using namespace tt;
@@ -90,4 +95,36 @@ TEST_CASE("updateFontCache fails for a file that is not a TrueType font") {
         .monoFontPath = "",
     };
     CHECK_FALSE(lvgl::updateFontCache(configuration));
+}
+
+TEST_CASE("the firmware has the fonts of the default size, generated like the firmware does") {
+    // The simulator has size 14 and 2 bits per pixel
+    const auto file_name = lvgl::getCachedFontFileName("text_", "default", 14, 2, TT_TEXT_FONT_VERSION);
+    const uint8_t* embedded = nullptr;
+    size_t embedded_size = 0;
+    REQUIRE(lvgl::findGeneratedFont(file_name, embedded, embedded_size));
+    CHECK(lvgl::findGeneratedFont(lvgl::getCachedFontFileName("mono_", "mono", 14, 2, TT_MONO_FONT_VERSION), embedded, embedded_size));
+    CHECK_FALSE(lvgl::findGeneratedFont(lvgl::getCachedFontFileName("text_", "default", 15, 2, TT_TEXT_FONT_VERSION), embedded, embedded_size));
+
+    DataDirectory data_directory;
+    const BinFontGeneratorConfig config = {
+        .ttf_path = "system/fonts/AdwaitaSans.ttf",
+        .ttf_data = nullptr,
+        .ttf_size = 0,
+        .size = 14,
+        .bpp = 2,
+        .codepoints = nullptr,
+        .codepoint_count = 0,
+    };
+    uint8_t* generated = nullptr;
+    size_t generated_size = 0;
+    REQUIRE_EQ(binfont_generate(&config, &generated, &generated_size), ERROR_NONE);
+    REQUIRE(lvgl::findGeneratedFont(file_name, embedded, embedded_size));
+    CHECK_EQ(generated_size, embedded_size);
+    CHECK_EQ(memcmp(generated, embedded, embedded_size), 0);
+    memory_free(generated);
+
+    BinFont* font = nullptr;
+    REQUIRE_EQ(binfont_open_memory(embedded, embedded_size, false, &font), ERROR_NONE);
+    binfont_close(font);
 }

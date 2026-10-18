@@ -18,12 +18,11 @@ std::vector<dirent> getFileSystemDirents() {
         if (!file_system_is_mounted(fs)) return true;
         char path[128];
         if (file_system_get_path(fs, path, sizeof(path)) != ERROR_NONE) return true;
-        // ESP32 mount paths are short names ("/system"); POSIX file systems can return a full
+        // ESP32 mount paths are short names ("/data"); POSIX file systems can return a full
         // absolute host path instead, so take the last path component either way.
         auto path_str = std::string(path);
         auto slash_pos = path_str.find_last_of('/');
         auto mount_name = slash_pos == std::string::npos ? path_str : path_str.substr(slash_pos + 1);
-        if (!config::SHOW_SYSTEM_PARTITION && mount_name.starts_with(SYSTEM_PARTITION_NAME)) return true;
         auto dir_entry = dirent {
             .d_ino = 2,
             .d_type = TT_DT_DIR,

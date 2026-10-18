@@ -137,16 +137,16 @@ int BootScreen::getSmallestDimension() const {
     return std::min(panelWidth, panelHeight);
 }
 
-void BootScreen::show(const std::string& logoPath, const std::vector<std::string>& lines) {
+void BootScreen::show(const BootLogo& bootLogo, const std::vector<std::string>& lines) {
     if (target == nullptr) {
         return;
     }
 
     Logo logo;
-    if (!logoPath.empty()) {
-        const unsigned error = lodepng_decode32_file(&logo.rgba, &logo.width, &logo.height, logoPath.c_str());
+    if (bootLogo.data != nullptr) {
+        const unsigned error = lodepng_decode32(&logo.rgba, &logo.width, &logo.height, bootLogo.data, bootLogo.size);
         if (error != 0) {
-            LOG_E(TAG, "Failed to load %s: %s", logoPath.c_str(), lodepng_error_text(error));
+            LOG_E(TAG, "Failed to decode logo: %s", lodepng_error_text(error));
             lodepng_free(logo.rgba);
             logo.rgba = nullptr;
             logo.width = 0;

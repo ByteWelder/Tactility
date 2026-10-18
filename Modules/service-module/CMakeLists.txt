@@ -8,4 +8,5 @@ tactility_add_module(service-module
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS include/
     REQUIRES TactilityKernel
+    PRIV_REQUIRES TactilityKernelCpp
 )

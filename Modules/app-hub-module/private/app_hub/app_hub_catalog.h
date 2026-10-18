@@ -56,8 +56,8 @@ const char* app_hub_catalog_get_platform();
 /** @return true when this device can install and run the entry's app (target platform, device and RAM requirements) */
 bool app_hub_catalog_is_compatible(const AppHubCatalogEntry& entry);
 
-/** @return the path of the certificate that verifies the catalog server, in the "system" file system, or an empty string when it isn't available */
-std::string app_hub_catalog_get_certificate_path();
+/** @return the PEM text of the certificate that verifies the catalog server, or an empty string when it isn't configured */
+const char* app_hub_catalog_get_certificate();
 
 std::string app_hub_catalog_get_url();
 

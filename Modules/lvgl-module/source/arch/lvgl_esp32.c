@@ -43,54 +43,19 @@ void lvgl_unlock(void) {
     lvgl_port_unlock();
 }
 
-struct RunOnTaskRequest {
-    void (*function)(void*);
-    void* argument;
-    SemaphoreHandle_t done;
-};
-
-// Runs inside the LVGL task, which holds the LVGL lock
-static void run_on_task_callback(void* data) {
-    struct RunOnTaskRequest* request = data;
-    request->function(request->argument);
-    xSemaphoreGive(request->done);
-}
-
 void lvgl_run_on_task(void (*function)(void*), void* argument) {
-    const int stack_marker = 0;
-    const bool is_lvgl_task = strcmp(pcTaskGetName(NULL), "taskLVGL") == 0;
-    SemaphoreHandle_t done = NULL;
-    // A stack in internal RAM can read files, and the LVGL task itself can always run the function
-    if (initialized && !is_lvgl_task && !esp_ptr_internal(&stack_marker)) {
-        done = xSemaphoreCreateBinary();
-    }
-    if (done == NULL) {
-        lvgl_lock();
-        function(argument);
-        lvgl_unlock();
-        return;
-    }
-
-    struct RunOnTaskRequest request = { .function = function, .argument = argument, .done = done };
     lvgl_lock();
-    lv_async_call(run_on_task_callback, &request);
+    function(argument);
     lvgl_unlock();
-    // The LVGL task may be asleep for a while otherwise
-    lvgl_port_task_wake(LVGL_PORT_EVENT_USER, NULL);
-    while (xSemaphoreTake(done, pdMS_TO_TICKS(1000)) != pdTRUE) {
-        if (!initialized) {
-            // LVGL stopped before it ran the function
-            lv_async_call_cancel(run_on_task_callback, &request);
-            break;
-        }
-    }
-    vSemaphoreDelete(done);
 }
 
 error_t lvgl_arch_start() {
+    // The LVGL task must not read files: its stack in external RAM can't be used while the flash cache is off
+    const bool has_external_ram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM) > 0;
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = lvgl_module_config.task_priority,
         .task_stack = lvgl_module_config.task_stack_size,
+        .task_stack_caps = has_external_ram ? (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : (MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT),
         .task_affinity = lvgl_module_config.task_affinity,
         .task_max_sleep_ms = 500,
         .timer_period_ms = 5

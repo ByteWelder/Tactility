@@ -8,7 +8,7 @@
 #include <Tactility/bluetooth/BluetoothPairedDevice.h>
 #include <Tactility/bluetooth/BluetoothPrivate.h>
 
-#include <Tactility/Assets.h>
+#include <lvgl/ui_assets.h>
 #include <Tactility/Tactility.h>
 
 #include <tactility/log.h>
@@ -354,7 +354,7 @@ static void hidHostHandleMouseReport(const uint8_t* data, uint16_t len) {
             auto* cur = lv_image_create(lv_layer_sys());
             lv_obj_set_clickable(cur, false);
             lv_obj_set_hidden(cur, true);
-            lv_image_set_src(cur, TT_ASSETS_UI_CURSOR);
+            lv_image_set_src(cur, lvgl_get_cursor_image());
             lv_indev_set_cursor(ms, cur);
             hid_host_ctx->mouseIndev  = ms;
             hid_host_ctx->mouseCursor = cur;

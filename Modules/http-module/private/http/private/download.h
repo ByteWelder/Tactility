@@ -61,7 +61,7 @@ inline bool http_download_is_cancelled(HttpDownloadLink* link) {
 /** Implemented in download_esp.cpp (ESP_PLATFORM) or download_mock.cpp (otherwise). */
 HttpDownloadEvent http_download_run(
     const std::string& url,
-    const std::string& certPath,
+    const std::string& certPem,
     const std::string& targetPath,
     HttpDownloadLink* link
 );

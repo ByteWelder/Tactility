@@ -18,6 +18,8 @@ extern "C" {
  * need (WIFI_MODE_STA or WIFI_MODE_AP); the radio is brought up on the first acquire (merging into
  * WIFI_MODE_APSTA if another owner is already active) and only torn down once every owner has
  * released. Several owners can hold the same mode bit, and the bit stays active until its last owner released.
+ * The default station netif is created before the radio starts when the station bit is acquired, and destroyed with the last
+ * station owner. Creating it after the radio started leaves it without an IP address.
  *
  * @param mode_bit WIFI_MODE_STA or WIFI_MODE_AP (not WIFI_MODE_APSTA/WIFI_MODE_NULL).
  * @retval true the mode bit is now active (radio is initialized, started, and its current mode

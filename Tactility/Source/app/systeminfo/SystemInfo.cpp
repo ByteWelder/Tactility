@@ -294,7 +294,6 @@ struct Context {
     MemoryBarWidgets externalMemBar;
     MemoryBarWidgets dataStorageBar;
     MemoryBarWidgets sdcardStorageBar;
-    MemoryBarWidgets systemStorageBar;
 
     lv_obj_t* tasksContainer = nullptr;
     /** The task name of each row in tasksContainer */
@@ -303,7 +302,6 @@ struct Context {
 
     bool hasExternalMem = false;
     bool hasDataStorage = false;
-    bool hasSystemStorage = false;
 };
 
 
@@ -331,11 +329,6 @@ void updateStorage(Context* ctx) {
         updateMemoryBar(ctx->sdcardStorageBar, storage_free, storage_total);
     }
 
-    if (ctx->hasSystemStorage) {
-        if (esp_vfs_fat_info(file::MOUNT_POINT_SYSTEM, &storage_total, &storage_free) == ESP_OK) {
-            updateMemoryBar(ctx->systemStorageBar, storage_free, storage_total);
-        }
-    }
 #endif
 }
 
@@ -427,13 +420,6 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     std::string sdcard_path;
     if (findFirstMountedSdCardPath(sdcard_path) && esp_vfs_fat_info(sdcard_path.c_str(), &storage_total, &storage_free) == ESP_OK) {
         ctx->sdcardStorageBar = createMemoryBar(storage_tab, sdcard_path.c_str());
-    }
-
-    if (config::SHOW_SYSTEM_PARTITION) {
-        ctx->hasSystemStorage = (esp_vfs_fat_info(file::MOUNT_POINT_SYSTEM, &storage_total, &storage_free) == ESP_OK);
-        if (ctx->hasSystemStorage) {
-            ctx->systemStorageBar = createMemoryBar(storage_tab, file::MOUNT_POINT_SYSTEM);
-        }
     }
 #endif
 

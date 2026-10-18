@@ -5,6 +5,7 @@
 
 #include <csignal>
 #include <pthread.h>
+#include <sys/stat.h>
 #include <thread>
 
 namespace simulator {
@@ -19,6 +20,9 @@ void app_main(); // ESP-IDF's main function, implemented in the application
 }
 
 int main() {
+    // The folder for the "data" file system is not in the repository
+    mkdir("data", 0755);
+
     // The FreeRTOS POSIX port arms a process-wide SIGALRM timer for its tick and expects every one
     // of its task pthreads to have all signals but SIGINT blocked.
     // (see prvSetupSignalsAndSchedulerPolicy() in FreeRTOS-Kernel's Posix port.c)

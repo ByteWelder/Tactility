@@ -538,20 +538,26 @@ error_t generate(const BinFontGeneratorConfig* config, const uint32_t* codepoint
 extern "C" {
 
 error_t binfont_generate(const BinFontGeneratorConfig* config, uint8_t** out_data, size_t* out_size) {
-    if (config->ttf_path == nullptr || config->size == 0 || config->bpp < 1 || config->bpp > 4 || (config->codepoints == nullptr) != (config->codepoint_count == 0)) {
+    const bool has_ttf_data = config->ttf_data != nullptr && config->ttf_size > 0;
+    if ((config->ttf_path == nullptr && !has_ttf_data) || config->size == 0 || config->bpp < 1 || config->bpp > 4 || (config->codepoints == nullptr) != (config->codepoint_count == 0)) {
         return ERROR_INVALID_ARGUMENT;
     }
 
-    size_t ttf_size = 0;
-    uint8_t* ttf = read_file(config->ttf_path, ttf_size);
-    if (ttf == nullptr) {
-        return ERROR_NOT_FOUND;
+    size_t ttf_size = config->ttf_size;
+    const uint8_t* ttf = config->ttf_data;
+    uint8_t* owned_ttf = nullptr;
+    if (!has_ttf_data) {
+        owned_ttf = read_file(config->ttf_path, ttf_size);
+        if (owned_ttf == nullptr) {
+            return ERROR_NOT_FOUND;
+        }
+        ttf = owned_ttf;
     }
 
     stbtt_fontinfo info;
     const int font_offset = stbtt_GetFontOffsetForIndex(ttf, 0);
     if (font_offset < 0 || stbtt_InitFont(&info, ttf, font_offset) == 0) {
-        memory_free(ttf);
+        memory_free(owned_ttf);
         return ERROR_NOT_SUPPORTED;
     }
     AllocationState allocation = { .failed = false };
@@ -562,7 +568,7 @@ error_t binfont_generate(const BinFontGeneratorConfig* config, uint8_t** out_dat
     CodepointList all_codepoints;
     if (codepoints == nullptr) {
         if (!collect_codepoints(info, ttf_size, all_codepoints)) {
-            memory_free(ttf);
+            memory_free(owned_ttf);
             return all_codepoints.hasFailed() ? ERROR_OUT_OF_MEMORY : ERROR_NOT_SUPPORTED;
         }
         codepoints = all_codepoints.getData();
@@ -571,14 +577,14 @@ error_t binfont_generate(const BinFontGeneratorConfig* config, uint8_t** out_dat
 
     auto* glyphs = static_cast<GlyphInfo*>(memory_alloc(codepoint_count * sizeof(GlyphInfo)));
     if (glyphs == nullptr) {
-        memory_free(ttf);
+        memory_free(owned_ttf);
         return ERROR_OUT_OF_MEMORY;
     }
 
     ByteBuffer out;
     const error_t error = generate(config, codepoints, codepoint_count, info, glyphs, out);
     memory_free(glyphs);
-    memory_free(ttf);
+    memory_free(owned_ttf);
     if (error != ERROR_NONE) {
         return error;
     }
