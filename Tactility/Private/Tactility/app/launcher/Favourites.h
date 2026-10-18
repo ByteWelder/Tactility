@@ -25,6 +25,8 @@ class Favourites final {
     struct State {
         Mutex mutex;
         std::vector<std::string> ids;
+        /** Toggling before the first load() would save a list without the favourites in the file */
+        bool loaded = false;
 
         State() { mutex_construct(&mutex); }
         ~State() { mutex_destruct(&mutex); }
@@ -52,6 +54,7 @@ public:
         auto& s = state();
         mutex_lock(&s.mutex);
         s.ids = ::std::move(loaded);
+        s.loaded = true;
         mutex_unlock(&s.mutex);
     }
 
@@ -65,19 +68,24 @@ public:
     }
 
     /** Adds the id to the cached ids when it's not in there yet, otherwise removes it.
-     * @return the new cached ids, to be passed to save() */
-    std::vector<std::string> toggle(const char* id) const {
+     * @param[out] result the new cached ids, to be passed to save()
+     * @return false when load() hasn't completed yet, in which case nothing changed */
+    bool toggle(const char* id, std::vector<std::string>& result) const {
         auto& s = state();
         mutex_lock(&s.mutex);
+        if (!s.loaded) {
+            mutex_unlock(&s.mutex);
+            return false;
+        }
         auto it = ::std::ranges::find(s.ids, id);
         if (it != s.ids.end()) {
             s.ids.erase(it);
         } else {
             s.ids.emplace_back(id);
         }
-        std::vector<std::string> result(s.ids.begin(), s.ids.end());
+        result.assign(s.ids.begin(), s.ids.end());
         mutex_unlock(&s.mutex);
-        return result;
+        return true;
     }
 
     /** Writes the ids to the file. File operation.

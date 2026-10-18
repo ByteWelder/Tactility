@@ -117,8 +117,18 @@ std::vector<TileGridItem> collectItems() {
 }
 
 void toggleFavourite(TileGrid& grid, const char* appId, bool keepSelection) {
-    auto* job = new (::std::nothrow) SaveFavouritesJob { favourites.toggle(appId) };
-    if (job == nullptr || file_ops_queue(saveFavourites, job, nullptr) != ERROR_NONE) {
+    auto* job = new (::std::nothrow) SaveFavouritesJob();
+    if (job == nullptr) {
+        LOG_E(TAG, "Failed to queue saving favourites");
+        return;
+    }
+    if (!favourites.toggle(appId, job->ids)) {
+        // The favourites are still being loaded, so toggling would overwrite the file with an incomplete list
+        LOG_W(TAG, "Favourites aren't loaded yet");
+        delete job;
+        return;
+    }
+    if (file_ops_queue(saveFavourites, job, nullptr) != ERROR_NONE) {
         LOG_E(TAG, "Failed to queue saving favourites");
         delete job;
     }
