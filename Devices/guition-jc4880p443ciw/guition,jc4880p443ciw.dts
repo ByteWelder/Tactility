@@ -13,6 +13,7 @@
 #include <bindings/st7701_dsi.h>
 #include <bindings/gt911.h>
 #include <bindings/es8311.h>
+#include <bindings/es7243e.h>
 
 / {
 	compatible = "root";
@@ -60,6 +61,11 @@
 		es8311: es8311@18 {
 			compatible = "everest,es8311";
 			reg = <0x18>;
+			i2s = <&i2s0>;
+		};
+		es7243e: es7243e@14 {
+			compatible = "everest,es7243e";
+			reg = <0x14>;
 			i2s = <&i2s0>;
 		};
 	};
