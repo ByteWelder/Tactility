@@ -6,9 +6,39 @@
 
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
 
-#include <Tactility/service/espnow/EspNow.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <esp_now.h>
 
-namespace tt::service::espnow::backend {
+namespace espnow {
+
+enum class Mode {
+    Station,
+    AccessPoint
+};
+
+struct EspNowConfig {
+    uint8_t masterKey[ESP_NOW_KEY_LEN];
+    Mode mode;
+    uint8_t channel;
+    bool longRange;
+    bool encrypt;
+
+    EspNowConfig(
+        const uint8_t masterKey[ESP_NOW_KEY_LEN],
+        Mode mode,
+        uint8_t channel,
+        bool longRange,
+        bool encrypt
+    ) : mode(mode), channel(channel), longRange(longRange), encrypt(encrypt) {
+        memcpy(this->masterKey, masterKey, ESP_NOW_KEY_LEN);
+    }
+};
+
+}
+
+namespace espnow::backend {
 
 /**
  * Bring up the backend (WiFi if needed + ESP-NOW init + recv/send callbacks + PMK).

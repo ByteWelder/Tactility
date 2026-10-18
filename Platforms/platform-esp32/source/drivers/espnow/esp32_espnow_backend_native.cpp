@@ -4,7 +4,7 @@
 
 #if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_ESP_HOSTED_ENABLED)
 
-#include <Tactility/service/espnow/EspNowBackend.h>
+#include <espnow/espnow_backend.h>
 
 #include <esp_now.h>
 #include <esp_wifi.h>
@@ -14,7 +14,7 @@
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
-namespace tt::service::espnow::backend {
+namespace espnow::backend {
 
 constexpr auto* TAG = "EspNowBackendNative";
 static bool wifiAcquired = false;

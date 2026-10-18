@@ -1,7 +1,4 @@
-#ifdef ESP_PLATFORM
 #include <sdkconfig.h>
-#endif
-
 #include <assert.h>
 #include <driver/gpio.h>
 #include <driver/i2s_common.h>
@@ -126,6 +123,22 @@ extern "C" {
 }
 
 error_t platform_esp32_start_partitions();
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
+error_t esp32_espnow_radio_start();
+#endif
+
+static error_t platform_esp32_start() {
+    error_t error = platform_esp32_start_partitions();
+    if (error != ERROR_NONE) {
+        return error;
+    }
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
+    // Lets mesh networking run over ESP-NOW
+    return esp32_espnow_radio_start();
+#else
+    return ERROR_NONE;
+#endif
+}
 
 extern "C" {
 
@@ -436,7 +449,7 @@ static Driver* const platform_esp32_drivers[] = {
 
 Module platform_esp32_module = {
     .name = "platform-esp32",
-    .start = platform_esp32_start_partitions,
+    .start = platform_esp32_start,
     .stop = nullptr,
     .drivers = platform_esp32_drivers,
     .symbols = platform_esp32_symbols,

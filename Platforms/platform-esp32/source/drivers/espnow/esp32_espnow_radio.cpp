@@ -4,8 +4,7 @@
 
 #if (defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED))
 
-#include <Tactility/service/espnow/EspNow.h>
-#include <Tactility/service/espnow/EspNowRadio.h>
+#include <espnow/espnow_backend.h>
 
 #include <TactilityCpp/Memory.h>
 #include <TactilityCpp/std/deque.h>
@@ -21,12 +20,13 @@
 #include <tactility/log.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstring>
 
 #include <esp_wifi.h>
 
-namespace tt::service::espnow {
+namespace espnow {
 
 constexpr auto* TAG = "EspNowRadio";
 
@@ -38,8 +38,10 @@ constexpr int32_t CHANNEL_MIN = 1;
 constexpr int32_t CHANNEL_MAX = 14;
 constexpr int32_t POWER_MIN = 2;
 constexpr int32_t POWER_MAX = 20;
-constexpr uint32_t ENABLE_TIMEOUT_MS = 5000;
 constexpr uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+// ESP-NOW protocol version 1 and 2 payload limits
+constexpr size_t MAX_DATA_LENGTH_V1 = 250;
+constexpr size_t MAX_DATA_LENGTH_V2 = 1470;
 
 struct Frame {
     RadioTxId id;
@@ -58,9 +60,13 @@ struct Radio {
     int32_t power = POWER_MAX;
     RadioTxId nextTxId = 1;
     tt::std::deque<Frame> queue;
-    ReceiverSubscription subscription = NO_SUBSCRIPTION;
+    /** Written by the radio thread while ESP-NOW is up */
+    uint32_t version = 0;
     bool stopRequested = false;
 };
+
+/** ESP-NOW delivers received frames to a plain callback without a context */
+std::atomic<Radio*> activeRadio { nullptr };
 
 Radio* getRadio(Device* device) {
     return static_cast<Radio*>(device_get_driver_data(device));
@@ -80,22 +86,9 @@ bool isStopRequested(Radio* radio) {
     return stop;
 }
 
-/** Waits until the ESP-NOW service has brought ESP-NOW up. The service does that on another task. */
-bool waitUntilEnabled(Radio* radio) {
-    for (uint32_t waited = 0; waited < ENABLE_TIMEOUT_MS; waited += 20) {
-        if (isEnabled()) {
-            return true;
-        }
-        if (isStopRequested(radio)) {
-            return false;
-        }
-        delay_millis(20);
-    }
-    return isEnabled();
-}
-
-void onReceive(Radio* radio, const esp_now_recv_info_t* info, const uint8_t* data, int length) {
-    if (length <= 0) {
+void onReceive(const esp_now_recv_info_t* info, const uint8_t* data, int length) {
+    auto* radio = activeRadio.load();
+    if (radio == nullptr || length <= 0) {
         return;
     }
     const float rssi = (info != nullptr && info->rx_ctrl != nullptr) ? (float)info->rx_ctrl->rssi : 0.0f;
@@ -115,11 +108,12 @@ void transmitQueued(Radio* radio) {
         mutex_unlock(&radio->mutex);
 
         radio_tx_event_emit(radio->device, frame.id, RADIO_TRANSMISSION_STATE_TRANSMIT_PENDING);
-        const bool fits = frame.data.size() <= getMaxDataLength();
+        const size_t maxLength = radio->version >= 2 ? MAX_DATA_LENGTH_V2 : MAX_DATA_LENGTH_V1;
+        const bool fits = frame.data.size() <= maxLength;
         // The frame is handed to the Wi-Fi stack, which doesn't report when it's out
-        const bool sent = fits && send(BROADCAST_ADDRESS, frame.data.data(), frame.data.size());
+        const bool sent = fits && backend::send(BROADCAST_ADDRESS, frame.data.data(), frame.data.size());
         if (!sent) {
-            LOG_W(TAG, "Failed to send %u bytes (the maximum is %u)", (unsigned)frame.data.size(), (unsigned)getMaxDataLength());
+            LOG_W(TAG, "Failed to send %u bytes (the maximum is %u)", (unsigned)frame.data.size(), (unsigned)maxLength);
         }
         radio_tx_event_emit(radio->device, frame.id, sent ? RADIO_TRANSMISSION_STATE_TRANSMITTED : RADIO_TRANSMISSION_STATE_ERROR);
     }
@@ -135,26 +129,23 @@ int32_t radioThread(void* context) {
 
     // The same settings as MeshCore's ESP-NOW transport: a station with the long range protocol, unencrypted broadcasts
     uint8_t key[ESP_NOW_KEY_LEN] = {};
-    enable(EspNowConfig(key, Mode::Station, (uint8_t)channel, true, false));
+    if (!backend::init(EspNowConfig(key, Mode::Station, (uint8_t)channel, true, false), onReceive)) {
+        LOG_E(TAG, "ESP-NOW didn't start");
+        setState(radio, RADIO_STATE_ERROR);
+        return 1;
+    }
+    radio->version = backend::getVersion();
 
-    if (!waitUntilEnabled(radio)) {
-        // ESP-NOW may still finish starting on its own task, so it's turned off in both cases
-        disable();
-        if (!isStopRequested(radio)) {
-            LOG_E(TAG, "ESP-NOW didn't start");
-            setState(radio, RADIO_STATE_ERROR);
-            return 1;
-        }
-        setState(radio, RADIO_STATE_OFF);
-        return 0;
+    esp_now_peer_info_t broadcastPeer = {};
+    memcpy(broadcastPeer.peer_addr, BROADCAST_ADDRESS, sizeof(BROADCAST_ADDRESS));
+    if (!backend::addPeer(broadcastPeer)) {
+        LOG_E(TAG, "Failed to add the broadcast peer");
     }
 #ifdef CONFIG_SOC_WIFI_SUPPORTED
     // In units of 0.25 dBm
     esp_wifi_set_max_tx_power((int8_t)(power * 4));
 #endif
-    radio->subscription = subscribeReceiver([radio](const esp_now_recv_info_t* info, const uint8_t* data, int length) {
-        onReceive(radio, info, data, length);
-    });
+    activeRadio.store(radio);
     setState(radio, RADIO_STATE_ON);
 
     while (!isStopRequested(radio)) {
@@ -164,9 +155,10 @@ int32_t radioThread(void* context) {
     }
 
     setState(radio, RADIO_STATE_OFF_PENDING);
-    unsubscribeReceiver(radio->subscription);
-    radio->subscription = NO_SUBSCRIPTION;
-    disable();
+    activeRadio.store(nullptr);
+    if (!backend::deinit()) {
+        LOG_E(TAG, "Failed to stop ESP-NOW");
+    }
     setState(radio, RADIO_STATE_OFF);
     return 0;
 }
@@ -214,7 +206,7 @@ error_t apiSetEnabled(Device* device, bool enabled) {
         mutex_unlock(&radio->mutex);
         event_group_clear(radio->events, TX_BIT | STOP_BIT);
         setState(radio, RADIO_STATE_ON_PENDING);
-        radio->thread = thread_alloc_full("espnow_radio", 4096, radioThread, radio, -1);
+        radio->thread = thread_alloc_full("espnow_radio", 8192, radioThread, radio, -1);
         if (radio->thread == nullptr || thread_start(radio->thread) != ERROR_NONE) {
             if (radio->thread != nullptr) {
                 thread_free(radio->thread);
@@ -371,14 +363,16 @@ Device device {
 
 } // namespace
 
-void registerRadio() {
-    if (driver_construct_add(&driver) != ERROR_NONE ||
-        device_construct_add(&device, "tactility,espnow-radio") != ERROR_NONE ||
-        device_start(&device) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to add the ESP-NOW radio");
-    }
 }
 
+error_t esp32_espnow_radio_start() {
+    if (driver_construct_add(&espnow::driver) != ERROR_NONE ||
+        device_construct_add(&espnow::device, "tactility,espnow-radio") != ERROR_NONE ||
+        device_start(&espnow::device) != ERROR_NONE) {
+        LOG_E(espnow::TAG, "Failed to add the ESP-NOW radio");
+        return ERROR_RESOURCE;
+    }
+    return ERROR_NONE;
 }
 
 #endif

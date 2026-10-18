@@ -7,19 +7,10 @@
 
 ## Higher Priority
 
-- Move EspNowRadio etc to Platforms/platform-esp32/
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
-- Fix BT: an esp32 device connecting to a peripheral isn't working
-- "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
-- Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.
-- Support http/https on posix
 - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
-- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
-- Cursor is hard-coded, needs size based on DPI
-- Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
-- Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot
 - Pick different font to improve monochrome screen readability (or change the weight). 
@@ -34,6 +25,7 @@
 
 ## Medium Priority
 
+- Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - Tactility/Source/bluetooth move into bluetooth module, make it work generically for all bluetooth apis
 - DisplayApi: resolution x/y shouldn't be functions but struct values
 - Tactility/Source/app/imageviewer/ImageViewer.cpp: Limit memory used to open an image.

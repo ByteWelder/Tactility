@@ -8,14 +8,14 @@
 
 #include <cstdint>
 
-namespace tt::service::espnow::backend {
+namespace espnow::backend {
 
 /**
  * The esp_hosted SDIO transport to the co-processor is brought up by esp_hosted_init()
  * (auto-called at process startup via a constructor attribute - always runs regardless of
  * WiFi/BT state), but the actual slave handshake only happens via esp_hosted_connect_to_slave(),
  * which today is only called as a side effect of the WiFi or BT stack starting
- * (esp32_wifi.cpp / vhci_drv.c). Nothing in Tactility's boot sequence calls it on its own, so
+ * (esp32_wifi.cpp / vhci_drv.c). Nothing in the boot sequence calls it on its own, so
  * without this, ESP-NOW-over-bridge would require WiFi or BT to already be enabled - unlike
  * native ESP32 chips where ESP-NOW works standalone.
  *
