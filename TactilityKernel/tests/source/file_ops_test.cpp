@@ -10,6 +10,8 @@ namespace {
 struct Recorder {
     std::atomic<int> order[8];
     std::atomic<int> count { 0 };
+    /** Set after the last write of the work, so a test can wait for the work to finish with the recorder */
+    std::atomic<int> done { 0 };
 };
 
 struct Job {
@@ -21,6 +23,7 @@ void record(void* context) {
     auto* job = static_cast<Job*>(context);
     const int index = job->recorder->count.fetch_add(1);
     job->recorder->order[index] = job->id;
+    job->recorder->done.fetch_add(1);
 }
 
 void block_briefly(void* context) {
@@ -123,7 +126,7 @@ TEST_CASE("file_ops_unsubscribe is safe while work is still queued") {
     uint32_t bit;
     CHECK_EQ(task_event_group_claim_bit(&group, &bit), ERROR_NONE);
     task_event_group_release_bit(&group, bit);
-    while (recorder.count.load() == 0) {
+    while (recorder.done.load() == 0) {
         delay_ticks(1);
     }
 
