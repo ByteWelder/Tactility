@@ -5,9 +5,11 @@
 extern "C" {
 
 extern Driver st7701_driver;
+extern Driver st7701_dsi_driver;
 
 static Driver* const st7701_drivers[] = {
     &st7701_driver,
+    &st7701_dsi_driver,
     nullptr
 };
 
