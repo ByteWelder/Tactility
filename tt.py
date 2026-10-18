@@ -21,7 +21,7 @@ import time
 import urllib.request
 import zipfile
 
-TT_VERSION = "1.1.1"
+TT_VERSION = "1.2.0"
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
 INDEX_VALIDITY_SECONDS = 3600
