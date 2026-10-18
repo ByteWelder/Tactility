@@ -180,7 +180,7 @@ extern const ::AppManifest manifest = {
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
     // window_manager_remove() rebuilds the resurfaced window's widgets on this task
-    .stack = { .depth =  8192, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
+    .stack = { .depth =  6144, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
 };
 
 }
