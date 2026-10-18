@@ -2,6 +2,8 @@
 
 #include <Tactility/file/File.h>
 
+#include <generated_fonts.h>
+
 #include <binfont/binfont.h>
 #include <binfont/generator.h>
 #include <tactility/device.h>
@@ -36,6 +38,21 @@ static const std::string& getCacheDirectory() {
         return path;
     }();
     return directory;
+}
+
+bool hasGeneratedFonts() {
+    return generated_fonts_count > 0;
+}
+
+bool findGeneratedFont(const std::string& fileName, const uint8_t*& data, size_t& size) {
+    for (size_t i = 0; i < generated_fonts_count; i++) {
+        if (fileName == generated_fonts[i].file_name) {
+            data = generated_fonts[i].data;
+            size = generated_fonts[i].size;
+            return true;
+        }
+    }
+    return false;
 }
 
 uint8_t getGeneratedFontBpp() {

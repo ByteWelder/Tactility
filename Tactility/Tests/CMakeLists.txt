@@ -20,10 +20,17 @@ add_custom_target(TestsGeneratedAssets
     BYPRODUCTS "${GENERATED_DIR}/generated_assets.c" "${GENERATED_DIR}/generated_assets.h"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
+add_custom_target(TestsGeneratedFonts
+    COMMAND python "${CMAKE_SOURCE_DIR}/Buildscripts/generate-fonts.py"
+        "${CMAKE_SOURCE_DIR}/Devices/simulator" 1 "${GENERATED_DIR}"
+    BYPRODUCTS "${GENERATED_DIR}/generated_fonts.c" "${GENERATED_DIR}/generated_fonts.h"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
 set_source_files_properties("${GENERATED_DIR}/generated_assets.c" PROPERTIES GENERATED TRUE)
+set_source_files_properties("${GENERATED_DIR}/generated_fonts.c" PROPERTIES GENERATED TRUE)
 
-add_executable(TactilityTests EXCLUDE_FROM_ALL ${TEST_SOURCES} ${TACTILITY_SOURCES} "${GENERATED_DIR}/generated_assets.c")
-add_dependencies(TactilityTests TestsGeneratedAssets)
+add_executable(TactilityTests EXCLUDE_FROM_ALL ${TEST_SOURCES} ${TACTILITY_SOURCES} "${GENERATED_DIR}/generated_assets.c" "${GENERATED_DIR}/generated_fonts.c")
+add_dependencies(TactilityTests TestsGeneratedAssets TestsGeneratedFonts)
 target_include_directories(TactilityTests PRIVATE "${GENERATED_DIR}")
 
 target_include_directories(TactilityTests PRIVATE ${DOCTESTINC})

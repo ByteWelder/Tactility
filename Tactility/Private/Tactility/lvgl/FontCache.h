@@ -16,6 +16,18 @@ struct TtfSource {
     size_t size = 0;
 };
 
+/** @return true when the firmware has any fonts, which is not the case when the build had no host compiler */
+bool hasGeneratedFonts();
+
+/**
+ * Finds a font that is part of the firmware, which doesn't use RAM when it's opened with binfont_open_memory() without ownership.
+ * @param[in] fileName the cache file name, see getCachedFontFileName()
+ * @param[out] data the font file contents, which are valid forever
+ * @param[out] size the size of data in bytes
+ * @return true when the firmware has the font
+ */
+bool findGeneratedFont(const std::string& fileName, const uint8_t*& data, size_t& size);
+
 /** @return 1 for monochrome displays, otherwise 4 when PSRAM is available, otherwise 2 */
 uint8_t getGeneratedFontBpp();
 

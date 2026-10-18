@@ -166,7 +166,7 @@ endif ()
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
-        SRCS ${SOURCE_FILES} "${GENERATED_DIR}/devicetree.c" "${GENERATED_DIR}/generated_assets.c"
+        SRCS ${SOURCE_FILES} "${GENERATED_DIR}/devicetree.c" "${GENERATED_DIR}/generated_assets.c" "${GENERATED_DIR}/generated_fonts.c"
         INCLUDE_DIRS Include/
         PRIV_INCLUDE_DIRS Private/
         REQUIRES ${TACTILITY_REQUIRES_LIST}
@@ -241,6 +241,28 @@ set_source_files_properties("${GENERATED_DIR}/generated_assets.c" PROPERTIES GEN
 set_source_files_properties("${GENERATED_DIR}/generated_assets.h" PROPERTIES GENERATED TRUE)
 target_sources(${COMPONENT_LIB} PRIVATE "${GENERATED_DIR}/generated_assets.c")
 add_dependencies(${COMPONENT_LIB} GeneratedAssets)
+
+#
+# Fonts: the binfont files of the device's default font size, embedded as C byte arrays
+#
+
+# The fonts are rasterized by a tool that is built with the host compiler. Without one the table stays empty.
+if (DEFINED ENV{ESP_IDF_VERSION})
+    set(fonts_simulator 0)
+else ()
+    set(fonts_simulator 1)
+endif ()
+add_custom_target(GeneratedFonts ALL
+    COMMAND python "${CMAKE_SOURCE_DIR}/Buildscripts/generate-fonts.py"
+        "${DEVICETREE_LOCATION}" ${fonts_simulator} "${GENERATED_DIR}"
+    BYPRODUCTS "${GENERATED_DIR}/generated_fonts.c" "${GENERATED_DIR}/generated_fonts.h"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating font source files..."
+)
+set_source_files_properties("${GENERATED_DIR}/generated_fonts.c" PROPERTIES GENERATED TRUE)
+set_source_files_properties("${GENERATED_DIR}/generated_fonts.h" PROPERTIES GENERATED TRUE)
+target_sources(${COMPONENT_LIB} PRIVATE "${GENERATED_DIR}/generated_fonts.c")
+add_dependencies(${COMPONENT_LIB} GeneratedFonts)
 
 #
 # Fonts

@@ -179,7 +179,8 @@ extern const ::AppManifest manifest = {
     .category = APP_CATEGORY_SYSTEM,
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = { .depth =  3072, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
+    // Requires 3072 is not enough on certain devices
+    .stack = { .depth =  4096, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
 };
 
 }

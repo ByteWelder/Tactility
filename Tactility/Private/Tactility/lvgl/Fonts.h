@@ -30,6 +30,12 @@ constexpr size_t LARGE_FONT_CHARACTER_COUNT = 1000;
 size_t getTtfCharacterCount(const std::string& path);
 
 /** @return the configuration from the appearance settings, with the device defaults for unset values */
+/**
+ * Changing fonts generates them on the device, which needs at least 2 MB of memory in total.
+ * Otherwise only the fonts in the firmware are used.
+ */
+bool isFontChangeSupported();
+
 FontConfiguration loadFontConfiguration();
 
 /** @return the configuration of the loaded fonts, or loadFontConfiguration() before fonts are loaded */

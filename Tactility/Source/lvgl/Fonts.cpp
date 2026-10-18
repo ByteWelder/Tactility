@@ -80,10 +80,10 @@ struct LoadedFont {
     lv_font_t* lvFont;
 };
 
-/** ESP32 devices without PSRAM skip the large fonts to save memory */
+/** ESP32 devices without PSRAM skip the large fonts to save memory, unless the fonts are part of the firmware, which doesn't use RAM */
 static bool hasLimitedMemory() {
 #ifdef ESP_PLATFORM
-    return memory_external_total() == 0;
+    return memory_external_total() == 0 && !hasGeneratedFonts();
 #else
     return false;
 #endif
@@ -204,11 +204,34 @@ static FontRequest getIconRequest(const FontConfiguration& configuration, const 
     };
 }
 
+/** Fonts that aren't part of the firmware are loaded into RAM without external memory */
+static void warnWhenInRam(const FontRequest& request) {
+    if (memory_external_total() == 0) {
+        LOG_W(TAG, "%s is not part of the firmware, so it is or will be in RAM", request.fileName.c_str());
+    }
+}
+
 static BinFont* load(const FontRequest& request) {
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    if (findGeneratedFont(request.fileName, data, size)) {
+        BinFont* font = nullptr;
+        if (binfont_open_memory(data, size, false, &font) == ERROR_NONE) {
+            return font;
+        }
+        LOG_E(TAG, "Failed to open %s from the firmware", request.fileName.c_str());
+    }
+    warnWhenInRam(request);
     return loadOrGenerateFont(request.fileName, request.ttf, request.size, request.bpp, request.getCodepoints);
 }
 
 static bool ensureCached(const FontRequest& request) {
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+    if (findGeneratedFont(request.fileName, data, size)) {
+        return true;
+    }
+    warnWhenInRam(request);
     return ensureCachedFont(request.fileName, request.ttf, request.size, request.bpp, request.getCodepoints);
 }
 
@@ -237,7 +260,15 @@ static void unloadFonts() {
     loadedFonts.clear();
 }
 
+bool isFontChangeSupported() {
+    constexpr size_t MINIMUM_TOTAL_MEMORY = 2 * 1024 * 1024;
+    return memory_heap_total() + memory_external_total() >= MINIMUM_TOTAL_MEMORY;
+}
+
 FontConfiguration loadFontConfiguration() {
+    if (!isFontChangeSupported()) {
+        return { .defaultSize = static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE), .regularFontPath = "", .monoFontPath = "" };
+    }
     const auto settings = settings::appearance::loadOrGetDefault();
     return {
         .defaultSize = settings.fontSize != 0 ? settings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE),

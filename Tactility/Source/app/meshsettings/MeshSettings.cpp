@@ -82,7 +82,7 @@ struct Context {
     // Valid while the window is shown
     lv_obj_t* serviceLabel = nullptr;
     lv_obj_t* nameLabel = nullptr;
-    lv_obj_t* radioRow = nullptr;
+    lv_obj_t* radioButton = nullptr;
     lv_obj_t* radioLabel = nullptr;
     lv_obj_t* regionLabel = nullptr;
     lv_obj_t* presetRow = nullptr;
@@ -121,7 +121,12 @@ void updateLabels(Context* ctx) {
     }
     lv_label_set_text(ctx->serviceLabel, ctx->serviceText.c_str());
     lv_label_set_text(ctx->nameLabel, ctx->nameText.c_str());
-    lv_obj_set_hidden(ctx->radioRow, !ctx->radioChoice);
+    // The radio is always shown, but it can only be changed when there are several
+    if (ctx->radioChoice) {
+        lv_obj_remove_state(ctx->radioButton, LV_STATE_DISABLED);
+    } else {
+        lv_obj_add_state(ctx->radioButton, LV_STATE_DISABLED);
+    }
     lv_label_set_text(ctx->radioLabel, ctx->radioText.c_str());
     lv_label_set_text(ctx->regionLabel, ctx->regionText.c_str());
     lv_obj_set_hidden(ctx->presetRow, !ctx->hasPresets);
@@ -175,7 +180,7 @@ void loadState(Context* ctx) {
     char name[MESH_NAME_MAX_LENGTH + 1];
     mesh_get_node_name(name, sizeof(name));
     ctx->nameText = name;
-    // A choice only matters when there is more than one radio
+    // A choice is only possible when there is more than one radio
     char radio[MESH_NAME_MAX_LENGTH + 1] = "-";
     mesh_get_radio(radio, sizeof(radio));
     std::vector<std::string> radioNames;
@@ -415,12 +420,13 @@ lv_obj_t* createTitleAndValue(lv_obj_t* row, const char* title) {
     return valueLabel;
 }
 
-void createChangeButton(lv_obj_t* row, lv_event_cb_t callback, Context* ctx) {
+lv_obj_t* createChangeButton(lv_obj_t* row, lv_event_cb_t callback, Context* ctx) {
     auto* button = lv_button_create(row);
     auto* icon = lv_label_create(button);
     lv_obj_set_style_text_font(icon, lvgl_get_shared_icon_default_font(), LV_STATE_DEFAULT);
     lv_label_set_text(icon, LVGL_ICON_SHARED_LIST_ALT);
     lv_obj_add_event_cb(button, callback, LV_EVENT_SHORT_CLICKED, ctx);
+    return button;
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -450,9 +456,9 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     ctx->nameLabel = createTitleAndValue(nameRow, "Name");
     createChangeButton(nameRow, onChangeNamePressed, ctx);
 
-    ctx->radioRow = createRow(card);
-    ctx->radioLabel = createTitleAndValue(ctx->radioRow, "Radio");
-    createChangeButton(ctx->radioRow, onSelectRadioPressed, ctx);
+    auto* radioRow = createRow(card);
+    ctx->radioLabel = createTitleAndValue(radioRow, "Radio");
+    ctx->radioButton = createChangeButton(radioRow, onSelectRadioPressed, ctx);
 
     auto* regionRow = createRow(card);
     ctx->regionLabel = createTitleAndValue(regionRow, "Region");
@@ -478,7 +484,7 @@ void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
     ctx->serviceLabel = nullptr;
     ctx->nameLabel = nullptr;
-    ctx->radioRow = nullptr;
+    ctx->radioButton = nullptr;
     ctx->radioLabel = nullptr;
     ctx->regionLabel = nullptr;
     ctx->presetRow = nullptr;
