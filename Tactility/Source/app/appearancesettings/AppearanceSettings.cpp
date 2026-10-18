@@ -163,6 +163,10 @@ struct Context {
 };
 
 lvgl::FontConfiguration toFontConfiguration(const settings::appearance::AppearanceSettings& settings) {
+    // The font settings aren't shown without enough memory to generate fonts, so saved values are ignored like at boot
+    if (!lvgl::isFontChangeSupported()) {
+        return { .defaultSize = static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE), .regularFontPath = "", .monoFontPath = "" };
+    }
     return {
         .defaultSize = settings.fontSize != 0 ? settings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE),
         .regularFontPath = settings.regularFontPath,
