@@ -25,6 +25,7 @@ public:
     virtual void onStop(ServiceContext& serviceContext) {}
 };
 
+/** Creates a service for ServiceManifest::createService. The result is released with deleteObject(), see ServiceManifest. */
 template<typename T>
 void* create(const ::ServiceManifest* /*manifest*/) {
     return newObject<::std::shared_ptr<Service>>(::std::allocate_shared<T>(OptExternalAllocator<T>()));

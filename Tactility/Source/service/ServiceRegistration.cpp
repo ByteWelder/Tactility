@@ -45,6 +45,7 @@ std::unordered_map<std::string, AllocatedManifest>& allocatedManifests() {
 // function-pointer types they're assigned to (see e.g. gpio_controller.cpp).
 extern "C" {
 
+// Releases what ServiceManifest::createService returned, which must be allocated with tt::newObject()
 static void cppDestroyServiceTrampoline(const ::ServiceManifest* /*manifest*/, void* data) {
     deleteObject(static_cast<std::shared_ptr<Service>*>(data));
 }
