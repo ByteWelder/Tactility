@@ -4,6 +4,8 @@
 #include <app/private/scheduler.h>
 #include <app/scheduler.h>
 
+#include <TactilityCpp/Memory.h>
+
 #include <tactility/delay.h>
 #include <tactility/log.h>
 
@@ -12,7 +14,6 @@
 #include <atomic>
 #include <cstdlib>
 #include <mutex>
-#include <new>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -85,7 +86,7 @@ size_t task_count(AppInstanceId app_instance_id) {
 } // namespace
 
 error_t app_resources_register(AppInstanceId app_instance_id) {
-    auto* tracker = new (std::nothrow) Tracker();
+    auto* tracker = tt::newObject<Tracker>();
     if (tracker == nullptr) {
         return ERROR_OUT_OF_MEMORY;
     }
@@ -165,7 +166,7 @@ void app_resources_release(AppInstanceId app_instance_id) {
             static_cast<unsigned>(tracker->allocations.size()));
     }
 
-    delete tracker;
+    tt::deleteObject(tracker);
 }
 
 extern "C" {

@@ -7,11 +7,9 @@
 
 ## Higher Priority
 
-- Experiment with LVGL stack in SPIRAM - LVGL shouldn't do file IO anyway.
-- Experiment with default malloc() to SPIRAM
+- Move EspNowRadio etc to Platforms/platform-esp32/
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
-- ESP-NOW as radio backend. Use it for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
 - Fix BT: an esp32 device connecting to a peripheral isn't working
 - "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
@@ -22,7 +20,6 @@
 - Cursor is hard-coded, needs size based on DPI
 - Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
-- esp_lvgl_port settings has a large stack size (~9kB) to fix stackoverflow when LVGL events (e.g. button click) do actions like file operations do actions like file operations. Can we reduce the callstack?
 - Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot
 - Pick different font to improve monochrome screen readability (or change the weight). 
@@ -37,6 +34,8 @@
 
 ## Medium Priority
 
+- Tactility/Source/app/imageviewer/ImageViewer.cpp: Limit memory used to open an image.
+  loadFile() now resizes fileData to the entire file size before displaying the image. start accepts a file path without a size limit, so opening a large image can exhaust memory on an embedded device before LVGL decodes it. Reject files above a supported limit or retain a bounded file-backed decoding path.
 - A device profile selection screen for Simulator: select device profiles such as T-Lora Pager, T-Deck Plus, CL-32, Cardputer and T-Embed which changes the resolution and theming defaults after restarting.
 - A fullscreen tiny keyboard that works with single stroke gestures (similar to Palm OS Graffiti)
 - CL-32 display driver performance

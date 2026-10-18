@@ -163,6 +163,10 @@ struct Context {
 };
 
 lvgl::FontConfiguration toFontConfiguration(const settings::appearance::AppearanceSettings& settings) {
+    // The font settings aren't shown without enough memory to generate fonts, so saved values are ignored like at boot
+    if (!lvgl::isFontChangeSupported()) {
+        return { .defaultSize = static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE), .regularFontPath = "", .monoFontPath = "" };
+    }
     return {
         .defaultSize = settings.fontSize != 0 ? settings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE),
         .regularFontPath = settings.regularFontPath,
@@ -286,9 +290,11 @@ void updateWidgets(Context* ctx) {
     const bool applying = ctx->applying;
     setHidden(ctx->applyButton, applying || ctx->pendingSettings == ctx->savedSettings);
     setHidden(ctx->spinner, !applying);
-    updateFontRow(ctx->regularRow, ctx->pendingSettings.regularFontPath, ctx->regularCharacterCount);
-    updateFontRow(ctx->monoRow, ctx->pendingSettings.monoFontPath, ctx->monoCharacterCount);
-    setHidden(ctx->errorLabel, !ctx->applyFailed);
+    if (ctx->errorLabel != nullptr) {
+        updateFontRow(ctx->regularRow, ctx->pendingSettings.regularFontPath, ctx->regularCharacterCount);
+        updateFontRow(ctx->monoRow, ctx->pendingSettings.monoFontPath, ctx->monoCharacterCount);
+        setHidden(ctx->errorLabel, !ctx->applyFailed);
+    }
     updateThemeWidgets(ctx);
 }
 
@@ -727,43 +733,45 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     }
     createSystemBarsCard(content, ctx);
 
-    auto* fonts_card = createSection(content, "Fonts");
-    auto* font_size_row = createRow(fonts_card);
-    auto* font_size_label = lv_label_create(font_size_row);
-    lv_label_set_text(font_size_label, "Font size");
-    lv_obj_set_flex_grow(font_size_label, 1);
-    // [-] [size] [+]
-    auto* font_size_spinbox = lv_spinbox_create(font_size_row);
-    lv_spinbox_set_range(font_size_spinbox, MIN_FONT_SIZE, MAX_FONT_SIZE);
-    lv_spinbox_set_digit_format(font_size_spinbox, 2, 0);
-    lv_spinbox_set_step(font_size_spinbox, 1);
-    // Wide enough for the digits and the room that the text field keeps for its cursor, so it never scrolls the digits out of view.
-    // The size is set before the value, because setting the value scrolls to the cursor using the current size.
-    const lv_font_t* font_size_font = lv_obj_get_style_text_font(font_size_spinbox, LV_PART_MAIN);
-    lv_point_t digits_size;
-    lv_text_get_size(&digits_size, "00", font_size_font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
-    const int32_t font_size_content_width = digits_size.x + lv_font_get_line_height(font_size_font);
-    lv_obj_set_width(font_size_spinbox, font_size_content_width +
-        lv_obj_get_style_pad_left(font_size_spinbox, LV_PART_MAIN) + lv_obj_get_style_pad_right(font_size_spinbox, LV_PART_MAIN) +
-        2 * lv_obj_get_style_border_width(font_size_spinbox, LV_PART_MAIN));
-    lv_obj_set_style_text_align(font_size_spinbox, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    const uint16_t font_size = ctx->pendingSettings.fontSize != 0 ? ctx->pendingSettings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE);
-    lv_spinbox_set_value(font_size_spinbox, font_size);
-    // The value is changed with the buttons, so the digit cursor isn't shown
-    lv_obj_set_style_bg_opa(font_size_spinbox, LV_OPA_TRANSP, LV_PART_CURSOR);
-    lv_obj_add_event_cb(font_size_spinbox, onFontSizeChanged, LV_EVENT_VALUE_CHANGED, ctx);
-    auto* decrement_button = createStepButton(font_size_row, LV_SYMBOL_MINUS, onFontSizeDecrementPressed, font_size_spinbox);
-    lv_obj_move_to_index(decrement_button, lv_obj_get_index(font_size_spinbox));
-    createStepButton(font_size_row, LV_SYMBOL_PLUS, onFontSizeIncrementPressed, font_size_spinbox);
+    if (lvgl::isFontChangeSupported()) {
+        auto* fonts_card = createSection(content, "Fonts");
+        auto* font_size_row = createRow(fonts_card);
+        auto* font_size_label = lv_label_create(font_size_row);
+        lv_label_set_text(font_size_label, "Font size");
+        lv_obj_set_flex_grow(font_size_label, 1);
+        // [-] [size] [+]
+        auto* font_size_spinbox = lv_spinbox_create(font_size_row);
+        lv_spinbox_set_range(font_size_spinbox, MIN_FONT_SIZE, MAX_FONT_SIZE);
+        lv_spinbox_set_digit_format(font_size_spinbox, 2, 0);
+        lv_spinbox_set_step(font_size_spinbox, 1);
+        // Wide enough for the digits and the room that the text field keeps for its cursor, so it never scrolls the digits out of view.
+        // The size is set before the value, because setting the value scrolls to the cursor using the current size.
+        const lv_font_t* font_size_font = lv_obj_get_style_text_font(font_size_spinbox, LV_PART_MAIN);
+        lv_point_t digits_size;
+        lv_text_get_size(&digits_size, "00", font_size_font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+        const int32_t font_size_content_width = digits_size.x + lv_font_get_line_height(font_size_font);
+        lv_obj_set_width(font_size_spinbox, font_size_content_width +
+            lv_obj_get_style_pad_left(font_size_spinbox, LV_PART_MAIN) + lv_obj_get_style_pad_right(font_size_spinbox, LV_PART_MAIN) +
+            2 * lv_obj_get_style_border_width(font_size_spinbox, LV_PART_MAIN));
+        lv_obj_set_style_text_align(font_size_spinbox, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        const uint16_t font_size = ctx->pendingSettings.fontSize != 0 ? ctx->pendingSettings.fontSize : static_cast<uint16_t>(TT_FONT_DEFAULT_SIZE);
+        lv_spinbox_set_value(font_size_spinbox, font_size);
+        // The value is changed with the buttons, so the digit cursor isn't shown
+        lv_obj_set_style_bg_opa(font_size_spinbox, LV_OPA_TRANSP, LV_PART_CURSOR);
+        lv_obj_add_event_cb(font_size_spinbox, onFontSizeChanged, LV_EVENT_VALUE_CHANGED, ctx);
+        auto* decrement_button = createStepButton(font_size_row, LV_SYMBOL_MINUS, onFontSizeDecrementPressed, font_size_spinbox);
+        lv_obj_move_to_index(decrement_button, lv_obj_get_index(font_size_spinbox));
+        createStepButton(font_size_row, LV_SYMBOL_PLUS, onFontSizeIncrementPressed, font_size_spinbox);
 
-    ctx->regularRow = createFontRow(fonts_card, "Regular font", onSelectRegularPressed, onDefaultRegularPressed, ctx);
-    ctx->monoRow = createFontRow(fonts_card, "Monospace font", onSelectMonoPressed, onDefaultMonoPressed, ctx);
+        ctx->regularRow = createFontRow(fonts_card, "Regular font", onSelectRegularPressed, onDefaultRegularPressed, ctx);
+        ctx->monoRow = createFontRow(fonts_card, "Monospace font", onSelectMonoPressed, onDefaultMonoPressed, ctx);
 
-    ctx->errorLabel = lv_label_create(fonts_card);
-    lv_obj_set_width(ctx->errorLabel, LV_PCT(100));
-    lv_label_set_long_mode(ctx->errorLabel, LV_LABEL_LONG_MODE_WRAP);
-    lv_label_set_text(ctx->errorLabel, "Failed to create the fonts. Check that the selected files are TrueType fonts.");
-    lv_obj_set_style_text_color(ctx->errorLabel, lv_palette_main(LV_PALETTE_RED), LV_STATE_DEFAULT);
+        ctx->errorLabel = lv_label_create(fonts_card);
+        lv_obj_set_width(ctx->errorLabel, LV_PCT(100));
+        lv_label_set_long_mode(ctx->errorLabel, LV_LABEL_LONG_MODE_WRAP);
+        lv_label_set_text(ctx->errorLabel, "Failed to create the fonts. Check that the selected files are TrueType fonts.");
+        lv_obj_set_style_text_color(ctx->errorLabel, lv_palette_main(LV_PALETTE_RED), LV_STATE_DEFAULT);
+    }
 
     updateWidgets(ctx);
 

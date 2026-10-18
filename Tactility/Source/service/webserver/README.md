@@ -9,7 +9,7 @@ The WebServer service provides a built-in HTTP server for remote device manageme
 - **App Management**: List installed apps, run apps remotely, install/uninstall external apps
 - **WiFi Status**: View current WiFi connection details
 - **Screenshot Capture**: Capture the current display as a PNG
-- **System Controls**: Sync assets, reboot device
+- **System Controls**: Reboot device
 
 ## Enabling the WebServer
 
@@ -286,12 +286,6 @@ Returns a tree structure of all mount points and their immediate contents.
 
 ### Admin Operations
 
-#### POST /admin/sync
-
-Synchronizes web assets from the Data partition.
-
-**Response:** `Assets synchronized successfully`
-
 #### POST /admin/reboot
 
 Reboots the device after a 1-second delay.
@@ -300,133 +294,9 @@ Reboots the device after a 1-second delay.
 
 ## Static Assets
 
-The WebServer serves static files from:
+`dashboard.html`, `version.json` and `favicon.ico` are embedded in the firmware from `Data/system/app/WebServer/`.
 
-1. **Primary**: `/data/webserver/` (internal flash)
-2. **Fallback**: `/sdcard/tactility/webserver/` (SD card)
-
-The dashboard HTML file is served from these locations. If `dashboard.html` doesn't exist, `default.html` is served as a fallback.
-
-## Asset Synchronization
-
-The WebServer includes an asset synchronization system that keeps web assets in sync between the Data partition and SD card. This enables recovery after firmware updates and backup of user customizations.
-
-### Storage Locations
-
-| Location | Path | Purpose |
-|----------|------|---------|
-| Data Partition | `/data/webserver/` | Primary storage, served by WebServer |
-| SD Card | `/sdcard/tactility/webserver/` | Backup storage for recovery |
-
-### Version Tracking
-
-Each storage location maintains a `version.json` file:
-
-```json
-{
-  "version": 1
-}
-```
-
-The version is an integer that increments when assets are updated. This allows the sync system to determine which location has newer assets.
-
-### Sync Scenarios
-
-The `syncAssets()` function handles several scenarios:
-
-#### First Boot (No SD Card Backup)
-- **Condition**: Data partition has assets, SD card backup doesn't exist
-- **Action**: Skip backup during boot to avoid watchdog timeout
-- **Note**: SD backup is deferred to first settings save
-
-#### No SD Card Available
-- **Condition**: SD card not mounted or unavailable
-- **Action**: Create default Data structure with version 0 if needed
-- **Note**: System operates normally without SD backup
-
-#### Post-Flash Recovery
-- **Condition**: Data partition empty, SD card has backup
-- **Action**: Copy entire SD backup to Data partition
-- **Use Case**: Restoring assets after flashing new firmware that erased Data
-
-#### Firmware Update (SD Newer)
-- **Condition**: SD version > Data version
-- **Action**: Copy SD assets to Data partition
-- **Use Case**: SD card contains newer assets from a firmware update package
-
-#### User Customization (Data Newer)
-- **Condition**: Data version > SD version
-- **Action**: Defer backup to avoid boot watchdog timeout
-- **Note**: Backup occurs on next settings save or manual sync
-
-#### Versions Match
-- **Condition**: Data version == SD version
-- **Action**: No synchronization needed
-
-### Boot Watchdog Considerations
-
-Some sync operations are intentionally deferred during boot to avoid triggering the ESP32 watchdog timer:
-
-- **Deferred**: Copying from Data to SD (user customization backup)
-- **Deferred**: Creating SD version.json
-- **Immediate**: Copying from SD to Data (recovery and firmware update)
-
-This ensures the device boots reliably even with slow or corrupted SD cards.
-
-### Manual Synchronization
-
-#### Settings App
-Navigate to **Settings > Web Server** and tap **"Sync Assets Now"** to manually trigger synchronization.
-
-#### API Endpoint
-Send a POST request to `/admin/sync`:
-
-```bash
-curl -X POST http://<device-ip>/admin/sync
-```
-
-**Response:** `Assets synchronized successfully`
-
-### Programmatic Access
-
-```cpp
-#include <Tactility/service/webserver/AssetVersion.h>
-
-// Check asset status
-bool hasData = tt::service::webserver::hasDataAssets();
-bool hasSd = tt::service::webserver::hasSdAssets();
-
-// Load versions
-tt::service::webserver::AssetVersion dataVer, sdVer;
-tt::service::webserver::loadDataVersion(dataVer);
-tt::service::webserver::loadSdVersion(sdVer);
-
-// Trigger sync
-bool success = tt::service::webserver::syncAssets();
-```
-
-### Directory Structure
-
-```text
-/data/webserver/
-├── version.json          # Version tracking
-├── dashboard.html        # Main dashboard UI
-└── ...                   # Other web assets
-
-/sdcard/tactility/webserver/
-├── version.json          # Version tracking (backup)
-├── dashboard.html        # Dashboard backup
-└── ...                   # Other web assets (backup)
-```
-
-### Updating Assets
-
-To update web assets with a new version:
-
-1. Place new assets in `/sdcard/tactility/webserver/`
-2. Update `/sdcard/tactility/webserver/version.json` with a higher version number
-3. Reboot the device or trigger manual sync
-4. The sync system will detect the newer SD version and copy to Data
+Other files are served from `/sdcard/tactility/webserver/` (SD card).
 
 ## Security Considerations
 
@@ -489,10 +359,6 @@ The WebServer publishes events:
 
 The ESP-IDF HTTP server has a limit on URI handlers. The WebServer configures this dynamically based on the number of handlers needed, but if you see this error, check `CONFIG_HTTPD_MAX_URI_HANDLERS` in sdkconfig.
 
-### 404 for dashboard.html
-
-Ensure the `dashboard.html` file exists in `/data/webserver/`. Run the asset sync operation or copy files manually.
-
 ### Screenshot fails
 
 - Verify `TT_FEATURE_SCREENSHOT_ENABLED` is defined
@@ -505,11 +371,3 @@ Ensure the `dashboard.html` file exists in `/data/webserver/`. Run the asset syn
 - Check file size is under 10MB limit
 - Verify the destination path is writable
 - Ensure the parent directory exists
-
-### Asset sync fails
-
-- Check SD card is properly mounted and writable
-- Verify sufficient space on destination (Data or SD card)
-- Check logs for specific file copy errors
-- Maximum directory depth is 16 levels
-- If sync hangs during boot, the SD card may be slow or corrupted

@@ -24,7 +24,10 @@
 #include <lvgl/widgets/icon_button.h>
 #include <lvgl/widgets/toolbar.h>
 #include <tactility/check.h>
+#include <tactility/file_ops.h>
 #include <tactility/log.h>
+
+#include <new>
 
 namespace tt::app::notes {
 
@@ -85,6 +88,22 @@ bool saveFile(Context* ctx, const std::string& path) {
     return result;
 }
 
+struct SaveJob {
+    std::string path;
+    std::string content;
+};
+
+/** File operation: it runs on the file operations task, which frees the job */
+void saveInBackground(void* context) {
+    auto* job = static_cast<SaveJob*>(context);
+    if (file::writeString(job->path, job->content.c_str())) {
+        LOG_I(TAG, "Saved to %s", job->path.c_str());
+    } else {
+        LOG_E(TAG, "Failed to save to %s", job->path.c_str());
+    }
+    delete job;
+}
+
 void hideOverlay(Context* ctx) {
     if (lv_obj_is_hidden(ctx->uiOverlay)) {
         return;
@@ -108,8 +127,12 @@ void onNewPressed(lv_event_t* e) {
 void onSavePressed(lv_event_t* e) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(e));
     hideOverlay(ctx);
-    ctx->saveBuffer = lv_textarea_get_text(ctx->uiNoteText);
-    saveFile(ctx, ctx->filePath);
+    // Runs on the LVGL task, which must not do file operations
+    auto* job = new (::std::nothrow) SaveJob { ctx->filePath, lv_textarea_get_text(ctx->uiNoteText) };
+    if (job == nullptr || file_ops_queue(saveInBackground, job, nullptr) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to queue saving %s", ctx->filePath.c_str());
+        delete job;
+    }
 }
 
 void onSaveAsPressed(lv_event_t* e) {

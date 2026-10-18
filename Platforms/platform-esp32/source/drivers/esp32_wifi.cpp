@@ -51,7 +51,6 @@ struct Esp32WifiCtx {
     wifi_ap_record_t scanResults[WIFI_SCAN_RECORD_LIMIT] = {};
     uint16_t scanResultCount = 0;
 
-    esp_netif_t* netif = nullptr;
     esp_event_handler_instance_t wifiEventHandler = nullptr;
     esp_event_handler_instance_t ipEventHandler = nullptr;
 
@@ -80,6 +79,9 @@ wifi_mode_t g_radioMode = WIFI_MODE_NULL;
 // Owners per mode bit, as several owners can share one: a bit leaves the mode when its last owner released
 int g_staOwnerCount = 0;
 int g_apOwnerCount = 0;
+// The station netif exists for as long as the station bit is active, and it's created before the radio starts,
+// so the netif always handles the station's start event. A netif that is created after the radio started doesn't get an IP address.
+esp_netif_t* g_staNetif = nullptr;
 
 // Netifs that were started and not stopped or destroyed since
 std::mutex g_startedNetifMutex;
@@ -108,6 +110,15 @@ void mark_netif_stopped(const void* netif) {
         if (slot == netif) {
             slot = nullptr;
         }
+    }
+}
+
+// Must be called with the radio mutex held
+void destroy_station_netif_if(bool destroy) {
+    if (destroy && g_staNetif != nullptr) {
+        esp_wifi_clear_default_wifi_driver_and_handlers(g_staNetif);
+        esp_netif_destroy(g_staNetif);
+        g_staNetif = nullptr;
     }
 }
 
@@ -229,22 +240,10 @@ void on_wifi_or_ip_event(void* arg, esp_event_base_t event_base, int32_t event_i
 // ---- Work, always run inline on the caller (see note at the top) ----
 
 error_t bring_up_wifi(Esp32WifiCtx* ctx) {
-    ctx->netif = esp_netif_create_default_wifi_sta();
-    if (ctx->netif == nullptr) {
-        LOG_E(TAG, "Failed to create default STA netif");
-        return ERROR_RESOURCE;
-    }
-
-    // Another owner (e.g. ESP-NOW) can have the radio running already. Its WIFI_EVENT_STA_START has been
-    // delivered by then, or is still on its way. If it was delivered, nothing starts the new netif, so it's started below.
-    bool radio_already_started = false;
-
     // Warning: this is the memory-intensive operation. It uses over 100kB of
-    // RAM with default settings.
-    if (!esp32_wifi_radio_acquire_ex(WIFI_MODE_STA, &radio_already_started)) {
+    // RAM with default settings. It also creates the station netif.
+    if (!esp32_wifi_radio_acquire(WIFI_MODE_STA)) {
         LOG_E(TAG, "Failed to acquire WiFi radio for station mode");
-        esp_netif_destroy(ctx->netif);
-        ctx->netif = nullptr;
         return ERROR_RESOURCE;
     }
 
@@ -254,8 +253,6 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
     if (err != ESP_OK) {
         LOG_E(TAG, "Failed to register WIFI_EVENT handler: %s", esp_err_to_name(err));
         esp32_wifi_radio_release(WIFI_MODE_STA);
-        esp_netif_destroy(ctx->netif);
-        ctx->netif = nullptr;
         return esp_err_to_error(err);
     }
 
@@ -265,14 +262,7 @@ error_t bring_up_wifi(Esp32WifiCtx* ctx) {
         esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, ctx->wifiEventHandler);
         ctx->wifiEventHandler = nullptr;
         esp32_wifi_radio_release(WIFI_MODE_STA);
-        esp_netif_destroy(ctx->netif);
-        ctx->netif = nullptr;
         return esp_err_to_error(err);
-    }
-
-    // A start event that is still on its way starts the netif too, which __wrap_esp_netif_action_start() ignores
-    if (radio_already_started) {
-        esp_netif_action_start(ctx->netif, WIFI_EVENT, WIFI_EVENT_STA_START, nullptr);
     }
 
     mutex_lock(&ctx->mutex);
@@ -303,13 +293,6 @@ void bring_down_wifi(Esp32WifiCtx* ctx) {
         esp_wifi_disconnect();
     }
 
-    // Detach netif from the internal WiFi event handlers before stopping,
-    // otherwise esp_netif_destroy() can race with esp_wifi_stop()'s own
-    // netif teardown (see esp32_ble/WifiEsp.cpp for the same issue).
-    if (ctx->netif != nullptr) {
-        esp_wifi_clear_default_wifi_driver_and_handlers(ctx->netif);
-    }
-
     if (ctx->wifiEventHandler != nullptr) {
         esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, ctx->wifiEventHandler);
         ctx->wifiEventHandler = nullptr;
@@ -319,12 +302,8 @@ void bring_down_wifi(Esp32WifiCtx* ctx) {
         ctx->ipEventHandler = nullptr;
     }
 
+    // The station netif is destroyed with the last station owner of the radio
     esp32_wifi_radio_release(WIFI_MODE_STA);
-
-    if (ctx->netif != nullptr) {
-        esp_netif_destroy(ctx->netif);
-        ctx->netif = nullptr;
-    }
 
     mutex_lock(&ctx->mutex);
     ctx->radioState = WIFI_RADIO_STATE_OFF;
@@ -703,11 +682,25 @@ bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started) {
 
     bool first_owner = g_radioOwnerCount == 0;
     *was_started = !first_owner;
+
+    // Before the radio starts, so that the netif handles the station's start event
+    bool created_netif = false;
+    if (mode_bit == WIFI_MODE_STA && g_staNetif == nullptr) {
+        g_staNetif = esp_netif_create_default_wifi_sta();
+        if (g_staNetif == nullptr) {
+            LOG_E(TAG, "esp32_wifi_radio_acquire: failed to create the station netif");
+            mutex_unlock(&g_radioMutex);
+            return false;
+        }
+        created_netif = true;
+    }
+
     if (first_owner) {
         wifi_init_config_t init_config = WIFI_INIT_CONFIG_DEFAULT();
         esp_err_t err = esp_wifi_init(&init_config);
         if (err != ESP_OK) {
             LOG_E(TAG, "esp32_wifi_radio_acquire: esp_wifi_init failed: %s", esp_err_to_name(err));
+            destroy_station_netif_if(created_netif);
             mutex_unlock(&g_radioMutex);
             return false;
         }
@@ -721,6 +714,7 @@ bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started) {
         if (first_owner) {
             esp_wifi_deinit();
         }
+        destroy_station_netif_if(created_netif);
         mutex_unlock(&g_radioMutex);
         return false;
     }
@@ -731,6 +725,7 @@ bool esp32_wifi_radio_acquire_ex(wifi_mode_t mode_bit, bool* was_started) {
             LOG_E(TAG, "esp32_wifi_radio_acquire: esp_wifi_start failed: %s", esp_err_to_name(err));
             esp_wifi_set_mode(WIFI_MODE_NULL);
             esp_wifi_deinit();
+            destroy_station_netif_if(created_netif);
             mutex_unlock(&g_radioMutex);
             return false;
         }
@@ -765,6 +760,13 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
     }
     g_radioOwnerCount--;
 
+    // Detach the station netif from the internal WiFi event handlers before stopping,
+    // otherwise esp_netif_destroy() can race with esp_wifi_stop()'s own netif teardown
+    const bool release_netif = mode_bit == WIFI_MODE_STA && g_staOwnerCount <= 0 && g_staNetif != nullptr;
+    if (release_netif) {
+        esp_wifi_clear_default_wifi_driver_and_handlers(g_staNetif);
+    }
+
     if (g_radioOwnerCount <= 0) {
         esp_wifi_stop();
         esp_wifi_set_mode(WIFI_MODE_NULL);
@@ -775,6 +777,11 @@ void esp32_wifi_radio_release(wifi_mode_t mode_bit) {
         g_radioMode = WIFI_MODE_NULL;
     } else if (g_radioMode != previous_mode) {
         esp_wifi_set_mode(g_radioMode);
+    }
+
+    if (release_netif) {
+        esp_netif_destroy(g_staNetif);
+        g_staNetif = nullptr;
     }
 
     mutex_unlock(&g_radioMutex);
@@ -810,9 +817,10 @@ Driver esp32_wifi_driver = {
     .compatible = (const char*[]) { "espressif,esp32-wifi", nullptr },
     .start_device = start_device,
     .stop_device = stop_device,
-    .api = (const void*)&esp32_wifi_api,
+    .probe = nullptr,
+    .api = static_cast<const void*>(&esp32_wifi_api),
     .device_type = &WIFI_TYPE,
-    .internal = nullptr
+    .internal = nullptr,
 };
 
 } // extern "C"

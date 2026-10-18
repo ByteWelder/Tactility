@@ -7,6 +7,7 @@
 #endif
 
 #include <Tactility/CpuAffinity.h>
+#include <generated_assets.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/lvgl/KeyboardDeviceListener.h>
 #include <Tactility/lvgl/SystemBars.h>
@@ -27,6 +28,7 @@
 
 #include <lvgl/devices/keyboard.h>
 #include <lvgl/insets.h>
+#include <lvgl/ui_assets.h>
 #include <lvgl/fonts.h>
 #include <lvgl/devices/pointer.h>
 #include <lvgl/widgets/statusbar.h>
@@ -233,9 +235,26 @@ bool isStarted() {
     return module_is_started(&lvgl_module);
 }
 
+#define UI_ASSET_IMAGE(name) \
+    lv_image_dsc_t { \
+        .header = { .magic = LV_IMAGE_HEADER_MAGIC, .cf = LV_COLOR_FORMAT_RAW }, \
+        .data_size = asset_ui_##name##_png_SIZE, \
+        .data = asset_ui_##name##_png \
+    }
+
+// Ordered by size, see LVGL_UI_SPINNER_COUNT and LVGL_UI_CURSOR_COUNT
+static const lv_image_dsc_t spinnerImages[] = {
+    UI_ASSET_IMAGE(spinner_12), UI_ASSET_IMAGE(spinner_16), UI_ASSET_IMAGE(spinner_20), UI_ASSET_IMAGE(spinner_24), UI_ASSET_IMAGE(spinner_32), UI_ASSET_IMAGE(spinner_36), UI_ASSET_IMAGE(spinner_40)
+};
+static const lv_image_dsc_t cursorImages[] = {
+    UI_ASSET_IMAGE(cursor_12), UI_ASSET_IMAGE(cursor_16), UI_ASSET_IMAGE(cursor_20), UI_ASSET_IMAGE(cursor_24), UI_ASSET_IMAGE(cursor_32), UI_ASSET_IMAGE(cursor_40)
+};
+
 void start() {
     static bool configured = false;
     if (!configured) {
+        const LvglUiAssets uiAssets = { spinnerImages, cursorImages };
+        lvgl_ui_assets_configure(&uiAssets);
         lvgl_module_configure((LvglModuleConfig) {
             .on_start = onLvglStarted,
             .on_stop = onLvglStopped,

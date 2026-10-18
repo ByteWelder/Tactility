@@ -4,6 +4,7 @@
 #include <app/start.h>
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/MountPoints.h>
+#include <generated_assets.h>
 #include <Tactility/file/File.h>
 #include <lvgl/widgets/statusbar.h>
 #include <Tactility/Mutex.h>
@@ -618,7 +619,7 @@ static bool isAllowedBasePath(const std::string& path, bool allowRoot = false) {
         return false;
     }
     if (allowRoot && path == "/") return true;
-    return path.starts_with("/data") || path.starts_with("/system/app/WebServer") || path.starts_with("/sdcard");
+    return path.starts_with("/data") || path.starts_with("/sdcard");
 }
 
 // Normalize client-supplied path: URL-decode, trim quotes/control chars, ensure leading slash, collapse duplicate slashes
@@ -777,7 +778,7 @@ error_t WebServerService::handleFsList(HttpServerRequest* request, void*) {
         file_system_for_each(&fs_iter_context, [] (auto* fs, void* context) {
             auto* fs_iter_context = static_cast<FsIterContext*>(context);
             char path[128];
-            if (file_system_is_mounted(fs) && file_system_get_path(fs, path, sizeof(path)) == ERROR_NONE && strcmp(path, "/system") != 0) {
+            if (file_system_is_mounted(fs) && file_system_get_path(fs, path, sizeof(path)) == ERROR_NONE) {
                 fs_iter_context->count++;
                 if (fs_iter_context->count != 1) fs_iter_context->json << ","; // add separator between json array entries
                 fs_iter_context->json << "{\"name\":\"" << path << "\",\"type\":\"dir\",\"size\":0}";
@@ -1180,7 +1181,6 @@ error_t WebServerService::handleApiSysinfo(HttpServerRequest* request, void*) {
     file_system_for_each(&fs_iter_context, [] (auto* fs, void* context) {
         char mount_path[128] = "";
         if (file_system_get_path(fs, mount_path, sizeof(mount_path)) != ERROR_NONE) return true;
-        if (strcmp(mount_path, "/system") == 0) return true; // Hide system partition
 
         bool mounted = file_system_is_mounted(fs);
         auto* fs_iter_context = static_cast<FsIterContext*>(context);
@@ -1746,6 +1746,15 @@ error_t WebServerService::handleReboot(HttpServerRequest* request, void*) {
     return ERROR_NONE; // Unreachable on ESP_PLATFORM, but satisfies function signature
 }
 
+static error_t sendEmbeddedAsset(HttpServerRequest* request, const char* uri, const char* contentType, const uint8_t* data, size_t size) {
+    http_server_request_set_content_type(request, contentType);
+    const error_t error = http_server_request_send(request, data, size);
+    if (error == ERROR_NONE) {
+        LOG_I(TAG, "[200] %s (embedded)", uri);
+    }
+    return error;
+}
+
 error_t WebServerService::handleAssets(HttpServerRequest* request, void*) {
     // Auth check for UI access control
     bool authPassed = false;
@@ -1758,76 +1767,22 @@ error_t WebServerService::handleAssets(HttpServerRequest* request, void*) {
     http_server_request_get_uri(request, uri, sizeof(uri));
     LOG_I(TAG, "GET %s", uri);
 
-    // Special case: serve favicon from system assets
-    if (strcmp(uri, "/favicon.ico") == 0) {
-        std::string faviconPathStr = std::string(file::MOUNT_POINT_SYSTEM) + "/spinner.png";
-        const char* faviconPath = faviconPathStr.c_str();
-        if (file::isFile(faviconPath)) {
-            http_server_request_set_content_type(request, "image/png");
-            http_server_request_set_header(request, "Cache-Control", "public, max-age=86400");
-
-            FILE* fp = fopen(faviconPath, "rb");
-            if (fp) {
-                if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
-                    fclose(fp);
-                    return ERROR_UNDEFINED;
-                }
-                char buffer[512];
-                size_t bytesRead;
-                while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-                    if (http_server_request_send_chunk(request, buffer, bytesRead) != ERROR_NONE) {
-                        fclose(fp);
-                        return ERROR_UNDEFINED;
-                    }
-                }
-                fclose(fp);
-                http_server_request_send_chunk_end(request);
-                LOG_I(TAG, "[200] %s (favicon)", uri);
-                return ERROR_NONE;
-            }
-        }
-        // If favicon not found, return 404 silently (browsers handle this gracefully)
-        http_server_request_send_error(request, 404, "Not found");
-        return ERROR_UNDEFINED;
-    }
-
-    // Special case: if requesting dashboard.html but it doesn't exist, serve default.html
     std::string requestedPath = normalizePath(uri);
     if (requestedPath == "/.." || requestedPath.ends_with("/..") || requestedPath.find("/../") != std::string::npos) {
         http_server_request_send_error(request, 400, "invalid path");
         return ERROR_UNDEFINED;
     }
 
-    std::string dataPath = std::string(file::MOUNT_POINT_SYSTEM) + "/app/WebServer" + requestedPath;
-
-    if (requestedPath == "/dashboard.html" && !file::isFile(dataPath.c_str())) {
-        LOG_I(TAG, "dashboard.html not found, serving default.html");
+    // Embedded assets take priority over the SD card
+    if (requestedPath == "/favicon.ico") {
+        http_server_request_set_header(request, "Cache-Control", "public, max-age=86400");
+        return sendEmbeddedAsset(request, uri, "image/png", asset_ui_spinner_32_png, asset_ui_spinner_32_png_size);
     }
-
-    // Try to serve from Data partition first
-    if (file::isFile(dataPath.c_str())) {
-        http_server_request_set_content_type(request, getContentType(dataPath));
-
-        FILE* fp = fopen(dataPath.c_str(), "rb");
-        if (fp) {
-            if (http_server_request_send_chunk_start(request) != ERROR_NONE) {
-                fclose(fp);
-                return ERROR_UNDEFINED;
-            }
-            char buffer[512];
-            size_t bytesRead;
-            while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
-                if (http_server_request_send_chunk(request, buffer, bytesRead) != ERROR_NONE) {
-                    fclose(fp);
-                    return ERROR_UNDEFINED;
-                }
-            }
-            fclose(fp);
-
-            http_server_request_send_chunk_end(request);  // End of chunks
-            LOG_I(TAG, "[200] %s (from Data)", uri);
-            return ERROR_NONE;
-        }
+    if (requestedPath == "/dashboard.html") {
+        return sendEmbeddedAsset(request, uri, "text/html", asset_app_WebServer_dashboard_html, asset_app_WebServer_dashboard_html_size);
+    }
+    if (requestedPath == "/version.json") {
+        return sendEmbeddedAsset(request, uri, "application/json", asset_app_WebServer_version_json, asset_app_WebServer_version_json_size);
     }
 
     // Fallback to SD card

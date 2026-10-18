@@ -11,8 +11,12 @@ extern "C" {
 #endif
 
 typedef struct BinFontGeneratorConfig {
-    /** Path to a TrueType (.ttf) file */
+    /** Path to a TrueType (.ttf) file. Ignored when ttf_data is set */
     const char* ttf_path;
+    /** A TrueType (.ttf) file in memory that must stay valid during the call, or NULL to read ttf_path */
+    const uint8_t* ttf_data;
+    /** Size of ttf_data in bytes */
+    size_t ttf_size;
     /** Font size in pixels (em height) */
     uint16_t size;
     /** Bits per pixel: 1, 2, 3 or 4 */

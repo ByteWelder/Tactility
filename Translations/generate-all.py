@@ -28,10 +28,3 @@ if __name__ == "__main__":
         "tt::app::launcher::i18n",
         "Data/system/app/Launcher/i18n"
     )
-    # LocaleSettings app
-    generate(
-        "LocaleSettings.csv",
-        "Tactility/Private/Tactility/app/localesettings/TextResources.h",
-        "tt::app::localesettings::i18n",
-        "Data/system/app/LocaleSettings/i18n"
-    )

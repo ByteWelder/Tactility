@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app_hub/app_hub_catalog.h>
+#include <app_hub/module.h>
 
 #include <app/package_manifest.h>
 
-#include <tactility/filesystem/file_system.h>
 #include <tactility/log.h>
 #include <tactility/paths.h>
 
@@ -32,14 +32,14 @@ static std::string get_version_without_postfix() {
     return (index == std::string::npos) ? version : version.substr(0, index);
 }
 
-std::string app_hub_catalog_get_certificate_path() {
-    // The system file system is mounted at "/system" on ESP32, but it's a folder elsewhere on the simulator
-    FileSystem* system = file_system_find_by_name("system");
-    char path[FILE_MAX_PATH_STRING_LENGTH];
-    if (system == nullptr || file_system_get_path(system, path, sizeof(path)) != ERROR_NONE) {
-        return "";
-    }
-    return std::string(path) + "/certificates/GTS_Root_R4.pem";
+static const char* certificate_pem = "";
+
+void app_hub_configure_certificate(const char* pem) {
+    certificate_pem = pem;
+}
+
+const char* app_hub_catalog_get_certificate() {
+    return certificate_pem;
 }
 
 std::string app_hub_catalog_get_url() {

@@ -21,7 +21,6 @@ struct DirectoryFsData {
     bool mounted;
 };
 
-DirectoryFsData system_fs_data;
 DirectoryFsData data_fs_data;
 DirectoryFsData root_fs_data;
 
@@ -56,7 +55,7 @@ const FileSystemApi directory_fs_api = {
 };
 
 // relative_path is resolved against the process' current working directory.
-// The simulator is expected to run with Data/ as its working directory, so "data"/"system" here match the real on-disk folder names.
+// The simulator is expected to run with Data/ as its working directory, so "data" here matches the real on-disk folder names.
 // realpath() converts it to a real absolute path once, up front.
 // Callers elsewhere (e.g. the shell) that ask for this filesystem's path via file_system_get_path() then
 // get something meaningful regardless of their own notion of "current directory", real or virtual.
@@ -72,9 +71,8 @@ FileSystem* registerDirectoryFs(const char* name, const char* relativePath, Dire
 } // namespace
 
 error_t platform_posix_start_partitions() {
-    registerDirectoryFs("system", "system", &system_fs_data);
     registerDirectoryFs("data", "data", &data_fs_data);
-    // "data"/"system" live somewhere under here (wherever the process was launched from). U
+    // "data" lives somewhere under here (wherever the process was launched from). U
     // Unlike ESP32, POSIX genuinely has a real "/", so it gets registered too.
     registerDirectoryFs("root", "/", &root_fs_data);
     return ERROR_NONE;

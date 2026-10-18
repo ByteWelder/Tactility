@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <location/ip_provider.h>
+#include <location/module.h>
 
 #include <http/download.h>
 
@@ -26,11 +27,16 @@
 
 #define TAG "location_ip"
 
+// The root certificate of the API's certificate chain
+static const char* certificate_pem = "";
+
+void location_configure_certificate(const char* pem) {
+    certificate_pem = pem;
+}
+
 namespace {
 
 constexpr auto* API_URL = "https://json.geoiplookup.io/";
-// The root certificate of the API's certificate chain
-constexpr auto* API_CERTIFICATE = "certificates/GTS_Root_R4.pem";
 constexpr uint64_t RETRY_INTERVAL_MS = 60 * 1000;
 // Bounds the request rate when the network connects repeatedly
 constexpr uint64_t MIN_INTERVAL_MS = 10 * 1000;
@@ -81,17 +87,6 @@ uint64_t getUptimeMs() {
     return get_micros_since_boot() / 1000;
 }
 
-bool getCertificatePath(char* out_path, size_t out_size) {
-    // The system file system is mounted at "/system" on ESP32, but it's a folder elsewhere on the simulator
-    FileSystem* system = file_system_find_by_name("system");
-    char system_path[FILE_MAX_PATH_STRING_LENGTH];
-    if (system == nullptr || file_system_get_path(system, system_path, sizeof(system_path)) != ERROR_NONE) {
-        return false;
-    }
-    const int written = snprintf(out_path, out_size, "%s/%s", system_path, API_CERTIFICATE);
-    return written > 0 && static_cast<size_t>(written) < out_size;
-}
-
 /**
  * Downloads the lookup result into a temp file named @a file_name and parses it
  * @param[in] group the event group to wait on, with a free bit for the download
@@ -99,10 +94,9 @@ bool getCertificatePath(char* out_path, size_t out_size) {
  * @return false when the lookup failed or was cancelled
  */
 bool fetchLookup(const char* file_name, TaskEventGroup* group, const std::atomic<bool>& running, IpLookupResponse* out) {
-    char certificate_path[FILE_MAX_PATH_STRING_LENGTH];
     char temp_path[FILE_MAX_PATH_STRING_LENGTH];
     char target_path[FILE_MAX_PATH_STRING_LENGTH];
-    if (!getCertificatePath(certificate_path, sizeof(certificate_path)) || paths_get_temp_path(temp_path, sizeof(temp_path)) != ERROR_NONE) {
+    if (paths_get_temp_path(temp_path, sizeof(temp_path)) != ERROR_NONE) {
         return false;
     }
     if (!directory_exists(temp_path)) {
@@ -120,7 +114,7 @@ bool fetchLookup(const char* file_name, TaskEventGroup* group, const std::atomic
     if (http_download_subscribe(&subscription, group) != ERROR_NONE) {
         return false;
     }
-    if (http_download_start(API_URL, certificate_path, target_path, &subscription) != ERROR_NONE) {
+    if (http_download_start(API_URL, certificate_pem, target_path, &subscription) != ERROR_NONE) {
         http_download_unsubscribe(&subscription);
         return false;
     }

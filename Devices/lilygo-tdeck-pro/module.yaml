@@ -1,7 +1,7 @@
 dependencies:
   - Platforms/platform-esp32
   - Drivers/cst328-module
-  - Drivers/esp-epaper-module
+  - Drivers/uc8253-module
   - Drivers/tca8418-module
   - Drivers/sy6970-module
   - Drivers/bq25896-module

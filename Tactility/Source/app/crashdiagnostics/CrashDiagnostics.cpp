@@ -122,7 +122,7 @@ void showCrashScreen(boot::BootScreen& screen) {
             lines.push_back(std::string("Only the cause is known: ") + crashCauseToString(crash_data.cause));
         }
         lines.push_back(prompt);
-        screen.show("", lines);
+        screen.show({}, lines);
         waitForInputOrForever(has_input);
         return;
     }
@@ -154,7 +154,7 @@ void showCrashScreen(boot::BootScreen& screen) {
             return qrcode_getModule(&qr_code, static_cast<uint8_t>(x), static_cast<uint8_t>(y));
         }, lines);
     } else {
-        screen.show("", lines);
+        screen.show({}, lines);
     }
 
     waitForInputOrForever(has_input);

@@ -5,14 +5,6 @@
 
 namespace tt::file {
 
-constexpr auto* SYSTEM_PARTITION_NAME = "system";
-
-#ifdef ESP_PLATFORM
-constexpr auto* MOUNT_POINT_SYSTEM = "/system";
-#else
-constexpr auto* MOUNT_POINT_SYSTEM = "system";
-#endif
-
 constexpr auto* DATA_PARTITION_NAME = "data";
 
 #ifdef ESP_PLATFORM

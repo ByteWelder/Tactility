@@ -19,17 +19,17 @@
 #include <tactility/paths.h>
 #include <tactility/time.h>
 
-#include <TactilityCpp/Allocator.h>
+#include <TactilityCpp/std/deque.h>
+#include <TactilityCpp/std/string.h>
+#include <TactilityCpp/std/vector.h>
 
 #include <algorithm>
 #include <new>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <deque>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace {
 
@@ -53,7 +53,7 @@ struct InstalledPackage {
     AppId first_app_id;
 };
 
-using AppList = std::vector<AppHubApp, tt::OptExternalAllocator<AppHubApp>>;
+using AppList = tt::std::vector<AppHubApp>;
 
 struct GlobalMutex {
     Mutex handle {};
@@ -69,7 +69,7 @@ void unlock() { mutex_unlock(&globalMutex.handle); }
 // region State, guarded by the global lock
 
 struct State {
-    std::deque<Operation, tt::OptExternalAllocator<Operation>> queue;
+    tt::std::deque<Operation> queue;
     Operation runningOperation {};
     bool operationRunning = false;
     uint32_t nextOperationId = 1;
@@ -191,10 +191,10 @@ void copyString(char* target, size_t targetSize, const char* source) {
 }
 
 /** Copies the installed packages, as app_manager_for_each_package() holds the app manager's lock */
-std::vector<InstalledPackage> getInstalledPackages() {
-    std::vector<InstalledPackage> packages;
+tt::std::vector<InstalledPackage> getInstalledPackages() {
+    tt::std::vector<InstalledPackage> packages;
     app_manager_for_each_package([](const AppPackage* package, void* context) {
-        auto& packages = *static_cast<std::vector<InstalledPackage>*>(context);
+        auto& packages = *static_cast<tt::std::vector<InstalledPackage>*>(context);
         InstalledPackage installed {};
         installed.package = package->package;
         if (package->app_id_count > 0) {
@@ -232,7 +232,7 @@ const Operation* findPendingOperation(const char* id) {
 }
 
 /** Requires the global lock */
-AppList collectApps(const std::vector<InstalledPackage>& installedPackages) {
+AppList collectApps(const tt::std::vector<InstalledPackage>& installedPackages) {
     AppList apps;
     char catalogPath[FILE_MAX_PATH_STRING_LENGTH];
     if (getCatalogFile(catalogPath, sizeof(catalogPath))) {
@@ -308,7 +308,7 @@ error_t download(const char* url, const char* targetPath) {
     if (http_download_subscribe(&sub, &state->workerEvents) != ERROR_NONE) {
         return ERROR_RESOURCE;
     }
-    if (http_download_start(url, app_hub_catalog_get_certificate_path().c_str(), targetPath, &sub) != ERROR_NONE) {
+    if (http_download_start(url, app_hub_catalog_get_certificate(), targetPath, &sub) != ERROR_NONE) {
         http_download_unsubscribe(&sub);
         return ERROR_RESOURCE;
     }
@@ -395,8 +395,8 @@ error_t executeInstall(const char* id) {
         return error;
     }
     const auto separator = file.find_last_of('/');
-    const std::string fileName = (separator == std::string::npos) ? file : file.substr(separator + 1);
-    const std::string tempPath = std::string(tempDirectory) + "/" + fileName;
+    const tt::std::string fileName = (separator == std::string::npos) ? tt::std::string(file.c_str()) : tt::std::string(file.c_str() + separator + 1);
+    const tt::std::string tempPath = tt::std::string(tempDirectory) + "/" + fileName;
 
     error = download(app_hub_catalog_get_download_url(file).c_str(), tempPath.c_str());
     if (error == ERROR_NONE) {
@@ -413,7 +413,7 @@ error_t executeInstall(const char* id) {
 
 error_t executeUpdateAll(const Operation& operation) {
     const auto installed = getInstalledPackages();
-    std::vector<std::string> ids;
+    tt::std::vector<tt::std::string> ids;
     lock();
     for (const auto& app : collectApps(installed)) {
         if (app.update_available) {

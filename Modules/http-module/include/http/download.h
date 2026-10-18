@@ -106,10 +106,10 @@ error_t http_download_poll(struct HttpDownloadSubscription* sub, struct HttpDown
 
 /**
  * Starts a download on its own dedicated task: issues a GET request for @a url, verifying the
- * server against the PEM certificate at @a cert_path, and writes the response body to
+ * server against the PEM certificate @a cert_pem, and writes the response body to
  * @a target_path.
  * @param[in] url the URL to download
- * @param[in] cert_path path to a PEM certificate file used to verify the server
+ * @param[in] cert_pem PEM certificate text used to verify the server, copied before this returns
  * @param[in] target_path path to write the downloaded file to
  * @param[in] sub subscription to notify on completion, already registered via
  * http_download_subscribe(); must stay alive (and stationary) at least until
@@ -120,7 +120,7 @@ error_t http_download_poll(struct HttpDownloadSubscription* sub, struct HttpDown
  */
 error_t http_download_start(
     const char* url,
-    const char* cert_path,
+    const char* cert_pem,
     const char* target_path,
     struct HttpDownloadSubscription* sub
 );

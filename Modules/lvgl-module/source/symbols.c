@@ -24,6 +24,7 @@
 #include <lvgl/widgets/page_indicator.h>
 #include <lvgl/widgets/step_indicator.h>
 #include <lvgl/widgets/qr.h>
+#include <lvgl/ui_assets.h>
 #include <lvgl/widgets/spinner.h>
 #include <lvgl/widgets/statusbar.h>
 #include <lvgl/widgets/text_button.h>
@@ -154,6 +155,11 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_qr_create),
     DEFINE_MODULE_SYMBOL(lvgl_qr_set_data),
     DEFINE_MODULE_SYMBOL(lvgl_qr_set_colors),
+
+    // ui_assets
+    DEFINE_MODULE_SYMBOL(lvgl_ui_assets_configure),
+    DEFINE_MODULE_SYMBOL(lvgl_get_spinner_image),
+    DEFINE_MODULE_SYMBOL(lvgl_get_cursor_image),
 
     // lvgl_spinner
     DEFINE_MODULE_SYMBOL(lvgl_spinner_create),

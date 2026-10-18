@@ -16,7 +16,7 @@ constexpr size_t DOWNLOAD_TASK_STACK_DEPTH = 5120;
 
 struct DownloadContext {
     std::string url;
-    std::string certPath;
+    std::string certPem;
     std::string targetPath;
     HttpDownloadSubscription* subscription;
     HttpDownloadLink* link;
@@ -43,7 +43,7 @@ void download_task_main(void* raw_context) {
     auto* context = static_cast<DownloadContext*>(raw_context);
     LOG_I(TAG, "Downloading %s to %s", context->url.c_str(), context->targetPath.c_str());
 
-    auto event = http_download_run(context->url, context->certPath, context->targetPath, context->link);
+    auto event = http_download_run(context->url, context->certPem, context->targetPath, context->link);
     if (event.type == HTTP_DOWNLOAD_EVENT_ERROR) {
         LOG_E(TAG, "Download of %s failed: %s", context->url.c_str(), event.error.message);
     } else if (event.type == HTTP_DOWNLOAD_EVENT_CANCELLED) {
@@ -133,7 +133,7 @@ error_t http_download_poll(HttpDownloadSubscription* sub, HttpDownloadEvent* out
 
 error_t http_download_start(
     const char* url,
-    const char* cert_path,
+    const char* cert_pem,
     const char* target_path,
     HttpDownloadSubscription* sub
 ) {
@@ -144,7 +144,7 @@ error_t http_download_start(
 
     auto* context = new(std::nothrow) DownloadContext {
         .url = url,
-        .certPath = cert_path,
+        .certPem = cert_pem,
         .targetPath = target_path,
         .subscription = sub,
         .link = link

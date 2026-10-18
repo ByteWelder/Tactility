@@ -50,44 +50,18 @@ public:
     bool isComplete() const { return esp_http_client_is_complete_data_received(client); }
 };
 
-// esp_http_client_config_t::cert_pem needs a NUL-terminated buffer.
-bool read_certificate(const std::string& certPath, std::string& outCertificate) {
-    auto* file = fopen(certPath.c_str(), "rb");
-    if (file == nullptr) {
-        return false;
-    }
-
-    fseek(file, 0, SEEK_END);
-    long size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    if (size <= 0) {
-        fclose(file);
-        return false;
-    }
-
-    outCertificate.resize(static_cast<size_t>(size));
-    size_t read_bytes = fread(outCertificate.data(), 1, static_cast<size_t>(size), file);
-    fclose(file);
-    return read_bytes == static_cast<size_t>(size);
 }
 
-}
-
-HttpDownloadEvent http_download_run(const std::string& url, const std::string& certPath, const std::string& targetPath, HttpDownloadLink* link) {
+HttpDownloadEvent http_download_run(const std::string& url, const std::string& certPem, const std::string& targetPath, HttpDownloadLink* link) {
     if (http_download_is_cancelled(link)) {
         return http_download_make_cancelled_event();
-    }
-
-    std::string certificate;
-    if (!read_certificate(certPath, certificate)) {
-        return http_download_make_error_event("Failed to read certificate file");
     }
 
     esp_http_client_config_t config {};
     config.url = url.c_str();
     config.auth_type = HTTP_AUTH_TYPE_NONE;
-    config.cert_pem = certificate.c_str();
-    config.cert_len = certificate.size() + 1;
+    config.cert_pem = certPem.c_str();
+    config.cert_len = certPem.size() + 1;
     config.tls_version = ESP_HTTP_CLIENT_TLS_VER_TLS_1_2;
     config.method = HTTP_METHOD_GET;
     config.timeout_ms = 5000;

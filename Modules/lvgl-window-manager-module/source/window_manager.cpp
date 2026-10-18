@@ -172,7 +172,6 @@ lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_wi
     if (content == nullptr) {
         return nullptr;
     }
-    // The widgets can load files, e.g. images, so tasks without a stack for that have the LVGL task build them
     BuildRequest request { content, create_widgets, user_data };
     lvgl_run_on_task(build_window_widget_locked, &request);
     return request.widget;

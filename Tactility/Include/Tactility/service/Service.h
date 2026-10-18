@@ -2,6 +2,9 @@
 
 #include <service/instance.h>
 
+#include <TactilityCpp/Allocator.h>
+#include <TactilityCpp/Memory.h>
+
 #include <memory>
 
 namespace tt::service {
@@ -22,7 +25,10 @@ public:
     virtual void onStop(ServiceContext& serviceContext) {}
 };
 
+/** Creates a service for ServiceManifest::createService. The result is released with deleteObject(), see ServiceManifest. */
 template<typename T>
-void* create(const ::ServiceManifest* /*manifest*/) { return new std::shared_ptr<Service>(std::shared_ptr<T>(new T)); }
+void* create(const ::ServiceManifest* /*manifest*/) {
+    return newObject<::std::shared_ptr<Service>>(::std::allocate_shared<T>(OptExternalAllocator<T>()));
+}
 
 }

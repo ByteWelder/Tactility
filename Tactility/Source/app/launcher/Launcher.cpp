@@ -5,13 +5,17 @@
 #include <app/start.h>
 
 #include <cstring>
+#include <new>
+#include <string>
 #include <vector>
 
+#include <lvgl/lvgl.h>
 #include <lvgl/theme.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
+#include <tactility/file_ops.h>
 #include <tactility/log.h>
 #include <tactility/memory.h>
 
@@ -35,7 +39,7 @@ void onAppKey(const TileGridItem& item, uint32_t key, void* userData);
 
 enum class Mode {
     Apps,
-    Settings
+    Settings,
 };
 
 const LauncherMode& getLauncherMode(Mode mode) {
@@ -57,7 +61,7 @@ struct Context {
         .onKey = onAppKey,
         .resolveIcon = nullptr,
         .onPageChanged = nullptr,
-        .userData = this
+        .userData = this,
     } };
 };
 
@@ -65,16 +69,27 @@ std::vector<TileGridItem> collectItems(void* userData) {
     return getLauncherMode(static_cast<Context*>(userData)->mode).collect();
 }
 
-void startApp(const char* appId) {
+struct StartAppJob {
+    std::string appId;
+};
+
+// Starting an app can load it from a file, so it runs on the file operations task, which frees the job
+void startApp(void* context) {
+    auto* job = static_cast<StartAppJob*>(context);
     uint32_t instance_id = 0;
-    AppStartContext context;
-    if (app_start_context_from_id(appId, &context) == ERROR_NONE) {
-        app_start_with_context(&context, &instance_id);
+    AppStartContext start_context;
+    if (app_start_context_from_id(job->appId.c_str(), &start_context) == ERROR_NONE) {
+        app_start_with_context(&start_context, &instance_id);
     }
+    delete job;
 }
 
 void onAppClicked(const TileGridItem& item, void*) {
-    startApp(item.id.c_str());
+    auto* job = new (::std::nothrow) StartAppJob { item.id };
+    if (job == nullptr || file_ops_queue(startApp, job, nullptr) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to queue starting %s", item.id.c_str());
+        delete job;
+    }
 }
 
 void onAppLongPressed(const TileGridItem& item, void* userData) {
@@ -135,7 +150,8 @@ void destroyWidgets(void* userData) {
     ctx->grid.destroyWidgets();
 }
 
-void runAutoStart() {
+// Reads settings files, so it runs on the file operations task
+void runAutoStart(void*) {
     settings::BootSettings boot_properties;
     AppStartContext context;
     if (
@@ -172,15 +188,27 @@ int32_t appMain(int argc, char* argv[]) {
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
+    FileOpsSubscription file_ops_sub {};
+    check(file_ops_subscribe(&file_ops_sub, &event_group) == ERROR_NONE);
+
     Context ctx;
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
-    runAutoStart();
+    // The file operations run in order: the favourites are available when auto-start runs
+    check(file_ops_queue(loadFavourites, nullptr, &file_ops_sub) == ERROR_NONE);
+    check(file_ops_queue(runAutoStart, nullptr, nullptr) == ERROR_NONE);
 
     // The launcher is meant to stay resident (it's the home screen) - it only gives up its
     // thread when app-module's scheduler asks it to (e.g. another new-model app is started).
     while (true) {
         task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
+        if (file_ops_poll(&file_ops_sub) == ERROR_NONE) {
+            // The favourites were loaded
+            lvgl_lock();
+            ctx.grid.requestRepopulate(false);
+            lvgl_unlock();
+        }
 
         bool shouldClose = false;
         AppEvent event {};
@@ -194,6 +222,7 @@ int32_t appMain(int argc, char* argv[]) {
     }
 
     window_manager_remove(window);
+    file_ops_unsubscribe(&file_ops_sub);
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
     return 0;
@@ -207,7 +236,8 @@ extern const ::AppManifest manifest = {
     .category = APP_CATEGORY_SYSTEM,
     .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = APP_MANIFEST_FLAG_HIDDEN,
-    .stack = { .depth = 5120, .desired_memory_capability = 0 },
+    // All file operations run on the file operations task, so the stack can be in external RAM
+    .stack = { .depth = 3072, .desired_memory_capability = MEMORY_CAPABILITY_EXTERNAL },
 };
 
 } // namespace

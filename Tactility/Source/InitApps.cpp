@@ -55,7 +55,6 @@ namespace app {
     namespace inputdialog { extern const ::AppManifest manifest; }
     namespace launcher { extern const ::AppManifest manifest; }
     namespace ledstripsettings { extern const ::AppManifest manifest; }
-    namespace localesettings { extern const ::AppManifest manifest; }
     namespace locationsettings { extern const ::AppManifest manifest; }
     namespace notes { extern const ::AppManifest manifest; }
     namespace power { extern const ::AppManifest manifest; }
@@ -99,10 +98,6 @@ namespace app {
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ::AppManifest manifest; }
 #endif
-
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
-    namespace chat { extern const ::AppManifest manifest; }
-#endif
 }
 
 // endregion
@@ -130,7 +125,6 @@ static void registerInternalApps() {
     app_manager_add(&app::imageviewer::manifest);
     app_manager_add(&app::inputdialog::manifest);
     app_manager_add(&app::launcher::manifest);
-    app_manager_add(&app::localesettings::manifest);
     app_manager_add(&app::locationsettings::manifest);
     app_manager_add(&app::notes::manifest);
     if (device_exists_of_type(&POWER_SUPPLY_TYPE)) {
@@ -185,10 +179,6 @@ static void registerInternalApps() {
     app_manager_add(&app::screenshot::manifest);
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
-    app_manager_add(&app::chat::manifest);
-#endif
-
     if (device_exists_of_type(&GROVE_TYPE)) {
         app_manager_add(&app::grovesettings::manifest);
     }
@@ -223,7 +213,7 @@ static void registerInstalledAppsFromFileSystems() {
         char path[128];
         if (file_system_get_path(fs, path, sizeof(path)) != ERROR_NONE) return true;
         const auto app_path = std::format("{}/tactility/app", path);
-        if (!app_path.starts_with(file::MOUNT_POINT_SYSTEM) && file::isDirectory(app_path)) {
+        if (file::isDirectory(app_path)) {
             LOG_I(TAG, "Registering install path %s", app_path.c_str());
             app_manager_install_path_add(app_path.c_str());
         }

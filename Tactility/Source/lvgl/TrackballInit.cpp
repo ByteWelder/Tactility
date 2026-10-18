@@ -4,7 +4,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/trackball.h>
 
-#include <Tactility/Assets.h>
+#include <lvgl/ui_assets.h>
 #include <Tactility/settings/TrackballSettings.h>
 
 namespace tt::lvgl {
@@ -29,7 +29,7 @@ static void initTrackball(lv_indev_t* indev, LvglTrackballSettings& settings) {
 
     lvgl_trackball_set_settings(indev, &settings);
     if (settings.mode == LVGL_TRACKBALL_MODE_POINTER) {
-        lvgl_trackball_set_cursor_image(indev, TT_ASSETS_UI_CURSOR);
+        lvgl_trackball_set_cursor_image(indev, lvgl_get_cursor_image());
     }
 }
 

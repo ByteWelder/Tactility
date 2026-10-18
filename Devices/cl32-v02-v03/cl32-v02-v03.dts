@@ -11,7 +11,7 @@
 #include <tactility/bindings/esp32_wifi.h>
 
 #include <bindings/bm8563.h>
-#include <bindings/esp_epaper.h>
+#include <bindings/ssd16xx.h>
 
 / {
 	compatible = "root";
@@ -80,14 +80,13 @@
 		};
 
 		epd@1 {
-			compatible = "tuanpmt,esp-epaper";
+			compatible = "solomon-systech,ssd16xx";
 			pin-dc = <&gpio0 13 GPIO_FLAG_NONE>;
 			pin-reset = <&gpio0 12 GPIO_FLAG_NONE>;
 			pin-busy = <&gpio0 14 GPIO_FLAG_NONE>;
 			pin-cs = <&gpio0 6 GPIO_FLAG_NONE>;
 			clock-speed-hz = <4000000>;
 			panel-type = "gdey029t71h";
-			update-mode = <2>;
 			rotation = <1>;
 		};
 	};
