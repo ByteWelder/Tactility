@@ -21,6 +21,7 @@ namespace simulator {
 constexpr auto* TAG = "SimulatorProfile";
 constexpr auto* PROFILE_DIRECTORY = "data/tactility";
 constexpr auto* PROFILE_PATH = "data/tactility/simulator_profile.txt";
+constexpr auto* DISPLAY_SETTINGS_DIRECTORY = "data/tactility/user/app/tactility.display";
 constexpr auto* DISPLAY_SETTINGS_PATH = "data/tactility/user/app/tactility.display/display.properties";
 constexpr auto* ORIENTATION_KEY = "orientation=";
 
@@ -35,6 +36,7 @@ static const Profile PROFILES[PROFILE_COUNT] = {
 };
 
 static size_t activeProfileIndex = 0;
+static OrientationOverride activeOrientation = OrientationOverride::Default;
 static char** processArguments = nullptr;
 /** Absolute, because argv[0] can be a bare name that was found through PATH. Empty when it can't be resolved. */
 static std::string executablePath;
@@ -43,42 +45,98 @@ const Profile& getProfile(size_t index) {
     return PROFILES[index < PROFILE_COUNT ? index : 0];
 }
 
-size_t loadSelectedProfileIndex() {
-    FILE* file = fopen(PROFILE_PATH, "r");
-    if (file == nullptr) {
-        return 0;
+static const char* toString(OrientationOverride orientation) {
+    switch (orientation) {
+        case OrientationOverride::Landscape:
+            return "landscape";
+        case OrientationOverride::Portrait:
+            return "portrait";
+        default:
+            return "default";
     }
-    char name[64] = {};
-    const bool read = fgets(name, sizeof(name), file) != nullptr;
-    fclose(file);
-    if (!read) {
-        return 0;
-    }
-    name[strcspn(name, "\r\n")] = '\0';
-    for (size_t i = 0; i < PROFILE_COUNT; i++) {
-        if (strcmp(PROFILES[i].name, name) == 0) {
-            return i;
-        }
-    }
-    return 0;
 }
 
-// A saved orientation overrides the display's default one, which the profile defines
-static void clearSavedOrientation() {
-    FILE* file = fopen(DISPLAY_SETTINGS_PATH, "r");
+/** The first line has the profile name, the optional second line the orientation */
+static void loadSelection(size_t& profileIndex, OrientationOverride& orientation) {
+    profileIndex = 0;
+    orientation = OrientationOverride::Default;
+    FILE* file = fopen(PROFILE_PATH, "r");
     if (file == nullptr) {
         return;
     }
-    std::string kept;
-    char line[256];
-    while (fgets(line, sizeof(line), file) != nullptr) {
-        if (strncmp(line, ORIENTATION_KEY, strlen(ORIENTATION_KEY)) != 0) {
-            kept += line;
-        }
+    char name[64] = {};
+    char orientationText[16] = {};
+    const bool read = fgets(name, sizeof(name), file) != nullptr;
+    if (read) {
+        fgets(orientationText, sizeof(orientationText), file);
     }
     fclose(file);
+    if (!read) {
+        return;
+    }
+    name[strcspn(name, "\r\n")] = '\0';
+    orientationText[strcspn(orientationText, "\r\n")] = '\0';
+    for (size_t i = 0; i < PROFILE_COUNT; i++) {
+        if (strcmp(PROFILES[i].name, name) == 0) {
+            profileIndex = i;
+        }
+    }
+    for (auto candidate : { OrientationOverride::Landscape, OrientationOverride::Portrait }) {
+        if (strcmp(toString(candidate), orientationText) == 0) {
+            orientation = candidate;
+        }
+    }
+}
 
-    file = fopen(DISPLAY_SETTINGS_PATH, "w");
+size_t loadSelectedProfileIndex() {
+    size_t profileIndex;
+    OrientationOverride orientation;
+    loadSelection(profileIndex, orientation);
+    return profileIndex;
+}
+
+OrientationOverride loadSelectedOrientation() {
+    size_t profileIndex;
+    OrientationOverride orientation;
+    loadSelection(profileIndex, orientation);
+    return orientation;
+}
+
+static const char* toDisplaySettingsValue(OrientationOverride orientation) {
+    return orientation == OrientationOverride::Portrait ? "Portrait" : "Landscape";
+}
+
+/** Creates the folders of a path, like "mkdir -p" */
+static void makeDirectories(const std::string& path) {
+    for (size_t position = path.find('/'); position != std::string::npos; position = path.find('/', position + 1)) {
+        mkdir(path.substr(0, position).c_str(), 0755);
+    }
+    mkdir(path.c_str(), 0755);
+}
+
+/**
+ * The Display settings apply their saved orientation to the display. Writes the override there,
+ * or removes the saved orientation so that the display's own orientation applies.
+ */
+static void applyOrientationToDisplaySettings(OrientationOverride orientation) {
+    std::string kept;
+    if (FILE* file = fopen(DISPLAY_SETTINGS_PATH, "r"); file != nullptr) {
+        char line[256];
+        while (fgets(line, sizeof(line), file) != nullptr) {
+            if (strncmp(line, ORIENTATION_KEY, strlen(ORIENTATION_KEY)) != 0) {
+                kept += line;
+            }
+        }
+        fclose(file);
+    }
+    if (orientation != OrientationOverride::Default) {
+        kept += std::string(ORIENTATION_KEY) + toDisplaySettingsValue(orientation) + "\n";
+    } else if (kept.empty() && access(DISPLAY_SETTINGS_PATH, F_OK) != 0) {
+        return;
+    }
+
+    makeDirectories(DISPLAY_SETTINGS_DIRECTORY);
+    FILE* file = fopen(DISPLAY_SETTINGS_PATH, "w");
     if (file == nullptr) {
         LOG_E(TAG, "Failed to write %s", DISPLAY_SETTINGS_PATH);
         return;
@@ -87,31 +145,38 @@ static void clearSavedOrientation() {
     fclose(file);
 }
 
-bool saveSelectedProfileIndex(size_t index) {
-    const bool changed = index != loadSelectedProfileIndex();
+bool saveSelection(size_t profileIndex, OrientationOverride orientation) {
+    size_t savedProfileIndex;
+    OrientationOverride savedOrientation;
+    loadSelection(savedProfileIndex, savedOrientation);
+    const bool changed = profileIndex != savedProfileIndex || orientation != savedOrientation;
     mkdir(PROFILE_DIRECTORY, 0755);
     FILE* file = fopen(PROFILE_PATH, "w");
     if (file == nullptr) {
         LOG_E(TAG, "Failed to write %s", PROFILE_PATH);
         return false;
     }
-    const bool written = fprintf(file, "%s\n", getProfile(index).name) > 0;
+    const bool written = fprintf(file, "%s\n%s\n", getProfile(profileIndex).name, toString(orientation)) > 0;
     if (fclose(file) != 0 || !written) {
         return false;
     }
     if (changed) {
-        clearSavedOrientation();
+        applyOrientationToDisplaySettings(orientation);
     }
     return true;
 }
 
 void initActiveProfile() {
-    activeProfileIndex = loadSelectedProfileIndex();
-    LOG_I(TAG, "Profile: %s", getProfile(activeProfileIndex).name);
+    loadSelection(activeProfileIndex, activeOrientation);
+    LOG_I(TAG, "Profile: %s, orientation: %s", getProfile(activeProfileIndex).name, toString(activeOrientation));
 }
 
 size_t getActiveProfileIndex() {
     return activeProfileIndex;
+}
+
+OrientationOverride getActiveOrientation() {
+    return activeOrientation;
 }
 
 static std::string resolveExecutablePath(const char* argv0) {
