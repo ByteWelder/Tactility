@@ -82,3 +82,10 @@ lv_obj_t* lvgl_list_add_button(lv_obj_t* list, const void* icon, const char* tex
 
     return obj;
 }
+
+void lvgl_list_hide_last_divider(lv_obj_t* list) {
+    const uint32_t count = lv_obj_get_child_count(list);
+    if (count > 0) {
+        lv_obj_set_style_border_width(lv_obj_get_child(list, static_cast<int32_t>(count) - 1), 0, LV_STATE_DEFAULT);
+    }
+}

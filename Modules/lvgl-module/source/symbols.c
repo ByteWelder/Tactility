@@ -151,6 +151,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_list_create),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_text),
     DEFINE_MODULE_SYMBOL(lvgl_list_add_button),
+    DEFINE_MODULE_SYMBOL(lvgl_list_hide_last_divider),
     // lvgl_qr
     DEFINE_MODULE_SYMBOL(lvgl_qr_create),
     DEFINE_MODULE_SYMBOL(lvgl_qr_set_data),

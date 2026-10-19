@@ -26,8 +26,9 @@ inline ::std::string getNotReadyText() {
     return ::std::string("Mesh isn't running: ") + mesh_state_to_string(mesh_get_state()) + ". Check the Mesh settings.";
 }
 
-/** The mesh network and the kind of radio that it uses. Both are empty when mesh isn't using a network. */
+/** Whether mesh is running, and the network and the kind of radio that it uses. Those are empty while mesh isn't running. */
 struct NetworkInfo {
+    bool running = false;
     char network[MESH_BACKEND_ID_MAX_LENGTH + 1] = {};
     char modulation[16] = {};
 };
@@ -35,16 +36,19 @@ struct NetworkInfo {
 /** Queries the service thread, so it's called without the LVGL lock */
 NetworkInfo loadNetworkInfo();
 
-/** A text line under the toolbar: "Using [network] via [modulation]", with the values in the secondary theme colour */
+/**
+ * A text line under the toolbar with the values in the secondary theme colour:
+ * "Using [network] via [modulation]" while mesh is running, and "Mesh is OFF" when it isn't
+ */
 lv_obj_t* createNetworkHeader(lv_obj_t* parent);
 
-/** Requires the LVGL lock. Hides the header while there is no network. */
+/** Requires the LVGL lock. Hides the header while mesh is running without a known network. */
 void updateNetworkHeader(lv_obj_t* header, const NetworkInfo& info);
 
 /** Starts an app by id with the given arguments */
 void startApp(const char* id, int argc, const char* const argv[]);
 
-/** A scrollable, borderless column below the toolbar and status label that holds the lists and buttons of a screen */
+/** A scrollable, borderless column below the toolbar and network header that holds the lists and buttons of a screen */
 lv_obj_t* createContent(lv_obj_t* parent);
 
 /**

@@ -34,6 +34,11 @@ static const char* getNetworkLabel(const char* id) {
 
 NetworkInfo loadNetworkInfo() {
     NetworkInfo info;
+    // A backend and a radio stay selected while mesh is off
+    if (mesh_get_state() != MESH_STATE_ON) {
+        return info;
+    }
+    info.running = true;
     char id[MESH_BACKEND_ID_MAX_LENGTH + 1];
     if (mesh_get_backend(id, sizeof(id)) != ERROR_NONE) {
         return info;
@@ -55,7 +60,7 @@ NetworkInfo loadNetworkInfo() {
     return info;
 }
 
-// The spans: "Using ", the network, " via ", the modulation
+// The spans: "Using ", the network, " via ", the modulation. While mesh is off: "Mesh is ", "OFF", "", ""
 constexpr int32_t NETWORK_SPAN = 1;
 constexpr int32_t MODULATION_SPAN = 3;
 
@@ -80,8 +85,10 @@ lv_obj_t* createNetworkHeader(lv_obj_t* parent) {
 }
 
 void updateNetworkHeader(lv_obj_t* header, const NetworkInfo& info) {
-    lv_obj_set_hidden(header, info.network[0] == '\0');
-    lv_span_set_text(lv_spangroup_get_child(header, NETWORK_SPAN), info.network);
+    lv_obj_set_hidden(header, info.running && info.network[0] == '\0');
+    lv_span_set_text(lv_spangroup_get_child(header, 0), info.running ? "Using " : "Mesh is ");
+    lv_span_set_text(lv_spangroup_get_child(header, NETWORK_SPAN), info.running ? info.network : "OFF");
+    lv_span_set_text(lv_spangroup_get_child(header, 2), info.running ? " via " : "");
     lv_span_set_text(lv_spangroup_get_child(header, MODULATION_SPAN), info.modulation);
     lv_spangroup_refresh(header);
 }
@@ -109,7 +116,10 @@ lv_obj_t* createCard(lv_obj_t* parent) {
     lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(card, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_pad_row(card, 0, LV_STATE_DEFAULT);
+    // The items' backgrounds and dividers follow the card's rounded corners
+    lv_obj_set_style_clip_corner(card, true, LV_STATE_DEFAULT);
     return card;
 }
+
 
 }

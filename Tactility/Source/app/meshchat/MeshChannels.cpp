@@ -63,19 +63,10 @@ struct Context {
     ::std::string pendingChannelName;
     tt::std::vector<MeshChannel> channels;
     // Valid while the window is shown
-    lv_obj_t* statusLabel = nullptr;
     lv_obj_t* networkHeader = nullptr;
     lv_obj_t* content = nullptr;
     NetworkInfo network;
 };
-
-bool isMeshOn() {
-    return mesh_get_state() == MESH_STATE_ON;
-}
-
-::std::string getStatusText() {
-    return ::std::string("Mesh: ") + mesh_state_to_string(mesh_get_state());
-}
 
 /** Queries the service thread, so it's called without the LVGL lock */
 void loadData(Context* ctx) {
@@ -122,14 +113,13 @@ void updateWidgets(Context* ctx) {
         return;
     }
     updateNetworkHeader(ctx->networkHeader, ctx->network);
-    lv_label_set_text(ctx->statusLabel, getStatusText().c_str());
-    lv_obj_set_hidden(ctx->statusLabel, isMeshOn());
 
     lv_obj_clean(ctx->content);
     auto* channelList = createCard(ctx->content);
     for (size_t i = 0; i < ctx->channels.size(); i++) {
         addListButton(channelList, ctx->channels[i].name, onChannelPressed, ctx, (intptr_t)i);
     }
+    lvgl_list_hide_last_divider(channelList);
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -145,10 +135,6 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
     ctx->networkHeader = createNetworkHeader(parent);
 
-    ctx->statusLabel = lv_label_create(parent);
-    lv_obj_set_width(ctx->statusLabel, LV_PCT(100));
-    lv_obj_set_style_pad_hor(ctx->statusLabel, LV_DPX(8), LV_STATE_DEFAULT);
-
     ctx->content = createContent(parent);
 
     updateWidgets(ctx);
@@ -156,7 +142,6 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
-    ctx->statusLabel = nullptr;
     ctx->networkHeader = nullptr;
     ctx->content = nullptr;
 }
