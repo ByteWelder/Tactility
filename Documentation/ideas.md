@@ -7,6 +7,7 @@
 
 ## Higher Priority
 
+- Move TactilityKernelCpp project as C++ include folder into TactilityKernel. This way, the kernel itself can use the C++ templates internally. And it's a library less.
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
@@ -24,6 +25,7 @@
 
 ## Medium Priority
 
+- Let the Mesh Contacts and Mesh Channels app show which type of radio and mesh it's using e.g. "Using MeshCore via LoRa". Make the radio and mesh words pop out with secondary colour.
 - Support hot-plugging SD card (note: might be problematic with shared SPI bus)
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - Tactility/Source/bluetooth move into bluetooth module, make it work generically for all bluetooth apis
