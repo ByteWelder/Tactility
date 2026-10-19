@@ -26,6 +26,21 @@ inline ::std::string getNotReadyText() {
     return ::std::string("Mesh isn't running: ") + mesh_state_to_string(mesh_get_state()) + ". Check the Mesh settings.";
 }
 
+/** The mesh network and the kind of radio that it uses. Both are empty when mesh isn't using a network. */
+struct NetworkInfo {
+    char network[MESH_BACKEND_ID_MAX_LENGTH + 1] = {};
+    char modulation[16] = {};
+};
+
+/** Queries the service thread, so it's called without the LVGL lock */
+NetworkInfo loadNetworkInfo();
+
+/** A text line under the toolbar: "Using [network] via [modulation]", with the values in the secondary theme colour */
+lv_obj_t* createNetworkHeader(lv_obj_t* parent);
+
+/** Requires the LVGL lock. Hides the header while there is no network. */
+void updateNetworkHeader(lv_obj_t* header, const NetworkInfo& info);
+
 /** Starts an app by id with the given arguments */
 void startApp(const char* id, int argc, const char* const argv[]);
 

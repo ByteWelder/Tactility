@@ -64,7 +64,9 @@ struct Context {
     tt::std::vector<MeshChannel> channels;
     // Valid while the window is shown
     lv_obj_t* statusLabel = nullptr;
+    lv_obj_t* networkHeader = nullptr;
     lv_obj_t* content = nullptr;
+    NetworkInfo network;
 };
 
 bool isMeshOn() {
@@ -77,6 +79,7 @@ bool isMeshOn() {
 
 /** Queries the service thread, so it's called without the LVGL lock */
 void loadData(Context* ctx) {
+    ctx->network = loadNetworkInfo();
     ctx->channels.assign(CHANNEL_LIMIT, MeshChannel {});
     size_t count = 0;
     if (mesh_get_channels(ctx->channels.data(), CHANNEL_LIMIT, &count) != ERROR_NONE) {
@@ -118,6 +121,7 @@ void updateWidgets(Context* ctx) {
     if (ctx->content == nullptr) {
         return;
     }
+    updateNetworkHeader(ctx->networkHeader, ctx->network);
     lv_label_set_text(ctx->statusLabel, getStatusText().c_str());
     lv_obj_set_hidden(ctx->statusLabel, isMeshOn());
 
@@ -139,6 +143,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_PLUS, onAddChannelPressed, ctx);
     lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_SETTINGS, onSettingsPressed, ctx);
 
+    ctx->networkHeader = createNetworkHeader(parent);
+
     ctx->statusLabel = lv_label_create(parent);
     lv_obj_set_width(ctx->statusLabel, LV_PCT(100));
     lv_obj_set_style_pad_hor(ctx->statusLabel, LV_DPX(8), LV_STATE_DEFAULT);
@@ -151,6 +157,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
     ctx->statusLabel = nullptr;
+    ctx->networkHeader = nullptr;
     ctx->content = nullptr;
 }
 

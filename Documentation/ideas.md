@@ -25,7 +25,8 @@
 
 ## Medium Priority
 
-- Let the Mesh Contacts and Mesh Channels app show which type of radio and mesh it's using e.g. "Using MeshCore via LoRa". Make the radio and mesh words pop out with secondary colour.
+- Try https://github.com/bootdsc/Fastwave-Eink-Driver with CL-32 e-paper.
+- Power Off with e-paper should trigger full refresh before power off.
 - Support hot-plugging SD card (note: might be problematic with shared SPI bus)
 - Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - Tactility/Source/bluetooth move into bluetooth module, make it work generically for all bluetooth apis
