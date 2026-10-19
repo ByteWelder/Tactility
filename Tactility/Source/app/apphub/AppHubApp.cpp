@@ -80,6 +80,8 @@ struct Context {
     TaskEventGroup* eventGroup = nullptr;
     uint32_t refreshRequestedBit = 0;
     ::std::atomic<bool> refreshRequested {false};
+    /** Set when the window resurfaces: the installed apps can change without an App Hub event, e.g. through the Files app */
+    ::std::atomic<bool> reloadRequested {false};
 
     AppHubEventSubscription appHubSub {};
     /** The id of the queued catalog refresh, 0 when none is pending */
@@ -216,6 +218,11 @@ void onAppPressed(lv_event_t* e) {
 
 void requestRefresh(Context* ctx) {
     ctx->refreshRequested = true;
+    task_event_group_signal(ctx->eventGroup, ctx->refreshRequestedBit);
+}
+
+void requestReload(Context* ctx) {
+    ctx->reloadRequested = true;
     task_event_group_signal(ctx->eventGroup, ctx->refreshRequestedBit);
 }
 
@@ -389,6 +396,16 @@ void refresh(Context* ctx) {
     lvgl_unlock();
 }
 
+// Runs on appMain()'s own task, after the window resurfaced
+void reload(Context* ctx) {
+    loadApps(ctx);
+    lvgl_lock();
+    if (ctx->contentWrapper != nullptr) {
+        showApps(ctx);
+    }
+    lvgl_unlock();
+}
+
 void onOperationEvent(Context* ctx, const AppHubEvent& event) {
     if (event.type == APP_HUB_EVENT_REFRESHING) {
         // The list doesn't change yet, only the toolbar shows that App Hub is busy
@@ -453,6 +470,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
         // instead of hitting the network again. window_manager calls createWidgets() with the
         // LVGL lock already held, so this can touch widgets directly.
         showApps(ctx);
+        // The cache can be stale, so the app's task reloads it and shows the list again
+        requestReload(ctx);
     }
 }
 
@@ -531,6 +550,9 @@ int32_t appMain(int argc, char* argv[]) {
             onOperationEvent(&ctx, app_hub_event);
         }
 
+        if (!shouldClose && ctx.reloadRequested.exchange(false)) {
+            reload(&ctx);
+        }
         if (!shouldClose && ctx.refreshRequested.exchange(false)) {
             refresh(&ctx);
         }

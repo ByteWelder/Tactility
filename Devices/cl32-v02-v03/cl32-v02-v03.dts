@@ -12,6 +12,7 @@
 
 #include <bindings/bm8563.h>
 #include <bindings/ssd16xx.h>
+#include <bindings/sx1262.h>
 
 / {
 	compatible = "root";

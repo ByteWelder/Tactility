@@ -47,6 +47,10 @@ struct Context {
     lv_obj_t* spinner = nullptr;
     lv_obj_t* updateButton = nullptr;
     lv_obj_t* updateLabel = nullptr;
+    lv_obj_t* descriptionLabel = nullptr;
+    lv_obj_t* versionLabel = nullptr;
+    /** Whether createWidgets() ran before, so the next call is a resurface */
+    bool created = false;
 
     // Read from the catalog file on this app's own thread (see loadState()), as the widget code
     // can't do file operations. Written with the LVGL lock held, read by the widget code.
@@ -61,6 +65,9 @@ struct Context {
     ::std::atomic<uint32_t> updateDialogId = 0;
 
     TaskEventGroup* eventGroup = nullptr;
+    uint32_t reloadBit = 0;
+    /** Set when the window resurfaces: the catalog can change while a dialog covers it */
+    ::std::atomic<bool> reloadRequested { false };
     AppHubEventSubscription appHubSub {};
 };
 
@@ -122,8 +129,8 @@ void loadState(Context* ctx, bool includeDescription) {
 void updateViews(Context* ctx);
 
 /** Loads the state and shows it. Runs on this app's own thread. */
-void refreshViews(Context* ctx) {
-    loadState(ctx, false);
+void refreshViews(Context* ctx, bool includeDescription = false) {
+    loadState(ctx, includeDescription);
     lvgl_lock();
     updateViews(ctx);
     lvgl_unlock();
@@ -182,6 +189,8 @@ void updateViews(Context* ctx) {
     if (ctx->toolbar == nullptr) {
         return;
     }
+    lv_label_set_text(ctx->descriptionLabel, ctx->description.c_str());
+    lv_label_set_text_fmt(ctx->versionLabel, "Version %s", ctx->app.in_catalog ? ctx->app.version_name : ctx->app.installed_version_name);
     lvgl_toolbar_clear_actions(ctx->toolbar);
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
     lv_obj_set_hidden(ctx->updateLabel, true);
@@ -226,19 +235,27 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_label_set_text(ctx->updateLabel, "Update available!");
     lv_obj_set_style_text_color(ctx->updateLabel, lv_color_make(0xff, 0xff, 00), LV_STATE_DEFAULT);
 
-    auto* description_label = lv_label_create(wrapper);
-    lv_obj_set_width(description_label, LV_PCT(100));
-    lv_label_set_long_mode(description_label, LV_LABEL_LONG_MODE_WRAP);
-    lv_label_set_text(description_label, ctx->description.c_str());
+    ctx->descriptionLabel = lv_label_create(wrapper);
+    lv_obj_set_width(ctx->descriptionLabel, LV_PCT(100));
+    lv_label_set_long_mode(ctx->descriptionLabel, LV_LABEL_LONG_MODE_WRAP);
 
-    auto* version_label = lv_label_create(wrapper);
-    lv_label_set_text_fmt(version_label, "Version %s", app.in_catalog ? app.version_name : app.installed_version_name);
+    ctx->versionLabel = lv_label_create(wrapper);
 
     updateViews(ctx);
+
+    // The cached state shows right away. The app's task then reloads it, as the catalog can have
+    // changed while a dialog covered this window.
+    if (ctx->created) {
+        ctx->reloadRequested = true;
+        task_event_group_signal(ctx->eventGroup, ctx->reloadBit);
+    }
+    ctx->created = true;
 }
 
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
+    ctx->descriptionLabel = nullptr;
+    ctx->versionLabel = nullptr;
     ctx->toolbar = nullptr;
     ctx->spinner = nullptr;
     ctx->updateButton = nullptr;
@@ -261,6 +278,7 @@ int32_t appMain(int argc, char* argv[]) {
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.reloadBit) == ERROR_NONE);
     check(app_hub_event_subscribe(&ctx.appHubSub, &event_group) == ERROR_NONE);
 
     loadState(&ctx, true);
@@ -296,9 +314,16 @@ int32_t appMain(int argc, char* argv[]) {
 
         AppHubEvent app_hub_event {};
         while (!shouldClose && app_hub_event_poll(&ctx.appHubSub, &app_hub_event) == ERROR_NONE) {
-            if (app_hub_event.type != APP_HUB_EVENT_REFRESHING && app_hub_event.type != APP_HUB_EVENT_REFRESHED) {
+            if (app_hub_event.type == APP_HUB_EVENT_REFRESHED) {
+                // A new catalog can change the version, description and actions
+                ctx.reloadRequested = true;
+            } else if (app_hub_event.type != APP_HUB_EVENT_REFRESHING) {
                 onOperationEvent(&ctx, app_hub_event);
             }
+        }
+
+        if (!shouldClose && ctx.reloadRequested.exchange(false)) {
+            refreshViews(&ctx, true);
         }
     }
 
