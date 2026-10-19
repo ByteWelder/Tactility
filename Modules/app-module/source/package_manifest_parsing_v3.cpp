@@ -279,3 +279,44 @@ error_t package_manifest_parse_v3(const std::map<std::string, std::string>& prop
 
     return ERROR_NONE;
 }
+
+error_t package_manifest_parse_module_binaries_v3(const std::map<std::string, std::string>& properties, std::vector<std::string>& out_binaries) {
+    out_binaries.clear();
+
+    size_t count = 0;
+    while (properties.contains(std::format("module.{}.binary", count))) {
+        count++;
+        if (count > PACKAGE_MANIFEST_MAX_APP_MANIFESTS) {
+            LOG_E(TAG, "Manifest declares more than %d modules", PACKAGE_MANIFEST_MAX_APP_MANIFESTS);
+            return ERROR_BUFFER_OVERFLOW;
+        }
+    }
+
+    // Catch a gap the count loop above would otherwise silently drop, e.g. module.0.* + module.3.*.
+    for (const auto& [key, value] : properties) {
+        if (!key.starts_with("module.")) {
+            continue;
+        }
+        auto dot = key.find('.', 7);
+        if (dot == std::string::npos || dot == 7) {
+            continue;
+        }
+        size_t index = 0;
+        auto result = std::from_chars(key.data() + 7, key.data() + dot, index);
+        if (result.ec == std::errc {} && result.ptr == key.data() + dot && index >= count) {
+            LOG_E(TAG, "Manifest declares %s but only %zu contiguous module(s) starting at module.0 were found", key.c_str(), count);
+            return ERROR_INVALID_ARGUMENT;
+        }
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        const auto& binary = properties.at(std::format("module.{}.binary", i));
+        if (!app_package_manifest_is_valid_binary_name(binary)) {
+            LOG_E(TAG, "Invalid module.%zu.binary", i);
+            return ERROR_INVALID_ARGUMENT;
+        }
+        out_binaries.push_back(binary);
+    }
+
+    return ERROR_NONE;
+}

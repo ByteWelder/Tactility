@@ -179,16 +179,29 @@ class TtTest(unittest.TestCase):
 
     def test_new_project_with_answers_and_the_terminal_variant(self):
         self.publish_new_project()
-        result = self.run_tt("echo", input_text=f"yes\n{VERSION}\nmy.package\nmyapp\nMy App\ny\n")
+        result = self.run_tt("echo", input_text=f"yes\n{VERSION}\nterminal\nmy.package\nmyapp\nMy App\n")
         self.assertEqual(result.returncode, 3, result.stderr)
         self.assertEqual(self.read_work_file("manifest.properties"), f"target.sdk={VERSION}\nid=my.package\napp.0.id=myapp\napp.0.name=My App\napp.0.headless=true\n")
         self.assertEqual(self.read_work_file("main", "Source", "main.c"), "// terminal\n")
 
+    def test_new_project_module_variant_skips_the_app_questions(self):
+        self.publish_new_project(files={
+            "gui/manifest.properties": "gui\n",
+            "module/manifest.properties": "target.sdk=@SDK_VERSION@\nid=@PACKAGE_ID@\nmodule.0.binary=main\n",
+            "module/main/Source/main.c": "// module\n",
+        })
+        result = self.run_tt("echo", input_text=f"y\n{VERSION}\nmodule\nmy.package\n")
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertEqual(self.read_work_file("manifest.properties"), f"target.sdk={VERSION}\nid=my.package\nmodule.0.binary=main\n")
+        self.assertEqual(self.read_work_file("main", "Source", "main.c"), "// module\n")
+        self.assertNotIn("App id", result.stderr)
+
     def test_new_project_asks_again_for_invalid_answers(self):
         self.publish_new_project()
-        result = self.run_tt("echo", input_text=f"y\n..\n{VERSION}\nab\nmy.package\n\nM\nMy App\n\n")
+        result = self.run_tt("echo", input_text=f"y\n..\n{VERSION}\nplugin\n\nab\nmy.package\n\nM\nMy App\n")
         self.assertEqual(result.returncode, 3, result.stderr)
         self.assertIn("invalid SDK version", result.stderr)
+        self.assertIn("use gui, terminal or module", result.stderr)
         self.assertIn("use 5 to 32 letters, digits and dots", result.stderr)
         self.assertIn("use 2 to 32 letters, digits, spaces and dashes", result.stderr)
         self.assertIn("id=my.package", self.read_work_file("manifest.properties"))

@@ -42,11 +42,14 @@ runs:
         TACTILITY_ARCH: ${{ steps.arch.outputs.value }}
       run: |
         SDK_VERSION=$(cat version.txt)
-        # The answers are: generate, SDK version, package id, app id, app name and terminal app. An empty line takes the default.
-        for terminal in "" "y"; do
-          project_path="$RUNNER_TEMP/new-project-${terminal:-gui}"
+        # The answers are: generate, SDK version, project type, package id, app id and app name. An empty line takes the default.
+        # A module has no app id or app name, so the extra lines are ignored.
+        for type in "" "terminal" "module"; do
+          project_path="$RUNNER_TEMP/new-project-${type:-gui}"
           mkdir -p "$project_path"
-          (cd "$project_path" && printf 'y\n%s\n\n\n\n%s\n' "$SDK_VERSION" "$terminal" | TACTILITY_SDK_PATH="$GITHUB_WORKSPACE/test_sdk" python "$GITHUB_WORKSPACE/tt.py" app build -a posix-$TACTILITY_ARCH)
+          (cd "$project_path" && printf 'y\n%s\n%s\n\n\n\n' "$SDK_VERSION" "$type" | TACTILITY_SDK_PATH="$GITHUB_WORKSPACE/test_sdk" python "$GITHUB_WORKSPACE/tt.py" app build -a posix-$TACTILITY_ARCH)
+          # The project must have produced a binary for the manifest's entry
+          test -f "$project_path/build/package-intermediate/bin/posix-$TACTILITY_ARCH/main.so"
         done
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4

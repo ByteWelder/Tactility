@@ -1,6 +1,7 @@
 #include "doctest.h"
 #include <tactility/driver.h>
 #include <tactility/device.h>
+#include <tactility/driver_internal.h>
 
 struct IntegrationDriverConfig {
     int startResult;
@@ -61,4 +62,54 @@ TEST_CASE("driver with with start success and stop success should start and stop
     CHECK_EQ(device_destruct(&integration_device), ERROR_NONE);
 
     CHECK_EQ(driver_remove_destruct(&integration_driver), ERROR_NONE);
+}
+
+TEST_CASE("driver_begin_destroy refuses new binds and is refused while a device is bound") {
+    static const IntegrationDriverConfig config { .startResult = 0, .stopResult = 0 };
+    static Device first_device { .name = "destroy_first_device", .config = &config, .parent = nullptr };
+    static Device second_device { .name = "destroy_second_device", .config = &config, .parent = nullptr };
+    static Driver destroy_driver = {
+        .name = "destroy_test_driver",
+        .compatible = (const char*[]) { "destroy", nullptr },
+        .start_device = start,
+        .stop_device = stop,
+    };
+
+    REQUIRE_EQ(driver_construct_add(&destroy_driver), ERROR_NONE);
+    REQUIRE_EQ(device_construct(&first_device), ERROR_NONE);
+    REQUIRE_EQ(device_add(&first_device), ERROR_NONE);
+    REQUIRE_EQ(device_construct(&second_device), ERROR_NONE);
+    REQUIRE_EQ(device_add(&second_device), ERROR_NONE);
+
+    // Bound: busy, and nothing changed so binding still works
+    REQUIRE_EQ(driver_bind(&destroy_driver, &first_device), ERROR_NONE);
+    CHECK_EQ(driver_begin_destroy(&destroy_driver), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(driver_bind(&destroy_driver, &second_device), ERROR_NONE);
+    CHECK_EQ(driver_unbind(&destroy_driver, &second_device), ERROR_NONE);
+    CHECK_EQ(driver_unbind(&destroy_driver, &first_device), ERROR_NONE);
+    CHECK_FALSE(driver_is_in_use(&destroy_driver));
+
+    // Free: from now on binds are refused, until the destroy is cancelled
+    REQUIRE_EQ(driver_begin_destroy(&destroy_driver), ERROR_NONE);
+    CHECK_EQ(driver_bind(&destroy_driver, &first_device), ERROR_INVALID_STATE);
+    CHECK_FALSE(driver_is_in_use(&destroy_driver));
+    driver_cancel_destroy(&destroy_driver);
+    CHECK_EQ(driver_bind(&destroy_driver, &first_device), ERROR_NONE);
+    CHECK_EQ(driver_unbind(&destroy_driver, &first_device), ERROR_NONE);
+
+    // A failed start doesn't leave the driver counted as in use
+    static const IntegrationDriverConfig failing { .startResult = ERROR_RESOURCE, .stopResult = 0 };
+    static Device failing_device { .name = "destroy_failing_device", .config = &failing, .parent = nullptr };
+    REQUIRE_EQ(device_construct(&failing_device), ERROR_NONE);
+    REQUIRE_EQ(device_add(&failing_device), ERROR_NONE);
+    CHECK_NE(driver_bind(&destroy_driver, &failing_device), ERROR_NONE);
+    CHECK_FALSE(driver_is_in_use(&destroy_driver));
+
+    CHECK_EQ(device_remove(&failing_device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&failing_device), ERROR_NONE);
+    CHECK_EQ(device_remove(&second_device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&second_device), ERROR_NONE);
+    CHECK_EQ(device_remove(&first_device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&first_device), ERROR_NONE);
+    CHECK_EQ(driver_remove_destruct(&destroy_driver), ERROR_NONE);
 }

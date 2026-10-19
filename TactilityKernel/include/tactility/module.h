@@ -116,7 +116,9 @@ error_t module_start(struct Module* module);
 /**
  * @brief Stop the module.
  * @param module module
- * @return ERROR_NONE if successful or if the module wasn't started, or otherwise it returns the result of the module's stop function
+ * @retval ERROR_NONE if successful or if the module wasn't started
+ * @retval ERROR_RESOURCE_BUSY the module is referenced (see module_get()) or a driver of it is bound to a device. The module keeps running.
+ * @return otherwise the result of the module's stop function
  */
 error_t module_stop(struct Module* module);
 
@@ -152,12 +154,45 @@ error_t module_ensure_destructed(struct Module* module);
 bool module_is_started(struct Module* module);
 
 /**
+ * @brief Check if the module was loaded from outside the firmware image (e.g. from an installed package).
+ * Can be used when module isn't constructed yet.
+ * @param module module to check
+ * @return true if the module was marked external, false otherwise
+ */
+bool module_is_external(struct Module* module);
+
+/**
+ * @brief Mark the module as externally loaded or not.
+ * @details The module must be constructed. The flag lives until the module is destructed.
+ * @param module module to mark
+ * @param external the new value of the flag
+ * @return ERROR_NONE if successful, ERROR_INVALID_STATE if the module isn't constructed
+ */
+error_t module_set_external(struct Module* module, bool external);
+
+/**
+ * @brief Take a reference on a started module, so that it can't be stopped until module_put().
+ * @details Use this while code or data of the module is used by something else, e.g. an ELF whose
+ * relocations point into the module's symbols. Every successful call must be paired with one module_put().
+ * @param module module to reference
+ * @retval ERROR_NONE the module is referenced
+ * @retval ERROR_INVALID_STATE the module isn't started, or is being stopped
+ */
+error_t module_get(struct Module* module);
+
+/**
+ * @brief Release a reference taken with a successful module_get() or module_resolve_symbol_global_get().
+ * @param module module that was referenced
+ */
+void module_put(struct Module* module);
+
+/**
  * @brief Resolve a symbol from the module.
- * @details The module must be started for symbol resolution to succeed.
+ * @details The module must be added with module_add() for symbol resolution to succeed. It doesn't have to be started.
  * @param module module
  * @param symbol_name name of the symbol to resolve
  * @param symbol_address pointer to store the address of the resolved symbol
- * @return true if the symbol was found and the module is started, false otherwise
+ * @return true if the symbol was found and the module is added, false otherwise
  */
 bool module_resolve_symbol(struct Module* module, const char* symbol_name, uintptr_t* symbol_address);
 
@@ -169,6 +204,16 @@ bool module_resolve_symbol(struct Module* module, const char* symbol_name, uintp
  * @return true if the symbol was found, false otherwise
  */
 bool module_resolve_symbol_global(const char* symbol_name, uintptr_t* symbol_address);
+
+/**
+ * @brief Same as module_resolve_symbol_global(), but also takes a reference on the module that has the symbol.
+ * @details The resolve and the reference are one atomic step, so the module can't stop in between.
+ * @param symbol_name name of the symbol to resolve
+ * @param symbol_address pointer to store the address of the resolved symbol
+ * @param out_module pointer to store the module that has the symbol. Call module_put() on it when done.
+ * @return true if the symbol was found. The module is referenced then.
+ */
+bool module_resolve_symbol_global_get(const char* symbol_name, uintptr_t* symbol_address, struct Module** out_module);
 
 #ifdef __cplusplus
 }

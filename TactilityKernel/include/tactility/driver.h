@@ -101,6 +101,14 @@ error_t driver_construct_add(struct Driver* driver);
 error_t driver_remove_destruct(struct Driver* driver);
 
 /**
+ * @brief Check if a driver is bound to any device.
+ *
+ * @param driver The constructed driver.
+ * @return true when at least one device is bound to the driver.
+ */
+bool driver_is_in_use(const struct Driver* driver);
+
+/**
  * @brief Get the module that owns a driver.
  *
  * A module sets itself as owner of the drivers it registers in module_start().

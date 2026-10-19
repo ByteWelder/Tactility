@@ -30,6 +30,7 @@ VERSION_PATTERN = re.compile(r"^[0-9A-Za-z.+-]+$")
 ID_PATTERN = re.compile(r"^[0-9A-Za-z.]{5,32}$")
 NAME_PATTERN = re.compile(r"^[0-9A-Za-z -]{2,32}$")
 NEW_PROJECT_ARCHIVE = "new-project.zip"
+PROJECT_VARIANTS = ("gui", "terminal", "module")
 
 
 def fail(message):
@@ -138,9 +139,8 @@ def read_new_project_archive(version):
     return content
 
 
-def generate_project(version, package_id, app_id, app_name, is_terminal):
+def generate_project(version, package_id, app_id, app_name, variant):
     """Extracts the new project of the SDK version into . and fills in the answers"""
-    variant = "terminal" if is_terminal else "gui"
     root = os.path.realpath(".")
     created = []
     with zipfile.ZipFile(io.BytesIO(read_new_project_archive(version))) as archive:
@@ -167,7 +167,7 @@ def generate_project(version, package_id, app_id, app_name, is_terminal):
 
 
 def offer_new_project():
-    """Asks to generate a new app project. Returns the manifest path when it did, else None"""
+    """Asks to generate a new app or module project. Returns the manifest path when it did, else None"""
     if not ask_yes_no("Generate a new app project in this folder?", False):
         return None
     if os.path.exists("manifest.properties") or os.path.exists("main"):
@@ -175,11 +175,13 @@ def offer_new_project():
     version = ask("SDK version to use", None, is_valid_version, "invalid SDK version")
     if version is None:
         fail("no SDK version given")
+    variant = ask("Project type (gui, terminal or module)", "gui", lambda answer: answer in PROJECT_VARIANTS, "use gui, terminal or module")
     package_id = ask("Package id", "example.helloworld", ID_PATTERN.match, "use 5 to 32 letters, digits and dots")
-    app_id = ask("App id", "helloworld", ID_PATTERN.match, "use 5 to 32 letters, digits and dots")
-    app_name = ask("App name", "Hello World", NAME_PATTERN.match, "use 2 to 32 letters, digits, spaces and dashes")
-    is_terminal = ask_yes_no("Terminal app?", False)
-    for path in generate_project(version, package_id, app_id, app_name, is_terminal):
+    app_id = app_name = ""
+    if variant != "module":
+        app_id = ask("App id", "helloworld", ID_PATTERN.match, "use 5 to 32 letters, digits and dots")
+        app_name = ask("App name", "Hello World", NAME_PATTERN.match, "use 2 to 32 letters, digits, spaces and dashes")
+    for path in generate_project(version, package_id, app_id, app_name, variant):
         print(f"Created {path}", file=sys.stderr)
     return "manifest.properties"
 

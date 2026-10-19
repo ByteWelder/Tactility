@@ -47,6 +47,14 @@ runs:
         esp_idf_version: v6.1
         target: ${{ inputs.arch }}
         command: export TACTILITY_SDK_PATH=../../test_sdk && cd Tests/SdkIntegration && python ../../tt.py app build -a ${{ inputs.arch }}
+    - name: 'Test New Project'
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v6.1
+        target: ${{ inputs.arch }}
+        # A module project, because its entry point is renamed by the ELF build. A binary without one is tiny.
+        # The answers are: generate, SDK version, project type and package id. An empty line takes the default.
+        command: export TACTILITY_SDK_PATH=$(pwd)/test_sdk && mkdir -p new-project-module && cd new-project-module && printf 'y\n%s\nmodule\n\n' "$(cat ../version.txt)" | python ../tt.py app build -a ${{ inputs.arch }} && test "$(stat -c %s build/package-intermediate/bin/${{ inputs.arch }}/main.elf)" -gt 600
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
