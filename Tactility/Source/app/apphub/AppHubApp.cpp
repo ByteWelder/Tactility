@@ -32,6 +32,9 @@
 #include <string>
 #include <vector>
 
+#include <TactilityCpp/std/string.h>
+#include <TactilityCpp/std/vector.h>
+
 namespace tt::app::apphub {
 
 constexpr auto* TAG = "AppHub";
@@ -46,7 +49,7 @@ enum class Filter {
     Updates
 };
 
-constexpr auto FILTER_LABELS = std::to_array<const char*>({ "All", "Installed", "Updates" });
+constexpr auto FILTER_LABELS = ::std::to_array<const char*>({ "All", "Installed", "Updates" });
 
 struct Context {
     uint32_t appInstanceId;
@@ -59,7 +62,9 @@ struct Context {
     // Survives across a bury/resurface cycle
     Filter filter = Filter::All;
     /** The app ids of the list's buttons, by index */
-    std::vector<std::string> appIds;
+    tt::std::vector<tt::std::string> appIds;
+    /** Read from the catalog file on this app's own thread (see loadApps()), as the widget code can't do file operations */
+    tt::std::vector<AppHubApp> apps;
     Mutex mutex;
 
     // Survives across a bury/resurface cycle (e.g. opening AppHubDetailsApp and returning),
@@ -74,20 +79,32 @@ struct Context {
 
     TaskEventGroup* eventGroup = nullptr;
     uint32_t refreshRequestedBit = 0;
-    std::atomic<bool> refreshRequested {false};
+    ::std::atomic<bool> refreshRequested {false};
 
     AppHubEventSubscription appHubSub {};
     /** The id of the queued catalog refresh, 0 when none is pending */
-    std::atomic<uint32_t> refreshOperationId {0};
+    ::std::atomic<uint32_t> refreshOperationId {0};
     /** The id of the running update of all apps, 0 when none is running */
     uint32_t updateAllOperationId = 0;
     /** The ids of the apps that failed to update during updateAllOperationId */
-    std::vector<std::string> failedUpdates;
+    tt::std::vector<tt::std::string> failedUpdates;
 };
 
 
 void showApps(Context* ctx);
 void refresh(Context* ctx);
+
+/** Reads the apps from App Hub for showApps(). Doesn't touch widgets, so it runs without the LVGL lock. */
+void loadApps(Context* ctx) {
+    tt::std::vector<AppHubApp> apps;
+    app_hub_search(nullptr, [](const AppHubApp* app, void* context) {
+        static_cast<tt::std::vector<AppHubApp>*>(context)->push_back(*app);
+        return true;
+    }, &apps);
+    ctx->mutex.lock();
+    ctx->apps = ::std::move(apps);
+    ctx->mutex.unlock();
+}
 
 bool matchesFilter(const AppHubApp& app, Filter filter) {
     switch (filter) {
@@ -138,7 +155,7 @@ void onUpdateAllPressed(lv_event_t* event) {
 
 void updateUpdatesChipText(Context* ctx, size_t updateCount) {
     auto* chip = lv_obj_get_child(ctx->filterChips, static_cast<int32_t>(Filter::Updates));
-    const auto text = std::format("{} {}", updateCount, updateCount == 1 ? "update" : "updates");
+    const auto text = ::std::format("{} {}", updateCount, updateCount == 1 ? "update" : "updates");
     lv_label_set_text(lv_obj_get_child(chip, 0), text.c_str());
 }
 
@@ -250,7 +267,7 @@ void showApps(Context* ctx) {
     }
     ctx->mutex.lock();
     // Rebuilding deletes the focused entry button, so the same app is focused again afterwards
-    std::string focused_app_id;
+    tt::std::string focused_app_id;
     bool focused_by_key = false;
     auto* group = lv_group_get_default();
     auto* focused = group != nullptr ? lv_group_get_focused(group) : nullptr;
@@ -263,15 +280,11 @@ void showApps(Context* ctx) {
     }
     lv_obj_clean(ctx->contentWrapper);
 
-    std::vector<AppHubApp> apps;
-    app_hub_search(nullptr, [](const AppHubApp* app, void* context) {
-        static_cast<std::vector<AppHubApp>*>(context)->push_back(*app);
-        return true;
-    }, &apps);
+    tt::std::vector<AppHubApp> apps = ctx->apps;
     const bool hasApps = !apps.empty();
-    updateUpdatesChipText(ctx, std::ranges::count_if(apps, [](const AppHubApp& app) { return app.update_available; }));
-    updateToolbarActions(ctx, std::ranges::any_of(apps, [](const AppHubApp& app) { return app.update_available; }));
-    std::erase_if(apps, [ctx](const AppHubApp& app) {
+    updateUpdatesChipText(ctx, ::std::ranges::count_if(apps, [](const AppHubApp& app) { return app.update_available; }));
+    updateToolbarActions(ctx, ::std::ranges::any_of(apps, [](const AppHubApp& app) { return app.update_available; }));
+    ::std::erase_if(apps, [ctx](const AppHubApp& app) {
         return !matchesFilter(app, ctx->filter);
     });
     ctx->appIds.clear();
@@ -331,11 +344,15 @@ void refresh(Context* ctx) {
     // Buried (e.g. AppHubDetailsApp is open): destroyWidgets() already released these. A refresh
     // request queued just before burying could still land here, so re-check rather than assume
     // requestRefresh() and refresh() always run against a live window.
-    if (ctx->refreshOperationId != 0 || ctx->contentWrapper == nullptr) {
+    if (ctx->refreshOperationId != 0) {
         return;
     }
 
     lvgl_lock();
+    if (ctx->contentWrapper == nullptr) {
+        lvgl_unlock();
+        return;
+    }
     lv_obj_set_hidden(ctx->refreshButton, true);
     lvgl_unlock();
 
@@ -364,8 +381,11 @@ void refresh(Context* ctx) {
     ctx->refreshOperationId = operation_id;
 
     // Shows the cached catalog while the new one downloads
+    loadApps(ctx);
     lvgl_lock();
-    showApps(ctx);
+    if (ctx->contentWrapper != nullptr) {
+        showApps(ctx);
+    }
     lvgl_unlock();
 }
 
@@ -389,6 +409,7 @@ void onOperationEvent(Context* ctx, const AppHubEvent& event) {
         }
     }
 
+    loadApps(ctx);
     lvgl_lock();
     if (ctx->contentWrapper == nullptr) {
         // Buried (e.g. AppHubDetailsApp or a dialog is open): createWidgets() rebuilds the list on resurface
@@ -455,7 +476,7 @@ void onUpdateAllEvent(Context* ctx, const AppHubEvent& event) {
     } else if (event.type == APP_HUB_EVENT_UPDATED && event.operation_id == ctx->updateAllOperationId) {
         ctx->updateAllOperationId = 0;
         if (!ctx->failedUpdates.empty()) {
-            std::string names;
+            tt::std::string names;
             for (const auto& id : ctx->failedUpdates) {
                 AppHubApp app {};
                 if (!names.empty()) {
@@ -464,7 +485,7 @@ void onUpdateAllEvent(Context* ctx, const AppHubEvent& event) {
                 names += (app_hub_get_app(id.c_str(), &app) == ERROR_NONE) ? app.name : id.c_str();
             }
             const auto count = ctx->failedUpdates.size();
-            alertdialog::start(ctx->appInstanceId, "Update failed", std::format("{} {} failed to update: {}", count, count == 1 ? "app" : "apps", names));
+            alertdialog::start(ctx->appInstanceId, "Update failed", ::std::format("{} {} failed to update: {}", count, count == 1 ? "app" : "apps", names));
             ctx->failedUpdates.clear();
         }
     }
@@ -486,6 +507,7 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
     check(app_hub_event_subscribe(&ctx.appHubSub, &event_group) == ERROR_NONE);
 
+    loadApps(&ctx);
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
