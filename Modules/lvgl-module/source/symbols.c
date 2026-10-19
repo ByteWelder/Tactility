@@ -272,6 +272,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_obj_set_layout),
     DEFINE_MODULE_SYMBOL(lv_obj_set_grid_dsc_array),
     DEFINE_MODULE_SYMBOL(lv_obj_set_grid_cell),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_press_lock),
     DEFINE_MODULE_SYMBOL(lv_obj_is_layout_positioned),
     DEFINE_MODULE_SYMBOL(lv_obj_mark_layout_as_dirty),
     DEFINE_MODULE_SYMBOL(lv_obj_get_style_layout),
