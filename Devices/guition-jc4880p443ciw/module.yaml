@@ -1,0 +1,9 @@
+dependencies:
+  - Platforms/platform-esp32
+  - Drivers/st7701-module
+  - Drivers/gt911-module
+  - Drivers/es8311-module
+  - Drivers/audio-stream-module
+  - Drivers/es7243e-module
+dts: guition,jc4880p443ciw.dts
+dts-only: true
