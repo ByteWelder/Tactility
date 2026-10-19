@@ -32,3 +32,6 @@ sdkconfig.board.*.dev
 __pycache__
 .DS_Store
 .cache
+
+Devices/websimulator/Frontend/Tactility.js
+Devices/websimulator/Frontend/Tactility.wasm

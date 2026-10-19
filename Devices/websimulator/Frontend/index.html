@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Tactility Web Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            color: #ccc;
+            font-family: system-ui, sans-serif;
+        }
+        #canvas {
+            width: 640px;
+            height: 320px;
+            border: 1px solid #444;
+            image-rendering: pixelated;
+        }
+        #status { margin: 12px; }
+        #log {
+            width: 640px;
+            max-width: 95vw;
+            height: 160px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #444;
+            font: 12px monospace;
+            white-space: pre-wrap;
+            padding: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- coi-serviceworker adds the COOP/COEP headers SharedArrayBuffer needs on static hosts
+         (GitHub Pages). It reloads the page once on first visit. Must stay a separate file
+         served from this origin. -->
+    <script src="coi-serviceworker.js"></script>
+    <div id="status">Loading…</div>
+    <canvas id="canvas" width="640" height="320"></canvas>
+    <div id="log"></div>
+    <script>
+        var statusElement = document.getElementById('status');
+        var logElement = document.getElementById('log');
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            print: function (text) {
+                logElement.textContent += text + "\n";
+                logElement.scrollTop = logElement.scrollHeight;
+            },
+            printErr: function (text) {
+                logElement.textContent += text + "\n";
+                logElement.scrollTop = logElement.scrollHeight;
+                console.error(text);
+            },
+            setStatus: function (text) { statusElement.textContent = text; },
+            noInitialRun: false
+        };
+    </script>
+    <script src="Tactility.js"></script>
+</body>
+</html>

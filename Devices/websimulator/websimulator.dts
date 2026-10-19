@@ -1,0 +1,18 @@
+/dts-v1/;
+
+#include <tactility/bindings/root.h>
+#include <bindings/mock_wifi.h>
+#include <bindings/mock_radio.h>
+
+/ {
+	model = "Web Simulator";
+	compatible = "root";
+
+	wifi0 {
+		compatible = "mock,wifi";
+	};
+
+	radio0 {
+		compatible = "mock,radio";
+	};
+};
