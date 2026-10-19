@@ -90,4 +90,28 @@
 			rotation = <1>;
 		};
 	};
+
+	// Optional Mesh Card with a Seeed Wio-SX1262 module, detected at runtime.
+	// Schematic: https://github.com/CL-32/CL-32/tree/main/Add-on/CL-32-Mesh
+	spi2 {
+		compatible = "espressif,esp32-spi";
+		host = <SPI3_HOST>;
+		cs-gpios = <&gpio0 38 GPIO_FLAG_NONE>;
+		pin-mosi = <&gpio0 17 GPIO_FLAG_NONE>;
+		pin-miso = <&gpio0 16 GPIO_FLAG_NONE>;
+		pin-sclk = <&gpio0 18 GPIO_FLAG_NONE>;
+
+		// The module is powered by the 3.3 V rail. DIO3 powers the TCXO (1.7 V to 3.3 V, at least 200 mV
+		// below VCC). DIO2 enables the TX path of the RF switch and RF_SW (GPIO 15) the RX path.
+		radio@0 {
+			compatible = "semtech,sx1262";
+			reg = <0>;
+			pin-reset = <&gpio0 21 GPIO_FLAG_NONE>;
+			pin-dio1 = <&gpio0 39 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 40 GPIO_FLAG_NONE>;
+			pin-rx-enable = <&gpio0 15 GPIO_FLAG_NONE>;
+			tcxo-millivolts = <1800>;
+			dio2-as-rf-switch;
+		};
+	};
 };
