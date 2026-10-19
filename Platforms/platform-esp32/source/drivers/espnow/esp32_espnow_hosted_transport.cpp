@@ -4,12 +4,12 @@
 
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
 
-#include <Tactility/service/espnow/EspNowHostedTransport.h>
+#include <espnow/espnow_hosted_transport.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
 
-namespace tt::service::espnow::backend {
+namespace espnow::backend {
 
 // Thin wrapper: the actual CP_INIT wait/generation-tracking logic lives in the kernel driver
 // (Platforms/platform-esp32/source/drivers/esp32_esp_hosted_ota.cpp, reached via the generic

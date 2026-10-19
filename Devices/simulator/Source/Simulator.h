@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Main.h"
+#include "SimulatorProfile.h"
 #include "drivers/sdl_bridge.h"
 
 #include <csignal>
@@ -19,7 +20,8 @@ extern "C" {
 void app_main(); // ESP-IDF's main function, implemented in the application
 }
 
-int main() {
+int main(int, char** argv) {
+    simulator::setProcessArguments(argv);
     // The folder for the "data" file system is not in the repository
     mkdir("data", 0755);
 

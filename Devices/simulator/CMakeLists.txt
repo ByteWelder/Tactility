@@ -16,6 +16,9 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         PRIVATE TactilityKernel
         PRIVATE TactilityFreeRtos
         PRIVATE lvgl
+        PRIVATE app-module
+        PRIVATE lvgl-module
+        PRIVATE lvgl-window-manager-module
         PRIVATE SDL2-static
     )
 

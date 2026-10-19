@@ -23,6 +23,9 @@
 #include <string>
 #include <vector>
 
+#include <TactilityCpp/std/string.h>
+#include <TactilityCpp/std/vector.h>
+
 namespace tt::app::apphubdetails {
 
 constexpr auto* TAG = "AppHubDetails";
@@ -38,24 +41,37 @@ constexpr size_t DESCRIPTION_MAX_SIZE = 2048;
 
 struct Context {
     uint32_t appInstanceId;
-    std::string appId;
+    tt::std::string appId;
 
     lv_obj_t* toolbar = nullptr;
     lv_obj_t* spinner = nullptr;
     lv_obj_t* updateButton = nullptr;
     lv_obj_t* updateLabel = nullptr;
+    lv_obj_t* descriptionLabel = nullptr;
+    lv_obj_t* versionLabel = nullptr;
+    /** Whether createWidgets() ran before, so the next call is a resurface */
+    bool created = false;
+
+    // Read from the catalog file on this app's own thread (see loadState()), as the widget code
+    // can't do file operations. Written with the LVGL lock held, read by the widget code.
+    AppHubApp app {};
+    bool anotherAppBusy = false;
+    tt::std::string description;
 
     // Set from the LVGL task (button press), read from this app's own thread (event loop) -
     // both directions cross threads, hence atomic.
-    std::atomic<uint32_t> installDialogId = 0;
-    std::atomic<uint32_t> uninstallDialogId = 0;
-    std::atomic<uint32_t> updateDialogId = 0;
+    ::std::atomic<uint32_t> installDialogId = 0;
+    ::std::atomic<uint32_t> uninstallDialogId = 0;
+    ::std::atomic<uint32_t> updateDialogId = 0;
 
     TaskEventGroup* eventGroup = nullptr;
+    uint32_t reloadBit = 0;
+    /** Set when the window resurfaces: the catalog can change while a dialog covers it */
+    ::std::atomic<bool> reloadRequested { false };
     AppHubEventSubscription appHubSub {};
 };
 
-AppHubApp getApp(Context* ctx) {
+AppHubApp readApp(Context* ctx) {
     AppHubApp app {};
     if (app_hub_get_app(ctx->appId.c_str(), &app) != ERROR_NONE) {
         strncpy(app.id, ctx->appId.c_str(), sizeof(app.id) - 1);
@@ -81,11 +97,48 @@ bool isAnotherAppBusy(Context* ctx) {
     return search.busy;
 }
 
+tt::std::string readDescription(Context* ctx) {
+    tt::std::vector<char> buffer(DESCRIPTION_MAX_SIZE);
+    if (app_hub_get_description(ctx->appId.c_str(), buffer.data(), buffer.size()) != ERROR_NONE || buffer[0] == '\0') {
+        return "This app has no description yet.";
+    }
+    tt::std::string description = buffer.data();
+    for (size_t pos = 0; (pos = description.find("\\n", pos)) != tt::std::string::npos;) {
+        description.replace(pos, 2, "\n");
+    }
+    return description;
+}
+
+/** Reads the state from App Hub. Doesn't touch widgets, so it runs without the LVGL lock. */
+void loadState(Context* ctx, bool includeDescription) {
+    const auto app = readApp(ctx);
+    const bool anotherAppBusy = isAnotherAppBusy(ctx);
+    tt::std::string description;
+    if (includeDescription) {
+        description = readDescription(ctx);
+    }
+    lvgl_lock();
+    ctx->app = app;
+    ctx->anotherAppBusy = anotherAppBusy;
+    if (includeDescription) {
+        ctx->description = ::std::move(description);
+    }
+    lvgl_unlock();
+}
+
 void updateViews(Context* ctx);
 
+/** Loads the state and shows it. Runs on this app's own thread. */
+void refreshViews(Context* ctx, bool includeDescription = false) {
+    loadState(ctx, includeDescription);
+    lvgl_lock();
+    updateViews(ctx);
+    lvgl_unlock();
+}
+
 uint32_t showConfirmDialog(Context* ctx, const char* action) {
-    const auto message = std::format("{} {}?", action, getApp(ctx).name);
-    return alertdialog::start(ctx->appInstanceId, CONFIRM_TEXT, message, std::vector<std::string> { CONFIRM_TEXT, CANCEL_TEXT });
+    const auto message = ::std::format("{} {}?", action, ctx->app.name);
+    return alertdialog::start(ctx->appInstanceId, CONFIRM_TEXT, message, ::std::vector<::std::string> { CONFIRM_TEXT, CANCEL_TEXT });
 }
 
 void onBackPressed(lv_event_t* e) {
@@ -117,9 +170,7 @@ void queueOperation(Context* ctx, error_t (*operation)(const char* id, uint32_t*
         alertdialog::start(ctx->appInstanceId, "Error", failure);
         return;
     }
-    lvgl_lock();
-    updateViews(ctx);
-    lvgl_unlock();
+    refreshViews(ctx);
 }
 
 void onOperationEvent(Context* ctx, const AppHubEvent& event) {
@@ -130,9 +181,7 @@ void onOperationEvent(Context* ctx, const AppHubEvent& event) {
         const char* message = (event.type == APP_HUB_EVENT_REMOVED) ? "Failed to uninstall app" : "Failed to install app";
         alertdialog::start(ctx->appInstanceId, "Error", message);
     }
-    lvgl_lock();
-    updateViews(ctx);
-    lvgl_unlock();
+    refreshViews(ctx);
 }
 
 void updateViews(Context* ctx) {
@@ -140,14 +189,16 @@ void updateViews(Context* ctx) {
     if (ctx->toolbar == nullptr) {
         return;
     }
+    lv_label_set_text(ctx->descriptionLabel, ctx->description.c_str());
+    lv_label_set_text_fmt(ctx->versionLabel, "Version %s", ctx->app.in_catalog ? ctx->app.version_name : ctx->app.installed_version_name);
     lvgl_toolbar_clear_actions(ctx->toolbar);
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
     lv_obj_set_hidden(ctx->updateLabel, true);
 
     // This app's install or removal continues after the window closes, so it can already be running when the window opens.
     // Another app's install or removal blocks this app's buttons until it's done.
-    const auto app = getApp(ctx);
-    const bool busy = app.operation_pending || ((app.installed || app.in_catalog) && isAnotherAppBusy(ctx));
+    const auto& app = ctx->app;
+    const bool busy = app.operation_pending || ((app.installed || app.in_catalog) && ctx->anotherAppBusy);
     lv_obj_set_hidden(ctx->spinner, !busy);
     if (busy) {
         return;
@@ -170,7 +221,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-    const auto app = getApp(ctx);
+    const auto& app = ctx->app;
     ctx->toolbar = lvgl_toolbar_create(parent, app.name);
     // The global toolbar nav callback only knows how to stop old-model apps.
     lvgl_toolbar_set_nav_action(ctx->toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
@@ -184,28 +235,27 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_label_set_text(ctx->updateLabel, "Update available!");
     lv_obj_set_style_text_color(ctx->updateLabel, lv_color_make(0xff, 0xff, 00), LV_STATE_DEFAULT);
 
-    auto* description_label = lv_label_create(wrapper);
-    lv_obj_set_width(description_label, LV_PCT(100));
-    lv_label_set_long_mode(description_label, LV_LABEL_LONG_MODE_WRAP);
-    std::vector<char> description_buffer(DESCRIPTION_MAX_SIZE);
-    if (app_hub_get_description(ctx->appId.c_str(), description_buffer.data(), description_buffer.size()) == ERROR_NONE && description_buffer[0] != '\0') {
-        std::string description = description_buffer.data();
-        for (size_t pos = 0; (pos = description.find("\\n", pos)) != std::string::npos;) {
-            description.replace(pos, 2, "\n");
-        }
-        lv_label_set_text(description_label, description.c_str());
-    } else {
-        lv_label_set_text(description_label, "This app has no description yet.");
-    }
+    ctx->descriptionLabel = lv_label_create(wrapper);
+    lv_obj_set_width(ctx->descriptionLabel, LV_PCT(100));
+    lv_label_set_long_mode(ctx->descriptionLabel, LV_LABEL_LONG_MODE_WRAP);
 
-    auto* version_label = lv_label_create(wrapper);
-    lv_label_set_text_fmt(version_label, "Version %s", app.in_catalog ? app.version_name : app.installed_version_name);
+    ctx->versionLabel = lv_label_create(wrapper);
 
     updateViews(ctx);
+
+    // The cached state shows right away. The app's task then reloads it, as the catalog can have
+    // changed while a dialog covered this window.
+    if (ctx->created) {
+        ctx->reloadRequested = true;
+        task_event_group_signal(ctx->eventGroup, ctx->reloadBit);
+    }
+    ctx->created = true;
 }
 
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
+    ctx->descriptionLabel = nullptr;
+    ctx->versionLabel = nullptr;
     ctx->toolbar = nullptr;
     ctx->spinner = nullptr;
     ctx->updateButton = nullptr;
@@ -228,8 +278,10 @@ int32_t appMain(int argc, char* argv[]) {
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+    check(task_event_group_claim_bit(&event_group, &ctx.reloadBit) == ERROR_NONE);
     check(app_hub_event_subscribe(&ctx.appHubSub, &event_group) == ERROR_NONE);
 
+    loadState(&ctx, true);
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
@@ -262,9 +314,16 @@ int32_t appMain(int argc, char* argv[]) {
 
         AppHubEvent app_hub_event {};
         while (!shouldClose && app_hub_event_poll(&ctx.appHubSub, &app_hub_event) == ERROR_NONE) {
-            if (app_hub_event.type != APP_HUB_EVENT_REFRESHING && app_hub_event.type != APP_HUB_EVENT_REFRESHED) {
+            if (app_hub_event.type == APP_HUB_EVENT_REFRESHED) {
+                // A new catalog can change the version, description and actions
+                ctx.reloadRequested = true;
+            } else if (app_hub_event.type != APP_HUB_EVENT_REFRESHING) {
                 onOperationEvent(&ctx, app_hub_event);
             }
+        }
+
+        if (!shouldClose && ctx.reloadRequested.exchange(false)) {
+            refreshViews(&ctx, true);
         }
     }
 

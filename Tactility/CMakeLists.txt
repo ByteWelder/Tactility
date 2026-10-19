@@ -92,11 +92,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         list(APPEND REQUIRES_LIST esp_tinyusb)
     endif ()
 
-    if ("${IDF_TARGET}" STREQUAL "esp32p4")
-        # EspNowBackendHosted.cpp needs esp_hosted.h / esp_hosted_misc.h.
-        list(APPEND REQUIRES_LIST espressif__esp_hosted)
-    endif ()
-
 else ()
 
     list(APPEND REQUIRES_LIST

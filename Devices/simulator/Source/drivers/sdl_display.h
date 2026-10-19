@@ -12,6 +12,8 @@ extern "C" {
 struct SdlDisplayConfig {
     uint16_t horizontal_resolution;
     uint16_t vertical_resolution;
+    /** Frames are 8 bit luminance instead of RGB565 */
+    bool grayscale;
 };
 
 /**
@@ -20,6 +22,22 @@ struct SdlDisplayConfig {
  *     coordinates back to the fixed logical resolution the renderer scales to fit the window.
  */
 SDL_Renderer* sdl_display_get_renderer(void);
+
+/**
+ * @brief Gets the size of the oriented view that the window shows: the display's resolution, with the width and
+ *     height swapped while swap_xy is on. It follows a rotation right away, before the window is redrawn.
+ * @retval false when there is no display
+ */
+bool sdl_display_get_view_size(int* width, int* height);
+
+/**
+ * @brief Converts a position in the oriented view that the window shows to the display's native position,
+ *     the position with the display's rotation undone. LVGL rotates pointer positions from native to the
+ *     rotated view itself, so pointers must report native positions.
+ * @param[in,out] x the horizontal position
+ * @param[in,out] y the vertical position
+ */
+void sdl_display_view_to_native(int32_t* x, int32_t* y);
 
 /**
  * @brief Re-presents the already-drawn frame at the renderer's current scale. Call this when the

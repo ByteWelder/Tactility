@@ -154,7 +154,7 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     if (esp_elf_relocate(&runtime->elf, runtime->file_data) != 0) {
         // esp_elf_relocate() already frees elf->pdata/ptext itself on a relocation failure
         delete runtime;
-        LOG_E(TAG, "Failed to map elf. Possibly out of memory.");
+        LOG_E(TAG, "Failed to map elf. Common causes: missing symbol or out of memory.");
         return ERROR_RESOURCE;
     }
 

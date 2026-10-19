@@ -43,7 +43,7 @@ extern "C" {
  * enforce that themselves based on the reported version, same as the non-bridged backend). */
 #define ESPNOW_BRIDGE_MAX_DATA_LEN  1470
 
-/* req_init mode: matches tt::service::espnow::Mode / WIFI_MODE_STA vs WIFI_MODE_AP on the slave */
+/* req_init mode: matches espnow::Mode / WIFI_MODE_STA vs WIFI_MODE_AP on the slave */
 #define ESPNOW_BRIDGE_MODE_STATION       0U
 #define ESPNOW_BRIDGE_MODE_ACCESS_POINT  1U
 

@@ -3,10 +3,11 @@
 #include <Tactility/app/btmanage/BtManagePrivate.h>
 #include <Tactility/app/btmanage/View.h>
 #include <Tactility/bluetooth/BluetoothSettings.h>
-#include <Tactility/Tactility.h>
+#include <Tactility/bluetooth/Bluetooth.h>
+#include <Tactility/MainDispatcher.h>
 
 #include <app/event.h>
-#include <app/manager.h>
+#include <app/location.h>
 #include <app/manifest.h>
 #include <app/scheduler.h>
 #include <app/start.h>
@@ -14,6 +15,7 @@
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/device.h>
 #include <tactility/log.h>
 
@@ -22,7 +24,6 @@ namespace tt::app::btmanage {
 constexpr auto* TAG = "BtManage";
 
 extern const ::AppManifest manifest;
-
 
 static void onBtToggled(void* /*context*/, bool requestOn) {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
@@ -257,9 +258,9 @@ extern const ::AppManifest manifest = {
     .id = "tactility.btmanage",
     .name = "Bluetooth",
     .category = APP_CATEGORY_SETTINGS,
-    .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
+    .location = { .type = APP_LOCATION_MEMORY, .location = reinterpret_cast<void*>(appMain) },
     .flags = 0,
-    .stack = {}
+    .stack = {},
 };
 
 } // namespace tt::app::btmanage

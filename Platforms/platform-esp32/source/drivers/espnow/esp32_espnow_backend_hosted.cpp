@@ -4,9 +4,9 @@
 
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
 
-#include <Tactility/service/espnow/EspNowBackend.h>
-#include <Tactility/service/espnow/EspNowHostedTransport.h>
-#include <Tactility/service/espnow/esp_hosted_espnow_bridge_proto.h>
+#include <espnow/espnow_backend.h>
+#include <espnow/espnow_hosted_transport.h>
+#include <espnow/esp_hosted_espnow_bridge_proto.h>
 
 // esp_hosted_misc.h lacks its own extern "C" guard, so its declarations get C++ name-mangled
 // when included from a .cpp file, causing "undefined reference" at link time against the
@@ -30,13 +30,13 @@ extern "C" {
 #include <cstring>
 #include <tactility/log.h>
 
-namespace tt::service::espnow::backend {
+namespace espnow::backend {
 
 constexpr auto* TAG = "EspNowBackendHosted";
 constexpr TickType_t REQUEST_TIMEOUT = 2000U / portTICK_PERIOD_MS;
 
-static RecursiveMutex requestMutex;
-static Semaphore responseSemaphore(1, 0);
+static tt::RecursiveMutex requestMutex;
+static tt::Semaphore responseSemaphore(1, 0);
 // Callbacks (onRespGeneric/onRespInit) run from esp_hosted's own dispatch task, concurrently
 // with doRequest() running on the caller's task - std::atomic instead of requestMutex here
 // because taking requestMutex from the callback would deadlock: doRequest() holds it for its
