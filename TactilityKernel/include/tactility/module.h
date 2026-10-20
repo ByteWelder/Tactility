@@ -102,7 +102,8 @@ error_t module_add(struct Module* module);
 /**
  * @brief Remove a module from the system.
  * @param module module to remove
- * @return ERROR_NONE if successful
+ * @retval ERROR_NONE if successful
+ * @retval ERROR_RESOURCE_BUSY the module is referenced (see module_get()). It stays added.
  */
 error_t module_remove(struct Module* module);
 

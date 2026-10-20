@@ -77,6 +77,22 @@ typedef void (*AppModuleVisitorFn)(const struct AppModuleInfo* info, void* conte
  */
 void app_module_for_each(AppModuleVisitorFn visitor, void* context);
 
+/**
+ * Starts or stops a kernel module that was loaded from an installed package, with the module loader locked.
+ * An uninstall or install can't unload the module's binary meanwhile, which is why this exists instead of
+ * keeping the `struct Module*` from app_module_for_each().
+ * Starting a started module, or stopping a stopped one, does nothing.
+ * @warning Don't call it from the visitor of app_module_for_each(), or from the module's own start() and stop().
+ * @param[in] package_id the id of the package that holds the module (AppModuleInfo::package_id)
+ * @param[in] module_name the name of the module (struct Module::name)
+ * @param[in] start true to start the module, false to stop it
+ * @retval ERROR_NONE the module is in the requested state
+ * @retval ERROR_NOT_FOUND no such module is loaded
+ * @retval ERROR_RESOURCE_BUSY the module is in use and can't be stopped (see module_stop())
+ * @return otherwise the result of module_start() or module_stop()
+ */
+error_t app_module_set_started(const char* package_id, const char* module_name, bool start);
+
 #ifdef __cplusplus
 }
 #endif

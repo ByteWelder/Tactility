@@ -229,6 +229,37 @@ TEST_CASE("module_stop is refused while the module is referenced") {
     CHECK_EQ(module_destruct(&module), ERROR_NONE);
 }
 
+TEST_CASE("module_remove is refused while the module is referenced") {
+    static const struct ModuleSymbol symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+    struct Module module = {
+        .name = "remove_referenced_test",
+        .start = nullptr,
+        .stop = nullptr,
+        .symbols = symbols,
+        .internal = nullptr
+    };
+
+    // Stopped but still added, which is when a reference can still be taken
+    REQUIRE_EQ(module_construct_add_start(&module), ERROR_NONE);
+    REQUIRE_EQ(module_stop(&module), ERROR_NONE);
+
+    uintptr_t address = 0;
+    struct Module* owner = nullptr;
+    REQUIRE(module_resolve_symbol_global_get("symbol_test_function", &address, &owner));
+    CHECK_EQ(owner, &module);
+
+    // Neither removing nor destructing is allowed, and the module can still be resolved
+    CHECK_EQ(module_remove(&module), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_RESOURCE_BUSY);
+    CHECK(module_resolve_symbol(&module, "symbol_test_function", &address));
+
+    module_put(owner);
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+}
+
 TEST_CASE("module_stop that fails leaves the module referenceable") {
     start_called = false;
     test_start_result = ERROR_NONE;

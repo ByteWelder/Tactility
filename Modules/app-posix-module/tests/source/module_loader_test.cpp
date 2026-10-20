@@ -167,3 +167,30 @@ TEST_CASE("app_module_for_each visits the modules of loaded packages only") {
 
     path_loader().unload(holder);
 }
+
+TEST_CASE("app_module_set_started starts and stops a loaded module by name") {
+    path_loader();
+    const int starts_before = g_starts;
+    const int stops_before = g_stops;
+
+    REQUIRE_EQ(app_module_loader_load_package("test.module.toggle", MODULE_INSTALL_DIR_PATH, { "module_fixture" }), ERROR_NONE);
+    CHECK_EQ(g_starts - starts_before, 1);
+
+    CHECK_EQ(app_module_set_started("test.module.toggle", "module-fixture", false), ERROR_NONE);
+    CHECK_EQ(g_stops - stops_before, 1);
+    // Stopping a stopped module does nothing
+    CHECK_EQ(app_module_set_started("test.module.toggle", "module-fixture", false), ERROR_NONE);
+    CHECK_EQ(g_stops - stops_before, 1);
+
+    CHECK_EQ(app_module_set_started("test.module.toggle", "module-fixture", true), ERROR_NONE);
+    CHECK_EQ(g_starts - starts_before, 2);
+    CHECK_EQ(app_module_set_started("test.module.toggle", "module-fixture", true), ERROR_NONE);
+    CHECK_EQ(g_starts - starts_before, 2);
+
+    CHECK_EQ(app_module_set_started("test.module.toggle", "unknown", true), ERROR_NOT_FOUND);
+    CHECK_EQ(app_module_set_started("unknown.package", "module-fixture", true), ERROR_NOT_FOUND);
+
+    app_module_loader_unload_package("test.module.toggle");
+    // Once unloaded, the module can't be reached anymore
+    CHECK_EQ(app_module_set_started("test.module.toggle", "module-fixture", true), ERROR_NOT_FOUND);
+}

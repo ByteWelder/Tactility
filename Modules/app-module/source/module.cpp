@@ -51,6 +51,7 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(app_install),
     DEFINE_MODULE_SYMBOL(app_uninstall),
     DEFINE_MODULE_SYMBOL(app_module_for_each),
+    DEFINE_MODULE_SYMBOL(app_module_set_started),
     // app/io
     DEFINE_MODULE_SYMBOL(app_io_read),
     DEFINE_MODULE_SYMBOL(app_io_write),

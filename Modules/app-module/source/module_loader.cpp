@@ -13,6 +13,7 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 
+#include <cstring>
 #include <unordered_map>
 
 constexpr auto* TAG = "app_module_loader";
@@ -182,4 +183,23 @@ extern "C" void app_module_for_each(AppModuleVisitorFn visitor, void* context) {
         }
     }
     mutex_unlock(&registry.mutex);
+}
+
+extern "C" error_t app_module_set_started(const char* package_id, const char* module_name, bool start) {
+    auto& registry = loaded_modules();
+    mutex_lock(&registry.mutex);
+
+    error_t error = ERROR_NOT_FOUND;
+    auto iterator = registry.packages.find(package_id);
+    if (iterator != registry.packages.end()) {
+        for (const auto& loaded : iterator->second.modules) {
+            if (strcmp(loaded.module->name, module_name) == 0) {
+                error = start ? module_start(loaded.module) : module_stop(loaded.module);
+                break;
+            }
+        }
+    }
+
+    mutex_unlock(&registry.mutex);
+    return error;
 }

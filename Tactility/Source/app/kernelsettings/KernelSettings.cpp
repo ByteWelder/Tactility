@@ -50,22 +50,9 @@ struct Context {
     lv_obj_t* list = nullptr;
 };
 
-struct ModuleLookup {
-    const std::string* packageId;
-    const std::string* name;
-    Module* module = nullptr;
-};
-
 void collectEntry(const AppModuleInfo* info, void* context) {
     auto* entries = static_cast<std::vector<Entry>*>(context);
     entries->push_back({ info->package_id, info->module->name, module_is_started(info->module) });
-}
-
-void findModule(const AppModuleInfo* info, void* context) {
-    auto* lookup = static_cast<ModuleLookup*>(context);
-    if (*lookup->packageId == info->package_id && *lookup->name == info->module->name) {
-        lookup->module = info->module;
-    }
 }
 
 std::string statusText(const Entry& entry) {
@@ -219,20 +206,19 @@ void toggle(Context* ctx, int32_t index) {
 
     Entry result = ctx->entries[index];
 
-    ModuleLookup lookup { &result.packageId, &result.name };
-    app_module_for_each(findModule, &lookup);
-    if (lookup.module == nullptr) {
+    // The loader does the lookup and the start or stop under its lock, because an uninstall unloads the module's binary
+    const bool start = !result.started;
+    result.error = app_module_set_started(result.packageId.c_str(), result.name.c_str(), start);
+    if (result.error == ERROR_NOT_FOUND) {
         // The package was uninstalled in the meantime
         reload(ctx, nullptr);
         return;
     }
 
-    if (module_is_started(lookup.module)) {
-        result.error = module_stop(lookup.module);
-        result.failure = result.error == ERROR_NONE ? Failure::None : Failure::StopFailed;
+    if (result.error == ERROR_NONE) {
+        result.failure = Failure::None;
     } else {
-        result.error = module_start(lookup.module);
-        result.failure = result.error == ERROR_NONE ? Failure::None : Failure::StartFailed;
+        result.failure = start ? Failure::StartFailed : Failure::StopFailed;
     }
 
     reload(ctx, &result);

@@ -21,7 +21,7 @@ import time
 import urllib.request
 import zipfile
 
-TT_VERSION = "1.2.0"
+TT_VERSION = "1.3.0"
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
 INDEX_VALIDITY_SECONDS = 3600
@@ -168,7 +168,7 @@ def generate_project(version, package_id, app_id, app_name, variant):
 
 def offer_new_project():
     """Asks to generate a new app or module project. Returns the manifest path when it did, else None"""
-    if not ask_yes_no("Generate a new app project in this folder?", False):
+    if not ask_yes_no("Generate a new project in this folder?", False):
         return None
     if os.path.exists("manifest.properties") or os.path.exists("main"):
         fail("this folder already has a manifest.properties or main/")

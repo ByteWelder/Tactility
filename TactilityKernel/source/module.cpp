@@ -75,6 +75,11 @@ error_t module_add(Module* module) {
 
 error_t module_remove(Module* module) {
     mutex_lock(&ledger.mutex);
+    // Checked under the same lock as the removal, so no reference can be taken in between
+    if (module->internal != nullptr && module->internal->use_count != 0) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_RESOURCE_BUSY;
+    }
     ledger.modules.erase(std::remove(ledger.modules.begin(), ledger.modules.end(), module), ledger.modules.end());
     if (module->internal != nullptr) {
         module->internal->added = false;
