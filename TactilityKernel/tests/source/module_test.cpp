@@ -135,9 +135,10 @@ TEST_CASE("module_start sets itself as owner of its drivers") {
 }
 
 TEST_CASE("module_stop is refused while a driver of the module is in use") {
+    static const char* busy_compatible[] = { "busy", nullptr };
     static Driver driver = {
         .name = "busy_driver",
-        .compatible = (const char*[]) { "busy", nullptr },
+        .compatible = busy_compatible,
     };
     static Driver* const drivers[] = { &driver, nullptr };
     static Device device = { .name = "busy_device", .config = nullptr, .parent = nullptr };

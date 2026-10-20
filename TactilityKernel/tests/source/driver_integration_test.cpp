@@ -68,9 +68,10 @@ TEST_CASE("driver_begin_destroy refuses new binds and is refused while a device 
     static const IntegrationDriverConfig config { .startResult = 0, .stopResult = 0 };
     static Device first_device { .name = "destroy_first_device", .config = &config, .parent = nullptr };
     static Device second_device { .name = "destroy_second_device", .config = &config, .parent = nullptr };
+    static const char* destroy_compatible[] = { "destroy", nullptr };
     static Driver destroy_driver = {
         .name = "destroy_test_driver",
-        .compatible = (const char*[]) { "destroy", nullptr },
+        .compatible = destroy_compatible,
         .start_device = start,
         .stop_device = stop,
     };
