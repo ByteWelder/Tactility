@@ -58,7 +58,7 @@
 	i2c0 {
 		compatible = "espressif,esp32-i2c-master";
 		port = <I2C_NUM_0>;
-		clock-frequency = <400000>;
+		clock-frequency = <100000>;
 		pin-sda = <&gpio0 15 GPIO_FLAG_PULL_UP>;
 		pin-scl = <&gpio0 14 GPIO_FLAG_PULL_UP>;
 
@@ -114,7 +114,7 @@
 		pin-wp = <&gpio0 6 GPIO_FLAG_NONE>;
 		pin-hd = <&gpio0 7 GPIO_FLAG_NONE>;
 		pin-sclk = <&gpio0 11 GPIO_FLAG_NONE>;
-		max-transfer-size = <65536>;
+		max-transfer-size = <8192>;
 
 		display0: display@0 {
 			compatible = "shenghe,sh8601";
