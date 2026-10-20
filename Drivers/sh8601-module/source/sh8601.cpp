@@ -178,11 +178,12 @@ static error_t start(Device* device) {
             .octal_mode = 0,
             .quad_mode = 1,
             .sio_mode = 0,
-            // The LVGL color buffer lives in PSRAM (see PREFER_EXTERNAL_RAM). Without this the SPI
-            // driver bounces every chunk through a freshly-allocated internal DMA buffer (up to the
-            // bus's 64KB max-transfer-size), which fails with "Failed to allocate priv TX buffer"
-            // once internal RAM is tight (e.g. during Wi-Fi). ESP32-S3 can DMA from PSRAM directly.
-            .psram_dma_direct = 1,
+            // The LVGL color buffer lives in PSRAM (see PREFER_EXTERNAL_RAM), but ESP32-S3 cannot
+            // DMA from PSRAM reliably: under PSRAM contention (e.g. Wi-Fi) the QSPI DMA underruns,
+            // the SPI driver flags the transfer as failed and the panel IO's transaction pool
+            // desyncs permanently, so the display stops updating. Bounce each chunk through an
+            // internal DMA buffer instead - the bus max-transfer-size keeps those buffers small.
+            .psram_dma_direct = 0,
             .lsb_first = 0,
             .cs_high_active = 0,
         },

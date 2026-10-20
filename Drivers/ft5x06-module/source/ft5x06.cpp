@@ -24,6 +24,16 @@
 #define TAG "FT5x06"
 #define GET_CONFIG(device) (static_cast<const Ft5x06Config*>((device)->config))
 
+// FT5x06/FT3168 registers (same values esp_lcd_touch_ft5x06.c uses).
+static constexpr uint8_t REG_MONITOR_TIMEOUT = 0x87; // seconds before monitor mode; 0 = never
+static constexpr uint8_t REG_POWER_MODE      = 0xA5; // 0 = active, 1 = monitor, 2 = standby, 3 = hibernate
+static constexpr uint8_t REG_STATE           = 0xA7;
+static constexpr uint8_t REG_ERROR           = 0xA9;
+
+// The esp_lcd I2C touch IO defaults to 0 (= wait forever), so a stuck bus would block the LVGL
+// task indefinitely. Bound it; 100 ms is far more than any single touch transaction needs.
+static constexpr int TOUCH_IO_TIMEOUT_MS = 100;
+
 struct Ft5x06Internal {
     esp_lcd_panel_io_handle_t io_handle;
     esp_lcd_touch_handle_t touch_handle;
@@ -67,6 +77,7 @@ static error_t pulse_reset(GpioDescriptor* descriptor) {
 // so no bus probing is needed here.
 static esp_err_t create_io_handle(Device* parent, esp_lcd_panel_io_handle_t* out_handle) {
     esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
+    io_config.transaction_timeout_ms = TOUCH_IO_TIMEOUT_MS;
 
     auto* parent_driver = device_get_driver(parent);
     if (driver_is_compatible(parent_driver, "espressif,esp32-i2c-master")) {
@@ -159,7 +170,7 @@ static error_t start(Device* device) {
     if (config->disable_monitor_timeout) {
         // FT5x06: 0 = never auto-enter monitor mode.
         uint8_t disable_monitor = 0;
-        if (esp_lcd_panel_io_tx_param(internal->io_handle, 0x87, &disable_monitor, 1) != ESP_OK) {
+        if (esp_lcd_panel_io_tx_param(internal->io_handle, REG_MONITOR_TIMEOUT, &disable_monitor, 1) != ESP_OK) {
             LOG_W(TAG, "Failed to disable monitor timeout");
         }
 
@@ -168,7 +179,7 @@ static error_t start(Device* device) {
         // into - monitor mode, where it stops answering I2C until touched, which makes the periodic
         // poll fail. Force active so every read is answered.
         uint8_t power_mode_active = 0;
-        if (esp_lcd_panel_io_tx_param(internal->io_handle, 0xA5, &power_mode_active, 1) != ESP_OK) {
+        if (esp_lcd_panel_io_tx_param(internal->io_handle, REG_POWER_MODE, &power_mode_active, 1) != ESP_OK) {
             LOG_W(TAG, "Failed to set active power mode");
         }
     }

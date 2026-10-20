@@ -118,7 +118,6 @@ Driver pcf85063_driver = {
     .probe = nullptr,
     .api = &pcf85063_rtc_api,
     .device_type = &RTC_TYPE,
-    .owner = &pcf85063_module,
     .internal = nullptr
 };
 

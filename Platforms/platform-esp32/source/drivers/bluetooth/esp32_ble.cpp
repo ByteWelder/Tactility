@@ -20,7 +20,7 @@
 #include <nimble/nimble_port_freertos.h>
 #include <services/gap/ble_svc_gap.h>
 #include <services/gatt/ble_svc_gatt.h>
-#include <store/config/ble_store_config.h>
+#include <bluetooth/ble_store_fs.h>
 
 #include <atomic>
 #include <cstring>
@@ -36,9 +36,6 @@ extern "C" {
 #include <esp_hosted_misc.h>
 }
 #endif
-
-// ble_store_config_init() is not declared in the public header in some IDF versions.
-extern "C" void ble_store_config_init(void);
 
 // Sub-module API structs (defined in their respective cpp files).
 extern const BtHidDeviceApi nimble_hid_device_api;
@@ -743,14 +740,15 @@ static void dispatch_enable(BleCtx* ctx) {
     ble_hs_cfg.sm_our_key_dist   = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
     ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
 
-    ble_store_config_init();
-    ble_hs_cfg.store_read_cb   = ble_store_config_read;
-    ble_hs_cfg.store_write_cb  = ble_store_config_write;
-    ble_hs_cfg.store_delete_cb = ble_store_config_delete;
+    // Filesystem-backed bond/CCCD store on the data partition, instead of IDF's NVS one.
+    // A NVS bond that goes missing makes NimBLE treat a bonded peer as unbonded
+    // (BT_PAIR_RESULT_BOND_LOST), which drops the peer from the Tactility-side
+    // paired-device record and breaks BLE auto-reconnect. See ble_store_fs.cpp.
+    ble_store_fs_init();
 
-    // Clear any stale "value_changed" flags left in NVS CCCD records.
+    // Clear any stale "value_changed" flags left in the stored CCCD records.
     // Old firmware called ble_svc_gatt_changed(0, 0xFFFF) from switchGattProfile(),
-    // which sets value_changed=1 in NVS for all bonded-but-disconnected peers.
+    // which sets value_changed=1 for all bonded-but-disconnected peers.
     // On reconnect NimBLE sends a Service Changed indication; Windows disconnects
     // without ACKing (it re-discovers instead), so NimBLE never clears the flag,
     // causing an infinite reconnect loop. Purge all value_changed flags on every
