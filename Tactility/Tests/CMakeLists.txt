@@ -54,7 +54,6 @@ add_test(NAME TactilityTests COMMAND TactilityTests)
 
 target_link_libraries(TactilityTests PRIVATE
     TactilityKernel
-    TactilityKernelCpp
     TactilityFreeRtos
     platform-posix
     app-posix-module

@@ -2,7 +2,7 @@
 #include <Tactility/MainDispatcher.h>
 #include <Tactility/TactilityPrivate.h>
 
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <tactility/check.h>
 #include <tactility/log.h>

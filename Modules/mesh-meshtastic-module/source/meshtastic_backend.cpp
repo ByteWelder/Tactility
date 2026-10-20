@@ -4,11 +4,11 @@
 
 #include <mesh/backend.h>
 
-#include <TactilityCpp/Memory.h>
-#include <TactilityCpp/std/deque.h>
-#include <TactilityCpp/std/map.h>
-#include <TactilityCpp/std/string.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/Memory.hpp>
+#include <tactility/std/deque.hpp>
+#include <tactility/std/map.hpp>
+#include <tactility/std/string.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <tactility/log.h>
 #include <tactility/paths.h>

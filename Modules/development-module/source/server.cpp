@@ -20,7 +20,7 @@
 #include <tactility/paths.h>
 #include <tactility/properties_file.h>
 
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <mbedtls/ssl.h>
 

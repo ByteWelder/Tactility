@@ -12,7 +12,7 @@
 #include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
 
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <lvgl.h>
 

@@ -10,9 +10,9 @@
 #include <service/manifest.h>
 #include <service/paths.h>
 
-#include <TactilityCpp/Memory.h>
-#include <TactilityCpp/std/deque.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/Memory.hpp>
+#include <tactility/std/deque.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <tactility/check.h>
 #include <tactility/concurrent/event_group.h>

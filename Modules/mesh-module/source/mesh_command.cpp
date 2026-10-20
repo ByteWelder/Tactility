@@ -6,9 +6,9 @@
 #include <app/io.h>
 #include <app/manifest.h>
 
-#include <TactilityCpp/Memory.h>
-#include <TactilityCpp/std/map.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/Memory.hpp>
+#include <tactility/std/map.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <tactility/concurrent/task_event_group.h>
 

@@ -9,7 +9,6 @@ tactility_add_module(app-module
     PRIV_INCLUDE_DIRS private/
     INCLUDE_DIRS include/
     REQUIRES TactilityKernel service-module minitar
-    PRIV_REQUIRES TactilityKernelCpp
     WHOLE_ARCHIVE
 )
 

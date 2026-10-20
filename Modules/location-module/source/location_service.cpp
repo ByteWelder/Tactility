@@ -14,7 +14,7 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <cmath>
 #include <cstring>

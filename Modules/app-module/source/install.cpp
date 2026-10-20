@@ -10,7 +10,7 @@
 #include <app/private/module_loader.h>
 #include <app/private/package_manifest_parsing.h>
 
-#include <TactilityCpp/Allocator.h>
+#include <tactility/Allocator.hpp>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <tactility/delay.h>
 #include <tactility/device.h>

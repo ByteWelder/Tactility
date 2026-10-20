@@ -28,8 +28,8 @@
 #include <lvgl/widgets/chip.h>
 #include <lvgl/widgets/toolbar.h>
 
-#include <TactilityCpp/std/string.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/std/string.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <atomic>
 #include <cmath>
