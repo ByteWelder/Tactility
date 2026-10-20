@@ -37,6 +37,8 @@ constexpr MockApRecord MOCK_SCAN_RESULTS[] = {
 constexpr size_t MOCK_SCAN_RESULT_COUNT = sizeof(MOCK_SCAN_RESULTS) / sizeof(MOCK_SCAN_RESULTS[0]);
 constexpr int8_t MOCK_CONNECTED_RSSI = -30;
 constexpr const char* MOCK_IPV4_ADDRESS = "192.168.1.2";
+constexpr const char* MOCK_ACCESS_POINT_IPV4_ADDRESS = "192.168.4.1";
+constexpr uint8_t MOCK_ACCESS_POINT_MAX_CONNECTIONS = 15;
 
 struct MockWifiCtx {
     Device* device = nullptr;
@@ -44,6 +46,7 @@ struct MockWifiCtx {
     Mutex mutex {};
     WifiRadioState radioState = WIFI_RADIO_STATE_OFF;
     WifiStationState stationState = WIFI_STATION_STATE_DISCONNECTED;
+    WifiAccessPointState accessPointState = WIFI_ACCESS_POINT_STATE_STOPPED;
     bool scanning = false;
     char targetSsid[33] = {};
 
@@ -91,8 +94,68 @@ error_t apiGetStationState(Device* device, WifiStationState* state) {
 error_t apiGetAccessPointState(Device* device, WifiAccessPointState* state) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr || state == nullptr) return ERROR_INVALID_ARGUMENT;
-    // Access point mode isn't implemented by this mock.
-    *state = WIFI_ACCESS_POINT_STATE_STOPPED;
+    mutex_lock(&ctx->mutex);
+    *state = ctx->accessPointState;
+    mutex_unlock(&ctx->mutex);
+    return ERROR_NONE;
+}
+
+void setAccessPointState(MockWifiCtx* ctx, WifiAccessPointState state) {
+    mutex_lock(&ctx->mutex);
+    ctx->accessPointState = state;
+    mutex_unlock(&ctx->mutex);
+
+    WifiEvent event = {};
+    event.type = WIFI_EVENT_TYPE_ACCESS_POINT_STATE_CHANGED;
+    event.access_point_state = state;
+    fireEvent(ctx, event);
+}
+
+error_t apiAccessPointStart(Device* device, const WifiAccessPointConfig* config) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
+    if (config == nullptr) return ERROR_INVALID_ARGUMENT;
+
+    const size_t ssidLength = strnlen(config->ssid, sizeof(config->ssid));
+    const size_t passwordLength = strnlen(config->password, sizeof(config->password));
+    const bool ssidValid = ssidLength > 0 && ssidLength < sizeof(config->ssid);
+    const bool passwordValid = passwordLength == 0 || (passwordLength >= 8 && passwordLength < sizeof(config->password));
+    if (!ssidValid || !passwordValid || config->channel > 13 || config->max_connections > MOCK_ACCESS_POINT_MAX_CONNECTIONS) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    if (started) return ERROR_INVALID_STATE;
+
+    setAccessPointState(ctx, WIFI_ACCESS_POINT_STATE_STARTED);
+    return ERROR_NONE;
+}
+
+error_t apiAccessPointStop(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    if (started) {
+        setAccessPointState(ctx, WIFI_ACCESS_POINT_STATE_STOPPED);
+    }
+    return ERROR_NONE;
+}
+
+error_t apiAccessPointGetIpv4Address(Device* device, char* ipv4) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ipv4 == nullptr) return ERROR_INVALID_ARGUMENT;
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    if (!started) return ERROR_INVALID_STATE;
+
+    strcpy(ipv4, MOCK_ACCESS_POINT_IPV4_ADDRESS);
     return ERROR_NONE;
 }
 
@@ -354,7 +417,11 @@ const WifiApi mock_wifi_api = {
     .station_disconnect = apiStationDisconnect,
     .station_get_rssi = apiStationGetRssi,
     .event_subscribe = apiEventSubscribe,
-    .event_unsubscribe = apiEventUnsubscribe
+    .event_unsubscribe = apiEventUnsubscribe,
+    .get_firmware_ops = nullptr,
+    .access_point_start = apiAccessPointStart,
+    .access_point_stop = apiAccessPointStop,
+    .access_point_get_ipv4_address = apiAccessPointGetIpv4Address
 };
 
 // ---- Driver lifecycle ----
@@ -378,6 +445,9 @@ error_t stopDevice(Device* device) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr) return ERROR_NONE;
 
+    if (ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED) {
+        apiAccessPointStop(device);
+    }
     if (ctx->radioState == WIFI_RADIO_STATE_ON) {
         apiSetRadioOff(device);
     }

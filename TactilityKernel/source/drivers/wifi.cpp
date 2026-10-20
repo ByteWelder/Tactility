@@ -59,6 +59,30 @@ error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi) {
     return WIFI_API(device)->station_get_rssi(device, rssi);
 }
 
+error_t wifi_access_point_start(struct Device* device, const struct WifiAccessPointConfig* config) {
+    auto* api = WIFI_API(device);
+    if (api->access_point_start == nullptr) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    return api->access_point_start(device, config);
+}
+
+error_t wifi_access_point_stop(struct Device* device) {
+    auto* api = WIFI_API(device);
+    if (api->access_point_stop == nullptr) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    return api->access_point_stop(device);
+}
+
+error_t wifi_access_point_get_ipv4_address(struct Device* device, char* ipv4) {
+    auto* api = WIFI_API(device);
+    if (api->access_point_get_ipv4_address == nullptr) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    return api->access_point_get_ipv4_address(device, ipv4);
+}
+
 error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group) {
     mutex_construct(&sub->internal.ring_mutex);
     sub->internal.head = 0;

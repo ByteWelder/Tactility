@@ -62,7 +62,7 @@ enum WifiEventType {
     WIFI_EVENT_TYPE_RADIO_STATE_CHANGED,
     /** WifiStationState changed */
     WIFI_EVENT_TYPE_STATION_STATE_CHANGED,
-    /** WifiAccessPointState changed */
+    /** The result of a connection attempt of the station changed (see WifiStationConnectionError) */
     WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT,
     /** WifiAccessPointState changed */
     WIFI_EVENT_TYPE_ACCESS_POINT_STATE_CHANGED,
@@ -70,6 +70,18 @@ enum WifiEventType {
     WIFI_EVENT_TYPE_SCAN_STARTED,
     /** Finished scanning for access points */
     WIFI_EVENT_TYPE_SCAN_FINISHED,
+};
+
+/** The settings of the access point of the device. */
+struct WifiAccessPointConfig {
+    /** Required. 1 to 32 bytes, null-terminated. */
+    char ssid[33];
+    /** An empty password makes an open network. Otherwise it needs 8 to 63 characters (WPA2-PSK). */
+    char password[64];
+    /** The Wi-Fi channel from 1 to 13. 0 means the default (1). */
+    uint8_t channel;
+    /** The number of devices that can connect. 0 means the default (4). The limit depends on the platform: 15 on the ESP32 family, 4 on the ESP32-C2. */
+    uint8_t max_connections;
 };
 
 enum WifiStationConnectionError {
@@ -274,6 +286,38 @@ struct WifiApi {
      * co-processor (ops is left untouched in that case)
      */
     error_t (*get_firmware_ops)(struct Device* device, const struct FirmwareOps** ops, void** ctx);
+
+    /**
+     * Start the access point. It works independently of the radio and the station: the station may be on or off.
+     * Optional: NULL when the device has no access point mode.
+     * Fires WIFI_EVENT_TYPE_ACCESS_POINT_STATE_CHANGED.
+     * @param[in] device the wifi device
+     * @param[in] config the access point settings
+     * @retval ERROR_NONE on success
+     * @retval ERROR_INVALID_ARGUMENT the SSID is empty or too long, the password is not empty and not 8 to 63 characters, the channel is above 13, or max_connections is above the limit of the platform
+     * @retval ERROR_INVALID_STATE the access point is started already. Stop it first
+     * @retval ERROR_RESOURCE the access point could not be started
+     */
+    error_t (*access_point_start)(struct Device* device, const struct WifiAccessPointConfig* config);
+
+    /**
+     * Stop the access point.
+     * Optional: NULL when the device has no access point mode.
+     * Fires WIFI_EVENT_TYPE_ACCESS_POINT_STATE_CHANGED.
+     * @param[in] device the wifi device
+     * @return ERROR_NONE on success, or if the access point is stopped already
+     */
+    error_t (*access_point_stop)(struct Device* device);
+
+    /**
+     * Get the IPv4 address of the device on its access point network.
+     * Optional: NULL when the device has no access point mode.
+     * @param[in] device the wifi device
+     * @param[out] ipv4 the buffer to store the IPv4 address (must be at least 16 bytes, will be null-terminated)
+     * @retval ERROR_NONE on success
+     * @retval ERROR_INVALID_STATE the access point is stopped
+     */
+    error_t (*access_point_get_ipv4_address)(struct Device* device, char* ipv4);
 };
 
 extern const struct DeviceType WIFI_TYPE;
@@ -294,6 +338,24 @@ error_t wifi_station_get_target_ssid(struct Device* device, char* ssid);
 error_t wifi_station_connect(struct Device* device, const char* ssid, const char* password, int32_t channel);
 error_t wifi_station_disconnect(struct Device* device);
 error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi);
+
+/**
+ * Start the access point, with or without the station. See WifiApi::access_point_start().
+ * @retval ERROR_NOT_SUPPORTED the device has no access point mode
+ */
+error_t wifi_access_point_start(struct Device* device, const struct WifiAccessPointConfig* config);
+
+/**
+ * Stop the access point. See WifiApi::access_point_stop().
+ * @retval ERROR_NOT_SUPPORTED the device has no access point mode
+ */
+error_t wifi_access_point_stop(struct Device* device);
+
+/**
+ * Get the IPv4 address on the access point network. See WifiApi::access_point_get_ipv4_address().
+ * @retval ERROR_NOT_SUPPORTED the device has no access point mode
+ */
+error_t wifi_access_point_get_ipv4_address(struct Device* device, char* ipv4);
 
 /**
  * Register a subscription for @a device's WifiEvents.

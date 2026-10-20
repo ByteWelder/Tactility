@@ -11,6 +11,7 @@
 #include <esp_log_level.h>
 #include <esp_log_timestamp.h>
 #include <esp_log_write.h>
+#include <esp_mac.h>
 #include <esp_random.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -154,6 +155,8 @@ static const ModuleSymbol platform_esp32_symbols[] = {
     // esp_err
     DEFINE_MODULE_SYMBOL(esp_err_to_name),
     DEFINE_MODULE_SYMBOL(_esp_error_check_failed),
+    // esp_mac
+    DEFINE_MODULE_SYMBOL(esp_read_mac),
     // esp random
     DEFINE_MODULE_SYMBOL(esp_random),
     DEFINE_MODULE_SYMBOL(esp_fill_random),

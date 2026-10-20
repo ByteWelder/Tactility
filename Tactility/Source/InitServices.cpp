@@ -36,7 +36,6 @@ namespace service {
 #ifdef ESP_PLATFORM
     namespace rtctime { extern const ServiceManifest manifest; }
 #endif
-    namespace webserver { extern const ServiceManifest manifest; }
 
 }
 
@@ -57,7 +56,6 @@ void registerAndStartServices() {
     check(module_ensure_started(&mesh_meshcore_module) == ERROR_NONE);
     check(module_ensure_started(&mesh_meshtastic_module) == ERROR_NONE);
     check(module_ensure_started(&development_module) == ERROR_NONE);
-    addService(service::webserver::manifest);
 #if defined(__linux__) || defined(__APPLE__)
     check(posix_services_start() == ERROR_NONE);
 #endif
