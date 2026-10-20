@@ -45,6 +45,9 @@ struct Esp32WifiCtx {
     Mutex mutex{};
     WifiRadioState radioState = WIFI_RADIO_STATE_OFF;
     WifiStationState stationState = WIFI_STATION_STATE_DISCONNECTED;
+    WifiAccessPointState accessPointState = WIFI_ACCESS_POINT_STATE_STOPPED;
+    // Exists while the access point runs
+    esp_netif_t* accessPointNetif = nullptr;
     bool scanning = false;
     char targetSsid[33] = {};
     esp_netif_ip_info_t ipInfo{};
@@ -340,8 +343,9 @@ error_t api_get_station_state(Device* device, WifiStationState* state) {
 error_t api_get_access_point_state(Device* device, WifiAccessPointState* state) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr || state == nullptr) return ERROR_INVALID_ARGUMENT;
-    // Access point mode isn't implemented by this driver.
-    *state = WIFI_ACCESS_POINT_STATE_STOPPED;
+    mutex_lock(&ctx->mutex);
+    *state = ctx->accessPointState;
+    mutex_unlock(&ctx->mutex);
     return ERROR_NONE;
 }
 
@@ -505,6 +509,139 @@ error_t api_station_get_rssi(Device* device, int32_t* rssi) {
     return ERROR_NONE;
 }
 
+constexpr auto* ACCESS_POINT_ADDRESS = "192.168.4.1";
+constexpr uint8_t ACCESS_POINT_DEFAULT_CHANNEL = 1;
+constexpr uint8_t ACCESS_POINT_MAX_CHANNEL = 13;
+constexpr uint8_t ACCESS_POINT_DEFAULT_MAX_CONNECTIONS = 4;
+
+// Detaches the netif from the internal WiFi event handlers before the radio is released,
+// otherwise esp_netif_destroy() can race with esp_wifi_stop()'s own netif teardown.
+void release_access_point(Esp32WifiCtx* ctx) {
+    if (ctx->accessPointNetif != nullptr) {
+        esp_wifi_clear_default_wifi_driver_and_handlers(ctx->accessPointNetif);
+    }
+    esp32_wifi_radio_release(WIFI_MODE_AP);
+    if (ctx->accessPointNetif != nullptr) {
+        esp_netif_destroy(ctx->accessPointNetif);
+        ctx->accessPointNetif = nullptr;
+    }
+}
+
+void fire_access_point_event(Esp32WifiCtx* ctx, WifiAccessPointState state) {
+    WifiEvent event = {};
+    event.type = WIFI_EVENT_TYPE_ACCESS_POINT_STATE_CHANGED;
+    event.access_point_state = state;
+    fire_event(ctx, event);
+}
+
+error_t api_access_point_start(Device* device, const WifiAccessPointConfig* config) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
+    if (config == nullptr) return ERROR_INVALID_ARGUMENT;
+
+    const size_t ssid_length = strnlen(config->ssid, sizeof(config->ssid));
+    const size_t password_length = strnlen(config->password, sizeof(config->password));
+    const bool ssid_valid = ssid_length > 0 && ssid_length < sizeof(config->ssid);
+    const bool password_valid = password_length == 0 || (password_length >= 8 && password_length < sizeof(config->password));
+    if (!ssid_valid || !password_valid || config->channel > ACCESS_POINT_MAX_CHANNEL) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    if (started) return ERROR_INVALID_STATE;
+
+    // The netif and its address exist before the radio starts, so that the netif handles the start event of the access point
+    ctx->accessPointNetif = esp_netif_create_default_wifi_ap();
+    if (ctx->accessPointNetif == nullptr) {
+        LOG_E(TAG, "esp_netif_create_default_wifi_ap() failed");
+        return ERROR_RESOURCE;
+    }
+
+    // A static address, so clients always find the access point at the same place
+    esp_netif_ip_info_t ip_info {};
+    ip_info.ip.addr = ESP_IP4TOADDR(192, 168, 4, 1);
+    ip_info.gw.addr = ESP_IP4TOADDR(192, 168, 4, 1);
+    ip_info.netmask.addr = ESP_IP4TOADDR(255, 255, 255, 0);
+
+    const esp_err_t stop_dhcp_result = esp_netif_dhcps_stop(ctx->accessPointNetif);
+    const esp_err_t set_ip_result = esp_netif_set_ip_info(ctx->accessPointNetif, &ip_info);
+    const esp_err_t start_dhcp_result = esp_netif_dhcps_start(ctx->accessPointNetif);
+    if ((stop_dhcp_result != ESP_OK && stop_dhcp_result != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED) ||
+        set_ip_result != ESP_OK ||
+        (start_dhcp_result != ESP_OK && start_dhcp_result != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STARTED)) {
+        LOG_E(TAG, "Failed to set up the access point network");
+        esp_netif_destroy(ctx->accessPointNetif);
+        ctx->accessPointNetif = nullptr;
+        return ERROR_RESOURCE;
+    }
+
+    // Acquires the shared radio, which merges into WIFI_MODE_APSTA when the station owns the radio already
+    if (!esp32_wifi_radio_acquire(WIFI_MODE_AP)) {
+        LOG_E(TAG, "Failed to acquire the radio for the access point");
+        esp_netif_destroy(ctx->accessPointNetif);
+        ctx->accessPointNetif = nullptr;
+        return ERROR_RESOURCE;
+    }
+
+    wifi_config_t wifi_config {};
+    strncpy(reinterpret_cast<char*>(wifi_config.ap.ssid), config->ssid, sizeof(wifi_config.ap.ssid) - 1);
+    wifi_config.ap.ssid_len = static_cast<uint8_t>(ssid_length);
+    if (password_length > 0) {
+        wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
+        strncpy(reinterpret_cast<char*>(wifi_config.ap.password), config->password, sizeof(wifi_config.ap.password) - 1);
+    } else {
+        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+    wifi_config.ap.max_connection = config->max_connections != 0 ? config->max_connections : ACCESS_POINT_DEFAULT_MAX_CONNECTIONS;
+    wifi_config.ap.channel = config->channel != 0 ? config->channel : ACCESS_POINT_DEFAULT_CHANNEL;
+
+    esp_err_t err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
+    if (err != ESP_OK) {
+        LOG_E(TAG, "esp_wifi_set_config(AP) failed: %s", esp_err_to_name(err));
+        release_access_point(ctx);
+        return ERROR_RESOURCE;
+    }
+
+    mutex_lock(&ctx->mutex);
+    ctx->accessPointState = WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    fire_access_point_event(ctx, WIFI_ACCESS_POINT_STATE_STARTED);
+
+    LOG_I(TAG, "Access point started: SSID '%s', channel %u, %s", config->ssid, static_cast<unsigned>(wifi_config.ap.channel), ACCESS_POINT_ADDRESS);
+    return ERROR_NONE;
+}
+
+error_t api_access_point_stop(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr) return ERROR_INVALID_STATE;
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    ctx->accessPointState = WIFI_ACCESS_POINT_STATE_STOPPED;
+    mutex_unlock(&ctx->mutex);
+    if (!started) return ERROR_NONE;
+
+    release_access_point(ctx);
+    fire_access_point_event(ctx, WIFI_ACCESS_POINT_STATE_STOPPED);
+    LOG_I(TAG, "Access point stopped");
+    return ERROR_NONE;
+}
+
+error_t api_access_point_get_ipv4_address(Device* device, char* ipv4) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ipv4 == nullptr) return ERROR_INVALID_ARGUMENT;
+
+    mutex_lock(&ctx->mutex);
+    const bool started = ctx->accessPointState == WIFI_ACCESS_POINT_STATE_STARTED;
+    mutex_unlock(&ctx->mutex);
+    if (!started) return ERROR_INVALID_STATE;
+
+    strcpy(ipv4, ACCESS_POINT_ADDRESS);
+    return ERROR_NONE;
+}
+
 error_t api_set_radio_on(Device* device) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr) return ERROR_INVALID_STATE;
@@ -614,7 +751,10 @@ const WifiApi esp32_wifi_api = {
     .station_get_rssi = api_station_get_rssi,
     .event_subscribe = api_event_subscribe,
     .event_unsubscribe = api_event_unsubscribe,
-    .get_firmware_ops = api_get_firmware_ops
+    .get_firmware_ops = api_get_firmware_ops,
+    .access_point_start = api_access_point_start,
+    .access_point_stop = api_access_point_stop,
+    .access_point_get_ipv4_address = api_access_point_get_ipv4_address
 };
 
 error_t start_device(Device* device) {
@@ -636,6 +776,8 @@ error_t start_device(Device* device) {
 error_t stop_device(Device* device) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr) return ERROR_NONE;
+
+    api_access_point_stop(device);
 
     if (ctx->radioState == WIFI_RADIO_STATE_ON) {
         bring_down_wifi(ctx);
