@@ -47,6 +47,13 @@ runs:
         esp_idf_version: v6.1
         target: ${{ inputs.arch }}
         command: export TACTILITY_SDK_PATH=../../test_sdk && cd Tests/SdkIntegration && python ../../tt.py app build -a ${{ inputs.arch }}
+    - name: 'Test New Project'
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v6.1
+        target: ${{ inputs.arch }}
+        # A module project, because its entry point is renamed by the ELF build
+        command: bash Buildscripts/test-new-project.sh ${{ inputs.arch }}
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:

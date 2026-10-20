@@ -35,6 +35,11 @@ add_library(paths_fixture SHARED EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/fixt
 target_include_directories(paths_fixture PRIVATE ${CMAKE_SOURCE_DIR}/TactilityKernel/include)
 set_target_properties(paths_fixture PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Fixture: a module binary whose main() returns its struct Module, with its lifecycle reported back to the test binary.
+add_library(module_fixture SHARED EXCLUDE_FROM_ALL ${CMAKE_CURRENT_LIST_DIR}/fixtures/module_fixture.cpp)
+target_include_directories(module_fixture PRIVATE ${CMAKE_SOURCE_DIR}/TactilityKernel/include)
+set_target_properties(module_fixture PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 # A file with a ".so" extension but no ELF header, for is_executable() rejection tests.
 set(NON_ELF_FIXTURE_PATH "${CMAKE_CURRENT_BINARY_DIR}/not-elf.so")
 file(WRITE "${NON_ELF_FIXTURE_PATH}" "not an elf file")
@@ -51,11 +56,22 @@ add_custom_command(
 )
 add_custom_target(install_dir_fixture DEPENDS "${INSTALL_DIR_FIXTURE_BIN_DIR}/app.so")
 
+# An install directory holding only the module fixture, where app_resolve_binary_path() looks for it.
+set(MODULE_INSTALL_DIR_PATH "${CMAKE_CURRENT_BINARY_DIR}/module-install-dir-fixture")
+set(MODULE_INSTALL_DIR_BIN_DIR "${MODULE_INSTALL_DIR_PATH}/bin/posix-${CMAKE_SYSTEM_PROCESSOR}")
+add_custom_command(
+    OUTPUT "${MODULE_INSTALL_DIR_BIN_DIR}/module_fixture.so"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${MODULE_INSTALL_DIR_BIN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:module_fixture>" "${MODULE_INSTALL_DIR_BIN_DIR}/module_fixture.so"
+    DEPENDS module_fixture
+)
+add_custom_target(module_install_dir_fixture DEPENDS "${MODULE_INSTALL_DIR_BIN_DIR}/module_fixture.so")
+
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/source/*.cpp)
 add_executable(AppPosixModuleTests EXCLUDE_FROM_ALL ${TEST_SOURCES})
-add_dependencies(AppPosixModuleTests app_posix_module_test_fixture printf_fixture exit_fixture leak_fixture paths_fixture static_fixture install_dir_fixture)
+add_dependencies(AppPosixModuleTests app_posix_module_test_fixture printf_fixture exit_fixture leak_fixture paths_fixture static_fixture install_dir_fixture module_install_dir_fixture)
 
-target_include_directories(AppPosixModuleTests PRIVATE ${DOCTESTINC})
+target_include_directories(AppPosixModuleTests PRIVATE ${DOCTESTINC} ${CMAKE_SOURCE_DIR}/Modules/app-module/private)
 target_compile_definitions(AppPosixModuleTests PRIVATE
     FIXTURE_APP_PATH="$<TARGET_FILE:app_posix_module_test_fixture>"
     PRINTF_FIXTURE_APP_PATH="$<TARGET_FILE:printf_fixture>"
@@ -65,6 +81,9 @@ target_compile_definitions(AppPosixModuleTests PRIVATE
     STATIC_FIXTURE_APP_PATH="$<TARGET_FILE:static_fixture>"
     FIXTURE_NON_ELF_PATH="${NON_ELF_FIXTURE_PATH}"
     FIXTURE_INSTALL_DIR_PATH="${INSTALL_DIR_FIXTURE_PATH}"
+    MODULE_FIXTURE_PATH="$<TARGET_FILE:module_fixture>"
+    MODULE_INSTALL_DIR_PATH="${MODULE_INSTALL_DIR_PATH}"
+    MODULE_INSTALL_DIR_BINARY_PATH="${MODULE_INSTALL_DIR_BIN_DIR}/module_fixture.so"
 )
 
 add_test(NAME AppPosixModuleTests COMMAND AppPosixModuleTests)

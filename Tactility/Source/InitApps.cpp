@@ -80,6 +80,7 @@ namespace app {
 #endif
     namespace timezone { extern const ::AppManifest manifest; }
     namespace usbsettings { extern const ::AppManifest manifest; }
+    namespace kernelsettings { extern const ::AppManifest manifest; }
     namespace btmanage { extern const ::AppManifest manifest; }
     namespace btpeersettings { extern const ::AppManifest manifest; }
     namespace wifiapsettings { extern const ::AppManifest manifest; }
@@ -176,6 +177,8 @@ static void registerInternalApps() {
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     app_manager_add(&app::usbsettings::manifest);
 #endif
+
+    app_manager_add(&app::kernelsettings::manifest);
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     app_manager_add(&app::screenshot::manifest);

@@ -7,6 +7,7 @@
 #include <app/private/fs.h>
 #include <app/private/ledger.h>
 #include <app/private/manifest_set.h>
+#include <app/private/module_loader.h>
 #include <app/private/package_manifest_parsing.h>
 
 #include <TactilityCpp/Allocator.h>
@@ -330,6 +331,12 @@ error_t uninstall_locked(const std::string& package_id) {
         return ERROR_NOT_FOUND;
     }
 
+    // First, because a module that is in use makes the whole uninstall fail before anything changed
+    error_t unload_result = app_module_loader_unload_package(package_id);
+    if (unload_result != ERROR_NONE) {
+        return unload_result;
+    }
+
     for (const auto& manifest : iterator->second->owned.manifests) {
         // Can't uninstall in-memory apps
         if (manifest.location.type != APP_LOCATION_PATH) {
@@ -425,7 +432,18 @@ error_t app_install(const char* source_path) {
     // registrations of its old AppManifests, so there's no separate app_manager_remove() needed
     // here (register_installed_package_locked() below still defends against a stale registration
     // per individual id, e.g. one left by app_manager_install_path_scan()'s separate registry).
-    uninstall_locked(package.id);
+    error_t replace_result = uninstall_locked(package.id);
+    // Modules of a package that was registered by a scan are not part of the install registry
+    if (replace_result == ERROR_NOT_FOUND) {
+        replace_result = app_module_loader_unload_package(package.id);
+    }
+    if (replace_result != ERROR_NONE) {
+        LOG_E(TAG, "Install failed: the installed %s can't be replaced: %s", package.id, error_to_string(replace_result));
+        delete_recursively(staging_path);
+        release_staging_lock(staging_path);
+        mutex_unlock(&registry.mutex);
+        return replace_result;
+    }
 
     auto final_path = app_parent_path + "/" + package.id;
     delete_recursively(final_path);
@@ -441,6 +459,18 @@ error_t app_install(const char* source_path) {
 
     // app_bindings.size(), not package.app_manifest_count - the safe bound to index by.
     error_t add_result = register_installed_package_locked(package, final_path, app_bindings.data(), app_bindings.size());
+    if (add_result == ERROR_NONE && app_package_manifest_is_compatible(&package)) {
+        std::vector<std::string> module_binaries;
+        error_t module_result = app_package_manifest_parse_module_binaries((final_path + "/manifest.properties").c_str(), module_binaries);
+        if (module_result == ERROR_NONE) {
+            module_result = app_module_loader_load_package(package.id, final_path, module_binaries);
+        }
+        if (module_result != ERROR_NONE) {
+            LOG_E(TAG, "Install failed: modules of %s did not load", package.id);
+            uninstall_locked(package.id);
+            add_result = module_result;
+        }
+    }
     mutex_unlock(&registry.mutex);
 
     return add_result;

@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <tactility/error.h>
 
+struct Module;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,6 +54,16 @@ struct AppLoaderApi {
      * Reports whether this loader could load and run whatever @a location points at, without actually loading it.
      */
     bool (*is_executable)(struct AppLocation location);
+
+    /**
+     * Optional. Calls the loaded binary's main() as a module entry point instead of an app one:
+     * it takes no arguments and returns a `struct Module*` rather than an exit code.
+     * @param[in] runtime handle produced by load()
+     * @param[out] out_module the module the binary returned
+     * @retval ERROR_NONE on success
+     * @retval ERROR_NOT_FOUND the binary has no main() or it returned NULL
+     */
+    error_t (*get_module)(AppRuntime runtime, struct Module** out_module);
 };
 
 #ifdef __cplusplus

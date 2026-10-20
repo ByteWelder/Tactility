@@ -297,7 +297,9 @@ def get_package_id(manifest):
 # The id of the app "run"/"install" operate on. A v2 manifest has exactly one; a v3 manifest may
 # declare several, so this picks the first ("app.0.id") as the one a single-app dev workflow means.
 def get_primary_app_id(manifest):
-    return manifest["app.0.id"] if is_v3_manifest(manifest) else manifest["app.id"]
+    if is_v3_manifest(manifest):
+        return manifest.get("app.0.id")
+    return manifest["app.id"]
 
 def validate_manifest(manifest):
     for key in ("manifest.version", "target.sdk", "target.platforms"):
@@ -309,8 +311,8 @@ def validate_manifest(manifest):
         for key in ("id", "version.name", "version.code"):
             if key not in manifest:
                 exit_with_error(f"Invalid manifest format: {key} not found")
-        if "app.0.id" not in manifest:
-            exit_with_error("Invalid manifest format: app.0.id not found")
+        if "app.0.id" not in manifest and "module.0.binary" not in manifest:
+            exit_with_error("Invalid manifest format: app.0.id or module.0.binary not found")
         index = 0
         while f"app.{index}.id" in manifest:
             for suffix in ("name", "binary"):
@@ -333,12 +335,19 @@ def validate_manifest(manifest):
 # ends the list, mirroring package_manifest_parse_v3()) does each get its own subdirectory,
 # named after its own "app.N.binary" (the filename it installs as - see
 # package_manifest_parse_v3()'s doc).
+#
+# The "module.N.binary" entries of a v3 manifest are binaries as well and follow the same rules.
 def get_binary_dirs(manifest):
     if is_v3_manifest(manifest):
         binaries = []
         index = 0
         while f"app.{index}.id" in manifest:
             binary = manifest[f"app.{index}.binary"]
+            binaries.append((binary, binary))
+            index += 1
+        index = 0
+        while f"module.{index}.binary" in manifest:
+            binary = manifest[f"module.{index}.binary"]
             binaries.append((binary, binary))
             index += 1
         if len(binaries) == 1:
@@ -728,6 +737,8 @@ def get_host(arguments):
 def run_action(manifest, arguments):
     host = get_host(arguments)
     app_id = get_primary_app_id(manifest)
+    if app_id is None:
+        exit_with_error("This package has no app to run")
     print_status_busy("Running")
     device = load_device_client()
     device.run(host, device.DEFAULT_PORT, app_id)
@@ -838,7 +849,7 @@ if __name__ == "__main__":
         uninstall_action(manifest, parsed_command.arguments)
     elif action_arg == "bir" or action_arg == "brrr":
         if build_action(manifest, parsed_command.arguments):
-            if install_action(manifest, parsed_command.arguments):
+            if install_action(manifest, parsed_command.arguments) and get_primary_app_id(manifest) is not None:
                 run_action(manifest, parsed_command.arguments)
     else:
         print_help()

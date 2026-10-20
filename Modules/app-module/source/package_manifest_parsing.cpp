@@ -199,3 +199,23 @@ error_t app_package_manifest_parse_into(const char* path, PackageManifest& out_p
     }
     return ERROR_NONE;
 }
+
+error_t app_package_manifest_parse_module_binaries(const char* path, std::vector<std::string>& out_binaries) {
+    out_binaries.clear();
+
+    std::map<std::string, std::string> properties;
+    if (!load_properties(path, properties)) {
+        LOG_E(TAG, "Failed to load manifest at %s", path);
+        return ERROR_NOT_FOUND;
+    }
+
+    std::string format_version;
+    if (!app_package_manifest_get_value(properties, "manifest.version", format_version)) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    if (format_version == "0.3") {
+        return package_manifest_parse_module_binaries_v3(properties, out_binaries);
+    }
+    return ERROR_NONE;
+}

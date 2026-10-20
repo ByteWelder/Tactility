@@ -7,6 +7,7 @@
 #include <app/private/ledger.h>
 #include <app/private/manager_internal.h>
 #include <app/private/manifest_set.h>
+#include <app/private/module_loader.h>
 #include <app/private/package_manifest_parsing.h>
 #include <app/private/scheduler.h>
 
@@ -357,6 +358,7 @@ void app_manager_install_path_scan(void) {
     std::vector<std::unique_ptr<ScannedPackageManifest>> new_records;
     std::vector<std::string> new_package_ids;
     std::vector<PackageManifest> new_packages;
+    std::vector<std::vector<std::string>> new_module_binaries;
     for (const auto& app_dir : found_app_dirs) {
         auto manifest_path = app_dir + "/manifest.properties";
         if (!app_fs_is_file(manifest_path)) {
@@ -379,9 +381,16 @@ void app_manager_install_path_scan(void) {
             continue;
         }
 
+        std::vector<std::string> module_binaries;
+        if (app_package_manifest_parse_module_binaries(manifest_path.c_str(), module_binaries) != ERROR_NONE) {
+            LOG_W(TAG, "Invalid module entries in manifest at %s", manifest_path.c_str());
+            continue;
+        }
+
         auto record = std::make_unique<ScannedPackageManifest>(app_dir, app_bindings.data(), app_bindings.size());
         new_package_ids.emplace_back(package.id);
         new_packages.push_back(package);
+        new_module_binaries.push_back(std::move(module_binaries));
         new_records.push_back(std::move(record));
     }
 
@@ -396,6 +405,7 @@ void app_manager_install_path_scan(void) {
     // registry.mutex would fix a lock order an opposite-order caller could deadlock against.
     // registry.mutex is retaken afterward only to publish the in-memory results.
     for (const auto& id : missing_ids) {
+        app_module_loader_unload_package(id);
         for (const auto& manifest_id : known_packages.at(id).manifest_ids) {
             app_manager_remove(manifest_id.c_str());
         }
@@ -442,6 +452,16 @@ void app_manager_install_path_scan(void) {
             continue;
         }
 
+        if (app_package_manifest_is_compatible(&new_packages[r]) &&
+            app_module_loader_load_package(new_package_ids[r], record->path, new_module_binaries[r]) != ERROR_NONE) {
+            LOG_E(TAG, "Failed to load modules of package %s", new_packages[r].id);
+            for (const auto& app_manifest : manifests) {
+                app_manager_remove(app_manifest.id);
+            }
+            app_manager_remove_package(new_packages[r].id);
+            continue;
+        }
+
         added_package_ids.push_back(new_package_ids[r]);
         added_records.push_back(std::move(record));
     }
@@ -469,6 +489,12 @@ error_t app_manager_install_path_uninstall(const char* app_id) {
     const auto* manifests = &iterator->second->owned.manifests;
     auto path = iterator->second->path;
     mutex_unlock(&registry.mutex);
+
+    // A module that is in use makes the uninstall fail before anything changed
+    error_t unload_result = app_module_loader_unload_package(app_id);
+    if (unload_result != ERROR_NONE) {
+        return unload_result;
+    }
 
     // Mirrors stop_all_instances_of() in app_install.cpp. Collect under ledger.mutex, stop
     // outside it: app_manager_stop() bound-joins the thread, which itself takes ledger.mutex.

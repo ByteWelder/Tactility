@@ -7,6 +7,7 @@
 #include <cstring>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -109,4 +110,55 @@ TEST_CASE("package manifest compatibility: requires_ram must fit in total RAM") 
     PackageManifest package {};
     package.requires_ram = 1;
     CHECK(app_package_manifest_is_compatible(&package));
+}
+
+namespace {
+
+error_t parse_module_binaries(const std::map<std::string, std::string>& properties, std::vector<std::string>& out_binaries) {
+    return package_manifest_parse_module_binaries_v3(properties, out_binaries);
+}
+
+} // namespace
+
+TEST_CASE("package manifest v3: no module entries yields an empty list") {
+    std::vector<std::string> binaries { "stale" };
+    REQUIRE_EQ(parse_module_binaries(minimal_v3_properties(), binaries), ERROR_NONE);
+    CHECK(binaries.empty());
+}
+
+TEST_CASE("package manifest v3: module binaries are returned in index order") {
+    auto properties = minimal_v3_properties();
+    properties["module.0.binary"] = "first";
+    properties["module.1.binary"] = "second.v2";
+    std::vector<std::string> binaries;
+    REQUIRE_EQ(parse_module_binaries(properties, binaries), ERROR_NONE);
+    REQUIRE_EQ(binaries.size(), 2);
+    CHECK_EQ(binaries[0], "first");
+    CHECK_EQ(binaries[1], "second.v2");
+}
+
+TEST_CASE("package manifest v3: module entries do not count as apps") {
+    auto properties = minimal_v3_properties();
+    properties["module.0.binary"] = "first";
+    PackageManifest package {};
+    REQUIRE_EQ(parse(properties, package), ERROR_NONE);
+    CHECK_EQ(package.app_manifest_count, 1);
+}
+
+TEST_CASE("package manifest v3: a gap in module entries rejects the manifest") {
+    auto properties = minimal_v3_properties();
+    properties["module.0.binary"] = "first";
+    properties["module.2.binary"] = "third";
+    std::vector<std::string> binaries;
+    CHECK_EQ(parse_module_binaries(properties, binaries), ERROR_INVALID_ARGUMENT);
+}
+
+TEST_CASE("package manifest v3: an invalid module binary name rejects the manifest") {
+    for (const char* value : { "", "a/b", "a b", "../x" }) {
+        CAPTURE(value);
+        auto properties = minimal_v3_properties();
+        properties["module.0.binary"] = value;
+        std::vector<std::string> binaries;
+        CHECK_EQ(parse_module_binaries(properties, binaries), ERROR_INVALID_ARGUMENT);
+    }
 }
