@@ -102,4 +102,9 @@
 			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
+
+	buttons {
+		compatible = "tactility,button-control";
+		pin-primary = <&gpio0 0 GPIO_FLAG_NONE>;
+	};
 };

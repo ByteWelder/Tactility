@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <functional>
+#include <string>
 
 #ifdef ESP_PLATFORM
 
@@ -9,5 +10,9 @@
 // Kept out of module.cpp: it declares these same symbols by their mangled names as extern "C".
 template long std::function<long()>::operator()() const;
 template std::function<long()>::function(const std::function<long()>&);
+
+// operator+(string&&, string&&) is exported by module.cpp too. It is an inline template, so it only exists
+// when some code in the firmware calls it. Instantiated here, so the module doesn't depend on that.
+template std::string std::operator+(std::string&&, std::string&&);
 
 #endif

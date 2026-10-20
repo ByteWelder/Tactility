@@ -73,7 +73,7 @@ struct Esp32WifiCtx {
 #define GET_CTX(device) (static_cast<Esp32WifiCtx*>(device_get_driver_data(device)))
 
 // Shared radio ownership state for esp32_wifi_radio_acquire()/release() (see esp32_wifi_radio.h).
-// Station mode (this driver) and the WebServer's Access Point mode both acquire/release their own
+// Station mode and access point mode (this driver) and ESP-NOW acquire/release their own
 // mode bit rather than calling esp_wifi_init()/deinit() directly, so neither tears down the radio
 // out from under the other.
 Mutex g_radioMutex{};
