@@ -394,6 +394,22 @@ def write_bluetooth_variables(output_file, device_properties: dict):
         if idf_target == "esp32p4":
             output_file.write("CONFIG_BT_NIMBLE_TRANSPORT_UART=n\n")
             output_file.write("CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE=y\n")
+            # ESP-IDF v6.1.0's TinyCrypt ECDH is broken on ESP32-P4: ecc_dh.c omits
+            # <soc/soc_caps.h>, so uECC_shared_secret() takes the software path and
+            # regularizes the private scalar to 257 bits, but EccPoint_mult() forwards
+            # it to the P4 ECC peripheral, which only uses the low 256 bits. The
+            # resulting DHKey is wrong, so every LE Secure Connections pairing fails
+            # at the DHKey check (BLE_HS_SM_US_ERR(BLE_SM_ERR_DHKEY), status 0x040b)
+            # and the peer disconnects — e.g. Windows reports "Try connecting your
+            # device again". Legacy pairing is unaffected, and native-radio targets
+            # (S3 etc.) don't hit this path.
+            # Switch NimBLE's SMP crypto to mbedTLS, whose P-256 ECDH is correct on P4.
+            # Both keys are needed: the BT_SMP_CRYPTO_STACK choice supplies the mbedTLS
+            # primitives, while BT_NIMBLE_CRYPTO_STACK_MBEDTLS actually switches
+            # NimBLE's ble_sm_alg.c code path (it does not follow the common choice).
+            # Upstream fix, after the v6.1.0 tag: espressif/esp-idf@9fd7cb7e606
+            output_file.write("CONFIG_BT_SMP_CRYPTO_STACK_MBEDTLS=y\n")
+            output_file.write("CONFIG_BT_NIMBLE_CRYPTO_STACK_MBEDTLS=y\n")
         # Move NimBLE host buffers to SPIRAM when available, regardless of target.
         # The default (INTERNAL) mode causes heap fragmentation after a disable+deinit
         # cycle, preventing a subsequent nimble_port_init() from allocating its buffers
