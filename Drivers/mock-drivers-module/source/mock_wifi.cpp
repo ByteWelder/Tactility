@@ -38,6 +38,7 @@ constexpr size_t MOCK_SCAN_RESULT_COUNT = sizeof(MOCK_SCAN_RESULTS) / sizeof(MOC
 constexpr int8_t MOCK_CONNECTED_RSSI = -30;
 constexpr const char* MOCK_IPV4_ADDRESS = "192.168.1.2";
 constexpr const char* MOCK_ACCESS_POINT_IPV4_ADDRESS = "192.168.4.1";
+constexpr uint8_t MOCK_ACCESS_POINT_MAX_CONNECTIONS = 15;
 
 struct MockWifiCtx {
     Device* device = nullptr;
@@ -119,7 +120,7 @@ error_t apiAccessPointStart(Device* device, const WifiAccessPointConfig* config)
     const size_t passwordLength = strnlen(config->password, sizeof(config->password));
     const bool ssidValid = ssidLength > 0 && ssidLength < sizeof(config->ssid);
     const bool passwordValid = passwordLength == 0 || (passwordLength >= 8 && passwordLength < sizeof(config->password));
-    if (!ssidValid || !passwordValid || config->channel > 13) {
+    if (!ssidValid || !passwordValid || config->channel > 13 || config->max_connections > MOCK_ACCESS_POINT_MAX_CONNECTIONS) {
         return ERROR_INVALID_ARGUMENT;
     }
 

@@ -514,8 +514,17 @@ constexpr uint8_t ACCESS_POINT_DEFAULT_CHANNEL = 1;
 constexpr uint8_t ACCESS_POINT_MAX_CHANNEL = 13;
 constexpr uint8_t ACCESS_POINT_DEFAULT_MAX_CONNECTIONS = 4;
 
-// Detaches the netif from the internal WiFi event handlers before the radio is released,
-// otherwise esp_netif_destroy() can race with esp_wifi_stop()'s own netif teardown.
+// Detaches the netif from the internal WiFi event handlers before it is destroyed,
+// otherwise the Wi-Fi driver keeps a pointer to the freed netif.
+void destroy_access_point_netif(Esp32WifiCtx* ctx) {
+    if (ctx->accessPointNetif != nullptr) {
+        esp_wifi_clear_default_wifi_driver_and_handlers(ctx->accessPointNetif);
+        esp_netif_destroy(ctx->accessPointNetif);
+        ctx->accessPointNetif = nullptr;
+    }
+}
+
+// The netif is detached before the radio is released, otherwise esp_netif_destroy() can race with esp_wifi_stop()'s own netif teardown.
 void release_access_point(Esp32WifiCtx* ctx) {
     if (ctx->accessPointNetif != nullptr) {
         esp_wifi_clear_default_wifi_driver_and_handlers(ctx->accessPointNetif);
@@ -543,7 +552,7 @@ error_t api_access_point_start(Device* device, const WifiAccessPointConfig* conf
     const size_t password_length = strnlen(config->password, sizeof(config->password));
     const bool ssid_valid = ssid_length > 0 && ssid_length < sizeof(config->ssid);
     const bool password_valid = password_length == 0 || (password_length >= 8 && password_length < sizeof(config->password));
-    if (!ssid_valid || !password_valid || config->channel > ACCESS_POINT_MAX_CHANNEL) {
+    if (!ssid_valid || !password_valid || config->channel > ACCESS_POINT_MAX_CHANNEL || config->max_connections > ESP_WIFI_MAX_CONN_NUM) {
         return ERROR_INVALID_ARGUMENT;
     }
 
@@ -572,21 +581,20 @@ error_t api_access_point_start(Device* device, const WifiAccessPointConfig* conf
         set_ip_result != ESP_OK ||
         (start_dhcp_result != ESP_OK && start_dhcp_result != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STARTED)) {
         LOG_E(TAG, "Failed to set up the access point network");
-        esp_netif_destroy(ctx->accessPointNetif);
-        ctx->accessPointNetif = nullptr;
+        destroy_access_point_netif(ctx);
         return ERROR_RESOURCE;
     }
 
     // Acquires the shared radio, which merges into WIFI_MODE_APSTA when the station owns the radio already
     if (!esp32_wifi_radio_acquire(WIFI_MODE_AP)) {
         LOG_E(TAG, "Failed to acquire the radio for the access point");
-        esp_netif_destroy(ctx->accessPointNetif);
-        ctx->accessPointNetif = nullptr;
+        destroy_access_point_netif(ctx);
         return ERROR_RESOURCE;
     }
 
     wifi_config_t wifi_config {};
-    strncpy(reinterpret_cast<char*>(wifi_config.ap.ssid), config->ssid, sizeof(wifi_config.ap.ssid) - 1);
+    // The SSID field has no terminator for a name of 32 bytes: ssid_len gives the length
+    memcpy(wifi_config.ap.ssid, config->ssid, ssid_length);
     wifi_config.ap.ssid_len = static_cast<uint8_t>(ssid_length);
     if (password_length > 0) {
         wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;

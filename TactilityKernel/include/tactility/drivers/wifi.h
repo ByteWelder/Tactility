@@ -77,10 +77,10 @@ struct WifiAccessPointConfig {
     /** Required. 1 to 32 bytes, null-terminated. */
     char ssid[33];
     /** An empty password makes an open network. Otherwise it needs 8 to 63 characters (WPA2-PSK). */
-    char password[65];
+    char password[64];
     /** The Wi-Fi channel from 1 to 13. 0 means the default (1). */
     uint8_t channel;
-    /** The number of devices that can connect. 0 means the default (4). */
+    /** The number of devices that can connect. 0 means the default (4). The limit depends on the platform: 15 on the ESP32 family, 4 on the ESP32-C2. */
     uint8_t max_connections;
 };
 
@@ -294,7 +294,7 @@ struct WifiApi {
      * @param[in] device the wifi device
      * @param[in] config the access point settings
      * @retval ERROR_NONE on success
-     * @retval ERROR_INVALID_ARGUMENT the SSID is empty or too long, the password is not empty and not 8 to 63 characters, or the channel is above 13
+     * @retval ERROR_INVALID_ARGUMENT the SSID is empty or too long, the password is not empty and not 8 to 63 characters, the channel is above 13, or max_connections is above the limit of the platform
      * @retval ERROR_INVALID_STATE the access point is started already. Stop it first
      * @retval ERROR_RESOURCE the access point could not be started
      */
