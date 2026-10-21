@@ -5,6 +5,7 @@
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
 
 #include <bluetooth/esp32_ble_internal.h>
+#include <bluetooth/esp32_ble_hid_host.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -995,8 +996,9 @@ static error_t api_connect(struct Device* device, const BtAddr addr, enum BtProf
         return ble_spp_start_internal(ctx->serial_child);
     } else if (profile == BT_PROFILE_MIDI) {
         return ble_midi_start_internal(ctx->midi_child);
+    } else if (profile == BT_PROFILE_HID_HOST) {
+        return ble_hid_host_connect(device, addr);
     }
-    // BT_PROFILE_HID_HOST is handled entirely in the Tactility layer.
     return ERROR_NOT_SUPPORTED;
 }
 
@@ -1009,6 +1011,8 @@ static error_t api_disconnect(struct Device* device, const BtAddr addr, enum BtP
         return nimble_serial_api.stop(ctx->serial_child);
     } else if (profile == BT_PROFILE_MIDI) {
         return nimble_midi_api.stop(ctx->midi_child);
+    } else if (profile == BT_PROFILE_HID_HOST) {
+        return ble_hid_host_disconnect();
     }
     return ERROR_NOT_SUPPORTED;
 }
@@ -1090,16 +1094,6 @@ static error_t api_get_device_name(struct Device* device, char* buf, size_t buf_
     return ERROR_NONE;
 }
 
-static void api_set_hid_host_active(struct Device* device, bool active) {
-    BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (ctx) ctx->hid_host_active.store(active);
-}
-
-static void api_fire_event(struct Device* device, struct BtEvent event) {
-    BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (ctx) ble_publish_event(device, event);
-}
-
 // ---- BluetoothApi struct ----
 
 const BluetoothApi nimble_bluetooth_api = {
@@ -1117,8 +1111,6 @@ const BluetoothApi nimble_bluetooth_api = {
     .event_unsubscribe      = api_event_unsubscribe,
     .set_device_name        = api_set_device_name,
     .get_device_name        = api_get_device_name,
-    .set_hid_host_active    = api_set_hid_host_active,
-    .fire_event             = api_fire_event,
 };
 
 // ---- Driver definitions ----
@@ -1206,7 +1198,7 @@ static error_t esp32_ble_start_device(struct Device* device) {
     create_child_device(device, "ble_midi",       &esp32_ble_midi_driver,       ctx->midi_child);
     create_child_device(device, "ble_hid_device", &esp32_ble_hid_device_driver, ctx->hid_device_child);
 
-    return ERROR_NONE;
+    return ble_hid_host_init(device);
 }
 
 static error_t esp32_ble_stop_device(struct Device* device) {
@@ -1216,6 +1208,7 @@ static error_t esp32_ble_stop_device(struct Device* device) {
     // Destroy child devices before stopping the radio and freeing the context.
     // device_stop() on each child will invoke stop_device (for serial/midi/hid)
     // which frees their driver data.
+    ble_hid_host_deinit();
     destroy_child_device(ctx->hid_device_child);
     destroy_child_device(ctx->midi_child);
     destroy_child_device(ctx->serial_child);

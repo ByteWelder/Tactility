@@ -46,7 +46,7 @@ struct BleCtx {
     // Radio / scan state (atomic — read from multiple tasks)
     std::atomic<BtRadioState> radio_state;
     std::atomic<bool>         scan_active;
-    // Set by Tactility HID host to prevent simultaneous central connection during name resolution
+    // Set by the HID host while connecting or connected, to prevent a simultaneous central connection during name resolution
     std::atomic<bool>         hid_host_active;
 
     // Event subscriptions (guarded by subscriptionsMutex)

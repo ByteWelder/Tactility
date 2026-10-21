@@ -1,8 +1,6 @@
 #include <Tactility/lvgl/SystemMenu.h>
 
 #include <Tactility/TactilityPrivate.h>
-#include <Tactility/bluetooth/Bluetooth.h>
-#include <Tactility/bluetooth/BluetoothSettings.h>
 #include <Tactility/settings/RadioSettings.h>
 
 #include <app/manager.h>
@@ -10,6 +8,7 @@
 
 #include <location/location.h>
 
+#include <bluetooth/bluetooth_settings.h>
 #include <wifi/wifi_settings.h>
 
 #include <lvgl/devices/indev.h>
@@ -57,11 +56,7 @@ static bool hasWifi() {
 }
 
 static bool hasBluetooth() {
-#if defined(CONFIG_BT_NIMBLE_ENABLED)
     return device_exists_of_type(&BLUETOOTH_TYPE);
-#else
-    return false;
-#endif
 }
 
 /** Mesh can be toggled once it was configured: a backend is selected and the region is set */
@@ -111,14 +106,12 @@ static void setLocationEnabled(void* context) {
     }
 }
 
-#if defined(CONFIG_BT_NIMBLE_ENABLED)
-
 static bool isBluetoothEnabled() {
     Device* device = nullptr;
     if (device_get_first_by_type(&BLUETOOTH_TYPE, &device) != ERROR_NONE) {
         return false;
     }
-    bool enabled = bluetooth::isRadioOnOrPending(device);
+    bool enabled = bluetooth_is_radio_on_or_pending(device);
     device_put(device);
     return enabled;
 }
@@ -129,18 +122,12 @@ static void setBluetoothEnabled(void* context) {
         return;
     }
     const bool enabled = fromContext(context);
-    bluetooth::settings::setEnable(enabled);
-    if (enabled != bluetooth::isRadioOnOrPending(device)) {
-        if (enabled) {
-            bluetooth::start(device);
-        } else {
-            bluetooth::stop(device);
-        }
+    bluetooth_settings_set_enable(enabled);
+    if (enabled != bluetooth_is_radio_on_or_pending(device)) {
+        bluetooth_set_radio_enabled(device, enabled);
     }
     device_put(device);
 }
-
-#endif
 
 
 static bool isMeshEnabled() {
@@ -276,12 +263,10 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     }
     static constexpr ToggleOption location_option = { LVGL_ICON_SHARED_LOCATION_ON, LVGL_ICON_SHARED_LOCATION_OFF, isLocationEnabled, setLocationEnabled };
     createOption(grid, &location_option);
-#if defined(CONFIG_BT_NIMBLE_ENABLED)
     static constexpr ToggleOption bluetooth_option = { LVGL_ICON_SHARED_BLUETOOTH, LVGL_ICON_SHARED_BLUETOOTH_DISABLED, isBluetoothEnabled, setBluetoothEnabled };
     if (hasBluetooth()) {
         createOption(grid, &bluetooth_option);
     }
-#endif
     // There is no "off" variant of this icon: the toggle's checked state shows whether mesh is on
     static constexpr ToggleOption mesh_option = { LVGL_ICON_SHARED_HUB, LVGL_ICON_SHARED_HUB, isMeshEnabled, setMeshEnabled };
     if (hasMesh()) {

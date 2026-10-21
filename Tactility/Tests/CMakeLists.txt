@@ -82,6 +82,7 @@ target_link_libraries(TactilityTests PRIVATE
     gps-generic-module
     gps-meshtastic-module
     service-module
+    bluetooth-module
     wifi-module
     lv_screenshot
     minitar

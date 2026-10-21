@@ -2,9 +2,10 @@
 
 #include <Tactility/app/btmanage/BtManagePrivate.h>
 #include <Tactility/app/btmanage/View.h>
-#include <Tactility/bluetooth/BluetoothSettings.h>
-#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/MainDispatcher.h>
+
+#include <bluetooth/bluetooth_service.h>
+#include <bluetooth/bluetooth_settings.h>
 
 #include <app/event.h>
 #include <app/location.h>
@@ -25,28 +26,33 @@ constexpr auto* TAG = "BtManage";
 
 extern const ::AppManifest manifest;
 
+static BtRadioState getRadioState(Device* dev) {
+    BtRadioState state = BT_RADIO_STATE_OFF;
+    if (dev != nullptr) {
+        bluetooth_get_radio_state(dev, &state);
+    }
+    return state;
+}
+
 static void onBtToggled(void* /*context*/, bool requestOn) {
-#if defined(CONFIG_BT_NIMBLE_ENABLED)
     // Dispatched, so file IO doesn't block the UI
     getMainDispatcher().dispatch([requestOn] {
-        bluetooth::settings::setEnable(requestOn);
+        bluetooth_settings_set_enable(requestOn);
     });
     Device* dev;
     if (device_get_first_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
-        bool radio_on = bluetooth::isRadioOnOrPending(dev);
+        bool radio_on = bluetooth_is_radio_on_or_pending(dev);
         if (requestOn && !radio_on) {
             LOG_I(TAG, "Turning on");
-            bluetooth::start(dev);
+            bluetooth_set_radio_enabled(dev, true);
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
-            bluetooth::stop(dev);
+            bluetooth_set_radio_enabled(dev, false);
         }
         device_put(dev);
     } else {
         LOG_W(TAG, "Toggle: No bluetooth device found");
     }
-
-#endif
 }
 
 static void onScanToggled(void* /*context*/, bool enabled) {
@@ -65,22 +71,22 @@ static void onScanToggled(void* /*context*/, bool enabled) {
     device_put(dev);
 }
 
-static void onConnectPeer(const std::array<uint8_t, 6>& addr, int profileId) {
-    bluetooth::connect(addr, profileId);
+static void onConnectPeer(const BtAddr addr, BtProfileId profile) {
+    bluetooth_service_connect(addr, profile);
 }
 
-static void onDisconnectPeer(const std::array<uint8_t, 6>& addr, int profileId) {
-    bluetooth::disconnect(addr, profileId);
+static void onDisconnectPeer(const BtAddr addr, BtProfileId profile) {
+    bluetooth_service_disconnect(addr, profile);
 }
 
-static void onPairPeer(void* /*context*/, const std::array<uint8_t, 6>& addr) {
+static void onPairPeer(void* /*context*/, const BtAddr addr) {
     // Clicking an unrecognised scan result initiates a HID host connection.
     // Bond exchange happens automatically during the first connection.
-    bluetooth::hidHostConnect(addr);
+    bluetooth_service_connect(addr, BT_PROFILE_HID_HOST);
 }
 
-static void onForgetPeer(const std::array<uint8_t, 6>& addr) {
-    bluetooth::unpair(addr);
+static void onForgetPeer(const BtAddr addr) {
+    bluetooth_service_unpair(addr);
 }
 
 void requestViewUpdate(Context* ctx) {
@@ -98,8 +104,8 @@ void requestViewUpdate(Context* ctx) {
 }
 
 void onBtEvent(Context* ctx, const BtEvent& event) {
-    auto radio_state = bluetooth::getRadioState();
-    LOG_I(TAG, "Update with state %s", bluetooth::radioStateToString(radio_state));
+    auto radio_state = getRadioState(ctx->btDevice);
+    LOG_I(TAG, "Update with state %d", static_cast<int>(radio_state));
     ctx->state.setRadioState(radio_state);
     switch (event.type) {
         case BT_EVENT_SCAN_STARTED:
@@ -171,9 +177,9 @@ int32_t appMain(int argc, char* argv[]) {
     };
 
     // Initialise state before subscribing to avoid incoming events racing with it.
-    ctx.state.setRadioState(bluetooth::getRadioState());
     Device* dev = nullptr;
     device_get_first_by_type(&BLUETOOTH_TYPE, &dev);
+    ctx.state.setRadioState(getRadioState(dev));
 
     ctx.state.setScanning(dev ? bluetooth_is_scanning(dev) : false);
     ctx.state.updateScanResults();
@@ -186,7 +192,7 @@ int32_t appMain(int argc, char* argv[]) {
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     // dev is started for the process lifetime once ble0 is enabled in the devicetree -
-    // subscribe once here rather than resubscribing on every bluetooth::start()/stop() toggle.
+    // subscribe once here rather than resubscribing on every radio toggle.
     if (dev != nullptr) {
         if (bluetooth_event_subscribe(dev, &ctx.btEventSub, &event_group) == ERROR_NONE) {
             ctx.btDevice = dev;
@@ -197,10 +203,10 @@ int32_t appMain(int argc, char* argv[]) {
 
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
-    auto radio_state = bluetooth::getRadioState();
-    bool can_scan = radio_state == bluetooth::RadioState::On;
-    LOG_I(TAG, "Radio: %s, Scanning: %d, Can scan: %d",
-        bluetooth::radioStateToString(radio_state),
+    auto radio_state = getRadioState(dev);
+    bool can_scan = radio_state == BT_RADIO_STATE_ON;
+    LOG_I(TAG, "Radio: %d, Scanning: %d, Can scan: %d",
+        static_cast<int>(radio_state),
         (int)(dev ? bluetooth_is_scanning(dev) : false),
         (int)can_scan);
     if (can_scan && dev && !bluetooth_is_scanning(dev)) {

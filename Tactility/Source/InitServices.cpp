@@ -12,6 +12,7 @@
 #include <location/module.h>
 #include <app_hub/module.h>
 #include <development/module.h>
+#include <bluetooth/module.h>
 #include <wifi/module.h>
 #include <mesh/module.h>
 #include <mesh_meshcore/module.h>
@@ -45,6 +46,7 @@ void registerAndStartServices() {
     if (device_exists_of_type(&AUDIO_STREAM_TYPE)) {
         addService(service::audio::manifest);
     }
+    check(module_ensure_started(&bluetooth_module) == ERROR_NONE);
     check(module_ensure_started(&wifi_module) == ERROR_NONE);
     location_configure_certificate(reinterpret_cast<const char*>(asset_certificates_GTS_Root_R4_pem));
     app_hub_configure_certificate(reinterpret_cast<const char*>(asset_certificates_GTS_Root_R4_pem));

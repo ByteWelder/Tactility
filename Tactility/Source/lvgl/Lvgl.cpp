@@ -9,7 +9,6 @@
 #include <Tactility/CpuAffinity.h>
 #include <generated_assets.h>
 #include <Tactility/TactilityConfig.h>
-#include <Tactility/lvgl/KeyboardDeviceListener.h>
 #include <Tactility/lvgl/SystemBars.h>
 #include <Tactility/lvgl/SystemMenu.h>
 #include <Tactility/lvgl/TrackballInit.h>
@@ -186,7 +185,6 @@ static void onLvglStarted() {
 #endif
 
     lvgl::startUsbHidInput();
-    lvgl::startKeyboardDeviceListener();
     lvgl::initTrackball();
 
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
@@ -197,7 +195,6 @@ static void onLvglStarted() {
 }
 
 static void onLvglStopped() {
-    lvgl::stopKeyboardDeviceListener();
     lvgl::stopUsbHidInput();
 
     if (device_exists_of_type(&IMU_TYPE)) {

@@ -459,7 +459,7 @@ extern "C" {
 // region Dynamic KEYBOARD_TYPE device
 //
 // While a physical USB keyboard is connected, a KEYBOARD_TYPE child device is constructed so the
-// rest of the system (lvgl_hardware_keyboard_is_available(), Tactility's KeyboardDeviceListener)
+// rest of the system (lvgl_hardware_keyboard_is_available(), lvgl-module's device listener)
 // sees a real hardware keyboard through the same generic device model as any other keyboard. Real
 // key events are queued here and drained by read_key(), same as every other keyboard driver in
 // the tree (tab5, tdeck, sdl) - none of them push via keyboard_emit_key() either, since

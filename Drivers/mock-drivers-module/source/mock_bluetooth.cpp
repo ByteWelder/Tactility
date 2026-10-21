@@ -43,7 +43,6 @@ struct MockBluetoothCtx {
     Mutex mutex {};
     BtRadioState radioState = BT_RADIO_STATE_OFF;
     bool scanning = false;
-    bool hidHostActive = false;
     char deviceName[BLE_DEVICE_NAME_MAX + 1] = {};
     MockPeerState peers[MOCK_PEER_COUNT];
 
@@ -382,19 +381,6 @@ error_t apiGetDeviceName(Device* device, char* buf, size_t buf_len) {
     return ERROR_NONE;
 }
 
-void apiSetHidHostActive(Device* device, bool active) {
-    auto* ctx = GET_CTX(device);
-    if (ctx == nullptr) return;
-    mutex_lock(&ctx->mutex);
-    ctx->hidHostActive = active;
-    mutex_unlock(&ctx->mutex);
-}
-
-void apiFireEvent(Device* device, BtEvent event) {
-    auto* ctx = GET_CTX(device);
-    if (ctx != nullptr) fireEvent(ctx, event);
-}
-
 const BluetoothApi mock_bluetooth_api = {
     .get_radio_state = apiGetRadioState,
     .set_radio_enabled = apiSetRadioEnabled,
@@ -410,8 +396,6 @@ const BluetoothApi mock_bluetooth_api = {
     .event_unsubscribe = apiEventUnsubscribe,
     .set_device_name = apiSetDeviceName,
     .get_device_name = apiGetDeviceName,
-    .set_hid_host_active = apiSetHidHostActive,
-    .fire_event = apiFireEvent,
 };
 
 // ---- Driver lifecycle ----
