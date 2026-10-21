@@ -87,9 +87,7 @@ namespace app {
     namespace wificonnect { extern const ::AppManifest manifest; }
     namespace wifimanage { extern const ::AppManifest manifest; }
 
-    namespace webserversettings { extern const ::AppManifest manifest; }
 #ifdef ESP_PLATFORM
-    namespace apwebserver { extern const ::AppManifest manifest; }
     namespace camera { extern const ::AppManifest manifest; }
 #if CONFIG_TT_TDECK_WORKAROUND == 1
     namespace keyboardsettings { extern const ::AppManifest manifest; } // T-Deck only for now
@@ -151,9 +149,7 @@ static void registerInternalApps() {
 
     app_manager_add(&app::development::manifest);
     app_manager_add(&app::developmentprompt::manifest);
-    app_manager_add(&app::webserversettings::manifest);
 #ifdef ESP_PLATFORM
-    app_manager_add(&app::apwebserver::manifest);
     if (device_exists_of_type(&CAMERA_TYPE)) {
         app_manager_add(&app::camera::manifest);
     }

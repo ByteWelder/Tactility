@@ -7,7 +7,6 @@
 
 ## Higher Priority
 
-- Remove tactility.apwebserver from autoStartAppId - make sure all devices use the 1 button control input
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails

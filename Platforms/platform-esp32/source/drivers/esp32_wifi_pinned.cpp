@@ -256,6 +256,36 @@ error_t api_station_disconnect(Device* device) {
     return err != ERROR_NONE ? err : result;
 }
 
+error_t api_access_point_start(Device* device, const WifiAccessPointConfig* config) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
+
+    error_t result = ERROR_NONE;
+    Device* child = ctx->child;
+    error_t err = run_on_pinned_thread(ctx, [child, config, &result]() {
+        result = wifi_access_point_start(child, config);
+    });
+    return err != ERROR_NONE ? err : result;
+}
+
+error_t api_access_point_stop(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
+
+    error_t result = ERROR_NONE;
+    Device* child = ctx->child;
+    error_t err = run_on_pinned_thread(ctx, [child, &result]() {
+        result = wifi_access_point_stop(child);
+    });
+    return err != ERROR_NONE ? err : result;
+}
+
+error_t api_access_point_get_ipv4_address(Device* device, char* ipv4) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
+    return wifi_access_point_get_ipv4_address(ctx->child, ipv4);
+}
+
 const WifiApi esp32_wifi_pinned_api = {
     .set_radio_on = api_set_radio_on,
     .set_radio_off = api_set_radio_off,
@@ -272,7 +302,10 @@ const WifiApi esp32_wifi_pinned_api = {
     .station_get_rssi = api_station_get_rssi,
     .event_subscribe = api_event_subscribe,
     .event_unsubscribe = api_event_unsubscribe,
-    .get_firmware_ops = nullptr
+    .get_firmware_ops = nullptr,
+    .access_point_start = api_access_point_start,
+    .access_point_stop = api_access_point_stop,
+    .access_point_get_ipv4_address = api_access_point_get_ipv4_address
 };
 
 // ---- Driver lifecycle ----
