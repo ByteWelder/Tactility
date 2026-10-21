@@ -11,7 +11,7 @@ extern "C" {
 
 /**
  * Shared ownership over the single ESP32 WiFi radio's esp_wifi_init()/esp_wifi_start() lifecycle.
- * Station mode (esp32_wifi driver), ESP-NOW and the WebServer's Access Point mode need the radio and
+ * Station mode and the access point mode (esp32_wifi driver) and ESP-NOW need the radio and
  * must not blindly call esp_wifi_init()/esp_wifi_deinit() themselves - doing so unconditionally
  * breaks whichever owner got there second (failing outright with ESP_ERR_INVALID_STATE, or having
  * its radio torn out from under it when the other side releases). Callers acquire the mode bit they

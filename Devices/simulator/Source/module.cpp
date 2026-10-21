@@ -1,4 +1,9 @@
+#include "SimulatorProfile.h"
 #include "drivers/sdl_display.h"
+
+#include <app/manager.h>
+
+#include <lvgl/theme.h>
 
 #include <tactility/device.h>
 #include <tactility/device_listener.h>
@@ -7,6 +12,7 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 
+#include <algorithm>
 #include <cstring>
 
 constexpr auto* TAG = "Simulator";
@@ -29,7 +35,7 @@ static Driver* const simulator_drivers[] = {
 // These devices have no real bus to attach to (SDL has no notion of one), but every non-root
 // device is still expected to have a parent (see Device::parent) - they're parented to root once
 // it's available below.
-static const SdlDisplayConfig sdl_display_config = { 640, 320 };
+static SdlDisplayConfig sdl_display_config = {};
 static Device sdl_display_device {};
 static Device sdl_pointer_device {};
 static Device sdl_keyboard_device {};
@@ -81,20 +87,40 @@ static void on_root_started(Device* device, DeviceEvent event, void* context) {
         return;
     }
 
+    const auto& profile = simulator::getProfile(simulator::getActiveProfileIndex());
+    const uint16_t short_side = std::min(profile.width, profile.height);
+    const uint16_t long_side = std::max(profile.width, profile.height);
+    sdl_display_config = {
+        profile.portrait ? short_side : long_side,
+        profile.portrait ? long_side : short_side,
+        profile.mono
+    };
+
     construct_add_start(&sdl_display_device, device, "display0", &sdl_display_config, "tactility,sdl-display");
-    construct_add_start(&sdl_pointer_device, device, "pointer0", nullptr, "tactility,sdl-pointer");
-    construct_add_start(&sdl_keyboard_device, device, "keyboard0", nullptr, "tactility,sdl-keyboard");
+    if (profile.pointer) {
+        construct_add_start(&sdl_pointer_device, device, "pointer0", nullptr, "tactility,sdl-pointer");
+    }
+    if (profile.keyboard) {
+        construct_add_start(&sdl_keyboard_device, device, "keyboard0", nullptr, "tactility,sdl-keyboard");
+    }
 }
 
 extern "C" {
 
 static error_t start() {
+    simulator::initActiveProfile();
+    lvgl_theme_set_default_compact(simulator::getProfile(simulator::getActiveProfileIndex()).compact);
+    error_t error = app_manager_add(&simulator::profileAppManifest);
+    if (error != ERROR_NONE) {
+        return error;
+    }
     device_listener_add(on_root_started, nullptr);
     return ERROR_NONE;
 }
 
 static error_t stop() {
     device_listener_remove(on_root_started, nullptr);
+    app_manager_remove(simulator::profileAppManifest.id);
     return ERROR_NONE;
 }
 

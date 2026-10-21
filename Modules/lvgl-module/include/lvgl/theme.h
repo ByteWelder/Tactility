@@ -37,6 +37,13 @@ void lvgl_theme_get_settings(LvglThemeSettings* settings);
 void lvgl_theme_get_default_settings(LvglThemeSettings* settings);
 
 /**
+ * @brief Overrides the compile-time default UI density, for devices that only know it at runtime.
+ * Call before the theme settings are read.
+ * @param[in] is_compact true for the compact density
+ */
+void lvgl_theme_set_default_compact(bool is_compact);
+
+/**
  * @brief Checks whether the active theme is the monochrome theme: on monochrome and greyscale displays, or when selected in the settings.
  * @return true when the monochrome theme is active
  */

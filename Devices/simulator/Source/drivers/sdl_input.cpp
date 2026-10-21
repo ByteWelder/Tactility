@@ -6,6 +6,7 @@
 
 #include <SDL2/SDL.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <mutex>
 
@@ -17,7 +18,10 @@ constexpr size_t KEY_QUEUE_CAPACITY = 32;
 // sdl_input_pop_key()/sdl_input_has_queued_key() on the lvgl task.
 std::mutex state_mutex;
 
+// The position in window coordinates, and the size of the window then
 SdlPointerState pointer_state = { 0, 0, false };
+int window_width = 0;
+int window_height = 0;
 
 uint32_t key_queue[KEY_QUEUE_CAPACITY];
 size_t key_queue_head = 0;
@@ -42,19 +46,33 @@ void push_key(uint32_t key) {
 // arrive separately via SDL_TEXTINPUT.
 // The window can be freely resized (see sdl_display.cpp's SDL_WINDOW_RESIZABLE/
 // SDL_RenderSetLogicalSize()), so raw SDL mouse coordinates are in window-pixel space, not the
-// fixed logical resolution LVGL renders at. SDL_RenderWindowToLogical() is the renderer's own
-// inverse of that scaling, accounting for both the scale factor and any letterbox offset.
+// resolution LVGL renders at. The view also changes shape when the display rotates. The raw
+// position is kept with the window size, and sdl_input_get_pointer_state() maps it onto the
+// current view, so a rotation takes effect right away even when the mouse doesn't move.
+// LVGL rotates pointer positions from the display's native orientation to the rotated view itself,
+// so the position in the view is turned back to a native one at the end.
+// The view is scaled to fit the window and centered, like SDL_RenderSetLogicalSize() does.
 void set_pointer_position(int32_t window_x, int32_t window_y) {
+    pointer_state.x = window_x;
+    pointer_state.y = window_y;
     SDL_Renderer* renderer = sdl_display_get_renderer();
-    if (renderer == nullptr) {
-        pointer_state.x = window_x;
-        pointer_state.y = window_y;
+    SDL_Window* window = renderer != nullptr ? SDL_RenderGetWindow(renderer) : nullptr;
+    if (window != nullptr) {
+        SDL_GetWindowSize(window, &window_width, &window_height);
+    }
+}
+
+void map_to_view(int32_t* x, int32_t* y) {
+    int view_width, view_height;
+    if (window_width <= 0 || window_height <= 0 || !sdl_display_get_view_size(&view_width, &view_height) || view_width <= 0 || view_height <= 0) {
         return;
     }
-    float logical_x, logical_y;
-    SDL_RenderWindowToLogical(renderer, window_x, window_y, &logical_x, &logical_y);
-    pointer_state.x = static_cast<int32_t>(logical_x);
-    pointer_state.y = static_cast<int32_t>(logical_y);
+    const float scale = std::min(static_cast<float>(window_width) / view_width, static_cast<float>(window_height) / view_height);
+    const float offset_x = (window_width - view_width * scale) / 2.0f;
+    const float offset_y = (window_height - view_height * scale) / 2.0f;
+    *x = std::clamp(static_cast<int32_t>((*x - offset_x) / scale), 0, view_width - 1);
+    *y = std::clamp(static_cast<int32_t>((*y - offset_y) / scale), 0, view_height - 1);
+    sdl_display_view_to_native(x, y);
 }
 
 uint32_t keycode_to_key(SDL_Keycode sdl_key, bool shift) {
@@ -126,6 +144,8 @@ void sdl_input_pump() {
                     // appear - re-present the existing frame at the new scale immediately, rather
                     // than leaving stale-looking content on screen until the next LVGL-driven flush.
                     if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                        window_width = event.window.data1;
+                        window_height = event.window.data2;
                         sdl_display_present_now();
                     }
                     break;
@@ -146,6 +166,7 @@ void sdl_input_pump() {
 void sdl_input_get_pointer_state(SdlPointerState* out_state) {
     std::lock_guard<std::mutex> lock(state_mutex);
     *out_state = pointer_state;
+    map_to_view(&out_state->x, &out_state->y);
 }
 
 bool sdl_input_pop_key(uint32_t* out_key) {

@@ -44,6 +44,12 @@ error_t package_manifest_parse_v2(const std::map<std::string, std::string>& prop
  * manifest's app_manifest_count */
 error_t package_manifest_parse_v3(const std::map<std::string, std::string>& properties, struct PackageManifest& out_package, struct AppManifestBinding* out_bindings, size_t bindings_capacity);
 
+/** Collects the binary stems of the V3 "module.N.binary" entries (0-indexed, contiguous) into @a out_binaries.
+ * @retval ERROR_NONE on success
+ * @retval ERROR_INVALID_ARGUMENT a binary name is invalid, or the entries have a gap
+ * @retval ERROR_BUFFER_OVERFLOW more than PACKAGE_MANIFEST_MAX_APP_MANIFESTS modules are declared */
+error_t package_manifest_parse_module_binaries_v3(const std::map<std::string, std::string>& properties, std::vector<std::string>& out_binaries);
+
 bool app_package_manifest_validate_string(const std::string& value, bool (*is_valid_char)(char));
 
 /** Convenience wrapper around app_package_manifest_parse(): parses @a path once to learn
@@ -54,3 +60,10 @@ bool app_package_manifest_validate_string(const std::string& value, bool (*is_va
  * @retval ERROR_INVALID_ARGUMENT the file isn't a valid manifest, or a field's value doesn't fit
  * its fixed-size buffer */
 error_t app_package_manifest_parse_into(const char* path, struct PackageManifest& out_package, std::vector<struct AppManifestBinding, tt::OptExternalAllocator<struct AppManifestBinding>>& out_bindings);
+
+/** Reads the "module.N.binary" entries of the manifest at @a path into @a out_binaries. Manifest
+ * versions without modules yield an empty list.
+ * @retval ERROR_NONE on success
+ * @retval ERROR_NOT_FOUND the file doesn't exist / couldn't be opened
+ * @retval ERROR_INVALID_ARGUMENT the file isn't a valid manifest, or a module entry is invalid */
+error_t app_package_manifest_parse_module_binaries(const char* path, std::vector<std::string>& out_binaries);

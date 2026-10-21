@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 file(GLOB_RECURSE SOURCES "source/*.c**")
 
-set(PRIV_REQUIRES_LIST "")
+set(PRIV_REQUIRES_LIST TactilityFreeRtos)
 if ("${IDF_TARGET}" STREQUAL "esp32s3" OR "${IDF_TARGET}" STREQUAL "esp32p4")
     list(APPEND PRIV_REQUIRES_LIST esp_tinyusb)
 endif ()

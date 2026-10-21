@@ -8,6 +8,8 @@ import json
 import shutil
 import zipfile
 
+from new_project import create_new_project_zip
+
 VERBOSE = False
 TOOLS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "TactilitySDK", "Tools")
 
@@ -18,6 +20,7 @@ class SdkIndex:
     gitCommit: str
     platforms: dict
     tools: dict
+    newProject: dict
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -69,7 +72,8 @@ def main(in_path: str, out_path: str, version: str):
         created=datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S'),
         gitCommit=get_git_commit_hash(),
         platforms={},
-        tools=create_tools_bundle(out_path)
+        tools=create_tools_bundle(out_path),
+        newProject=create_new_project_zip(out_path)
     )
     for artifact_directory in artifact_directories:
         if VERBOSE:

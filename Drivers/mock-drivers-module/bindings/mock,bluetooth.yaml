@@ -1,0 +1,8 @@
+description: Mock Bluetooth driver with a fixed list of nearby peers
+
+compatible: "mock,bluetooth"
+
+properties:
+  _unused:
+    type: int
+    default: 0

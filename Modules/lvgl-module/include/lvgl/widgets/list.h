@@ -31,6 +31,14 @@ lv_obj_t* lvgl_list_add_text(lv_obj_t* list, const char* text);
  */
 lv_obj_t* lvgl_list_add_button(lv_obj_t* list, const void* icon, const char* text);
 
+/**
+ * @brief Removes the divider below the last item of a list.
+ * Every item has a divider below it. The last one lies on the border of the card or the container that holds the list.
+ * Call this after the last item was added.
+ * @param[in] list the list, or the container that holds the list items
+ */
+void lvgl_list_hide_last_divider(lv_obj_t* list);
+
 #ifdef __cplusplus
 }
 #endif

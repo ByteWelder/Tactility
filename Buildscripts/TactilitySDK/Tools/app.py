@@ -46,7 +46,7 @@ def print_help():
     print("    Parameters:")
     print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("")
-    print("  install                        Install the application")
+    print("  install [app file]             Install the application, or the given .app file")
     print("    Parameters:")
     print("      (optional) --host, -h [input]      Defaults to the host of 'tt host'")
     print("")
@@ -227,6 +227,8 @@ def parse_command_line(argv):
                 args[canonical] = "true"
         elif action is None:
             action = token
+        elif action == "install" and "app-file" not in args:
+            args["app-file"] = token
         else:
             exit_with_error(f"Unexpected argument: {token}")
         index += 1
@@ -295,7 +297,9 @@ def get_package_id(manifest):
 # The id of the app "run"/"install" operate on. A v2 manifest has exactly one; a v3 manifest may
 # declare several, so this picks the first ("app.0.id") as the one a single-app dev workflow means.
 def get_primary_app_id(manifest):
-    return manifest["app.0.id"] if is_v3_manifest(manifest) else manifest["app.id"]
+    if is_v3_manifest(manifest):
+        return manifest.get("app.0.id")
+    return manifest["app.id"]
 
 def validate_manifest(manifest):
     for key in ("manifest.version", "target.sdk", "target.platforms"):
@@ -307,8 +311,8 @@ def validate_manifest(manifest):
         for key in ("id", "version.name", "version.code"):
             if key not in manifest:
                 exit_with_error(f"Invalid manifest format: {key} not found")
-        if "app.0.id" not in manifest:
-            exit_with_error("Invalid manifest format: app.0.id not found")
+        if "app.0.id" not in manifest and "module.0.binary" not in manifest:
+            exit_with_error("Invalid manifest format: app.0.id or module.0.binary not found")
         index = 0
         while f"app.{index}.id" in manifest:
             for suffix in ("name", "binary"):
@@ -331,12 +335,19 @@ def validate_manifest(manifest):
 # ends the list, mirroring package_manifest_parse_v3()) does each get its own subdirectory,
 # named after its own "app.N.binary" (the filename it installs as - see
 # package_manifest_parse_v3()'s doc).
+#
+# The "module.N.binary" entries of a v3 manifest are binaries as well and follow the same rules.
 def get_binary_dirs(manifest):
     if is_v3_manifest(manifest):
         binaries = []
         index = 0
         while f"app.{index}.id" in manifest:
             binary = manifest[f"app.{index}.binary"]
+            binaries.append((binary, binary))
+            index += 1
+        index = 0
+        while f"module.{index}.binary" in manifest:
+            binary = manifest[f"module.{index}.binary"]
             binaries.append((binary, binary))
             index += 1
         if len(binaries) == 1:
@@ -726,22 +737,47 @@ def get_host(arguments):
 def run_action(manifest, arguments):
     host = get_host(arguments)
     app_id = get_primary_app_id(manifest)
+    if app_id is None:
+        exit_with_error("This package has no app to run")
     print_status_busy("Running")
     device = load_device_client()
     device.run(host, device.DEFAULT_PORT, app_id)
     print_status_success("Running")
 
-def install_action(manifest, arguments):
+def install_package(host, package_path):
+    print_status_busy("Installing")
+    device = load_device_client()
+    device.install(host, device.DEFAULT_PORT, package_path)
+    print_status_success("Installing")
+
+def install_with_manifest_action(manifest, arguments):
     host = get_host(arguments)
     package_path = package_name(manifest)
     if not os.path.isfile(package_path):
         print_status_error(f"Package not found: {package_path} (run 'build' first)")
         return False
-    print_status_busy("Installing")
-    device = load_device_client()
-    device.install(host, device.DEFAULT_PORT, package_path)
-    print_status_success("Installing")
+    install_package(host, package_path)
     return True
+
+def install_with_app_file_action(app_file, arguments):
+    host = get_host(arguments)
+    if not os.path.isfile(app_file):
+        print_status_error(f"App file not found: {app_file}")
+        return False
+    install_package(host, app_file)
+    return True
+
+def is_app_file(path):
+    return path.endswith(".app")
+
+def install_action(manifest, arguments):
+    app_file = arguments.get("app-file")
+    if app_file is None:
+        return install_with_manifest_action(manifest, arguments)
+    if not is_app_file(app_file):
+        print_status_error(f"Not an app file: {app_file}")
+        return False
+    return install_with_app_file_action(app_file, arguments)
 
 def uninstall_action(manifest, arguments):
     host = get_host(arguments)
@@ -778,6 +814,12 @@ if __name__ == "__main__":
     verbose = parsed_command.arguments.has("verbose")
     use_ccache = not parsed_command.arguments.has("no-ccache")
 
+    # Installing an app file doesn't need an app project
+    if parsed_command.arguments.has("app-file"):
+        if not install_action(None, parsed_command.arguments):
+            sys.exit(1)
+        sys.exit()
+
     app_path = parsed_command.arguments.get("path")
     if app_path is not None:
         if not os.path.isdir(app_path) or not os.path.isfile(os.path.join(app_path, "manifest.properties")):
@@ -807,7 +849,7 @@ if __name__ == "__main__":
         uninstall_action(manifest, parsed_command.arguments)
     elif action_arg == "bir" or action_arg == "brrr":
         if build_action(manifest, parsed_command.arguments):
-            if install_action(manifest, parsed_command.arguments):
+            if install_action(manifest, parsed_command.arguments) and get_primary_app_id(manifest) is not None:
                 run_action(manifest, parsed_command.arguments)
     else:
         print_help()

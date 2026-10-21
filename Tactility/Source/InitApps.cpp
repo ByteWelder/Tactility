@@ -1,10 +1,12 @@
+#include "tactility/drivers/bluetooth.h"
+
+
 #include <Tactility/TactilityPrivate.h>
 
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
 #endif
 
-#include <Tactility/MountPoints.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/file/File.h>
 #include <Tactility/service/audio/Audio.h>
@@ -78,15 +80,14 @@ namespace app {
 #endif
     namespace timezone { extern const ::AppManifest manifest; }
     namespace usbsettings { extern const ::AppManifest manifest; }
+    namespace kernelsettings { extern const ::AppManifest manifest; }
     namespace btmanage { extern const ::AppManifest manifest; }
     namespace btpeersettings { extern const ::AppManifest manifest; }
     namespace wifiapsettings { extern const ::AppManifest manifest; }
     namespace wificonnect { extern const ::AppManifest manifest; }
     namespace wifimanage { extern const ::AppManifest manifest; }
 
-    namespace webserversettings { extern const ::AppManifest manifest; }
 #ifdef ESP_PLATFORM
-    namespace apwebserver { extern const ::AppManifest manifest; }
     namespace camera { extern const ::AppManifest manifest; }
 #if CONFIG_TT_TDECK_WORKAROUND == 1
     namespace keyboardsettings { extern const ::AppManifest manifest; } // T-Deck only for now
@@ -148,9 +149,7 @@ static void registerInternalApps() {
 
     app_manager_add(&app::development::manifest);
     app_manager_add(&app::developmentprompt::manifest);
-    app_manager_add(&app::webserversettings::manifest);
 #ifdef ESP_PLATFORM
-    app_manager_add(&app::apwebserver::manifest);
     if (device_exists_of_type(&CAMERA_TYPE)) {
         app_manager_add(&app::camera::manifest);
     }
@@ -175,6 +174,8 @@ static void registerInternalApps() {
     app_manager_add(&app::usbsettings::manifest);
 #endif
 
+    app_manager_add(&app::kernelsettings::manifest);
+
 #if TT_FEATURE_SCREENSHOT_ENABLED
     app_manager_add(&app::screenshot::manifest);
 #endif
@@ -198,10 +199,10 @@ static void registerInternalApps() {
         app_manager_add(&app::power::manifest);
     }
 
-#if defined(CONFIG_BT_ENABLED) && CONFIG_BT_ENABLED
-    app_manager_add(&app::btmanage::manifest);
-    app_manager_add(&app::btpeersettings::manifest);
-#endif
+    if (device_exists_of_type(&BLUETOOTH_TYPE)) {
+        app_manager_add(&app::btmanage::manifest);
+        app_manager_add(&app::btpeersettings::manifest);
+    }
 }
 
 // Registers every mounted filesystem's app install directory with app-module (see

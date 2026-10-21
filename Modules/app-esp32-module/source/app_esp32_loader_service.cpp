@@ -7,12 +7,15 @@
 
 
 #include <app/elf_check.h>
+#include "module_refs.h"
+
 #include <app/loader.h>
 #include <app/location.h>
 
 #include <tactility/error.h>
 #include <tactility/check.h>
 #include <tactility/log.h>
+#include <tactility/module.h>
 
 #include <service/manager.h>
 
@@ -33,6 +36,7 @@ namespace {
 struct Esp32AppRuntime {
     esp_elf_t elf {};
     uint8_t* file_data = nullptr;
+    ModuleRefs module_refs;
 };
 
 error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
@@ -151,10 +155,14 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
         return ERROR_RESOURCE;
     }
 
-    if (esp_elf_relocate(&runtime->elf, runtime->file_data) != 0) {
+    module_refs_begin(&runtime->module_refs);
+    const int relocate_result = esp_elf_relocate(&runtime->elf, runtime->file_data);
+    module_refs_end();
+    if (relocate_result != 0) {
         // esp_elf_relocate() already frees elf->pdata/ptext itself on a relocation failure
+        module_refs_release(&runtime->module_refs);
         delete runtime;
-        LOG_E(TAG, "Failed to map elf. Possibly out of memory.");
+        LOG_E(TAG, "Failed to map elf. Common causes: missing symbol or out of memory.");
         return ERROR_RESOURCE;
     }
 
@@ -171,9 +179,29 @@ int32_t api_run(AppRuntime runtime_ptr, uint32_t /*app_instance_id*/, int argc, 
     return esp_elf_request(&runtime->elf, 0, argc, argv);
 }
 
+error_t api_get_module(AppRuntime runtime_ptr, Module** out_module) {
+    auto* runtime = static_cast<Esp32AppRuntime*>(runtime_ptr);
+    if (runtime->elf.entry == nullptr) {
+        return ERROR_NOT_FOUND;
+    }
+
+    // A module's main() returns the Module pointer itself, so it's called through its real return type.
+    // esp_elf_request() would discard that return value.
+    auto* module_main = reinterpret_cast<Module* (*)(int, char**)>(reinterpret_cast<void*>(runtime->elf.entry));
+    Module* module = module_main(0, nullptr);
+    if (module == nullptr) {
+        return ERROR_NOT_FOUND;
+    }
+
+    *out_module = module;
+    return ERROR_NONE;
+}
+
 void api_unload(AppRuntime runtime_ptr) {
     auto* runtime = static_cast<Esp32AppRuntime*>(runtime_ptr);
     esp_elf_deinit(&runtime->elf);
+    // Only after the code is gone, because it could still call into the modules before that
+    module_refs_release(&runtime->module_refs);
     free(runtime->file_data);
     delete runtime;
 }
@@ -192,6 +220,7 @@ AppLoaderApi loader_api = {
     .run = api_run,
     .unload = api_unload,
     .is_executable = api_is_executable,
+    .get_module = api_get_module,
 };
 
 void* create_service(const ServiceManifest*) {

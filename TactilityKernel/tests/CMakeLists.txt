@@ -6,7 +6,7 @@ enable_language(C CXX ASM)
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/source/*.cpp)
 add_executable(TactilityKernelTests EXCLUDE_FROM_ALL ${TEST_SOURCES})
 
-target_include_directories(TactilityKernelTests PRIVATE ${DOCTESTINC})
+target_include_directories(TactilityKernelTests PRIVATE ${DOCTESTINC} ${PROJECT_SOURCE_DIR}/../private)
 
 add_test(NAME TactilityKernelTests COMMAND TactilityKernelTests)
 

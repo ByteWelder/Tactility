@@ -7,19 +7,11 @@
 
 ## Higher Priority
 
-- Move EspNowRadio etc to Platforms/platform-esp32/
+- Move TactilityKernelCpp project as C++ include folder into TactilityKernel. This way, the kernel itself can use the C++ templates internally. And it's a library less.
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails
-- Fix BT: an esp32 device connecting to a peripheral isn't working
-- "update all" functionality for app hub module, including commandline app. add button to app hub toolbar if there are 1 or more apps to update (does "update all").
-- Improve Wi-Fi mock so it actually works with connect/disconnect/scan list. It connects to literally anything from the scan list.
-- Support http/https on posix
 - Use GPS time to set/update the current time: when enabled, at boot, when wifi is not enabled, start the gps device and wait until a lock is acquired, then get the time and sync it. Then stop the GPS device.
-- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project, should be sized based on DPI
-- Cursor is hard-coded, needs size based on DPI
-- Move Bluetooth code from kernel to Modules/bluetooth-module, and have includes in path bluetooth/ then make a bluetooth_command.cpp like wifi_command.cpp
-- Inspect code for memory improvements: replace `std::*` with `tt::std::*`
 - Improve posix support: use user home path and system /tmp folder.
 - NimBLE looses pairing key after reboot
 - Pick different font to improve monochrome screen readability (or change the weight). 
@@ -27,18 +19,22 @@
 - Improve SPI kernel driver (implement read, write, transactions)
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
-- Support direct installation of an `.app` file with `tt app install --app helloworld.app`
 - minitar/untarFile(): "entry->metadata.path" can escape its confined path (e.g. "../something")
 - xl9555 and tca9534 drivers: support `GPIO_FLAG_ACTIVE_LOW` on outputs in software, like tca95xx does.
   Afterwards the raw level reset handling in cst66xx and tca8418 can use ACTIVE_LOW too.
 
 ## Medium Priority
 
+- Try https://github.com/bootdsc/Fastwave-Eink-Driver with CL-32 e-paper.
+- Power Off with e-paper should trigger full refresh before power off.
+- Support hot-plugging SD card (note: might be problematic with shared SPI bus)
+- Inspect code for memory improvements: replace `std::*` with `tt::std::*`
+- Tactility/Source/bluetooth move into bluetooth module, make it work generically for all bluetooth apis
+- DisplayApi: resolution x/y shouldn't be functions but struct values
 - Tactility/Source/app/imageviewer/ImageViewer.cpp: Limit memory used to open an image.
   loadFile() now resizes fileData to the entire file size before displaying the image. start accepts a file path without a size limit, so opening a large image can exhaust memory on an embedded device before LVGL decodes it. Reject files above a supported limit or retain a bounded file-backed decoding path.
 - A device profile selection screen for Simulator: select device profiles such as T-Lora Pager, T-Deck Plus, CL-32, Cardputer and T-Embed which changes the resolution and theming defaults after restarting.
 - A fullscreen tiny keyboard that works with single stroke gestures (similar to Palm OS Graffiti)
-- CL-32 display driver performance
 - Move more window management code from Tactility/ to window-manager
 - Implement signal/raise for terminal apps (for CTRL+C and window resize signals)
 - Build the simulator with `-fno-exceptions` to match ESP32. First make app exit() work without C++ unwinding there:
@@ -52,8 +48,6 @@
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
-- Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
-- Refactor HttpServer into C code and move implementation to http-module
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
@@ -72,25 +66,20 @@
   Make a separate group that is the default group. The keyboard can then use it (or use its own).
   The basic idea is to invert the ownership: now the keyboard group is made the default group, but it's probably more logical to have the default group used by the keyboard.
 - Localize all apps
-- Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Explore LVGL9's FreeRTOS functionality
-- Consider using non_null (either via MS GSL, or custom)
-- Fix system time to not be 1980 (use build year as a minimum). Consider keeping track of the last known time.
+- Fix system time to not be 1980 (use build year january 1st as a minimum).
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Calculator app should show regular text input field on non-touch devices that have a keyboard (Cardputer, T-Lora Pager)
-- Allow for WSAD keys to navigate LVGL (this is extra nice for cardputer, but just handy in general)
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
   This will be useful for devices without a screen, a small screen or a non-touch screen.
 
 # Nice-to-haves
 
-- Considering the lack of callstack debugging for external apps: allow for some debugging to be exposed during a device crash. Apps could report their state (e.g. an integer value) which can be stored during app operation and retrieve after crash. The same can be done for various OS apps and states. We can keep an array of these numbers to keep track of the last X states, to get an idea of what's going on.
 - Audio player app
 - Audio recording app
 - OTA updates
-- If present, use LED to show boot/wifi status
 
 # App Ideas
 

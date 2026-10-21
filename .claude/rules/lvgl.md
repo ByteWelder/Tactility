@@ -9,6 +9,11 @@ Two kernel modules cover LVGL:
 - **`lvgl-window-manager-module`** (`Modules/lvgl-window-manager-module/`, `<lvgl_window_manager/*.h>`) manages a single stacked window per app instance on top of `lvgl-module`. `window_manager_start()`/`window_manager_stop()` create/tear down the root widget (plus optional chrome from a configured `WindowManagerScreenInitFn`); `window_manager_create()`/`window_manager_remove()` push/pop an app's window and (re)populate it via a `WindowCreateWidgetsFn`. Only the topmost window ever has live widgets - burying and resurfacing a window deletes and rebuilds its widget tree rather than hiding/showing it. That rebuild-on-remove path can run `create_widgets` on a *different* app's thread (whichever app's `window_manager_remove()` call caused this window to resurface), so `create_widgets` must only rebuild already-committed state, never decide what happens next - state transitions belong in the app's own `main()` event loop, driven by real `APP_EVENT_RESULT`s.
   Widget pointers an app keeps become dangling once its window is buried (e.g. by a dialog it started). Use `window_manager_create_ext()` with a `destroy_widgets` callback that clears them, and skip widget updates from the app's own thread while they're cleared.
 
+## Lists in cards
+
+Every list item has a divider below it, so the last one lies on the border of the card that holds the list.
+Call `lvgl_list_hide_last_divider()` (`lvgl/widgets/list.h`) on the list, or on the card when the items are its direct children, after the last item was added.
+
 ## No file operations on the LVGL thread
 
 Code that runs on the LVGL thread must not do file operations (including reading or writing settings): `create_widgets`, LVGL event callbacks, timers, and anything under the LVGL lock.

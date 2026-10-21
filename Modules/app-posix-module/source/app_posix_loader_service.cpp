@@ -8,6 +8,7 @@
 
 #include <tactility/error.h>
 #include <tactility/log.h>
+#include <tactility/module.h>
 
 #include <service/manager.h>
 
@@ -189,6 +190,30 @@ int32_t api_run(AppRuntime runtime_ptr, uint32_t /*app_instance_id*/, int argc, 
     return result;
 }
 
+error_t api_get_module(AppRuntime runtime_ptr, Module** out_module) {
+    auto* runtime = static_cast<PosixAppRuntime*>(runtime_ptr);
+
+    dlerror();
+    void* symbol = dlsym(runtime->handle, "main");
+    const char* lookup_error = dlerror();
+    if (symbol == nullptr || lookup_error != nullptr) {
+        LOG_E(TAG, "dlsym(\"main\") failed: %s", lookup_error != nullptr ? lookup_error : "not found");
+        return ERROR_NOT_FOUND;
+    }
+
+    // A module's main() returns the Module pointer itself, so it's called through its real return type
+    auto* module_main = reinterpret_cast<Module* (*)(int, char**)>(symbol);
+    app_posix_set_current_image(runtime->image_start, runtime->image_end);
+    Module* module = module_main(0, nullptr);
+    app_posix_set_current_image(0, 0);
+    if (module == nullptr) {
+        return ERROR_NOT_FOUND;
+    }
+
+    *out_module = module;
+    return ERROR_NONE;
+}
+
 void api_unload(AppRuntime runtime_ptr) {
     auto* runtime = static_cast<PosixAppRuntime*>(runtime_ptr);
     // The image's static destructors run here, and what they free is the app's own (see app/memory.h)
@@ -216,6 +241,7 @@ AppLoaderApi loader_api = {
     .run = api_run,
     .unload = api_unload,
     .is_executable = api_is_executable,
+    .get_module = api_get_module,
 };
 
 void* create_service(const ServiceManifest*) {

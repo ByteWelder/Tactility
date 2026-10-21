@@ -17,8 +17,10 @@
 constexpr TickType_t SLOW_START_WARNING_TICKS = pdMS_TO_TICKS(100);
 
 struct DriverInternal {
+    // Both are guarded by the ledger lock
     int use_count = 0;
     bool destroying = false;
+    bool destructing = false;
     const Module* owner = nullptr;
 };
 
@@ -48,16 +50,40 @@ error_t driver_construct(Driver* driver) {
 error_t driver_destruct(Driver* driver) {
     auto* internal = driver->internal;
 
-    if (internal->use_count != 0 || internal->destroying) {
+    ledger.lock();
+    if (internal->use_count != 0 || internal->destructing) {
+        ledger.unlock();
         return ERROR_INVALID_STATE;
     }
     internal->destroying = true;
+    internal->destructing = true;
+    ledger.unlock();
 
     // Nullify internal reference before deletion to prevent use-after-free
     driver->internal = nullptr;
     delete internal;
 
     return ERROR_NONE;
+}
+
+error_t driver_begin_destroy(Driver* driver) {
+    auto* internal = driver->internal;
+
+    ledger.lock();
+    error_t error = ERROR_NONE;
+    if (internal->use_count != 0) {
+        error = ERROR_RESOURCE_BUSY;
+    } else {
+        internal->destroying = true;
+    }
+    ledger.unlock();
+    return error;
+}
+
+void driver_cancel_destroy(Driver* driver) {
+    ledger.lock();
+    driver->internal->destroying = false;
+    ledger.unlock();
 }
 
 error_t driver_add(Driver* driver) {
@@ -99,6 +125,13 @@ void driver_set_owner(Driver* driver, const Module* owner) {
     driver->internal->owner = owner;
 }
 
+bool driver_is_in_use(const Driver* driver) {
+    ledger.lock();
+    const bool in_use = driver->internal->use_count != 0;
+    ledger.unlock();
+    return in_use;
+}
+
 const Module* driver_get_owner(const Driver* driver) {
     return driver->internal->owner;
 }
@@ -132,7 +165,16 @@ Driver* driver_find_compatible(const char* compatible) {
 
 error_t driver_bind(Driver* driver, Device* device) {
     error_t error = ERROR_NONE;
-    if (driver->internal->destroying || !device_is_added(device)) {
+
+    // Counted before start_device() runs, so a driver can't be destroyed while a device is starting on it
+    ledger.lock();
+    const bool reserved = !driver->internal->destroying;
+    if (reserved) {
+        driver->internal->use_count++;
+    }
+    ledger.unlock();
+
+    if (!reserved || !device_is_added(device)) {
         error = ERROR_INVALID_STATE;
         goto error;
     }
@@ -155,18 +197,21 @@ error_t driver_bind(Driver* driver, Device* device) {
         }
     }
 
-    driver->internal->use_count++;
-
     LOG_I(TAG, "bound %s to %s", driver->name, device->name);
     return ERROR_NONE;
 
 error:
+    if (reserved) {
+        ledger.lock();
+        driver->internal->use_count--;
+        ledger.unlock();
+    }
     return error;
 }
 
 error_t driver_unbind(Driver* driver, Device* device) {
     error_t error = ERROR_NONE;
-    if (driver->internal->destroying || !device_is_added(device)) {
+    if (!device_is_added(device)) {
         error = ERROR_INVALID_STATE;
         goto error;
     }
@@ -178,7 +223,9 @@ error_t driver_unbind(Driver* driver, Device* device) {
         }
     }
 
+    ledger.lock();
     driver->internal->use_count--;
+    ledger.unlock();
 
     LOG_I(TAG, "unbound %s from %s", driver->name, device->name);
 

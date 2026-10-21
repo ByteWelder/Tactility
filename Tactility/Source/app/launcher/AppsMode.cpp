@@ -51,7 +51,6 @@ constexpr IconEntry ICONS[] = {
     {"tactility.notes",             LVGL_ICON_SHARED_EDIT_NOTE},
     {"tactility.systeminfo",        LVGL_ICON_SHARED_DEVICES},
     {"tactility.terminal",          LVGL_ICON_SHARED_TERMINAL},
-    {"tactility.webserversettings", LVGL_ICON_SHARED_CLOUD},
 };
 
 const char* appIcon(const ::AppManifest* manifest) {

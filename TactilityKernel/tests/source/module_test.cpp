@@ -1,4 +1,5 @@
 #include "doctest.h"
+#include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/module.h>
 
@@ -133,6 +134,157 @@ TEST_CASE("module_start sets itself as owner of its drivers") {
     CHECK_EQ(module_destruct(&module), ERROR_NONE);
 }
 
+TEST_CASE("module_stop is refused while a driver of the module is in use") {
+    static const char* busy_compatible[] = { "busy", nullptr };
+    static Driver driver = {
+        .name = "busy_driver",
+        .compatible = busy_compatible,
+    };
+    static Driver* const drivers[] = { &driver, nullptr };
+    static Device device = { .name = "busy_device", .config = nullptr, .parent = nullptr };
+    stop_called = false;
+    test_stop_result = ERROR_NONE;
+    struct Module module = {
+        .name = "busy_test",
+        .stop = test_stop,
+        .drivers = drivers
+    };
+
+    REQUIRE_EQ(module_construct(&module), ERROR_NONE);
+    REQUIRE_EQ(module_start(&module), ERROR_NONE);
+    REQUIRE_EQ(device_construct(&device), ERROR_NONE);
+    REQUIRE_EQ(device_add(&device), ERROR_NONE);
+    REQUIRE_EQ(driver_bind(&driver, &device), ERROR_NONE);
+    CHECK(driver_is_in_use(&driver));
+
+    CHECK_EQ(module_stop(&module), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(module_is_started(&module), true);
+    CHECK_EQ(stop_called, false);
+
+    REQUIRE_EQ(driver_unbind(&driver, &device), ERROR_NONE);
+    CHECK_FALSE(driver_is_in_use(&driver));
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(stop_called, true);
+
+    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&device), ERROR_NONE);
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_stop is refused while the module is referenced") {
+    static const struct ModuleSymbol symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+    start_called = false;
+    stop_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NONE;
+    struct Module module = {
+        .name = "referenced_test",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = symbols,
+        .internal = nullptr
+    };
+
+    // Not started yet
+    REQUIRE_EQ(module_construct(&module), ERROR_NONE);
+    CHECK_EQ(module_get(&module), ERROR_INVALID_STATE);
+    REQUIRE_EQ(module_add(&module), ERROR_NONE);
+    REQUIRE_EQ(module_start(&module), ERROR_NONE);
+
+    // A reference from a symbol lookup
+    uintptr_t address = 0;
+    struct Module* owner = nullptr;
+    REQUIRE(module_resolve_symbol_global_get("symbol_test_function", &address, &owner));
+    CHECK_EQ(owner, &module);
+    CHECK_EQ(module_get(&module), ERROR_NONE);
+
+    // Refused until both references are released, and it keeps running
+    CHECK_EQ(module_stop(&module), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(module_is_started(&module), true);
+    CHECK_EQ(stop_called, false);
+    module_put(&module);
+    CHECK_EQ(module_stop(&module), ERROR_RESOURCE_BUSY);
+    module_put(owner);
+
+    // Restart is possible after a failed stop attempt and references are refused once stopped
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(stop_called, true);
+    CHECK_EQ(module_get(&module), ERROR_INVALID_STATE);
+
+    // The module is still added, so its symbols resolve and keep it from being destructed
+    REQUIRE(module_resolve_symbol_global_get("symbol_test_function", &address, &owner));
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(module_is_started(&module), false);
+    module_put(owner);
+
+    CHECK_EQ(module_start(&module), ERROR_NONE);
+    CHECK_EQ(module_get(&module), ERROR_NONE);
+    module_put(&module);
+
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(module_remove(&module), ERROR_NONE);
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_remove is refused while the module is referenced") {
+    static const struct ModuleSymbol symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+    struct Module module = {
+        .name = "remove_referenced_test",
+        .start = nullptr,
+        .stop = nullptr,
+        .symbols = symbols,
+        .internal = nullptr
+    };
+
+    // Stopped but still added, which is when a reference can still be taken
+    REQUIRE_EQ(module_construct_add_start(&module), ERROR_NONE);
+    REQUIRE_EQ(module_stop(&module), ERROR_NONE);
+
+    uintptr_t address = 0;
+    struct Module* owner = nullptr;
+    REQUIRE(module_resolve_symbol_global_get("symbol_test_function", &address, &owner));
+    CHECK_EQ(owner, &module);
+
+    // Neither removing nor destructing is allowed, and the module can still be resolved
+    CHECK_EQ(module_remove(&module), ERROR_RESOURCE_BUSY);
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_RESOURCE_BUSY);
+    CHECK(module_resolve_symbol(&module, "symbol_test_function", &address));
+
+    module_put(owner);
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_stop that fails leaves the module referenceable") {
+    start_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NOT_SUPPORTED;
+    struct Module module = {
+        .name = "failed_stop_test",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = nullptr,
+        .internal = nullptr
+    };
+
+    REQUIRE_EQ(module_construct(&module), ERROR_NONE);
+    REQUIRE_EQ(module_start(&module), ERROR_NONE);
+    CHECK_EQ(module_stop(&module), ERROR_NOT_SUPPORTED);
+
+    // Still started, and not stuck in a stopping state
+    CHECK_EQ(module_get(&module), ERROR_NONE);
+    module_put(&module);
+
+    test_stop_result = ERROR_NONE;
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
 TEST_CASE("Global symbol resolution") {
     static const struct ModuleSymbol test_symbols[] = {
         DEFINE_MODULE_SYMBOL(symbol_test_function),
@@ -150,12 +302,14 @@ TEST_CASE("Global symbol resolution") {
     REQUIRE_EQ(module_construct(&module), ERROR_NONE);
 
     uintptr_t addr;
-    // Should fail as it is not added or started
+    // Should fail as it is not added
     CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+    CHECK_EQ(module_resolve_symbol(&module, "symbol_test_function", &addr), false);
     REQUIRE_EQ(module_add(&module), ERROR_NONE);
-    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+    // Resolvable once the module is added, also when it has not started yet
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+    CHECK_EQ(module_resolve_symbol(&module, "symbol_test_function", &addr), true);
     REQUIRE_EQ(module_start(&module), ERROR_NONE);
-    // Resolvable now that the module is both added and started
     CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
     // Cleanup
     CHECK_EQ(module_stop(&module), ERROR_NONE);
@@ -238,9 +392,7 @@ TEST_CASE("module_ensure_destructed removes module from global ledger") {
     CHECK_EQ(module_is_started(&module), false);
     CHECK_EQ(stop_called, true);
 
-    // Module must no longer be resolvable once destructed. Note: this alone doesn't
-    // prove removal from the ledger, since module_resolve_symbol_global() also skips
-    // non-started modules — a leaked-but-stopped ledger entry would look the same.
+    // Module must no longer be resolvable once destructed
     CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
 
     // Directly prove detachment from the ledger: if module_ensure_destructed had left
@@ -250,4 +402,27 @@ TEST_CASE("module_ensure_destructed removes module from global ledger") {
 
     // Calling again on an already-destructed module should be a no-op
     CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+}
+
+TEST_CASE("Module external flag") {
+    struct Module module = {
+        .name = "external-test",
+        .start = nullptr,
+        .stop = nullptr,
+        .symbols = nullptr,
+        .internal = nullptr
+    };
+
+    // Not constructed yet
+    CHECK_EQ(module_is_external(&module), false);
+    CHECK_EQ(module_set_external(&module, true), ERROR_INVALID_STATE);
+
+    CHECK_EQ(module_construct(&module), ERROR_NONE);
+    CHECK_EQ(module_is_external(&module), false);
+    CHECK_EQ(module_set_external(&module, true), ERROR_NONE);
+    CHECK_EQ(module_is_external(&module), true);
+
+    // The flag does not outlive the construction
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+    CHECK_EQ(module_is_external(&module), false);
 }

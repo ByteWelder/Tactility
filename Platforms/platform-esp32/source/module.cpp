@@ -1,7 +1,4 @@
-#ifdef ESP_PLATFORM
 #include <sdkconfig.h>
-#endif
-
 #include <assert.h>
 #include <driver/gpio.h>
 #include <driver/i2s_common.h>
@@ -14,6 +11,7 @@
 #include <esp_log_level.h>
 #include <esp_log_timestamp.h>
 #include <esp_log_write.h>
+#include <esp_mac.h>
 #include <esp_random.h>
 #include <esp_system.h>
 #include <esp_timer.h>
@@ -126,6 +124,22 @@ extern "C" {
 }
 
 error_t platform_esp32_start_partitions();
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
+error_t esp32_espnow_radio_start();
+#endif
+
+static error_t platform_esp32_start() {
+    error_t error = platform_esp32_start_partitions();
+    if (error != ERROR_NONE) {
+        return error;
+    }
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_ESP_HOSTED_ENABLED)
+    // Lets mesh networking run over ESP-NOW
+    return esp32_espnow_radio_start();
+#else
+    return ERROR_NONE;
+#endif
+}
 
 extern "C" {
 
@@ -141,6 +155,8 @@ static const ModuleSymbol platform_esp32_symbols[] = {
     // esp_err
     DEFINE_MODULE_SYMBOL(esp_err_to_name),
     DEFINE_MODULE_SYMBOL(_esp_error_check_failed),
+    // esp_mac
+    DEFINE_MODULE_SYMBOL(esp_read_mac),
     // esp random
     DEFINE_MODULE_SYMBOL(esp_random),
     DEFINE_MODULE_SYMBOL(esp_fill_random),
@@ -436,7 +452,7 @@ static Driver* const platform_esp32_drivers[] = {
 
 Module platform_esp32_module = {
     .name = "platform-esp32",
-    .start = platform_esp32_start_partitions,
+    .start = platform_esp32_start,
     .stop = nullptr,
     .drivers = platform_esp32_drivers,
     .symbols = platform_esp32_symbols,

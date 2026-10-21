@@ -18,6 +18,7 @@ enum class ActiveTheme {
 
 static LvglThemeSettings theme_settings;
 static bool theme_settings_set = false;
+static bool default_compact = TT_LVGL_UI_DENSITY == LVGL_UI_DENSITY_COMPACT;
 static ActiveTheme active_theme = ActiveTheme::None;
 
 void lvgl_theme_get_default_settings(LvglThemeSettings* settings) {
@@ -29,9 +30,13 @@ void lvgl_theme_get_default_settings(LvglThemeSettings* settings) {
     settings->color_primary = material_config.color_primary;
     settings->color_secondary = material_config.color_secondary;
     settings->color_error = material_config.color_error;
-    settings->is_compact = TT_LVGL_UI_DENSITY == LVGL_UI_DENSITY_COMPACT;
+    settings->is_compact = default_compact;
     settings->surface_override = material_config.surface_override;
     settings->color_surface = material_config.color_surface;
+}
+
+void lvgl_theme_set_default_compact(bool is_compact) {
+    default_compact = is_compact;
 }
 
 void lvgl_theme_get_settings(LvglThemeSettings* settings) {
