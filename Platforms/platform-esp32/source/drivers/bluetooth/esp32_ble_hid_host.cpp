@@ -18,6 +18,8 @@
 
 #include <freertos/queue.h>
 
+#include <nimble/nimble_port.h>
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -31,7 +33,7 @@ constexpr auto KEYBOARD_QUEUE_SIZE = 16;
 // Left, right and middle, as in the boot protocol mouse report
 constexpr uint8_t MOUSE_BUTTON_COUNT = 3;
 constexpr auto WORKER_STACK_SIZE = 4096;
-constexpr uint64_t ENC_RETRY_DELAY_US = 500 * 1000;
+constexpr uint32_t ENC_RETRY_DELAY_MS = 500;
 
 enum class HidReportType : uint8_t { Unknown = 0, Keyboard, Mouse, Consumer };
 
@@ -66,7 +68,9 @@ struct HidHostState {
     DispatcherHandle_t dispatcher = nullptr;
     Thread* worker = nullptr;
     std::atomic<bool> workerRunning{false};
-    esp_timer_handle_t encRetryTimer = nullptr;
+    // Runs on the NimBLE host task, which owns the connection state. Initialized on the first connect, when the host is running.
+    ble_npl_callout encRetryCallout {};
+    bool encRetryCalloutReady = false;
     std::unique_ptr<HidHostConnection> connection;
 
     Device keyboardDevice = {};
@@ -85,6 +89,12 @@ struct HidHostState {
 };
 
 static HidHostState* s_state = nullptr;
+// Set while the device stops. NimBLE still delivers callbacks then, such as the disconnects from stopping the host.
+static std::atomic<bool> s_stopping {false};
+
+static bool hostRunning() {
+    return s_state != nullptr && !s_stopping.load();
+}
 
 // region Keyboard device
 
@@ -358,8 +368,12 @@ static uint16_t getDescEndHandle(const HidHostConnection& conn, uint16_t valHand
 
 // region Encryption retry timer
 
-static void encRetryTimerCb(void*) {
-    if (s_state == nullptr || !s_state->connection) {
+static void startEncRetryTimer() {
+    ble_npl_callout_reset(&s_state->encRetryCallout, ble_npl_time_ms_to_ticks32(ENC_RETRY_DELAY_MS));
+}
+
+static void encRetryTimerCb(ble_npl_event*) {
+    if (!hostRunning() || !s_state->connection) {
         return;
     }
     auto& conn = *s_state->connection;
@@ -371,7 +385,7 @@ static void encRetryTimerCb(void*) {
         int retry_cap = have_reports ? 6 : 40; // ~3s vs ~20s
         if (conn.encRetryCount < retry_cap) {
             conn.encRetryCount++;
-            esp_timer_start_once(s_state->encRetryTimer, ENC_RETRY_DELAY_US);
+            startEncRetryTimer();
             return;
         }
         LOG_W(TAG, "Discovery stalled after %d retries, proceeding with %d reports",
@@ -385,8 +399,8 @@ static void encRetryTimerCb(void*) {
 }
 
 static void stopEncRetryTimer() {
-    if (s_state->encRetryTimer != nullptr) {
-        esp_timer_stop(s_state->encRetryTimer);
+    if (s_state->encRetryCalloutReady) {
+        ble_npl_callout_stop(&s_state->encRetryCallout);
     }
 }
 
@@ -516,7 +530,7 @@ static void hidHostStartRptRefRead(HidHostConnection& conn) {
     int rc = ble_gattc_read(conn.connHandle, handle, [](uint16_t conn_handle,
                              const struct ble_gatt_error* error,
                              struct ble_gatt_attr* attr, void*) -> int {
-        if (!s_state->connection) return 0;
+        if (!hostRunning() || !s_state->connection) return 0;
         auto& conn = *s_state->connection;
         if (conn_handle != conn.connHandle) return 0;
         if (error->status == BLE_HS_EDONE) return 0;
@@ -555,7 +569,7 @@ static void hidHostReadReportMap(HidHostConnection& conn) {
     int rc = ble_gattc_read_long(conn.connHandle, conn.rptMapHandle, 0,
         [](uint16_t conn_handle, const struct ble_gatt_error* error,
            struct ble_gatt_attr* attr, void*) -> int {
-            if (!s_state->connection) return 0;
+            if (!hostRunning() || !s_state->connection) return 0;
             auto& conn = *s_state->connection;
             if (conn_handle != conn.connHandle) return 0;
             if (error->status == 0 && attr != nullptr) {
@@ -590,7 +604,7 @@ static void hidHostReadReportMap(HidHostConnection& conn) {
 
 static int hidHostCccdWriteCb(uint16_t conn_handle, const struct ble_gatt_error* error,
                               struct ble_gatt_attr*, void*) {
-    if (!s_state->connection) return 0;
+    if (!hostRunning() || !s_state->connection) return 0;
     auto& conn = *s_state->connection;
     if (conn_handle != conn.connHandle) return 0;
 
@@ -674,7 +688,7 @@ static void hidHostSubscribeNext(HidHostConnection& conn) {
 
 static int hidHostDscDiscCb(uint16_t conn_handle, const struct ble_gatt_error* error,
                             uint16_t chr_val_handle, const struct ble_gatt_dsc* dsc, void*) {
-    if (!s_state->connection) return 0;
+    if (!hostRunning() || !s_state->connection) return 0;
     auto& conn = *s_state->connection;
     if (conn_handle != conn.connHandle) return 0;
 
@@ -689,7 +703,11 @@ static int hidHostDscDiscCb(uint16_t conn_handle, const struct ble_gatt_error* e
             }
             break;
         }
-    } else if (error->status == BLE_HS_EDONE) {
+    } else if (error->status != 0) {
+        // A failed descriptor discovery skips to the next report, like a finished one
+        if (error->status != BLE_HS_EDONE) {
+            LOG_W(TAG, "disc_all_dscs[%d] status=%d", conn.dscDiscIdx, error->status);
+        }
         int next_idx = conn.dscDiscIdx + 1;
         if (next_idx < (int)conn.inputRpts.size()) {
             conn.dscDiscIdx = next_idx;
@@ -723,7 +741,7 @@ static uint16_t getDescEndHandle(const HidHostConnection& conn, uint16_t valHand
 
 static int hidHostChrDiscCb(uint16_t conn_handle, const struct ble_gatt_error* error,
                             const struct ble_gatt_chr* chr, void*) {
-    if (!s_state->connection) return 0;
+    if (!hostRunning() || !s_state->connection) return 0;
     auto& conn = *s_state->connection;
     if (conn_handle != conn.connHandle) return 0;
 
@@ -738,6 +756,9 @@ static int hidHostChrDiscCb(uint16_t conn_handle, const struct ble_gatt_error* e
         } else if (uuid16 == 0x2A4B) {
             conn.rptMapHandle = chr->val_handle;
         }
+    } else if (error->status != 0 && error->status != BLE_HS_EDONE) {
+        LOG_W(TAG, "disc_all_chrs status=%d, disconnecting", error->status);
+        ble_gap_terminate(conn.connHandle, BLE_ERR_REM_USER_CONN_TERM);
     } else if (error->status == BLE_HS_EDONE) {
         std::sort(conn.allChrDefHandles.begin(), conn.allChrDefHandles.end());
         if (conn.inputRpts.empty()) {
@@ -761,7 +782,7 @@ static int hidHostChrDiscCb(uint16_t conn_handle, const struct ble_gatt_error* e
 
 static int hidHostSvcDiscCb(uint16_t conn_handle, const struct ble_gatt_error* error,
                             const struct ble_gatt_svc* svc, void*) {
-    if (!s_state->connection) return 0;
+    if (!hostRunning() || !s_state->connection) return 0;
     auto& conn = *s_state->connection;
     if (conn_handle != conn.connHandle) return 0;
 
@@ -771,6 +792,9 @@ static int hidHostSvcDiscCb(uint16_t conn_handle, const struct ble_gatt_error* e
             conn.hidSvcEnd = svc->end_handle;
             LOG_I(TAG, "HID service start=%d end=%d", conn.hidSvcStart, conn.hidSvcEnd);
         }
+    } else if (error->status != 0 && error->status != BLE_HS_EDONE) {
+        LOG_W(TAG, "disc_all_svcs status=%d, disconnecting", error->status);
+        ble_gap_terminate(conn.connHandle, BLE_ERR_REM_USER_CONN_TERM);
     } else if (error->status == BLE_HS_EDONE) {
         if (conn.hidSvcStart == 0) {
             LOG_W(TAG, "No HID service found, disconnecting");
@@ -803,7 +827,7 @@ static void onConnectionEnded() {
 }
 
 static int hidHostGapCb(struct ble_gap_event* event, void*) {
-    if (!s_state->connection) return 0;
+    if (!hostRunning() || !s_state->connection) return 0;
     auto& conn = *s_state->connection;
 
     switch (event->type) {
@@ -832,9 +856,8 @@ static int hidHostGapCb(struct ble_gap_event* event, void*) {
                 if (event->enc_change.status == 0) {
                     LOG_I(TAG, "Encryption established, retrying CCCD in 500ms");
                     conn.subscribeIdx = 0;
-                    if (s_state->encRetryTimer != nullptr) {
-                        esp_timer_stop(s_state->encRetryTimer);
-                        esp_timer_start_once(s_state->encRetryTimer, ENC_RETRY_DELAY_US);
+                    if (s_state->encRetryCalloutReady) {
+                        startEncRetryTimer();
                     } else {
                         hidHostSubscribeNext(conn);
                     }
@@ -918,14 +941,6 @@ error_t ble_hid_host_init(Device* device) {
         LOG_E(TAG, "failed to construct drivers");
     }
 
-    esp_timer_create_args_t args = {};
-    args.callback = encRetryTimerCb;
-    args.dispatch_method = ESP_TIMER_TASK;
-    args.name = "hid_enc_retry";
-    if (esp_timer_create(&args, &state->encRetryTimer) != ESP_OK) {
-        LOG_E(TAG, "failed to create hid_enc_retry timer");
-        state->encRetryTimer = nullptr;
-    }
     return ERROR_NONE;
 }
 
@@ -934,9 +949,17 @@ void ble_hid_host_deinit() {
         return;
     }
     auto* state = s_state;
-    if (state->encRetryTimer != nullptr) {
-        esp_timer_stop(state->encRetryTimer);
-        esp_timer_delete(state->encRetryTimer);
+    if (state->encRetryCalloutReady) {
+        ble_npl_callout_stop(&state->encRetryCallout);
+        ble_npl_callout_deinit(&state->encRetryCallout);
+    }
+    s_stopping.store(true);
+    if (state->connection) {
+        if (state->connection->connHandle != BLE_HS_CONN_HANDLE_NONE) {
+            ble_gap_terminate(state->connection->connHandle, BLE_ERR_REM_USER_CONN_TERM);
+        } else {
+            ble_gap_conn_cancel();
+        }
     }
     state->connection.reset();
     dispatcher_dispatch(state->dispatcher, nullptr, destructDevicesTask);
@@ -947,11 +970,12 @@ void ble_hid_host_deinit() {
     driver_destruct(&mouse_driver);
     driver_destruct(&keyboard_driver);
     s_state = nullptr;
+    s_stopping.store(false);
     tt::deleteObject(state);
 }
 
 error_t ble_hid_host_connect(Device* device, const BtAddr addr) {
-    if (s_state == nullptr) {
+    if (!hostRunning()) {
         return ERROR_INVALID_STATE;
     }
     BleCtx* ctx = ble_get_ctx(device);
@@ -964,6 +988,11 @@ error_t ble_hid_host_connect(Device* device, const BtAddr addr) {
         return ERROR_INVALID_STATE;
     }
 
+    if (!s_state->encRetryCalloutReady) {
+        ble_npl_callout_init(&s_state->encRetryCallout, nimble_port_get_dflt_eventq(), encRetryTimerCb, nullptr);
+        s_state->encRetryCalloutReady = true;
+    }
+
     resetInputState();
     s_state->connection = std::make_unique<HidHostConnection>();
     memcpy(s_state->connection->peerAddr, addr, BT_ADDR_LEN);
@@ -973,6 +1002,15 @@ error_t ble_hid_host_connect(Device* device, const BtAddr addr) {
     uint8_t own_addr_type;
     if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
         own_addr_type = BLE_OWN_ADDR_PUBLIC;
+    }
+
+    // ble_gap_connect() is rejected while discovery is active
+    if (ble_gap_disc_active()) {
+        ble_gap_disc_cancel();
+        ble_set_scan_active(device, false);
+        BtEvent scan_finished = {};
+        scan_finished.type = BT_EVENT_SCAN_FINISHED;
+        ble_publish_event(device, scan_finished);
     }
 
     int rc = ble_gap_connect(own_addr_type, &ble_addr, 5000, nullptr, hidHostGapCb, nullptr);

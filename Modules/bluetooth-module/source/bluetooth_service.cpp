@@ -221,7 +221,9 @@ static void save_connected_peer(BluetoothService* data, const BtProfileStateData
         memcpy(device.addr, state.addr, BT_ADDR_LEN);
         device.auto_connect = exists ? stored.auto_connect : true;
         device.profile = BT_PROFILE_HID_HOST;
-        find_scanned_name(data, state.addr, device.name);
+        if (!find_scanned_name(data, state.addr, device.name) && exists) {
+            copy_name(device.name, stored.name);
+        }
         bluetooth_paired_device_save(&device);
     } else if (exists && stored.profile != static_cast<int>(state.profile)) {
         stored.profile = static_cast<int>(state.profile);
@@ -315,7 +317,7 @@ static int32_t thread_main(void* context) {
         }
 
         BtEvent event {};
-        while (bluetooth_event_poll(&data->event_sub, &event) == ERROR_NONE) {
+        while (data->event_subscribed && bluetooth_event_poll(&data->event_sub, &event) == ERROR_NONE) {
             on_bluetooth_event(data, event);
         }
 
