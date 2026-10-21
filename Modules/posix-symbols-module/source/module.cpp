@@ -65,8 +65,12 @@ static const ModuleSymbol SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(clock_gettime),
     DEFINE_MODULE_SYMBOL(localtime_r),
     // setjmp.h
+    // Emscripten's wasm backend cannot take setjmp's address (no indirect setjmp), and the
+    // web build has no side-loaded apps to export them to anyway.
+#if !defined(__EMSCRIPTEN__)
     DEFINE_MODULE_SYMBOL(longjmp),
     DEFINE_MODULE_SYMBOL(setjmp),
+#endif
     // dirent.h
     DEFINE_MODULE_SYMBOL(opendir),
     DEFINE_MODULE_SYMBOL(closedir),

@@ -5,7 +5,9 @@
 #include <app_esp32/module.h>
 #endif
 
-#if __has_include(<unistd.h>) && not defined(ESP_PLATFORM)
+// Emscripten's libc has POSIX headers but no dlopen, so the dlopen-based app loader
+// (app-posix-module) does not apply there.
+#if __has_include(<unistd.h>) && not defined(ESP_PLATFORM) && not defined(__EMSCRIPTEN__)
 #define TT_IS_POSIX 1
 #else
 #define TT_IS_POSIX 0

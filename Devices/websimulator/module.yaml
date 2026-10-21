@@ -1,0 +1,4 @@
+dependencies:
+  - Platforms/platform-web
+  - Drivers/mock-drivers-module
+dts: websimulator.dts

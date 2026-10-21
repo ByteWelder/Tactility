@@ -13,7 +13,11 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     get_property(TACTILITY_DEVICE_PROJECT GLOBAL PROPERTY TACTILITY_DEVICE_PROJECT)
     get_property(TACTILITY_DEVICE_ID GLOBAL PROPERTY TACTILITY_DEVICE_ID)
 else ()
-    set(TACTILITY_DEVICE_ID simulator)
+    if (EMSCRIPTEN)
+        set(TACTILITY_DEVICE_ID websimulator)
+    else ()
+        set(TACTILITY_DEVICE_ID simulator)
+    endif ()
     set(COMPONENT_LIB Tactility)
     set(TACTILITY_DEVICE_PROJECT Simulator)
 endif ()
@@ -95,12 +99,16 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 else ()
 
     list(APPEND REQUIRES_LIST
-        platform-posix
-        app-posix-module
         freertos_kernel
         cJSON
         lvgl
     )
+    if (EMSCRIPTEN)
+        # No dlopen on wasm, so no app-posix-module; platform-web is the Emscripten platform.
+        list(APPEND REQUIRES_LIST platform-web)
+    else ()
+        list(APPEND REQUIRES_LIST platform-posix app-posix-module)
+    endif ()
 
 endif ()
 
@@ -190,12 +198,18 @@ else ()
     target_include_directories(Tactility PUBLIC Include/)
     target_include_directories(Tactility PRIVATE Private/)
     target_link_libraries(Tactility PRIVATE ${TACTILITY_REQUIRES_LIST})
-    # Exports Tactility's own symbols (-rdynamic) so a dlopen()ed app-posix-module app can resolve
-    # calls back into it - the OS-native equivalent of app-esp32-module's custom symbol resolver.
-    set_target_properties(Tactility PROPERTIES ENABLE_EXPORTS ON)
-    # pthread_attr_setstack and read/write/close/printf-family aren't wrapped here: linking
-    # platform-posix and app-module already brings those wraps along (see their own
-    # CMakeLists.txt files).
+    if (EMSCRIPTEN)
+        # No dlopen: no exported-symbol table needed. Emscripten's shell picks up the canvas by
+        # id from the frontend page (Devices/websimulator/Frontend/index.html).
+        set_target_properties(Tactility PROPERTIES OUTPUT_NAME "Tactility")
+    else ()
+        # Exports Tactility's own symbols (-rdynamic) so a dlopen()ed app-posix-module app can resolve
+        # calls back into it - the OS-native equivalent of app-esp32-module's custom symbol resolver.
+        set_target_properties(Tactility PROPERTIES ENABLE_EXPORTS ON)
+        # pthread_attr_setstack and read/write/close/printf-family aren't wrapped here: linking
+        # platform-posix and app-module already brings those wraps along (see their own
+        # CMakeLists.txt files).
+    endif ()
 endif ()
 
 #

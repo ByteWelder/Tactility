@@ -126,8 +126,13 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 else ()
     message("Building for sim target")
     # eps-idf generates these from Kconfig, but posix build isn't set up with Kconfig.
-    add_compile_definitions(CONFIG_TT_DEVICE_ID="simulator")
-    add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
+    if (EMSCRIPTEN)
+        add_compile_definitions(CONFIG_TT_DEVICE_ID="websimulator")
+        add_compile_definitions(CONFIG_TT_DEVICE_NAME="Web Simulator")
+    else ()
+        add_compile_definitions(CONFIG_TT_DEVICE_ID="simulator")
+        add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
+    endif ()
     add_compile_definitions(CONFIG_TT_DEVICE_VENDOR="")
     add_compile_definitions(CONFIG_TT_DEVICE_NAME_SIMPLE="Simulator")
     add_compile_definitions(CONFIG_TT_AUTO_START_APP_ID="")
@@ -154,12 +159,35 @@ endif ()
 
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
+    if (EMSCRIPTEN)
+        # Emscripten: pthreads everywhere, memory growth (FreeRTOS heap + LVGL), and the final
+        # link settings for the web page (PROXY_TO_PTHREAD keeps the app off the browser main
+        # thread; the canvas ID matches Devices/websimulator/Frontend/index.html).
+        add_compile_options(-pthread)
+        # Several kernel sources use std::nothrow without including <new>, which other
+        # platforms' standard libraries provide transitively and Emscripten's libc++ does not.
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-include> $<$<COMPILE_LANGUAGE:CXX>:new>)
+        add_link_options(
+            -pthread
+            -sALLOW_MEMORY_GROWTH=1
+            -sGROWABLE_ARRAYBUFFERS=2
+            -sPROXY_TO_PTHREAD=1
+            -sPTHREAD_POOL_SIZE=16
+            "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
+        )
+    endif ()
+
     add_subdirectory(Tactility)
     add_subdirectory(TactilityFreeRtos)
     add_subdirectory(TactilityKernel)
     add_subdirectory(TactilityKernelCpp)
-    add_subdirectory(Platforms/platform-posix)
-    add_subdirectory(Devices/simulator)
+    if (EMSCRIPTEN)
+        add_subdirectory(Platforms/platform-web)
+        add_subdirectory(Devices/websimulator)
+    else ()
+        add_subdirectory(Platforms/platform-posix)
+        add_subdirectory(Devices/simulator)
+    endif ()
     add_subdirectory(Libraries/cJSON)
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
@@ -191,7 +219,10 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Modules/app-module)
     add_subdirectory(Modules/app-hub-module)
     add_subdirectory(Modules/coreutils-module)
-    add_subdirectory(Modules/app-posix-module)
+    if (NOT EMSCRIPTEN)
+        # dlopen-based external app loader: no dynamic loading on wasm.
+        add_subdirectory(Modules/app-posix-module)
+    endif ()
     add_subdirectory(Modules/lvgl-window-manager-module)
     add_subdirectory(Drivers/gps-generic-module)
     add_subdirectory(Drivers/gps-meshtastic-module)
@@ -201,24 +232,49 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Drivers/audio-stream-module)
 
     # FreeRTOS
-    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
-    set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
+    if (EMSCRIPTEN)
+        set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/websimulator/Source CACHE STRING "")
+        # Emscripten threads cannot receive signals, so the GCC_POSIX port's SIGALRM tick
+        # cannot run there. A_CUSTOM_PORT selects the signal-free port in
+        # Platforms/platform-web/freertos/ (defined below, per FreeRTOS-Kernel's own
+        # A_CUSTOM_PORT instructions).
+        set(FREERTOS_PORT A_CUSTOM_PORT CACHE STRING "")
+        add_library(freertos_kernel_port OBJECT
+            Platforms/platform-web/freertos/port.c
+            Platforms/platform-web/freertos/event.c
+        )
+        add_library(freertos_kernel_port_headers INTERFACE)
+        target_include_directories(freertos_kernel_port_headers INTERFACE Platforms/platform-web/freertos)
+    else ()
+        set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
+        set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
+    endif ()
     # FreeRTOS 11 no longer picks a heap implementation by default
     set(FREERTOS_HEAP 4 CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
+    if (EMSCRIPTEN)
+        # The custom port needs the kernel's own include dirs (FreeRTOS.h etc.), which
+        # freertos_kernel_include provides - only created inside the add_subdirectory above.
+        target_link_libraries(freertos_kernel_port PRIVATE
+            freertos_kernel_port_headers
+            freertos_kernel_include
+        )
+    endif ()
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
-    # xTaskCreate() and vTaskDelete() are defined by freertos_task_hooks.c instead, see its header
-    set_source_files_properties(Libraries/FreeRTOS-Kernel/tasks.c
-        TARGET_DIRECTORY freertos_kernel
-        PROPERTIES COMPILE_DEFINITIONS "xTaskCreate=freertos_real_xTaskCreate;vTaskDelete=freertos_real_vTaskDelete"
-    )
-    # vPortCancelThread() is wrapped by freertos_task_hooks.c, see its header
-    set_source_files_properties(Libraries/FreeRTOS-Kernel/portable/ThirdParty/GCC/Posix/port.c
-        TARGET_DIRECTORY freertos_kernel_port
-        PROPERTIES COMPILE_DEFINITIONS "vPortCancelThread=freertos_real_vPortCancelThread"
-    )
-    target_sources(freertos_kernel PRIVATE Platforms/platform-posix/freertos/freertos_task_hooks.c)
-    target_include_directories(freertos_kernel PUBLIC Platforms/platform-posix/freertos)
+    if (NOT EMSCRIPTEN)
+        # xTaskCreate() and vTaskDelete() are defined by freertos_task_hooks.c instead, see its header
+        set_source_files_properties(Libraries/FreeRTOS-Kernel/tasks.c
+            TARGET_DIRECTORY freertos_kernel
+            PROPERTIES COMPILE_DEFINITIONS "xTaskCreate=freertos_real_xTaskCreate;vTaskDelete=freertos_real_vTaskDelete"
+        )
+        # vPortCancelThread() is wrapped by freertos_task_hooks.c, see its header
+        set_source_files_properties(Libraries/FreeRTOS-Kernel/portable/ThirdParty/GCC/Posix/port.c
+            TARGET_DIRECTORY freertos_kernel_port
+            PROPERTIES COMPILE_DEFINITIONS "vPortCancelThread=freertos_real_vPortCancelThread"
+        )
+        target_sources(freertos_kernel PRIVATE Platforms/platform-posix/freertos/freertos_task_hooks.c)
+        target_include_directories(freertos_kernel PUBLIC Platforms/platform-posix/freertos)
+    endif ()
 
     # EmbedTLS
     set(ENABLE_TESTING OFF)
@@ -238,6 +294,8 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     target_link_libraries(lvgl PUBLIC SDL2-static)
 
     # Tests
-    add_subdirectory(Tests)
+    if (NOT EMSCRIPTEN)
+        add_subdirectory(Tests)
+    endif ()
 
 endif ()
