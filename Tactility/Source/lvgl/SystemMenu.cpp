@@ -8,6 +8,7 @@
 
 #include <location/location.h>
 
+#include <bluetooth/bluetooth_service.h>
 #include <bluetooth/bluetooth_settings.h>
 #include <wifi/wifi_settings.h>
 
@@ -124,7 +125,7 @@ static void setBluetoothEnabled(void* context) {
     const bool enabled = fromContext(context);
     bluetooth_settings_set_enable(enabled);
     if (enabled != bluetooth_is_radio_on_or_pending(device)) {
-        bluetooth_set_radio_enabled(device, enabled);
+        bluetooth_service_set_radio_enabled(enabled);
     }
     device_put(device);
 }

@@ -44,10 +44,10 @@ static void onBtToggled(void* /*context*/, bool requestOn) {
         bool radio_on = bluetooth_is_radio_on_or_pending(dev);
         if (requestOn && !radio_on) {
             LOG_I(TAG, "Turning on");
-            bluetooth_set_radio_enabled(dev, true);
+            bluetooth_service_set_radio_enabled(true);
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
-            bluetooth_set_radio_enabled(dev, false);
+            bluetooth_service_set_radio_enabled(false);
         }
         device_put(dev);
     } else {

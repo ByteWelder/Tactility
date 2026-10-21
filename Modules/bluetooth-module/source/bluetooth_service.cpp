@@ -35,6 +35,8 @@ struct BluetoothService {
     Device* device = nullptr;
     Thread* thread = nullptr;
     std::atomic<bool> running {false};
+    // Set when the radio was turned on through the service. Other apps can use the radio without the service interfering.
+    std::atomic<bool> managed {false};
     TaskEventGroup event_group {};
     BtEventSubscription event_sub {};
     bool event_subscribed = false;
@@ -264,11 +266,12 @@ static void on_pair_result(const BtPairResultData& result) {
 static void on_bluetooth_event(BluetoothService* data, const BtEvent& event) {
     switch (event.type) {
         case BT_EVENT_RADIO_STATE_CHANGED:
-            data->auto_scan_enabled = event.radio_state == BT_RADIO_STATE_ON;
+            data->auto_scan_enabled = event.radio_state == BT_RADIO_STATE_ON && data->managed;
             schedule_auto_scan(data, 0);
-            if (event.radio_state == BT_RADIO_STATE_ON) {
+            if (event.radio_state == BT_RADIO_STATE_ON && data->managed) {
                 auto_start_profiles(data);
             } else if (event.radio_state == BT_RADIO_STATE_OFF) {
+                data->managed = false;
                 clear_scan_results(data);
             }
             break;
@@ -373,6 +376,7 @@ static error_t on_start(ServiceInstance* /*instance*/, void* context) {
     // transport on boards with ESP-Hosted, and doing it concurrently makes both fail.
     if (bluetooth_settings_get_enable()) {
         LOG_I(TAG, "Auto-enabling Bluetooth");
+        data->managed = true;
         if (bluetooth_set_radio_enabled(device, true) != ERROR_NONE) {
             LOG_E(TAG, "Failed to enable Bluetooth radio");
         }
@@ -490,6 +494,16 @@ void bluetooth_service_for_each_paired_peer(void* context, bool (*on_peer)(const
         peer.profile = BT_PROFILE_HID_HOST;
         on_peer(&peer, context);
     }
+}
+
+error_t bluetooth_service_set_radio_enabled(bool enabled) {
+    if (service == nullptr) {
+        return ERROR_INVALID_STATE;
+    }
+    if (enabled) {
+        service->managed = true;
+    }
+    return bluetooth_set_radio_enabled(service->device, enabled);
 }
 
 void bluetooth_service_connect(const BtAddr addr, enum BtProfileId profile) {
