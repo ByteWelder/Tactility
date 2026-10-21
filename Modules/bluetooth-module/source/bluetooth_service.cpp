@@ -245,7 +245,7 @@ static void on_profile_state_changed(BluetoothService* data, const BtProfileStat
         save_connected_peer(data, state);
     } else if (state.state == BT_PROFILE_STATE_IDLE && state.profile == BT_PROFILE_HID_HOST) {
         // Scan again when a peer wants to be auto-connected, so auto_connect_hid_host() runs when the scan finishes
-        if (get_auto_connect_query().hid_host && !bluetooth_is_scanning(data->device)) {
+        if (data->managed && get_auto_connect_query().hid_host && !bluetooth_is_scanning(data->device)) {
             bluetooth_scan_start(data->device);
         }
     }
@@ -273,7 +273,11 @@ static void on_bluetooth_event(BluetoothService* data, const BtEvent& event) {
             if (event.radio_state == BT_RADIO_STATE_ON && data->managed) {
                 auto_start_profiles(data);
             } else if (event.radio_state == BT_RADIO_STATE_OFF) {
-                data->managed = false;
+                // The event can be older than a request to turn the radio back on, which must stay managed
+                BtRadioState current = BT_RADIO_STATE_OFF;
+                if (bluetooth_get_radio_state(data->device, &current) != ERROR_NONE || current == BT_RADIO_STATE_OFF) {
+                    data->managed = false;
+                }
                 clear_scan_results(data);
             }
             break;
@@ -284,7 +288,9 @@ static void on_bluetooth_event(BluetoothService* data, const BtEvent& event) {
 
         case BT_EVENT_SCAN_FINISHED:
             schedule_auto_scan(data, AUTO_SCAN_INTERVAL);
-            auto_connect_hid_host(data);
+            if (data->managed) {
+                auto_connect_hid_host(data);
+            }
             break;
 
         case BT_EVENT_PEER_FOUND:
