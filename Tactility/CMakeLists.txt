@@ -23,7 +23,6 @@ set(DEVICETREE_LOCATION "${PROJECT_ROOT}/Devices/${TACTILITY_DEVICE_ID}")
 list(APPEND REQUIRES_LIST
     # Main projects
     TactilityKernel
-    TactilityKernelCpp
     TactilityFreeRtos
     # Modules/*
     lvgl-module

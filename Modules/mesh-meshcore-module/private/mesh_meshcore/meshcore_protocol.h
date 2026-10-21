@@ -4,7 +4,7 @@
 #include <mesh_meshcore/meshcore_crypto.h>
 #include <mesh_meshcore/meshcore_packet.h>
 
-#include <TactilityCpp/std/string.h>
+#include <tactility/std/string.hpp>
 
 #include <cstddef>
 #include <cstdint>

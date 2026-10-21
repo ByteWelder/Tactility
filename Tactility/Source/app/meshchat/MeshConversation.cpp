@@ -9,8 +9,8 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
-#include <TactilityCpp/std/deque.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/std/deque.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <mesh/mesh.h>
 

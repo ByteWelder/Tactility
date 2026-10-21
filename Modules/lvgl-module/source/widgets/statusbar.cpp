@@ -19,7 +19,7 @@
 #include <lvgl/widgets/focus_container.h>
 #include <lvgl/widgets/icon_button.h>
 
-#include <TactilityCpp/Memory.h>
+#include <tactility/Memory.hpp>
 
 #include <algorithm>
 #include <cstring>

@@ -19,9 +19,9 @@
 #include <tactility/paths.h>
 #include <tactility/time.h>
 
-#include <TactilityCpp/std/deque.h>
-#include <TactilityCpp/std/string.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/std/deque.hpp>
+#include <tactility/std/string.hpp>
+#include <tactility/std/vector.hpp>
 
 #include <algorithm>
 #include <new>

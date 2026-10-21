@@ -99,11 +99,9 @@ def main():
         # TactilityKernel
         {'src': 'build/esp-idf/TactilityKernel/libTactilityKernel.a', 'dst': 'Libraries/TactilityKernel/binary/'},
         {'src': 'TactilityKernel/include/**', 'dst': 'Libraries/TactilityKernel/include/'},
+        {'src': 'TactilityKernel/include-cpp/**', 'dst': 'Libraries/TactilityKernel/include-cpp/'},
         {'src': 'TactilityKernel/CMakeLists.txt', 'dst': 'Libraries/TactilityKernel/'},
         {'src': 'TactilityKernel/*.md', 'dst': 'Libraries/TactilityKernel/'},
-        # TactilityKernelCpp (header-only)
-        {'src': 'TactilityKernelCpp/Include/**', 'dst': 'Libraries/TactilityKernelCpp/Include/'},
-        {'src': 'TactilityKernelCpp/*.md', 'dst': 'Libraries/TactilityKernelCpp/'},
         # lvgl (basics)
         {'src': 'build/esp-idf/lvgl__lvgl/liblvgl__lvgl.a', 'dst': 'Libraries/lvgl/binary/liblvgl.a'},
         {'src': 'Libraries/lvgl/lvgl.h', 'dst': 'Libraries/lvgl/include/'},

@@ -11,7 +11,7 @@
 #include <app/private/package_manifest_parsing.h>
 #include <app/private/scheduler.h>
 
-#include <TactilityCpp/Allocator.h>
+#include <tactility/Allocator.hpp>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/error.h>

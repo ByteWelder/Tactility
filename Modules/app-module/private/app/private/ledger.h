@@ -7,7 +7,7 @@
 #include <app/package_manifest.h>
 #include <app/private/fd_table.h>
 
-#include <TactilityCpp/Allocator.h>
+#include <tactility/Allocator.hpp>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/freertos/freertos.h>

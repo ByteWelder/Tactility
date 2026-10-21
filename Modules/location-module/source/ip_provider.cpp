@@ -13,8 +13,8 @@
 #include <tactility/system_event.h>
 #include <tactility/time.h>
 
-#include <TactilityCpp/Memory.h>
-#include <TactilityCpp/std/string.h>
+#include <tactility/Memory.hpp>
+#include <tactility/std/string.hpp>
 
 #include <cJSON.h>
 

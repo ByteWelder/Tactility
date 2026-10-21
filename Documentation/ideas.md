@@ -7,7 +7,6 @@
 
 ## Higher Priority
 
-- Move TactilityKernelCpp project as C++ include folder into TactilityKernel. This way, the kernel itself can use the C++ templates internally. And it's a library less.
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails

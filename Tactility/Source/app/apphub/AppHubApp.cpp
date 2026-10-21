@@ -32,8 +32,8 @@
 #include <string>
 #include <vector>
 
-#include <TactilityCpp/std/string.h>
-#include <TactilityCpp/std/vector.h>
+#include <tactility/std/string.hpp>
+#include <tactility/std/vector.hpp>
 
 namespace tt::app::apphub {
 
