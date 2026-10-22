@@ -529,6 +529,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_palette_lighten),
     // lv_display
     DEFINE_MODULE_SYMBOL(lv_display_get_default),
+    DEFINE_MODULE_SYMBOL(lv_display_get_dpi),
     DEFINE_MODULE_SYMBOL(lv_display_get_horizontal_resolution),
     DEFINE_MODULE_SYMBOL(lv_display_get_vertical_resolution),
     DEFINE_MODULE_SYMBOL(lv_display_get_physical_horizontal_resolution),
