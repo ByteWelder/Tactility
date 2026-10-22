@@ -12,6 +12,7 @@
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/mouse.h>
 #include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
 
@@ -22,6 +23,8 @@
 #include <lvgl/theme_private.h>
 
 #include <cstddef>
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 constexpr auto* TAG = "lvgl";
 
@@ -108,7 +111,7 @@ static void lvgl_bind_input_device(struct Device* device, lv_display_t* display)
         if (lvgl_mouse_add(device, display, &indev) != ERROR_NONE) {
             LOG_E(TAG, "Failed to bind %s to LVGL", device->name);
         }
-    } else if (type == &POINTER_TYPE) {
+    } else if (type == &POINTER_TYPE || type == &TOUCH_TYPE) {
         if (device_get_driver(device)->api == NULL || lvgl_find_indev_by_device(device) != nullptr) {
             return;
         }
@@ -129,7 +132,7 @@ static void lvgl_unbind_input_device(struct Device* device) {
         lvgl_keyboard_remove(indev);
     } else if (type == &MOUSE_TYPE) {
         lvgl_mouse_remove(indev);
-    } else if (type == &POINTER_TYPE) {
+    } else if (type == &POINTER_TYPE || type == &TOUCH_TYPE) {
         lvgl_pointer_remove(indev);
     }
 }
@@ -139,7 +142,7 @@ static void lvgl_unbind_input_device(struct Device* device) {
 static void lvgl_device_listener(struct Device* device, enum DeviceEvent event, void* context) {
     (void)context;
     const struct DeviceType* type = device_get_type(device);
-    if (type != &KEYBOARD_TYPE && type != &MOUSE_TYPE && type != &POINTER_TYPE) {
+    if (type != &KEYBOARD_TYPE && type != &MOUSE_TYPE && type != &POINTER_TYPE && type != &TOUCH_TYPE) {
         return;
     }
     if (event != DEVICE_EVENT_STARTED && event != DEVICE_EVENT_STOPPING) {
@@ -256,6 +259,7 @@ void lvgl_devices_attach() {
 
     struct LvglDeviceList pointer_devices = {};
     device_for_each_of_type(&POINTER_TYPE, &pointer_devices, lvgl_device_list_collect);
+    device_for_each_of_type(&TOUCH_TYPE, &pointer_devices, lvgl_device_list_collect);
     for (size_t i = 0; i < pointer_devices.count; i++) {
         struct Device* kernel_pointer_device = pointer_devices.devices[i];
         if (device_get_driver(kernel_pointer_device)->api == NULL) {
@@ -342,7 +346,7 @@ void lvgl_devices_detach() {
                     if (device_type == &TRACKBALL_TYPE) {
                         lvgl_trackball_remove(indev);
                         handled = true;
-                    } else if (device_type == &POINTER_TYPE) {
+                    } else if (device_type == &POINTER_TYPE || device_type == &TOUCH_TYPE) {
                         lvgl_pointer_remove(indev);
                         handled = true;
                     } else if (device_type == &MOUSE_TYPE) {

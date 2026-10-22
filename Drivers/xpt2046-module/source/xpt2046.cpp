@@ -5,7 +5,7 @@
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/esp32_spi.h>
-#include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/error.h>
@@ -282,7 +282,7 @@ static error_t stop(Device* device) {
 
 // endregion
 
-// region PointerApi
+// region TouchApi
 
 static error_t xpt2046_enter_sleep(Device* device) {
     auto* internal = static_cast<Xpt2046Internal*>(device_get_driver_data(device));
@@ -346,7 +346,7 @@ static error_t xpt2046_get_mirror_y(Device* device, bool* mirror) {
 
 // endregion
 
-static const PointerApi xpt2046_pointer_api = {
+static const TouchApi xpt2046_touch_api = {
     .enter_sleep = xpt2046_enter_sleep,
     .exit_sleep = xpt2046_exit_sleep,
     .read_data = xpt2046_read_data,
@@ -364,7 +364,7 @@ Driver xpt2046_driver = {
     .compatible = (const char*[]) { "xptek,xpt2046", nullptr },
     .start_device = start,
     .stop_device = stop,
-    .api = &xpt2046_pointer_api,
-    .device_type = &POINTER_TYPE,
+    .api = &xpt2046_touch_api,
+    .device_type = &TOUCH_TYPE,
     .internal = nullptr
 };

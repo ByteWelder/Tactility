@@ -8,7 +8,7 @@
 #include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/i2c_controller.h>
-#include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
 
@@ -130,7 +130,7 @@ static error_t stop(Device* device) {
 
 // endregion
 
-// region PointerApi
+// region TouchApi
 
 static error_t cst66xx_read_data(Device* device, TickType_t /*timeout*/) {
     auto* internal = static_cast<Cst66xxInternal*>(device_get_driver_data(device));
@@ -243,7 +243,7 @@ static error_t cst66xx_get_mirror_y(Device* device, bool* mirror) {
 
 // endregion
 
-static const PointerApi cst66xx_pointer_api = {
+static const TouchApi cst66xx_touch_api = {
     .enter_sleep = nullptr,
     .exit_sleep = nullptr,
     .read_data = cst66xx_read_data,
@@ -261,7 +261,7 @@ Driver cst66xx_driver = {
     .compatible = (const char*[]) { "hynitron,cst66xx", nullptr },
     .start_device = start,
     .stop_device = stop,
-    .api = &cst66xx_pointer_api,
-    .device_type = &POINTER_TYPE,
+    .api = &cst66xx_touch_api,
+    .device_type = &TOUCH_TYPE,
     .internal = nullptr
 };

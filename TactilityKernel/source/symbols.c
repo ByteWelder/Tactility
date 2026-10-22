@@ -37,6 +37,7 @@
 #include <tactility/drivers/sleep_controller.h>
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/drivers/mouse.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/drivers/usb_device_controller.h>
@@ -346,6 +347,18 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(spi_controller_lock_bus_of),
     DEFINE_MODULE_SYMBOL(spi_controller_unlock_bus_of),
     DEFINE_MODULE_SYMBOL(SPI_CONTROLLER_TYPE),
+    // drivers/touch
+    DEFINE_MODULE_SYMBOL(touch_enter_sleep),
+    DEFINE_MODULE_SYMBOL(touch_exit_sleep),
+    DEFINE_MODULE_SYMBOL(touch_read_data),
+    DEFINE_MODULE_SYMBOL(touch_get_touched_points),
+    DEFINE_MODULE_SYMBOL(touch_set_swap_xy),
+    DEFINE_MODULE_SYMBOL(touch_get_swap_xy),
+    DEFINE_MODULE_SYMBOL(touch_set_mirror_x),
+    DEFINE_MODULE_SYMBOL(touch_get_mirror_x),
+    DEFINE_MODULE_SYMBOL(touch_set_mirror_y),
+    DEFINE_MODULE_SYMBOL(touch_get_mirror_y),
+    DEFINE_MODULE_SYMBOL(TOUCH_TYPE),
     // drivers/trackball
     DEFINE_MODULE_SYMBOL(trackball_read_delta),
     DEFINE_MODULE_SYMBOL(trackball_get_button_pressed),

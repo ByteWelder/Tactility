@@ -13,7 +13,10 @@
 
 #include <tactility/check.h>
 #include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/log.h>
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 constexpr auto* TAG = "lvgl_toolbar";
 
@@ -125,7 +128,7 @@ lv_obj_t* lvgl_toolbar_create(lv_obj_t* parent, const char* title) {
     // If we don't have a touch device, we assume there's some other kind of input like a keyboard, an encoder or button control
     // In that scenario we want to automatically have the close button selected so the user doesn't have to press the widget selection
     // an extra time for every screen.
-    if (!device_has_active_by_type(&POINTER_TYPE)) {
+    if (!device_has_active_by_type(&POINTER_TYPE) && !device_has_active_by_type(&TOUCH_TYPE)) {
         lv_obj_update_layout(obj); // Resolve flex layout first, so focus/state invalidate against final coords
         lv_group_focus_obj(obj);
         lv_gridnav_set_focused(obj, toolbar->close_button, LV_ANIM_OFF);
