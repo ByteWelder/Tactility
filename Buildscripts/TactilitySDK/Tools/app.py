@@ -250,15 +250,19 @@ def validate_sdks(platforms, version):
         if not sdk_has_sdkconfig(version, platform):
             exit_with_error(f"SDK {version} for {platform} does not contain sdkconfig.app.{platform}, which this tool requires. Use a newer SDK version.")
 
+# Platforms that run on this computer (the simulator), named <os>-<architecture>, e.g. "linux-x86_64" or "macos-arm64"
+def is_host_platform(platform):
+    return platform.startswith(("linux-", "macos-"))
+
 def get_sdk_sdkconfig_path(version, platform):
     return os.path.join(get_sdk_dir(version, platform), f"sdkconfig.app.{platform}")
 
 # ESP32 SDKs built before the sdkconfig was bundled lack it and can't build apps. POSIX SDKs never need one.
 def sdk_has_sdkconfig(version, platform):
-    return platform.startswith("posix") or os.path.isfile(get_sdk_sdkconfig_path(version, platform))
+    return is_host_platform(platform) or os.path.isfile(get_sdk_sdkconfig_path(version, platform))
 
 def copy_sdk_sdkconfig(version, platform):
-    if platform.startswith("posix"):
+    if is_host_platform(platform):
         return
     sdkconfig_path = get_sdk_sdkconfig_path(version, platform)
     if not os.path.isfile(sdkconfig_path):
@@ -270,7 +274,7 @@ def copy_sdk_sdkconfig(version, platform):
 #region Validation
 
 def validate_environment(platforms):
-    if any(not platform.startswith("posix") for platform in platforms) and os.environ.get("IDF_PATH") is None:
+    if any(not is_host_platform(platform) for platform in platforms) and os.environ.get("IDF_PATH") is None:
         if sys.platform == "win32":
             exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via %IDF_PATH%\\export.ps1")
         else:
@@ -435,7 +439,7 @@ def find_elf_file(platform):
         return None
     # POSIX apps are dlopen()ed shared objects (app-posix-module), not idf.py/elf_loader
     # relocatable images, so they land as a plain ".so" instead of "*.app.elf".
-    suffix = ".so" if platform.startswith("posix") else ".app.elf"
+    suffix = ".so" if is_host_platform(platform) else ".app.elf"
     for file in os.listdir(cmake_dir):
         if file.endswith(suffix):
             return os.path.join(cmake_dir, file)
@@ -483,7 +487,7 @@ def build_posix(version, platform, skip_build):
 
 def build_all(version, platforms, skip_build):
     for platform in platforms:
-        if platform.startswith("posix"):
+        if is_host_platform(platform):
             if not build_posix(version, platform, skip_build):
                 return False
         # First build command must be "idf.py build", otherwise it fails to execute "idf.py elf"
@@ -601,7 +605,7 @@ def package_intermediate_manifest(target_path):
 def get_artifact_extension(platform):
     # POSIX apps are dlopen()ed shared objects (app-posix-module), not idf.py/elf_loader
     # relocatable images, so they land as a plain ".so" instead of ".elf".
-    return ".so" if platform.startswith("posix") else ".elf"
+    return ".so" if is_host_platform(platform) else ".elf"
 
 def package_intermediate_binaries(target_path, platforms, manifest):
     # Each binary is built in its own directory (get_binary_dirs()), with its own

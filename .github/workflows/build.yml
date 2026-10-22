@@ -31,7 +31,10 @@ jobs:
           board_id: ${{ matrix.board.id }}
           arch: ${{ matrix.board.arch }}
   BuildSdkPosix:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
         with:

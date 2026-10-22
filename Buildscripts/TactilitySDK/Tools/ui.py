@@ -186,7 +186,7 @@ class TactilityTUI(App):
                 yield self.list_view
                 
                 yield Label("\n⚙️ TARGET ARCH", classes="section_title")
-                yield Select([("Auto-detect (Manifest)", "auto"), ("ESP32", "esp32"), ("ESP32-C6", "esp32c6"), ("ESP32-P4", "esp32p4"), ("ESP32-S3", "esp32s3"), ("POSIX", "posix-x86_64")], value="auto", id="arch_selector")
+                yield Select([("Auto-detect (Manifest)", "auto"), ("ESP32", "esp32"), ("ESP32-C6", "esp32c6"), ("ESP32-P4", "esp32p4"), ("ESP32-S3", "esp32s3"), ("Linux", "linux-x86_64"), ("macOS", "macos-arm64")], value="auto", id="arch_selector")
 
                 yield Label("\n🛠️ BUILD MODIFIERS", classes="section_title")
                 yield Checkbox("Skip compiler steps", id="chk_skip_build")
