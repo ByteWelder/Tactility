@@ -15,10 +15,11 @@
 
 #include <cstring>
 
-constexpr auto* TAG = "esp32_ble_hid";
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/log.h>
+
+constexpr auto* TAG = "esp32_ble_hid";
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"

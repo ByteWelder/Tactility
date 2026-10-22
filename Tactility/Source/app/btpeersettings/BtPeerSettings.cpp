@@ -4,9 +4,10 @@
 #include <lvgl/widgets/toolbar.h>
 
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/bluetooth/Bluetooth.h>
-#include <Tactility/bluetooth/BluetoothPairedDevice.h>
 #include <Tactility/lvgl/Style.h>
+
+#include <bluetooth/bluetooth_paired_device.h>
+#include <bluetooth/bluetooth_service.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -21,6 +22,8 @@
 #include <tactility/drivers/bluetooth.h>
 #include <tactility/log.h>
 
+#include <cstring>
+
 namespace tt::app::btpeersettings {
 
 constexpr auto* TAG = "BtPeerSettings";
@@ -32,8 +35,8 @@ namespace {
 struct Context {
     uint32_t appInstanceId;
     std::string addrHex;
-    std::array<uint8_t, 6> addr = {};
-    int profileId = BT_PROFILE_HID_HOST;
+    BtAddr addr = {};
+    BtProfileId profile = BT_PROFILE_HID_HOST;
 
     lv_obj_t* connectButton = nullptr;
     lv_obj_t* disconnectButton = nullptr;
@@ -41,10 +44,19 @@ struct Context {
 
 
 bool isCurrentlyConnected(const Context* ctx) {
-    for (const auto& p : bluetooth::getPairedPeers()) {
-        if (p.addr == ctx->addr) return p.connected;
-    }
-    return false;
+    struct Query {
+        const uint8_t* addr;
+        bool connected;
+    } query = { ctx->addr, false };
+    bluetooth_service_for_each_paired_peer(&query, [](const BluetoothPeer* peer, void* context) {
+        auto* query = static_cast<Query*>(context);
+        if (memcmp(peer->addr, query->addr, BT_ADDR_LEN) != 0) {
+            return true;
+        }
+        query->connected = peer->connected;
+        return false;
+    });
+    return query.connected;
 }
 
 void updateViews(const Context* ctx) {
@@ -67,21 +79,13 @@ void onBtEvent(Context* ctx) {
 
 void onPressConnect(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    if (ctx->profileId == BT_PROFILE_HID_HOST) {
-        bluetooth::hidHostConnect(ctx->addr);
-    } else {
-        bluetooth::connect(ctx->addr, ctx->profileId);
-    }
+    bluetooth_service_connect(ctx->addr, ctx->profile);
     lv_obj_add_state(lv_event_get_target_obj(event), LV_STATE_DISABLED);
 }
 
 void onPressDisconnect(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    if (ctx->profileId == BT_PROFILE_HID_HOST) {
-        bluetooth::hidHostDisconnect();
-    } else {
-        bluetooth::disconnect(ctx->addr, ctx->profileId);
-    }
+    bluetooth_service_disconnect(ctx->addr, ctx->profile);
     lv_obj_add_state(lv_event_get_target_obj(event), LV_STATE_DISABLED);
 }
 
@@ -100,10 +104,10 @@ void onBackPressed(lv_event_t* event) {
 void onToggleAutoConnect(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     bool is_on = lv_obj_has_state(lv_event_get_target_obj(event), LV_STATE_CHECKED);
-    bluetooth::settings::PairedDevice device;
-    if (bluetooth::settings::load(ctx->addrHex, device)) {
-        device.autoConnect = is_on;
-        if (!bluetooth::settings::save(device)) {
+    BluetoothPairedDevice device;
+    if (bluetooth_paired_device_load(ctx->addr, &device) == ERROR_NONE) {
+        device.auto_connect = is_on;
+        if (bluetooth_paired_device_save(&device) != ERROR_NONE) {
             LOG_E(TAG, "Failed to save auto-connect setting");
         }
     }
@@ -112,9 +116,9 @@ void onToggleAutoConnect(lv_event_t* event) {
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
 
-    bluetooth::settings::PairedDevice device;
-    bool deviceLoaded = bluetooth::settings::load(ctx->addrHex, device);
-    std::string title = (deviceLoaded && !device.name.empty()) ? device.name : ctx->addrHex;
+    BluetoothPairedDevice device;
+    bool deviceLoaded = bluetooth_paired_device_load(ctx->addr, &device) == ERROR_NONE;
+    std::string title = (deviceLoaded && device.name[0] != '\0') ? device.name : ctx->addrHex;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
@@ -168,7 +172,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     auto* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
     lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, ctx);
 
-    if (deviceLoaded && device.autoConnect) {
+    if (deviceLoaded && device.auto_connect) {
         lv_obj_add_state(auto_connect_switch, LV_STATE_CHECKED);
     } else {
         lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
@@ -184,12 +188,9 @@ int32_t appMain(int argc, char* argv[]) {
     ctx.appInstanceId = appInstanceId;
     ctx.addrHex = (argc > 0) ? argv[0] : std::string();
 
-    // Load addr and profileId from stored settings - avoids manual hex parsing (std::stoul
-    // throws on invalid input and exceptions are disabled).
-    bluetooth::settings::PairedDevice device;
-    if (bluetooth::settings::load(ctx.addrHex, device)) {
-        ctx.addr = device.addr;
-        ctx.profileId = device.profileId;
+    BluetoothPairedDevice device;
+    if (bluetooth_hex_to_addr(ctx.addrHex.c_str(), ctx.addr) && bluetooth_paired_device_load(ctx.addr, &device) == ERROR_NONE) {
+        ctx.profile = static_cast<BtProfileId>(device.profile);
     }
 
 
@@ -223,13 +224,9 @@ int32_t appMain(int argc, char* argv[]) {
                 case APP_EVENT_RESULT:
                     if (event.result.result == 0) { // 0 = Yes
                         if (isCurrentlyConnected(&ctx)) {
-                            if (ctx.profileId == BT_PROFILE_HID_HOST) {
-                                bluetooth::hidHostDisconnect();
-                            } else {
-                                bluetooth::disconnect(ctx.addr, ctx.profileId);
-                            }
+                            bluetooth_service_disconnect(ctx.addr, ctx.profile);
                         }
-                        bluetooth::unpair(ctx.addr);
+                        bluetooth_service_unpair(ctx.addr);
                         shouldClose = true;
                     }
                     app_manager_stop(event.result.launch_id);

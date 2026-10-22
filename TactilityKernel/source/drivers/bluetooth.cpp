@@ -30,6 +30,17 @@ error_t bluetooth_set_radio_enabled(struct Device* device, bool enabled) {
     return BT_API(device)->set_radio_enabled(device, enabled);
 }
 
+bool bluetooth_is_radio_on_or_pending(struct Device* device) {
+    if (!device_is_ready(device)) {
+        return false;
+    }
+    enum BtRadioState state;
+    if (BT_API(device)->get_radio_state(device, &state) != ERROR_NONE) {
+        return false;
+    }
+    return state == BT_RADIO_STATE_ON || state == BT_RADIO_STATE_ON_PENDING;
+}
+
 error_t bluetooth_scan_start(struct Device* device) {
     return BT_API(device)->scan_start(device);
 }
@@ -123,16 +134,6 @@ error_t bluetooth_set_device_name(struct Device* device, const char* name) {
 
 error_t bluetooth_get_device_name(struct Device* device, char* buf, size_t buf_len) {
     return BT_API(device)->get_device_name(device, buf, buf_len);
-}
-
-// ---- HID host active flag ----
-
-void bluetooth_set_hid_host_active(struct Device* device, bool active) {
-    BT_API(device)->set_hid_host_active(device, active);
-}
-
-void bluetooth_fire_event(struct Device* device, struct BtEvent event) {
-    BT_API(device)->fire_event(device, event);
 }
 
 // ---- Device type ----

@@ -2,7 +2,6 @@
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
-#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -87,14 +86,13 @@ static const char* getWifiStatusIcon() {
 }
 
 // Only shown while the radio is on
-static const char* getBluetoothStatusIcon(tt::bluetooth::RadioState state, bool scanning, bool connected) {
+static const char* getBluetoothStatusIcon(BtRadioState state, bool scanning, bool connected) {
     switch (state) {
-        using enum tt::bluetooth::RadioState;
-        case Off:
-        case OffPending:
+        case BT_RADIO_STATE_OFF:
+        case BT_RADIO_STATE_OFF_PENDING:
             return nullptr;
-        case OnPending:
-        case On:
+        case BT_RADIO_STATE_ON_PENDING:
+        case BT_RADIO_STATE_ON:
             if (connected) return LVGL_ICON_STATUSBAR_BLUETOOTH_CONNECTED;
             if (scanning)  return LVGL_ICON_STATUSBAR_BLUETOOTH_SEARCHING;
             return LVGL_ICON_STATUSBAR_BLUETOOTH;
@@ -201,12 +199,13 @@ class StatusbarService final : public Service {
     }
 
     void updateBluetoothIcon() {
-        auto radio_state = bluetooth::getRadioState();
+        BtRadioState radio_state = BT_RADIO_STATE_OFF;
         bool scanning;
 
         {
             Device* btdev;
             if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &btdev) == ERROR_NONE) {
+                bluetooth_get_radio_state(btdev, &radio_state);
                 scanning = bluetooth_is_scanning(btdev);
                 device_put(btdev);
             } else {

@@ -4,7 +4,6 @@
 #include "./State.h"
 
 #include <Tactility/Mutex.h>
-#include <Tactility/bluetooth/Bluetooth.h>
 #include <tactility/drivers/bluetooth.h>
 
 namespace tt::app::btmanage {

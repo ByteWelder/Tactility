@@ -1,6 +1,5 @@
 #include <Tactility/app/boot/BootInit.h>
 
-#include "Tactility/bluetooth/Bluetooth.h"
 #include "Tactility/hal/SdCard.h"
 #include "Tactility/network/NtpPrivate.h"
 #include "Tactility/settings/TimePrivate.h"
@@ -218,9 +217,6 @@ bool bootInit(TickType_t startTime) {
 
     LOG_I(TAG, "Init NTP");
     network::ntp::init();
-
-    LOG_I(TAG, "Init BLE");
-    bluetooth::systemStart();
 
     LOG_I(TAG, "Init Services");
     registerAndStartServices();

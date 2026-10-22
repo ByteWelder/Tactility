@@ -324,6 +324,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_text_outline_stroke_color),
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_text_outline_stroke_opa),
     DEFINE_MODULE_SYMBOL(lv_obj_set_style_text_outline_stroke_width),
+    DEFINE_MODULE_SYMBOL(lv_obj_set_style_transform_width),
     DEFINE_MODULE_SYMBOL(lv_obj_set_user_data),
     DEFINE_MODULE_SYMBOL(lv_obj_set_align),
     DEFINE_MODULE_SYMBOL(lv_obj_set_x),
@@ -641,10 +642,18 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_free),
     DEFINE_MODULE_SYMBOL(lv_malloc),
     // lv_draw
+    DEFINE_MODULE_SYMBOL(lv_draw_buf_create),
+    DEFINE_MODULE_SYMBOL(lv_draw_fill),
+    DEFINE_MODULE_SYMBOL(lv_draw_fill_dsc_init),
+    DEFINE_MODULE_SYMBOL(lv_draw_label),
+    DEFINE_MODULE_SYMBOL(lv_draw_label_dsc_init),
+    DEFINE_MODULE_SYMBOL(lv_draw_line),
+    DEFINE_MODULE_SYMBOL(lv_draw_line_dsc_init),
+    DEFINE_MODULE_SYMBOL(lv_draw_rect),
+    DEFINE_MODULE_SYMBOL(lv_draw_rect_dsc_init),
     DEFINE_MODULE_SYMBOL(lv_draw_task_get_draw_dsc),
     DEFINE_MODULE_SYMBOL(lv_draw_task_get_label_dsc),
     DEFINE_MODULE_SYMBOL(lv_draw_task_get_fill_dsc),
-    DEFINE_MODULE_SYMBOL(lv_draw_buf_create),
     // lv_image
     DEFINE_MODULE_SYMBOL(lv_image_create),
     DEFINE_MODULE_SYMBOL(lv_image_set_src),
@@ -676,12 +685,6 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_binfont_destroy),
     // lv_style_gen
     DEFINE_MODULE_SYMBOL(lv_style_set_text_font),
-    // lv_draw_line
-    DEFINE_MODULE_SYMBOL(lv_draw_line),
-    DEFINE_MODULE_SYMBOL(lv_draw_line_dsc_init),
-    // lv_draw_rect
-    DEFINE_MODULE_SYMBOL(lv_draw_fill),
-    DEFINE_MODULE_SYMBOL(lv_draw_fill_dsc_init),
     // lv_area
     DEFINE_MODULE_SYMBOL(lv_area_get_width),
     DEFINE_MODULE_SYMBOL(lv_area_get_height),

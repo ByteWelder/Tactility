@@ -36,6 +36,7 @@
 #include <tactility/drivers/sdcard.h>
 #include <tactility/drivers/sleep_controller.h>
 #include <tactility/drivers/spi_controller.h>
+#include <tactility/drivers/mouse.h>
 #include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/drivers/usb_device_controller.h>
@@ -333,6 +334,11 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     // drivers/sleep_controller
     DEFINE_MODULE_SYMBOL(sleep_controller_deep_sleep),
     DEFINE_MODULE_SYMBOL(SLEEP_CONTROLLER_TYPE),
+    // drivers/mouse
+    DEFINE_MODULE_SYMBOL(mouse_read_delta),
+    DEFINE_MODULE_SYMBOL(mouse_get_button_count),
+    DEFINE_MODULE_SYMBOL(mouse_get_button_pressed),
+    DEFINE_MODULE_SYMBOL(MOUSE_TYPE),
     // drivers/spi_controller
     DEFINE_MODULE_SYMBOL(spi_controller_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_try_lock),
@@ -362,6 +368,7 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(bluetooth_find_first_ready_device),
     DEFINE_MODULE_SYMBOL(bluetooth_get_radio_state),
     DEFINE_MODULE_SYMBOL(bluetooth_set_radio_enabled),
+    DEFINE_MODULE_SYMBOL(bluetooth_is_radio_on_or_pending),
     DEFINE_MODULE_SYMBOL(bluetooth_scan_start),
     DEFINE_MODULE_SYMBOL(bluetooth_scan_stop),
     DEFINE_MODULE_SYMBOL(bluetooth_is_scanning),
@@ -375,8 +382,6 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(bluetooth_event_poll),
     DEFINE_MODULE_SYMBOL(bluetooth_set_device_name),
     DEFINE_MODULE_SYMBOL(bluetooth_get_device_name),
-    DEFINE_MODULE_SYMBOL(bluetooth_set_hid_host_active),
-    DEFINE_MODULE_SYMBOL(bluetooth_fire_event),
     DEFINE_MODULE_SYMBOL(BLUETOOTH_TYPE),
     // drivers/bluetooth_serial
     DEFINE_MODULE_SYMBOL(bluetooth_serial_get),

@@ -136,7 +136,7 @@ struct BtEvent {
     };
 };
 
-/** Number of events a BtEventSubscription can hold before bluetooth_fire_event() starts dropping
+/** Number of events a BtEventSubscription can hold before the driver starts dropping
  * the newest event for it (still delivered to any other matching subscription). Generous: a
  * device fires these serially, one at a time, not in genuinely concurrent bursts. */
 #define BT_EVENT_QUEUE_CAPACITY 4
@@ -157,7 +157,7 @@ struct BtEventSubscription {
     struct {
         /** Caller-owned, borrowed; set by bluetooth_event_subscribe(). */
         struct TaskEventGroup* event_group;
-        /** Guards `queue`/`head`/`count`/`closed` between bluetooth_fire_event() (driver thread)
+        /** Guards `queue`/`head`/`count`/`closed` between the driver publishing events (driver thread)
          * and bluetooth_event_poll() (caller's thread) - the two live in different translation
          * units with no other shared lock. */
         struct Mutex ring_mutex;
@@ -302,22 +302,6 @@ struct BluetoothApi {
      * @return ERROR_NONE on success
      */
     error_t (*get_device_name)(struct Device* device, char* buf, size_t buf_len);
-
-    /**
-     * Notify the driver that a HID host connection is in progress or complete.
-     * Called by the Tactility HID host module to prevent name resolution from
-     * initiating a simultaneous central connection (BLE_HS_EALREADY).
-     * @param[in] device the bluetooth device
-     * @param[in] active true when HID host is connecting/connected, false when idle
-     */
-    void (*set_hid_host_active)(struct Device* device, bool active);
-
-    /**
-     * Fire an event to all registered subscriptions.
-     * Used by the Tactility HID host module to inject profile-state events that
-     * originate outside the platform driver (e.g. HID host connect/disconnect).
-     */
-    void (*fire_event)(struct Device* device, struct BtEvent event);
 };
 
 extern const struct DeviceType BLUETOOTH_TYPE;
@@ -336,6 +320,8 @@ struct Device* bluetooth_find_first_ready_device(void);
 
 error_t bluetooth_get_radio_state(struct Device* device, enum BtRadioState* state);
 error_t bluetooth_set_radio_enabled(struct Device* device, bool enabled);
+/** @return true when the radio is on or turning on */
+bool    bluetooth_is_radio_on_or_pending(struct Device* device);
 error_t bluetooth_scan_start(struct Device* device);
 error_t bluetooth_scan_stop(struct Device* device);
 bool    bluetooth_is_scanning(struct Device* device);
@@ -346,8 +332,6 @@ error_t bluetooth_connect(struct Device* device, const BtAddr addr, enum BtProfi
 error_t bluetooth_disconnect(struct Device* device, const BtAddr addr, enum BtProfileId profile);
 error_t bluetooth_set_device_name(struct Device* device, const char* name);
 error_t bluetooth_get_device_name(struct Device* device, char* buf, size_t buf_len);
-void    bluetooth_set_hid_host_active(struct Device* device, bool active);
-void    bluetooth_fire_event(struct Device* device, struct BtEvent event);
 
 /**
  * Register a subscription for @a device's BtEvents.
