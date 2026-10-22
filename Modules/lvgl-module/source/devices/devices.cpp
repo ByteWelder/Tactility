@@ -3,7 +3,6 @@
 #include <lvgl/devices/keyboard.h>
 #include <lvgl/devices/mouse.h>
 #include <lvgl/devices/pointer.h>
-#include <lvgl/devices/trackball.h>
 #include <lvgl/lvgl.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
@@ -13,7 +12,6 @@
 #include <tactility/drivers/mouse.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/drivers/touch.h>
-#include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
 
 #include <tactility/Memory.hpp>
@@ -308,18 +306,6 @@ void lvgl_devices_attach() {
         }
     }
 
-    struct Device* kernel_trackball_device = NULL;
-    device_get_first_by_type(&TRACKBALL_TYPE, &kernel_trackball_device);
-    if (kernel_trackball_device != NULL) {
-        lv_indev_t* lvgl_trackball_device;
-        if (lvgl_trackball_add(kernel_trackball_device, lvgl_display, &lvgl_trackball_device) == ERROR_NONE) {
-            LOG_I(TAG, "Bound %s to LVGL", kernel_trackball_device->name);
-        } else {
-            LOG_E(TAG, "Failed to bind %s to LVGL", kernel_trackball_device->name);
-        }
-        device_put(kernel_trackball_device);
-    }
-
     devices_attached = true;
     device_listener_add(lvgl_device_listener, NULL);
 
@@ -339,14 +325,10 @@ void lvgl_devices_detach() {
             bool handled = false;
             void* driver_data = lv_indev_get_driver_data(indev);
             if (driver_data != nullptr) {
-                // Trackball is a special pointer type as it can operate as a mouse or as a device that changes widget focus.
                 LvglDeviceContext* context = static_cast<LvglDeviceContext*>(driver_data);
                 if (context->device != nullptr) {
                     const DeviceType* device_type = device_get_type(context->device);
-                    if (device_type == &TRACKBALL_TYPE) {
-                        lvgl_trackball_remove(indev);
-                        handled = true;
-                    } else if (device_type == &POINTER_TYPE || device_type == &TOUCH_TYPE) {
+                    if (device_type == &POINTER_TYPE || device_type == &TOUCH_TYPE) {
                         lvgl_pointer_remove(indev);
                         handled = true;
                     } else if (device_type == &MOUSE_TYPE) {

@@ -64,6 +64,8 @@
 #include <tactility/log.h>
 #endif
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 /**
  * This file is a C file instead of C++, so we can import all headers as C code.
  * The intent is to catch errors that only show up when compiling as C and not as C++.
@@ -362,6 +364,9 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     // drivers/trackball
     DEFINE_MODULE_SYMBOL(trackball_read_delta),
     DEFINE_MODULE_SYMBOL(trackball_get_button_pressed),
+    DEFINE_MODULE_SYMBOL(trackball_set_settings),
+    DEFINE_MODULE_SYMBOL(trackball_get_settings),
+    DEFINE_MODULE_SYMBOL(trackball_settings_get_default),
     DEFINE_MODULE_SYMBOL(TRACKBALL_TYPE),
     // drivers/uart_controller
     DEFINE_MODULE_SYMBOL(uart_controller_open),
