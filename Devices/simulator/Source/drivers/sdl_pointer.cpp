@@ -3,7 +3,7 @@
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
-#include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/module.h>
 
 // region Driver lifecycle
@@ -13,7 +13,7 @@ static error_t stop(Device*) { return ERROR_NONE; }
 
 // endregion
 
-// region PointerApi
+// region TouchApi
 
 static error_t sdl_pointer_read_data(Device*, TickType_t) {
     return ERROR_NONE;
@@ -39,7 +39,7 @@ static bool sdl_pointer_get_touched_points(Device*, uint16_t* x, uint16_t* y, ui
 
 // endregion
 
-static const PointerApi sdl_pointer_api = {
+static const TouchApi sdl_touch_api = {
     .enter_sleep = nullptr,
     .exit_sleep = nullptr,
     .read_data = sdl_pointer_read_data,
@@ -60,7 +60,7 @@ Driver sdl_pointer_driver = {
     .start_device = start,
     .stop_device = stop,
     .probe = nullptr,
-    .api = &sdl_pointer_api,
-    .device_type = &POINTER_TYPE,
+    .api = &sdl_touch_api,
+    .device_type = &TOUCH_TYPE,
     .internal = nullptr,
 };

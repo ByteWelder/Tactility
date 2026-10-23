@@ -1,7 +1,5 @@
 #include <lvgl.h>
 
-#include <lvgl/devices/device_context.h>
-#include <lvgl/devices/trackball.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/grid_navigation.h>
 #include <lvgl/widgets/card.h>
@@ -30,45 +28,25 @@ extern const ::AppManifest manifest;
 constexpr auto* TAG = "TrackballSettings";
 
 struct ModeOption {
-    LvglTrackballMode mode;
+    TrackballMode mode;
     const char* name;
 };
 
 // The order of the mode chips
 constexpr ModeOption MODE_OPTIONS[] = {
-    { LVGL_TRACKBALL_MODE_KEYS, "Keys" },
-    { LVGL_TRACKBALL_MODE_POINTER, "Pointer" },
+    { TRACKBALL_MODE_KEYBOARD, "Keys" },
+    { TRACKBALL_MODE_MOUSE, "Pointer" },
 };
-
-static lv_indev_t* findFirstTrackballIndev() {
-    lv_indev_t* indev = lv_indev_get_next(nullptr);
-    while (indev != nullptr) {
-        void* driver_data = lv_indev_get_driver_data(indev);
-        if (driver_data) {
-            LvglDeviceContext* context = static_cast<LvglDeviceContext*>(driver_data);
-            if (context->device) {
-                const DeviceType* device_type = device_get_type(context->device);
-                if (device_type == &TRACKBALL_TYPE) {
-                    return indev;
-                }
-            }
-        }
-
-        indev = lv_indev_get_next(indev);
-    }
-    return nullptr;
-}
 
 namespace {
 
 struct Context {
     uint32_t appInstanceId;
-    LvglTrackballSettings tbSettings;
+    TrackballSettings tbSettings;
     bool updated = false;
-    // The trackball indev currently bound by lvgl_devices_attach() at LVGL startup, if any -
-    // there's at most one at a time (see devices.c), so "first active trackball device" reduces
-    // to whatever is already attached.
-    lv_indev_t* trackballIndev = nullptr;
+    Device* trackball = nullptr;
+    TaskEventGroup* eventGroup = nullptr;
+    uint32_t applyBit = 0;
     lv_obj_t* switchTrackball = nullptr;
     // Shown while the trackball is enabled
     lv_obj_t* settingsCard = nullptr;
@@ -87,16 +65,9 @@ void onBackPressed(lv_event_t* event) {
     app_event_emit_close(ctx->appInstanceId);
 }
 
+/** Applies the settings on the app's task: changing the mode replaces the trackball's child device, which can be the device that sent the event. */
 void applyLive(Context* ctx) {
-    if (ctx->trackballIndev == nullptr) {
-        return;
-    }
-    lvgl_lock();
-    lvgl_trackball_set_settings(ctx->trackballIndev, &ctx->tbSettings);
-    if (ctx->tbSettings.mode == LVGL_TRACKBALL_MODE_POINTER) {
-        lvgl_trackball_set_cursor_image(ctx->trackballIndev, lvgl_get_cursor_image());
-    }
-    lvgl_unlock();
+    task_event_group_signal(ctx->eventGroup, ctx->applyBit);
 }
 
 /** Shows the settings of the enabled trackball and its mode */
@@ -106,8 +77,8 @@ void updateWidgets(Context* ctx) {
     for (uint32_t i = 0; i < chip_count; i++) {
         lv_obj_set_state(lv_obj_get_child(ctx->modeChips, static_cast<int32_t>(i)), LV_STATE_CHECKED, MODE_OPTIONS[i].mode == ctx->tbSettings.mode);
     }
-    lv_obj_set_hidden(ctx->keySensitivityGroup, ctx->tbSettings.mode != LVGL_TRACKBALL_MODE_KEYS);
-    lv_obj_set_hidden(ctx->pointerSensitivityGroup, ctx->tbSettings.mode != LVGL_TRACKBALL_MODE_POINTER);
+    lv_obj_set_hidden(ctx->keySensitivityGroup, ctx->tbSettings.mode != TRACKBALL_MODE_KEYBOARD);
+    lv_obj_set_hidden(ctx->pointerSensitivityGroup, ctx->tbSettings.mode != TRACKBALL_MODE_MOUSE);
 }
 
 void onTrackballSwitch(lv_event_t* e) {
@@ -168,9 +139,6 @@ lv_obj_t* createSpeedGroup(lv_obj_t* parent, const char* title, int32_t value, l
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
 
-    ctx->tbSettings = settings::trackball::loadOrGetDefault();
-    ctx->updated = false;
-    ctx->trackballIndev = findFirstTrackballIndev();
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
@@ -179,7 +147,7 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     // The global toolbar nav callback only knows how to stop old-model apps.
     lvgl_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, onBackPressed, ctx);
 
-    if (ctx->trackballIndev == nullptr) {
+    if (ctx->trackball == nullptr) {
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_width(wrapper, LV_PCT(100));
@@ -190,11 +158,6 @@ void createWidgets(lv_obj_t* parent, void* userData) {
         lv_label_set_text(lv_label_create(card), "No trackball device found.");
         return;
     }
-
-    // The live indev may still be running with lvgl_trackball_settings_get_default() (it's
-    // bound at LVGL startup before persisted settings are known) - bring it in line with what
-    // this screen is about to display.
-    applyLive(ctx);
 
     ctx->switchTrackball = lvgl_toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(ctx->switchTrackball, onTrackballSwitch, LV_EVENT_VALUE_CHANGED, ctx);
@@ -253,6 +216,16 @@ int32_t appMain(int argc, char* argv[]) {
 
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
+    ctx.eventGroup = &event_group;
+    check(task_event_group_claim_bit(&event_group, &ctx.applyBit) == ERROR_NONE);
+
+    if (device_get_first_active_by_type(&TRACKBALL_TYPE, &ctx.trackball) != ERROR_NONE) {
+        ctx.trackball = nullptr;
+    }
+    // The active settings are the stored ones, or the defaults of the devicetree
+    if (ctx.trackball == nullptr || trackball_get_settings(ctx.trackball, &ctx.tbSettings) != ERROR_NONE) {
+        ctx.tbSettings = trackball_settings_get_default();
+    }
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
@@ -261,7 +234,13 @@ int32_t appMain(int argc, char* argv[]) {
 
     bool shouldClose = false;
     while (!shouldClose) {
-        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+        uint32_t flags = 0;
+        task_event_group_wait_any(&event_group, &flags, portMAX_DELAY);
+
+        if ((flags & ctx.applyBit) && ctx.trackball != nullptr) {
+            const TrackballSettings settings = ctx.tbSettings;
+            trackball_set_settings(ctx.trackball, &settings);
+        }
 
         AppEvent event {};
         while (app_event_poll(&sub, &event) == ERROR_NONE) {
@@ -278,6 +257,9 @@ int32_t appMain(int argc, char* argv[]) {
     }
 
     window_manager_remove(window);
+    if (ctx.trackball != nullptr) {
+        device_put(ctx.trackball);
+    }
     check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 

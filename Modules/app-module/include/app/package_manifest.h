@@ -68,7 +68,7 @@ struct PackageManifest {
 };
 
 /** Pairs a parsed AppManifest with the filename (without extension) it installs as under
- * bin/<platform>/ - e.g. "main" resolves to bin/posix-x86_64/main.so. Not kept anywhere at
+ * bin/<platform>/ - e.g. "main" resolves to bin/linux-x86_64/main.so. Not kept anywhere at
  * runtime - same lifetime as PackageManifest, only used to hand parse results to the installer/
  * scanner, which resolve `binary` into AppManifest::location::location. */
 struct AppManifestBinding {

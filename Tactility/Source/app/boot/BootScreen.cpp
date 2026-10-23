@@ -12,7 +12,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/keyboard.h>
-#include <tactility/drivers/pointer.h>
+#include <tactility/drivers/touch.h>
 #include <tactility/log.h>
 
 #include <algorithm>
@@ -295,7 +295,7 @@ std::string getInputPrompt(const std::string& action) {
     }
 
     Device* pointer = nullptr;
-    if (device_get_first_active_by_type(&POINTER_TYPE, &pointer) == ERROR_NONE) {
+    if (device_get_first_active_by_type(&TOUCH_TYPE, &pointer) == ERROR_NONE) {
         device_put(pointer);
         return "Touch the screen to " + action;
     }
@@ -312,7 +312,7 @@ void waitForInput() {
     }
 
     Device* pointer = nullptr;
-    if (device_get_first_active_by_type(&POINTER_TYPE, &pointer) != ERROR_NONE) {
+    if (device_get_first_active_by_type(&TOUCH_TYPE, &pointer) != ERROR_NONE) {
         pointer = nullptr;
     }
 
@@ -332,10 +332,10 @@ void waitForInput() {
             }
         }
 
-        if (pointer != nullptr && !done && pointer_read_data(pointer, 0) == ERROR_NONE) {
+        if (pointer != nullptr && !done && touch_read_data(pointer, 0) == ERROR_NONE) {
             uint16_t x, y, strength;
             uint8_t point_count = 0;
-            const bool touched = pointer_get_touched_points(pointer, &x, &y, &strength, &point_count, 1) && point_count > 0;
+            const bool touched = touch_get_touched_points(pointer, &x, &y, &strength, &point_count, 1) && point_count > 0;
             if (!touched) {
                 pointer_released = true;
             } else if (pointer_released) {

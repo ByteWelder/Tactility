@@ -7,7 +7,6 @@
 
 ## Higher Priority
 
-- Start with rename of pointer driver to touch driver. Deprecate pointer driver.
 - GPIO app: fix for monochrome display by using filled vs outline box in secondary colour
 - BlueTooth as radio backend for MeshCore/Meshtastic?
 - Find out why the first build of an app with a clean build cache folder always fails

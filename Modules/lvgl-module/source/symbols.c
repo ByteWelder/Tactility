@@ -8,7 +8,6 @@
 #include <lvgl/devices/indev.h>
 #include <lvgl/devices/keyboard.h>
 #include <lvgl/devices/pointer.h>
-#include <lvgl/devices/trackball.h>
 
 #include <lvgl/widgets/sliderbox.h>
 #include <lvgl/grid_navigation.h>
@@ -95,13 +94,6 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_pointer_add),
     DEFINE_MODULE_SYMBOL(lvgl_pointer_get_slot_index),
     DEFINE_MODULE_SYMBOL(lvgl_pointer_remove),
-    // lvgl_trackball
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_add),
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_remove),
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_get_settings),
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_set_settings),
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_settings_get_default),
-    DEFINE_MODULE_SYMBOL(lvgl_trackball_set_cursor_image),
     // lvgl_ppa
     DEFINE_MODULE_SYMBOL(lvgl_ppa_is_supported),
     DEFINE_MODULE_SYMBOL(lvgl_ppa_supports_color_format),
@@ -537,6 +529,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lv_palette_lighten),
     // lv_display
     DEFINE_MODULE_SYMBOL(lv_display_get_default),
+    DEFINE_MODULE_SYMBOL(lv_display_get_dpi),
     DEFINE_MODULE_SYMBOL(lv_display_get_horizontal_resolution),
     DEFINE_MODULE_SYMBOL(lv_display_get_vertical_resolution),
     DEFINE_MODULE_SYMBOL(lv_display_get_physical_horizontal_resolution),

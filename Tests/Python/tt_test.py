@@ -6,6 +6,7 @@ import http.server
 import io
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -489,6 +490,84 @@ class TtTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("command not found", result.stderr)
         self.assertNotIn("_bootstrap", self.run_tt("help").stdout)
+
+    def publish_simulator(self, simulator_platform, sha256=None):
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as zip_file:
+            zip_file.writestr("Tactility", "#!/bin/sh\necho simulator \"$@\"\n")
+        content = archive.getvalue()
+        version_directory = os.path.join(self.cdn, "sdk", VERSION)
+        file_name = f"Simulator-{simulator_platform}.zip"
+        with open(os.path.join(version_directory, file_name), "wb") as file:
+            file.write(content)
+        index_path = os.path.join(version_directory, "index.json")
+        with open(index_path) as file:
+            index = json.load(file)
+        index["simulators"] = {simulator_platform: {"file": file_name, "sha256": sha256 or hashlib.sha256(content).hexdigest()}}
+        with open(index_path, "w") as file:
+            json.dump(index, file)
+
+    @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
+    def test_simulator_downloads_and_runs_the_simulator_of_this_computer(self):
+        host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator(host_platform)
+        self.write_manifest(self.work)
+        result = self.run_tt("simulator", "a", "b")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "simulator a b")
+        self.assertTrue(os.path.isfile(self.sdk_path(f"simulator-{host_platform}", "Tactility")))
+        self.assertIn("Downloading the simulator", result.stderr)
+        # An installed simulator of the current build isn't downloaded again
+        result = self.run_tt("simulator")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("Downloading the simulator", result.stderr)
+
+    @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
+    def test_installed_simulator_runs_offline(self):
+        host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator(host_platform)
+        self.write_manifest(self.work)
+        self.assertEqual(self.run_tt("simulator").returncode, 0)
+        shutil.rmtree(self.cdn)
+        self.expire_index()
+        result = self.run_tt("simulator", "a")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "simulator a")
+
+    @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
+    def test_installed_simulator_runs_when_the_download_fails(self):
+        host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator(host_platform)
+        self.write_manifest(self.work)
+        self.assertEqual(self.run_tt("simulator").returncode, 0)
+        with open(self.sdk_path(f"simulator-{host_platform}", "commit"), "w") as file:
+            file.write("older")
+        os.remove(os.path.join(self.cdn, "sdk", VERSION, f"Simulator-{host_platform}.zip"))
+        result = self.run_tt("simulator", "a")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "simulator a")
+
+    @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
+    def test_simulator_refuses_a_download_that_doesnt_match_its_checksum(self):
+        host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator(host_platform, sha256="0" * 64)
+        self.write_manifest(self.work)
+        result = self.run_tt("simulator")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("checksum", result.stderr)
+        self.assertFalse(os.path.exists(self.sdk_path(f"simulator-{host_platform}")))
+
+    def test_simulator_reports_a_missing_platform(self):
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator("other-platform")
+        self.write_manifest(self.work)
+        result = self.run_tt("simulator")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("other-platform", result.stderr)
 
 
 if __name__ == "__main__":

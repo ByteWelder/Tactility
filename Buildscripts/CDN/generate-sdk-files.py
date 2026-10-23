@@ -21,6 +21,7 @@ class SdkIndex:
     platforms: dict
     tools: dict
     newProject: dict
+    simulators: dict
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -60,6 +61,16 @@ def create_tools_bundle(out_path: str):
         sha256 = hashlib.sha256(archive.read()).hexdigest()
     return {"file": "tools.zip", "sha256": sha256}
 
+def add_simulator(in_path: str, out_path: str, artifact_directory: str, sdk_index: SdkIndex):
+    """Archives a simulator build, named <os>-<architecture> like the SDK platforms, e.g. Simulator-linux-x86_64"""
+    simulator_platform = artifact_directory.removeprefix("Simulator-")
+    if VERBOSE:
+        print(f"Archiving {in_path}/{artifact_directory} to {out_path}/{artifact_directory}.zip")
+    archive_path = shutil.make_archive(os.path.join(out_path, artifact_directory), 'zip', os.path.join(in_path, artifact_directory))
+    with open(archive_path, "rb") as archive:
+        sha256 = hashlib.sha256(archive.read()).hexdigest()
+    sdk_index.simulators[simulator_platform] = {"file": f"{artifact_directory}.zip", "sha256": sha256}
+
 def main(in_path: str, out_path: str, version: str):
     if not os.path.exists(in_path):
         exit_with_error(f"Input path not found: {in_path}")
@@ -73,11 +84,15 @@ def main(in_path: str, out_path: str, version: str):
         gitCommit=get_git_commit_hash(),
         platforms={},
         tools=create_tools_bundle(out_path),
-        newProject=create_new_project_zip(out_path)
+        newProject=create_new_project_zip(out_path),
+        simulators={}
     )
     for artifact_directory in artifact_directories:
         if VERBOSE:
             print(f"Processing {in_path}/{artifact_directory}")
+        if artifact_directory.startswith("Simulator-"):
+            add_simulator(in_path, out_path, artifact_directory, sdk_index)
+            continue
         if not artifact_directory.startswith("TactilitySDK-"):
             continue
         sdk_platform = artifact_directory.removeprefix("TactilitySDK-")

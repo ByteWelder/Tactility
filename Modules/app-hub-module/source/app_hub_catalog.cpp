@@ -324,7 +324,7 @@ const char* app_hub_catalog_get_platform() {
     return CONFIG_IDF_TARGET;
 #else
     // Same name as the folder of the app binary that the POSIX app loader looks for
-    return "posix-" TACTILITY_POSIX_ARCH;
+    return TACTILITY_POSIX_PLATFORM;
 #endif
 }
 
