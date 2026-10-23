@@ -396,7 +396,9 @@ static error_t hid_device_start(struct Device* device, enum BtHidDeviceMode mode
     }
     // The radio may already be on under another app's identity. Prepare the GAP first, then
     // make this app's identity the active one when the radio is idle.
-    ble_prepare_profile_start(device);
+    if (!ble_prepare_profile_start(device)) {
+        return ERROR_INVALID_STATE;
+    }
     ble_identity_apply_pending(device);
     // Leftover context from a session that ended with the radio being disabled.
     BleHidDeviceCtx* old_ctx = (BleHidDeviceCtx*)device_get_driver_data(device);

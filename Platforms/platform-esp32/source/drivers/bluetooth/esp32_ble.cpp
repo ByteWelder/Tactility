@@ -677,22 +677,32 @@ static uint8_t advertising_addr_type(struct Device* device) {
 // One scan response holds a single name field: 31-byte payload minus the length and type bytes.
 constexpr uint8_t SCAN_RSP_NAME_MAX = 29;
 
+/** Longest prefix of @a name that fits in @a max_len bytes without splitting a UTF-8 character. */
+static uint8_t utf8_prefix_length(const char* name, uint8_t max_len) {
+    size_t len = strlen(name);
+    if (len <= max_len) return (uint8_t)len;
+    len = max_len;
+    // The first excluded byte must not be a continuation byte.
+    while (len > 0 && (static_cast<uint8_t>(name[len]) & 0xC0) == 0x80) {
+        --len;
+    }
+    return (uint8_t)len;
+}
+
 /**
  * Put the complete device name in the scan response. A name too long for one response is
  * truncated and marked as a shortened name, otherwise the device would advertise without one.
  */
 static void set_scan_response_name(const char* name) {
-    uint8_t name_len = (uint8_t)strlen(name);
     struct ble_hs_adv_fields rsp;
     memset(&rsp, 0, sizeof(rsp));
     rsp.name             = (const uint8_t*)name;
-    rsp.name_len         = name_len;
+    rsp.name_len         = (uint8_t)strlen(name);
     rsp.name_is_complete = 1;
     int rc = ble_gap_adv_rsp_set_fields(&rsp);
     if (rc == 0) return;
 
-    if (name_len > SCAN_RSP_NAME_MAX) name_len = SCAN_RSP_NAME_MAX;
-    rsp.name_len         = name_len;
+    rsp.name_len         = utf8_prefix_length(name, SCAN_RSP_NAME_MAX);
     rsp.name_is_complete = 0;
     rc = ble_gap_adv_rsp_set_fields(&rsp);
     if (rc != 0) {
