@@ -305,6 +305,17 @@ class TtTest(unittest.TestCase):
             with open(self.sdk_path(f"platform-{platform}", "commit")) as file:
                 self.assertEqual(file.read(), "commit2", platform)
 
+    def test_requested_platform_that_the_index_no_longer_has_is_refused(self):
+        self.publish_sdk(self.default_tools(), platforms=("posix", "esp32"))
+        self.write_manifest(self.work, platforms="posix")
+        self.assertEqual(self.run_tt("echo").returncode, 3)
+        self.publish_sdk(self.default_tools(), commit="commit2", sdk_content="# sdk 2", platforms=("esp32", "other"))
+        self.expire_index()
+        self.write_manifest(self.work, platforms="posix,other")
+        result = self.run_tt("echo")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("platform posix is not available", result.stderr)
+
     def test_failed_update_sdk_keeps_the_installed_build(self):
         self.write_manifest(self.work)
         self.assertEqual(self.run_tt("echo").returncode, 3)
