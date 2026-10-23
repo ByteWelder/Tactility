@@ -167,6 +167,9 @@ static void midi_keepalive_cb(void* arg) {
 // All functions receive the midi child Device*.
 
 static error_t midi_start(struct Device* device) {
+    // The radio may already be on under another app's identity (system Bluetooth on).
+    ble_prepare_profile_start(device);
+    ble_identity_apply_pending(device);
     // gap_mutex (not radio_mutex - see BleCtx::gap_mutex's comment) serializes this GAP sequence
     // against on_sync()'s own advertising decision and hid/spp's start/stop.
     BleCtx* root_ctx = ble_get_ctx(device);

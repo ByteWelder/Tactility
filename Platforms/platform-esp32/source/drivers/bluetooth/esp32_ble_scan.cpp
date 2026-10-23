@@ -23,6 +23,30 @@ static BleCtx* s_scan_ctx = nullptr;
 
 // ---- Scan data helpers ----
 
+/** Clears the scan-active flag and notifies subscribers, once. */
+static void finish_scan_events(struct Device* device) {
+    if (!ble_get_scan_active(device)) return;
+    ble_set_scan_active(device, false);
+    struct BtEvent e = {};
+    e.type = BT_EVENT_SCAN_FINISHED;
+    ble_publish_event(device, e);
+}
+
+void ble_scan_abort(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
+    // Blocks the DISC_COMPLETE handler and the resolution chain from starting a replacement
+    // connection after the cancels below.
+    ctx->name_res_abort.store(true);
+    if (ble_gap_disc_active()) {
+        ble_gap_disc_cancel();
+    }
+    if (ble_gap_conn_active()) {
+        // The cancel completes on the host task, ble_prepare_profile_start() waits for it.
+        ble_gap_conn_cancel();
+    }
+    finish_scan_events(device);
+}
+
 void ble_scan_clear_results(struct Device* device) {
     BleCtx* ctx = ble_get_ctx(device);
     xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
@@ -90,9 +114,13 @@ int ble_gap_disc_event_handler(struct ble_gap_event* event, void* arg) {
 
         case BLE_GAP_EVENT_DISC_COMPLETE:
             LOG_I(TAG, "Scan complete (reason=%d)", event->disc_complete.reason);
-            // Keep scan_active=true; resolveNextUnnamedPeer clears it and fires ScanFinished
-            // once name resolution finishes, so the UI spinner stays active throughout.
-            ble_resolve_next_unnamed_peer(device, 0);
+            // scan_active stays true until name resolution finishes, so the UI spinner keeps
+            // running. A scan aborted for a profile start skips resolution.
+            if (ctx->name_res_abort.load()) {
+                finish_scan_events(device);
+            } else {
+                ble_resolve_next_unnamed_peer(device, 0);
+            }
             break;
 
         default:
@@ -182,15 +210,18 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
     BleCtx* ctx = ble_get_ctx(device);
     s_scan_ctx = ctx;
 
-    // Skip if a profile server or HID host connection attempt is active —
-    // initiating a central connection simultaneously would fail (BLE_HS_EALREADY).
+    // A profile start aborted the scan, so do not chain into another connection.
+    if (ctx->name_res_abort.load()) {
+        LOG_I(TAG, "Name resolution: aborted (profile start)");
+        finish_scan_events(device);
+        return;
+    }
+
+    // A simultaneous central connection would fail while a profile or HID host link is active.
     if (ble_midi_get_active(device) || ble_spp_get_active(device) ||
         ble_hid_get_active(device)  || ble_hid_get_host_active(device)) {
         LOG_I(TAG, "Name resolution: skipping (server or HID host active)");
-        ble_set_scan_active(device, false);
-        struct BtEvent e = {};
-        e.type = BT_EVENT_SCAN_FINISHED;
-        ble_publish_event(device, e);
+        finish_scan_events(device);
         return;
     }
 
@@ -201,14 +232,15 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
         bool       radio_on = false;
         int        rc       = -1;
 
-        // Don't start (or chain into) a new GAP connection once the radio is going down
-        // (or is already off) — ble_gap_connect() racing nimble_port_stop() can block the
-        // NimBLE host task and hang the stop, same class of bug as the OFF_PENDING guard
-        // on advertising restart in gap_event_handler's BLE_GAP_EVENT_DISCONNECT case.
-        // The check must be re-done on every iteration (not just once on entry) since a
-        // failed ble_gap_connect() loops back for the next peer, and it must happen under
-        // scan_mutex together with the connect call itself so a concurrent dispatch_disable()
-        // can't flip radio_state between the check and the call.
+        // Re-checked every iteration, the chain continues from GAP callbacks on the host task.
+        if (ctx->name_res_abort.load()) {
+            LOG_I(TAG, "Name resolution: aborted (profile start)");
+            finish_scan_events(device);
+            return;
+        }
+
+        // Never start a connection while the radio is going down, nimble_port_stop() would
+        // hang. Checked per iteration and under scan_mutex, together with the connect call.
         xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
         radio_on = ctx->radio_state.load() == BT_RADIO_STATE_ON;
         if (radio_on) {
@@ -221,10 +253,10 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
                 ++i;
             }
             if (found) {
-                uint8_t own_addr_type;
-                ble_hs_id_infer_auto(0, &own_addr_type);
+                // Central role always uses the public address, so bonds with peers we connect
+                // to survive identity changes.
                 void* idx_arg = (void*)(uintptr_t)i;
-                rc = ble_gap_connect(own_addr_type, &addr, 1500, nullptr,
+                rc = ble_gap_connect(BLE_OWN_ADDR_PUBLIC, &addr, 1500, nullptr,
                                      name_res_gap_callback, idx_arg);
             }
         }

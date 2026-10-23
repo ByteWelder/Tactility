@@ -155,13 +155,11 @@ static void auto_start_profiles(BluetoothService* data) {
     if (query.hid_host) {
         LOG_I(TAG, "HID host auto-connect peer found, starting scan");
         bluetooth_scan_start(data->device);
-    } else if (query.hid_device) {
-        LOG_I(TAG, "HID device auto-start (bonded peer found)");
-        if (Device* hid_device = bluetooth_hid_device_get()) {
-            bluetooth_hid_device_start(hid_device, BT_HID_DEVICE_MODE_KEYBOARD);
-            device_put(hid_device);
-        }
     } else {
+        // HID device profiles are not auto-started. The identity, address and bond set belong
+        // to the app that starts the profile, so a service start would expose the current
+        // identity as a keyboard with no app behind it. A paired host reconnects once an app
+        // starts the profile.
         if (bluetooth_settings_get_spp_auto_start()) {
             LOG_I(TAG, "Auto-starting SPP server");
             if (Device* serial = bluetooth_serial_get()) {
@@ -182,6 +180,12 @@ static void auto_start_profiles(BluetoothService* data) {
 // Connects to the first saved HID host peer that appeared in the last scan.
 // When none appeared, scans again so the search continues until the device powers on.
 static void auto_connect_hid_host(BluetoothService* data) {
+    // A peripheral profile owns the radio and its identity, and bonds are stored per identity,
+    // so a host connect here would authenticate against the wrong bond set.
+    if (bluetooth_is_peripheral_active(data->device)) {
+        return;
+    }
+
     mutex_lock(&data->mutex);
     bool connected = data->hid_host_connected;
     tt::std::vector<BluetoothPeer> scanned = data->scan_results;
@@ -196,7 +200,7 @@ static void auto_connect_hid_host(BluetoothService* data) {
             char addr_hex[BLUETOOTH_ADDR_HEX_LENGTH + 1];
             bluetooth_addr_to_hex(peer.addr, addr_hex);
             LOG_I(TAG, "Auto-connecting HID host to %s", addr_hex);
-            bluetooth_connect(data->device, peer.addr, BT_PROFILE_HID_HOST);
+            bluetooth_host_connect(data->device, peer.addr);
             return;
         }
     }
@@ -521,7 +525,7 @@ void bluetooth_service_connect(const BtAddr addr, enum BtProfileId profile) {
     LOG_I(TAG, "connect(profile=%d)", static_cast<int>(profile));
     switch (profile) {
         case BT_PROFILE_HID_HOST:
-            bluetooth_connect(service->device, addr, profile);
+            bluetooth_host_connect(service->device, addr);
             break;
         case BT_PROFILE_HID_DEVICE:
             if (Device* hid_device = bluetooth_hid_device_get()) {
@@ -551,13 +555,28 @@ void bluetooth_service_disconnect(const BtAddr addr, enum BtProfileId profile) {
         return;
     }
     LOG_I(TAG, "disconnect(profile=%d)", static_cast<int>(profile));
-    if (profile == BT_PROFILE_HID_DEVICE) {
-        if (Device* hid_device = bluetooth_hid_device_get()) {
-            bluetooth_hid_device_stop(hid_device);
-            device_put(hid_device);
-        }
-    } else {
-        bluetooth_disconnect(service->device, addr, profile);
+    switch (profile) {
+        case BT_PROFILE_HID_HOST:
+            bluetooth_host_disconnect(service->device, addr);
+            break;
+        case BT_PROFILE_HID_DEVICE:
+            if (Device* hid_device = bluetooth_hid_device_get()) {
+                bluetooth_hid_device_stop(hid_device);
+                device_put(hid_device);
+            }
+            break;
+        case BT_PROFILE_SPP:
+            if (Device* serial = bluetooth_serial_get()) {
+                bluetooth_serial_stop(serial);
+                device_put(serial);
+            }
+            break;
+        case BT_PROFILE_MIDI:
+            if (Device* midi = bluetooth_midi_get()) {
+                bluetooth_midi_stop(midi);
+                device_put(midi);
+            }
+            break;
     }
 }
 
