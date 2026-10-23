@@ -503,6 +503,7 @@ bool ble_identity_apply_pending(struct Device* device) {
     // link was authenticated against the old set, and an active profile owns the identity.
     const bool idle = !ble_gap_adv_active() && !ble_gap_disc_active() && !ble_gap_conn_active() &&
                       ctx->conn_count.load() == 0 &&
+                      ctx->name_res_conn_handle.load() == BLE_HS_CONN_HANDLE_NONE &&
                       !ctx->spp_active.load() && !ctx->midi_active.load() && !ctx->hid_active.load() &&
                       !ble_hid_get_host_active(device);
     if (!idle) {
@@ -537,16 +538,27 @@ bool ble_identity_apply_pending(struct Device* device) {
 }
 
 bool ble_prepare_profile_start(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
     // Name resolution keeps opening central connections to read peer names.
     ble_scan_abort(device);
 
-    // A cancelled connect attempt clears asynchronously on the NimBLE host task, so wait for
-    // the GAP to go idle. Runs on the caller's task, never on the host task.
+    // A cancelled connect attempt clears asynchronously on the NimBLE host task, and an open
+    // name-read link is terminated the same way. Runs on the caller's task, never on the host
+    // task. The GATT switch and the bond swap both need no link at all.
     const int64_t deadline = esp_timer_get_time() + 500'000;
-    while (ble_gap_conn_active() || ble_gap_disc_active()) {
+    uint16_t terminated_link = BLE_HS_CONN_HANDLE_NONE;
+    while (ble_gap_conn_active() || ble_gap_disc_active() ||
+           ctx->name_res_conn_handle.load() != BLE_HS_CONN_HANDLE_NONE) {
+        uint16_t name_res_link = ctx->name_res_conn_handle.load();
+        if (name_res_link != BLE_HS_CONN_HANDLE_NONE && name_res_link != terminated_link) {
+            // The link may have completed after ble_scan_abort(), end it now.
+            ble_gap_terminate(name_res_link, BLE_ERR_REM_USER_CONN_TERM);
+            terminated_link = name_res_link;
+        }
         if (esp_timer_get_time() > deadline) {
-            LOG_W(TAG, "profile start: GAP still busy after 500 ms (disc=%d conn=%d)",
-                  (int)ble_gap_disc_active(), (int)ble_gap_conn_active());
+            LOG_W(TAG, "profile start: GAP still busy after 500 ms (disc=%d conn=%d name_res=%d)",
+                  (int)ble_gap_disc_active(), (int)ble_gap_conn_active(),
+                  (int)(ctx->name_res_conn_handle.load() != BLE_HS_CONN_HANDLE_NONE));
             return false;
         }
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -842,13 +854,20 @@ static void dispatch_enable(BleCtx* ctx) {
     // up: ble_store_config_init() below loads the bond records from NVS, so the swap has to be
     // committed while the host is still down (and before it can advertise).
     const char* identity = (ctx->identity[0] != '\0') ? ctx->identity : ctx->device_name;
-    ctx->identity_hash = ble_identity_hash(identity);
+    const uint32_t identity_hash = ble_identity_hash(identity);
     ctx->conn_count.store(0);
     ctx->name_res_abort.store(false);
-    strncpy(ctx->identity_resolved, identity, BLE_IDENTITY_MAX);
-    ctx->identity_resolved[BLE_IDENTITY_MAX] = '\0';
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     if (!scan_alloc_failed) {
-        ble_identity_bond_slot_activate(ctx->identity_hash);
+        if (ble_identity_bond_slot_activate(identity_hash)) {
+            ctx->identity_hash = identity_hash;
+            strncpy(ctx->identity_resolved, identity, BLE_IDENTITY_MAX);
+            ctx->identity_resolved[BLE_IDENTITY_MAX] = '\0';
+        } else {
+            // Keep the identity whose bonds are actually active. A profile start retries the swap.
+            LOG_W(TAG, "identity: '%s' not activated, staying on '%s'", identity,
+                  ctx->identity_resolved[0] != '\0' ? ctx->identity_resolved : "public address");
+        }
     }
 
     int rc = scan_alloc_failed ? -1 : nimble_port_init();
@@ -1009,6 +1028,7 @@ static void dispatch_disable(BleCtx* ctx) {
     ctx->hid_host_active.store(false);
     ctx->conn_count.store(0);
     ctx->name_res_abort.store(false);
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->link_encrypted.store(false);
     ctx->pending_reset_count.store(0);
     current_hid_profile    = BleHidProfile::None;
@@ -1334,6 +1354,7 @@ static error_t esp32_ble_start_device(struct Device* device) {
     ctx->link_encrypted.store(false);
     ctx->conn_count.store(0);
     ctx->name_res_abort.store(false);
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->pending_reset_count.store(0);
     ctx->midi_keepalive_timer = nullptr;
     ctx->adv_restart_timer    = nullptr;

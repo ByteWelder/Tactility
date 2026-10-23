@@ -248,10 +248,22 @@ bool ble_identity_bond_slot_activate(uint32_t identity_hash) {
 
     char slot[SLOT_NAMESPACE_SIZE];
     get_slot_namespace(identity_hash, slot);
-    bool restored = copy_namespace(slot, BOND_NAMESPACE);
-    if (!restored) {
+
+    // copy_namespace() fails both when the identity never archived a set and when a copy failed.
+    // Only the former may clear the active set and commit the new owner. A failed restore keeps
+    // OWNER_TRANSITION, so the next activation retries it instead of archiving an empty set over
+    // the identity's intact archive.
+    bool restored;
+    nvs_handle_t probe;
+    esp_err_t probe_result = nvs_open(slot, NVS_READONLY, &probe);
+    if (probe_result == ESP_OK) {
+        nvs_close(probe);
+        restored = copy_namespace(slot, BOND_NAMESPACE);
+    } else if (probe_result == ESP_ERR_NVS_NOT_FOUND) {
         // A first pairing for this identity, so there is nothing to restore.
         restored = clear_namespace(BOND_NAMESPACE);
+    } else {
+        restored = false;
     }
     if (!restored) {
         // The marker stays at OWNER_TRANSITION, so the next attempt retries the restore.

@@ -37,6 +37,12 @@ void ble_scan_abort(struct Device* device) {
     // Blocks the DISC_COMPLETE handler and the resolution chain from starting a replacement
     // connection after the cancels below.
     ctx->name_res_abort.store(true);
+    uint16_t name_res_link = ctx->name_res_conn_handle.load();
+    if (name_res_link != BLE_HS_CONN_HANDLE_NONE) {
+        // An open name-read link blocks a GATT change and the bond swap, so end it here. The
+        // disconnect handler clears name_res_conn_handle.
+        ble_gap_terminate(name_res_link, BLE_ERR_REM_USER_CONN_TERM);
+    }
     if (ble_gap_disc_active()) {
         ble_gap_disc_cancel();
     }
@@ -179,6 +185,7 @@ static int name_res_gap_callback(struct ble_gap_event* event, void* arg) {
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT:
             if (event->connect.status == 0) {
+                ctx->name_res_conn_handle.store(event->connect.conn_handle);
                 LOG_I(TAG, "Name resolution: connected (idx=%u handle=%u)", (unsigned)idx, event->connect.conn_handle);
                 static const ble_uuid16_t device_name_uuid = BLE_UUID16_INIT(0x2A00);
                 int rc = ble_gattc_read_by_uuid(event->connect.conn_handle,
@@ -196,6 +203,7 @@ static int name_res_gap_callback(struct ble_gap_event* event, void* arg) {
             break;
 
         case BLE_GAP_EVENT_DISCONNECT:
+            ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
             LOG_I(TAG, "Name resolution: disconnected (idx=%u)", (unsigned)idx);
             ble_resolve_next_unnamed_peer(ctx->device, idx + 1);
             break;

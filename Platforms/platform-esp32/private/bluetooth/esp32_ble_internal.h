@@ -66,6 +66,8 @@ struct BleCtx {
     std::atomic<int>      conn_count;
     // Blocks the background scan's name resolution from starting another central connection.
     std::atomic<bool>     name_res_abort;
+    // Link opened by name resolution to read a peer's GAP name, NONE when no read is in flight.
+    std::atomic<uint16_t> name_res_conn_handle;
     std::atomic<int>      pending_reset_count;
 
     // Timers
