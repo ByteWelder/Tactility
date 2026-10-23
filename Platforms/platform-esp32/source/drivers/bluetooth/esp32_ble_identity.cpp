@@ -215,10 +215,12 @@ bool ble_identity_bond_slot_activate(uint32_t identity_hash) {
         // No marker means the active namespace predates per-identity slots, so its bonds were
         // made with the public address and are unusable now. Start clean.
         if (!clear_namespace(BOND_NAMESPACE)) {
-            LOG_W(TAG, "could not clear stale bonds; continuing");
+            LOG_E(TAG, "could not clear stale bonds");
+            return false;
         }
         if (!write_owner(identity_hash)) {
-            LOG_W(TAG, "could not record bond slot owner; bonds may be shared between identities");
+            LOG_E(TAG, "could not record bond slot owner");
+            return false;
         }
         LOG_I(TAG, "bond slots initialised for identity %08lx", (unsigned long)identity_hash);
         return true;

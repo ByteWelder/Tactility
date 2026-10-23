@@ -674,6 +674,32 @@ static uint8_t advertising_addr_type(struct Device* device) {
     return (ctx != nullptr) ? ctx->own_addr_type.load() : BLE_OWN_ADDR_PUBLIC;
 }
 
+// One scan response holds a single name field: 31-byte payload minus the length and type bytes.
+constexpr uint8_t SCAN_RSP_NAME_MAX = 29;
+
+/**
+ * Put the complete device name in the scan response. A name too long for one response is
+ * truncated and marked as a shortened name, otherwise the device would advertise without one.
+ */
+static void set_scan_response_name(const char* name) {
+    uint8_t name_len = (uint8_t)strlen(name);
+    struct ble_hs_adv_fields rsp;
+    memset(&rsp, 0, sizeof(rsp));
+    rsp.name             = (const uint8_t*)name;
+    rsp.name_len         = name_len;
+    rsp.name_is_complete = 1;
+    int rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc == 0) return;
+
+    if (name_len > SCAN_RSP_NAME_MAX) name_len = SCAN_RSP_NAME_MAX;
+    rsp.name_len         = name_len;
+    rsp.name_is_complete = 0;
+    rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc != 0) {
+        LOG_W(TAG, "scan response name failed rc=%d", rc);
+    }
+}
+
 void ble_start_advertising(struct Device* device, const ble_uuid128_t* svc_uuid) {
     ble_gap_adv_stop();
 
@@ -710,15 +736,7 @@ void ble_start_advertising(struct Device* device, const ble_uuid128_t* svc_uuid)
         }
     }
 
-    struct ble_hs_adv_fields rsp;
-    memset(&rsp, 0, sizeof(rsp));
-    rsp.name             = (const uint8_t*)name;
-    rsp.name_len         = name_len;
-    rsp.name_is_complete = 1;
-    rc = ble_gap_adv_rsp_set_fields(&rsp);
-    if (rc != 0) {
-        LOG_W(TAG, "startAdvertising: rsp_set_fields rc=%d (non-fatal)", rc);
-    }
+    set_scan_response_name(name);
     LOG_I(TAG, "startAdvertising: UUID mode (uuid[0..3]=%02x%02x%02x%02x)",
              svc_uuid->value[0], svc_uuid->value[1],
              svc_uuid->value[2], svc_uuid->value[3]);
@@ -776,15 +794,7 @@ void ble_start_advertising_hid(struct Device* device, uint16_t appearance) {
         }
     }
 
-    struct ble_hs_adv_fields rsp;
-    memset(&rsp, 0, sizeof(rsp));
-    rsp.name             = (const uint8_t*)name;
-    rsp.name_len         = name_len;
-    rsp.name_is_complete = 1;
-    rc = ble_gap_adv_rsp_set_fields(&rsp);
-    if (rc != 0) {
-        LOG_W(TAG, "startAdvertisingHid: rsp_set_fields rc=%d (non-fatal)", rc);
-    }
+    set_scan_response_name(name);
 
     struct ble_gap_adv_params adv_params;
     memset(&adv_params, 0, sizeof(adv_params));

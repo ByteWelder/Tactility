@@ -25,11 +25,18 @@ static BleCtx* s_scan_ctx = nullptr;
 
 /** Clears the scan-active flag and notifies subscribers, once. */
 static void finish_scan_events(struct Device* device) {
-    if (!ble_get_scan_active(device)) return;
+    BleCtx* ctx = ble_get_ctx(device);
+    // Serialize with name_read_callback() so the finish event cannot overtake a peer result.
+    xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
+    if (!ble_get_scan_active(device)) {
+        xSemaphoreGive(ctx->scan_mutex);
+        return;
+    }
     ble_set_scan_active(device, false);
     struct BtEvent e = {};
     e.type = BT_EVENT_SCAN_FINISHED;
     ble_publish_event(device, e);
+    xSemaphoreGive(ctx->scan_mutex);
 }
 
 void ble_scan_abort(struct Device* device) {
@@ -155,6 +162,8 @@ static int name_read_callback(uint16_t conn_handle, const struct ble_gatt_error*
             char name_buf[BT_NAME_MAX + 1] = {};
             os_mbuf_copydata(attr->om, 0, len, name_buf);
             {
+                // Held across the publication so a concurrent ble_scan_abort() cannot publish
+                // SCAN_FINISHED between the name update and this peer event.
                 xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
                 if (idx < ctx->scan_count && ctx->scan_results[idx].name[0] == '\0') {
                     memcpy(ctx->scan_results[idx].name, name_buf, len);
@@ -162,12 +171,13 @@ static int name_read_callback(uint16_t conn_handle, const struct ble_gatt_error*
                     LOG_I(TAG, "Name resolved (idx=%u): %s", (unsigned)idx, name_buf);
                 }
                 BtPeerRecord record = (idx < ctx->scan_count) ? ctx->scan_results[idx] : BtPeerRecord{};
+                if (!ctx->name_res_abort.load()) {
+                    struct BtEvent e = {};
+                    e.type = BT_EVENT_PEER_FOUND;
+                    e.peer  = record;
+                    ble_publish_event(ctx->device, e);
+                }
                 xSemaphoreGive(ctx->scan_mutex);
-
-                struct BtEvent e = {};
-                e.type = BT_EVENT_PEER_FOUND;
-                e.peer  = record;
-                ble_publish_event(ctx->device, e);
             }
         }
         return 0; // wait for BLE_HS_EDONE
