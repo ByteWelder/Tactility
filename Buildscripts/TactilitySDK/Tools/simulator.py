@@ -23,10 +23,15 @@ def fail(message):
 
 
 def fetch(url):
+    """Returns the content of the url, or raises OSError"""
     request = urllib.request.Request(url, headers={"User-Agent": "tt simulator"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return response.read()
+
+
+def fetch_or_fail(url):
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return response.read()
+        return fetch(url)
     except OSError as error:
         fail(f"failed to download {url}: {error}")
 
@@ -52,17 +57,23 @@ def read_commit(directory):
 
 def install(version, simulator_platform, directory):
     """Downloads the simulator when the CDN has a newer build than the installed one"""
-    index = json.loads(fetch(f"{CDN_URL}/sdk/{version}/index.json"))
+    executable_path = os.path.join(directory, EXECUTABLE_NAME)
+    try:
+        index = json.loads(fetch(f"{CDN_URL}/sdk/{version}/index.json"))
+    except OSError as error:
+        if os.path.isfile(executable_path):
+            print(f"tt simulator: CDN unavailable, running the installed simulator ({error})", file=sys.stderr)
+            return
+        fail(f"failed to download the index of SDK {version}: {error}")
     entry = index.get("simulators", {}).get(simulator_platform)
     if entry is None:
         available = ", ".join(sorted(index.get("simulators", {}))) or "none"
         fail(f"SDK {version} has no simulator for {simulator_platform} (available: {available})")
     commit = index.get("gitCommit", "")
-    executable_path = os.path.join(directory, EXECUTABLE_NAME)
     if os.path.isfile(executable_path) and read_commit(directory) == commit:
         return
     print(f"Downloading the simulator of SDK {version} for {simulator_platform}", file=sys.stderr)
-    content = fetch(f"{CDN_URL}/sdk/{version}/{entry['file']}")
+    content = fetch_or_fail(f"{CDN_URL}/sdk/{version}/{entry['file']}")
     if hashlib.sha256(content).hexdigest() != entry["sha256"]:
         fail(f"the simulator of SDK {version} doesn't match its checksum")
     # The user data of the simulator is kept: it lives in the folder that the simulator runs in
