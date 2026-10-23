@@ -330,6 +330,9 @@ def prepare_sdk(version, platforms):
     os.makedirs(version_directory, exist_ok=True)
     if index is None:
         index = load_index(version, version_directory)
+    for platform in platforms:
+        if platform not in index.get("platforms", {}):
+            fail(f"platform {platform} is not available in SDK {version}")
     # The CDN only has the latest build of a version, so a newer build can't be mixed with the installed one
     if not is_installed_build(version_directory, index):
         if has_tools:
