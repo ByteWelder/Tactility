@@ -82,6 +82,11 @@ extern "C" {
     // GCC integer arithmetic helpers (needed on 32-bit targets for 64-bit ops)
     long long __divdi3(long long a, long long b);
     long long __moddi3(long long a, long long b);
+    unsigned long long __udivdi3(unsigned long long a, unsigned long long b);
+    unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
+    // Bit counting helpers: RISC-V cores without the Zbb extension (e.g. ESP32-C6) call these
+    int __clzsi2(unsigned int x);
+    int __ctzsi2(unsigned int x);
 #else
     extern double __adddf3(double a, double b);
     extern double __subdf3(double a, double b);
@@ -113,9 +118,11 @@ extern "C" {
     int __gtdf2(double a, double b);
     // GCC integer/bitwise helpers (compiler-rt)
     int __clzsi2(unsigned int x);
+    int __ctzsi2(unsigned int x);
     // GCC 64-bit integer arithmetic helpers (needed for 64-bit div on 32-bit RISC-V)
     long long __divdi3(long long a, long long b);
     long long __moddi3(long long a, long long b);
+    unsigned long long __umoddi3(unsigned long long a, unsigned long long b);
     unsigned long long __udivdi3(unsigned long long a, unsigned long long b);
     unsigned long long (__atomic_load_8)(const volatile void*, int);
     void (__atomic_store_8)(volatile void*, unsigned long long, int);
@@ -304,6 +311,10 @@ static const ModuleSymbol platform_esp32_symbols[] = {
     DEFINE_MODULE_SYMBOL(__gtdf2),
     DEFINE_MODULE_SYMBOL(__divdi3),
     DEFINE_MODULE_SYMBOL(__moddi3),
+    DEFINE_MODULE_SYMBOL(__udivdi3),
+    DEFINE_MODULE_SYMBOL(__umoddi3),
+    DEFINE_MODULE_SYMBOL(__clzsi2),
+    DEFINE_MODULE_SYMBOL(__ctzsi2),
 #else
     DEFINE_MODULE_SYMBOL(__adddf3),
     DEFINE_MODULE_SYMBOL(__subdf3),
@@ -333,8 +344,10 @@ static const ModuleSymbol platform_esp32_symbols[] = {
     DEFINE_MODULE_SYMBOL(__ledf2),
     DEFINE_MODULE_SYMBOL(__gtdf2),
     DEFINE_MODULE_SYMBOL(__clzsi2),
+    DEFINE_MODULE_SYMBOL(__ctzsi2),
     DEFINE_MODULE_SYMBOL(__divdi3),
     DEFINE_MODULE_SYMBOL(__moddi3),
+    DEFINE_MODULE_SYMBOL(__umoddi3),
     DEFINE_MODULE_SYMBOL(__udivdi3),
     DEFINE_MODULE_SYMBOL(__atomic_load_8),
     DEFINE_MODULE_SYMBOL(__atomic_store_8),

@@ -21,7 +21,7 @@ import time
 import urllib.request
 import zipfile
 
-TT_VERSION = "1.3.0"
+TT_VERSION = "1.3.1"
 CDN_URL = os.environ.get("TT_CDN", "https://cdn.tactilityproject.org")
 HOME_DIRECTORY = os.path.join(os.path.expanduser("~"), ".tactility")
 INDEX_VALIDITY_SECONDS = 3600
@@ -297,13 +297,19 @@ def read_text(path):
 
 
 def is_installed_build(version_directory, index):
-    """True when the installed tools and platforms are of the build that the index describes"""
+    """True when the installed tools and platforms are of the build that the index describes.
+    Installed platforms that the index no longer has (e.g. after a rename) don't count: they can't be
+    updated, and "tt update-sdk" removes them."""
     installed_tools_hash = read_text(os.path.join(version_directory, "tools.sha256"))
     if installed_tools_hash is not None and installed_tools_hash != index.get("tools", {}).get("sha256"):
         return False
+    available = index.get("platforms", {})
+    prefix = "platform-"
     for name in os.listdir(version_directory):
+        if not name.startswith(prefix) or name[len(prefix):] not in available:
+            continue
         commit = read_text(os.path.join(version_directory, name, "commit"))
-        if name.startswith("platform-") and commit is not None and commit != index.get("gitCommit", ""):
+        if commit is not None and commit != index.get("gitCommit", ""):
             return False
     return True
 
