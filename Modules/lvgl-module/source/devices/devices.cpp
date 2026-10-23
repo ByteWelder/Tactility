@@ -29,10 +29,13 @@ constexpr auto* TAG = "lvgl";
 // Boards are not expected to expose more devices of a single type than this; device_for_each_of_type()
 // callbacks run under the device ledger lock, so devices are collected here and processed afterwards.
 constexpr auto LVGL_DEVICES_MAX_PER_TYPE = 8;
+// Pointer and touch devices are collected in one list
+constexpr auto LVGL_DEVICES_MAX_COMBINED_INPUT = LVGL_DEVICES_MAX_PER_TYPE * 2;
 
 struct LvglDeviceList {
-    struct Device* devices[LVGL_DEVICES_MAX_PER_TYPE];
+    struct Device* devices[LVGL_DEVICES_MAX_COMBINED_INPUT];
     size_t count;
+    size_t limit;
 };
 
 /**
@@ -77,7 +80,7 @@ extern "C" {
 
 static bool lvgl_device_list_collect(struct Device* device, void* context) {
     struct LvglDeviceList* list = (struct LvglDeviceList*)context;
-    if (list->count < LVGL_DEVICES_MAX_PER_TYPE) {
+    if (list->count < list->limit) {
         list->devices[list->count++] = device;
     }
     return true;
@@ -191,7 +194,7 @@ void lvgl_devices_attach() {
     lv_disp_t* lvgl_display = NULL;
     bool display_updates_slowly = false;
 
-    struct LvglDeviceList display_devices = {};
+    struct LvglDeviceList display_devices = { .count = 0, .limit = LVGL_DEVICES_MAX_PER_TYPE };
     device_for_each_of_type(&DISPLAY_TYPE, &display_devices, lvgl_device_list_collect);
     for (size_t i = 0; i < display_devices.count; i++) {
         struct Device* kernel_display_device = display_devices.devices[i];
@@ -255,7 +258,7 @@ void lvgl_devices_attach() {
         }
     }
 
-    struct LvglDeviceList pointer_devices = {};
+    struct LvglDeviceList pointer_devices = { .count = 0, .limit = LVGL_DEVICES_MAX_COMBINED_INPUT };
     device_for_each_of_type(&POINTER_TYPE, &pointer_devices, lvgl_device_list_collect);
     device_for_each_of_type(&TOUCH_TYPE, &pointer_devices, lvgl_device_list_collect);
     for (size_t i = 0; i < pointer_devices.count; i++) {
@@ -282,7 +285,7 @@ void lvgl_devices_attach() {
         }
     }
 
-    struct LvglDeviceList keyboard_devices = {};
+    struct LvglDeviceList keyboard_devices = { .count = 0, .limit = LVGL_DEVICES_MAX_PER_TYPE };
     device_for_each_of_type(&KEYBOARD_TYPE, &keyboard_devices, lvgl_device_list_collect);
     for (size_t i = 0; i < keyboard_devices.count; i++) {
         struct Device* kernel_keyboard_device = keyboard_devices.devices[i];
@@ -294,7 +297,7 @@ void lvgl_devices_attach() {
         }
     }
 
-    struct LvglDeviceList mouse_devices = {};
+    struct LvglDeviceList mouse_devices = { .count = 0, .limit = LVGL_DEVICES_MAX_PER_TYPE };
     device_for_each_of_type(&MOUSE_TYPE, &mouse_devices, lvgl_device_list_collect);
     for (size_t i = 0; i < mouse_devices.count; i++) {
         struct Device* kernel_mouse_device = mouse_devices.devices[i];

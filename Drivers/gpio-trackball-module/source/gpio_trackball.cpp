@@ -37,6 +37,8 @@ struct GpioTrackballInternal {
     TrackballSettings settings = trackball_settings_get_default();
     Device* child = nullptr;
     GpioTrackballChildState* child_state = nullptr;
+    // The child is stopped and removed, but is still referenced so it can't be destructed yet
+    bool child_detached = false;
 
     GpioTrackballInternal() { mutex_construct(&settings_mutex); }
     ~GpioTrackballInternal() { mutex_destruct(&settings_mutex); }
@@ -122,17 +124,26 @@ static const char* child_name(const TrackballSettings& settings) {
     return settings.mode == TRACKBALL_MODE_MOUSE ? "trackball-mouse" : "trackball-keyboard";
 }
 
-static void destroy_child(GpioTrackballInternal* internal) {
+/** @retval ERROR_RESOURCE_BUSY when the child is still referenced: it is kept (stopped and removed), and a next call destructs it */
+static error_t destroy_child(GpioTrackballInternal* internal) {
     if (internal->child == nullptr) {
-        return;
+        return ERROR_NONE;
     }
-    check(device_stop(internal->child) == ERROR_NONE);
-    check(device_remove(internal->child) == ERROR_NONE);
-    check(device_destruct(internal->child) == ERROR_NONE);
+    if (!internal->child_detached) {
+        check(device_stop(internal->child) == ERROR_NONE);
+        check(device_remove(internal->child) == ERROR_NONE);
+        internal->child_detached = true;
+    }
+    error_t error = device_destruct(internal->child);
+    if (error != ERROR_NONE) {
+        return error;
+    }
     delete internal->child;
     delete internal->child_state;
     internal->child = nullptr;
     internal->child_state = nullptr;
+    internal->child_detached = false;
+    return ERROR_NONE;
 }
 
 static error_t create_child(Device* parent, GpioTrackballInternal* internal, const TrackballSettings& settings) {
@@ -180,6 +191,9 @@ static error_t create_child(Device* parent, GpioTrackballInternal* internal, con
 }
 
 static bool child_matches(const GpioTrackballInternal* internal, const TrackballSettings& settings) {
+    if (internal->child_detached) {
+        return false;
+    }
     if (internal->child == nullptr) {
         return !settings.enabled;
     }
@@ -195,7 +209,10 @@ static error_t apply_settings(Device* device, GpioTrackballInternal* internal, c
         return ERROR_NONE;
     }
 
-    destroy_child(internal);
+    error_t error = destroy_child(internal);
+    if (error != ERROR_NONE) {
+        return error;
+    }
     internal->settings = settings;
     if (!settings.enabled) {
         return ERROR_NONE;
@@ -291,7 +308,11 @@ static error_t start(Device* device) {
 static error_t stop(Device* device) {
     LOG_I(TAG, "stop %s", device->name);
     auto* internal = GET_INTERNAL(device);
-    destroy_child(internal);
+    error_t error = destroy_child(internal);
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Failed to destroy child device: %s", error_to_string(error));
+        return error;
+    }
     release_all_pins(internal);
     device_set_driver_data(device, nullptr);
     delete internal;
