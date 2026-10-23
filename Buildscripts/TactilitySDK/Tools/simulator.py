@@ -29,13 +29,6 @@ def fetch(url):
         return response.read()
 
 
-def fetch_or_fail(url):
-    try:
-        return fetch(url)
-    except OSError as error:
-        fail(f"failed to download {url}: {error}")
-
-
 def host_platform():
     """The name of the simulator build for this computer, e.g. "linux-x86_64" or "macos-arm64" """
     if sys.platform == "darwin":
@@ -73,7 +66,14 @@ def install(version, simulator_platform, directory):
     if os.path.isfile(executable_path) and read_commit(directory) == commit:
         return
     print(f"Downloading the simulator of SDK {version} for {simulator_platform}", file=sys.stderr)
-    content = fetch_or_fail(f"{CDN_URL}/sdk/{version}/{entry['file']}")
+    archive_url = f"{CDN_URL}/sdk/{version}/{entry['file']}"
+    try:
+        content = fetch(archive_url)
+    except OSError as error:
+        if os.path.isfile(executable_path):
+            print(f"tt simulator: download failed, running the installed simulator ({error})", file=sys.stderr)
+            return
+        fail(f"failed to download {archive_url}: {error}")
     if hashlib.sha256(content).hexdigest() != entry["sha256"]:
         fail(f"the simulator of SDK {version} doesn't match its checksum")
     # The user data of the simulator is kept: it lives in the folder that the simulator runs in

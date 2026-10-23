@@ -39,6 +39,8 @@ struct GpioTrackballInternal {
     GpioTrackballChildState* child_state = nullptr;
     // The child is stopped and removed, but is still referenced so it can't be destructed yet
     bool child_detached = false;
+    // Set by stop() once the child is gone, so a settings change that was waiting for the lock doesn't create a new one
+    bool stopped = false;
 
     GpioTrackballInternal() { mutex_construct(&settings_mutex); }
     ~GpioTrackballInternal() { mutex_destruct(&settings_mutex); }
@@ -233,7 +235,7 @@ static error_t set_settings(Device* device, const TrackballSettings* settings) {
     }
     auto* internal = GET_INTERNAL(device);
     mutex_lock(&internal->settings_mutex);
-    error_t error = apply_settings(device, internal, *settings);
+    error_t error = internal->stopped ? ERROR_INVALID_STATE : apply_settings(device, internal, *settings);
     mutex_unlock(&internal->settings_mutex);
     return error;
 }
@@ -308,13 +310,17 @@ static error_t start(Device* device) {
 static error_t stop(Device* device) {
     LOG_I(TAG, "stop %s", device->name);
     auto* internal = GET_INTERNAL(device);
+    mutex_lock(&internal->settings_mutex);
     error_t error = destroy_child(internal);
     if (error != ERROR_NONE) {
+        mutex_unlock(&internal->settings_mutex);
         LOG_E(TAG, "Failed to destroy child device: %s", error_to_string(error));
         return error;
     }
+    internal->stopped = true;
     release_all_pins(internal);
     device_set_driver_data(device, nullptr);
+    mutex_unlock(&internal->settings_mutex);
     delete internal;
     return ERROR_NONE;
 }

@@ -537,6 +537,20 @@ class TtTest(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "simulator a")
 
     @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
+    def test_installed_simulator_runs_when_the_download_fails(self):
+        host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
+        self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
+        self.publish_simulator(host_platform)
+        self.write_manifest(self.work)
+        self.assertEqual(self.run_tt("simulator").returncode, 0)
+        with open(self.sdk_path(f"simulator-{host_platform}", "commit"), "w") as file:
+            file.write("older")
+        os.remove(os.path.join(self.cdn, "sdk", VERSION, f"Simulator-{host_platform}.zip"))
+        result = self.run_tt("simulator", "a")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "simulator a")
+
+    @unittest.skipUnless(sys.platform in ("linux", "darwin"), "the simulator only exists for Linux and macOS")
     def test_simulator_refuses_a_download_that_doesnt_match_its_checksum(self):
         host_platform = f"{'macos' if sys.platform == 'darwin' else 'linux'}-{platform.machine()}"
         self.publish_sdk(self.default_tools() | {"simulator.py": read_tool("simulator.py")})
