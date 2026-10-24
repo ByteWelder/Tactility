@@ -287,7 +287,7 @@ error_t module_get_code(Module* module) {
 
     mutex_lock(&ledger.mutex);
     // Also allowed while the module isn't started: relocated code needs the symbols, not the state
-    const bool available = internal->added;
+    const bool available = internal->added && !internal->stopping;
     if (available) {
         internal->code_count++;
     }
