@@ -157,12 +157,46 @@ history; it is pushed to `origin`.
 
 **Blocked by:** 01–08.
 
-**Status:** in progress
+**Status:** done
 
-- [ ] Baseline build of `7462d32` in a separate worktree with an out-of-repo build directory.
-- [ ] `idf.py size` recorded for before and after; app image and static DRAM/IRAM reported.
-- [ ] `idf.py build` green for `es3c28p` on the final tree.
-- [ ] Spec, tickets, review and retro committed on `feat/ios-gestures` and pushed to `origin`.
+- [x] Baseline built at `7462d32` in a separate worktree (`/tmp/tm-baseline`, submodules and managed
+      components linked from the main checkout). The build directory has to live inside the project
+      directory for this repo's CMake (`Tactility/CMakeLists.txt` includes `../Buildscripts/
+      device.cmake` by relative path), so it was `/tmp/tm-baseline/build` - outside this repository,
+      inside the throwaway worktree.
+- [x] `idf.py size` recorded for before and after:
+
+      Metric                      Before        After         Delta
+      Tactility.bin               3,881,072 B   3,885,008 B   +3,936 B
+      Flash .text (code)          2,766,982 B   2,770,866 B   +3,884 B
+      Flash .rodata                 961,872 B     961,920 B   +48 B
+      Static DRAM (.data+.bss)       64,975 B      65,007 B   +32 B
+      DIRAM in use                  167,494 B     167,526 B   +32 B
+      IRAM                           16,384 B      16,384 B   0
+
+- [x] `idf.py build` green for `es3c28p` on the final tree.
+- [x] Spec, tickets, review and retro committed on `feat/ios-gestures` and pushed to `origin`.
+
+## 10: Apply the code review's findings
+
+**What to build:** The accepted findings from `docs/mobile/ios-gestures-review.md` are applied: back
+acts on the topmost window rather than the newest app instance (and the toolbar's default close with
+it), the brightness slider only appears for a dimmable backlight, the home scan walks the whole stack,
+a cancelled press cannot leave the gesture state armed, the new app-manager lookup is exported, and
+the duplicated helpers (raise, backlight mapping, stack scanning, id casts) are single-sourced.
+
+**Blocked by:** 01–09.
+
+**Status:** done
+
+- [x] Back closes the app of the topmost window; the launcher is never closed.
+- [x] On/off backlights do not get a brightness slider.
+- [x] The launcher lookup is not limited to a fixed number of windows.
+- [x] A press whose release never arrives is cleared by the hold timer or the next press.
+- [x] The window-manager and app-manager additions are in the module symbol tables.
+- [x] One shared backlight helper serves the Display app and the quick panel.
+- [x] One shared system-window helper serves the gestures and the switcher.
+- [x] Build green for `es3c28p`; clang-format clean against the repo's `.clang-format`.
 
 ---
 
