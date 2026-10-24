@@ -1,6 +1,8 @@
 #include <Tactility/lvgl/SystemMenu.h>
 
 #include <Tactility/TactilityPrivate.h>
+#include <Tactility/lvgl/SystemRecents.h>
+#include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/settings/RadioSettings.h>
 
 #include <app/manager.h>
@@ -20,6 +22,7 @@
 #include <lvgl/theme.h>
 #include <lvgl/widgets/card.h>
 #include <lvgl/widgets/icon_button.h>
+#include <lvgl/widgets/sliderbox.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -27,13 +30,17 @@
 
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/device.h>
+#include <tactility/drivers/backlight.h>
 #include <tactility/drivers/bluetooth.h>
+#include <tactility/drivers/display.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/sleep_controller.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
 
 #include <cstdint>
+#include <cstdio>
+#include <ctime>
 
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
@@ -142,6 +149,117 @@ static void setMeshEnabled(void* context) {
     }
 }
 
+/** The display's backlight, or nullptr when there's no display driver or backlight to drive. */
+static Device* getBacklightDevice() {
+    Device* display = nullptr;
+    if (device_get_first_by_type(&DISPLAY_TYPE, &display) != ERROR_NONE) {
+        return nullptr;
+    }
+    // Boards not migrated to the kernel display driver register a placeholder device with a NULL api
+    if (device_get_driver(display)->api == nullptr) {
+        device_put(display);
+        return nullptr;
+    }
+    Device* backlight = nullptr;
+    display_get_backlight(display, &backlight);
+    device_put(display);
+    return backlight;
+}
+
+// Same mapping between the backlight's device units and the shown percentage as the Display app
+static int32_t brightnessToPercent(Device* backlight, int32_t brightness) {
+    const int32_t min = backlight_get_min_brightness(backlight);
+    const int32_t range = backlight_get_max_brightness(backlight) - min;
+    return range > 0 ? ((brightness - min) * 100 + range / 2) / range : 100;
+}
+
+static int32_t percentToBrightness(Device* backlight, int32_t percent) {
+    const int32_t min = backlight_get_min_brightness(backlight);
+    const int32_t range = backlight_get_max_brightness(backlight) - min;
+    const int32_t brightness = min + (percent * range + 50) / 100;
+    // A brightness of 0 turns the backlight off, so 0% is the dimmest setting that is still on
+    return brightness < 1 ? 1 : brightness;
+}
+
+/** Persists the brightness the way the Display app does, off the LVGL task as it writes a file. */
+static void saveBrightness(void* context) {
+    const auto brightness = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(context));
+    auto display_settings = settings::display::loadOrGetDefault();
+    display_settings.backlightDuty = brightness;
+    settings::display::save(display_settings);
+}
+
+// The brightness that the panel changed, saved once when it closes instead of on every slider step
+struct BrightnessState {
+    uint8_t duty = 0;
+    bool changed = false;
+};
+
+static BrightnessState brightness_state;
+
+static void onBrightnessChanged(lv_event_t* event) {
+    auto* slider_box = lv_event_get_current_target_obj(event);
+    Device* backlight = getBacklightDevice();
+    if (backlight == nullptr) {
+        return;
+    }
+    const auto brightness = static_cast<uint8_t>(percentToBrightness(backlight, lvgl_sliderbox_get_value(slider_box)));
+    backlight_set_brightness(backlight, brightness);
+    device_put(backlight);
+    brightness_state.duty = brightness;
+    brightness_state.changed = true;
+}
+
+static void onPanelClosed(void* /*userData*/) {
+    if (!brightness_state.changed) {
+        return;
+    }
+    brightness_state.changed = false;
+    dispatchOnMainDispatcher(saveBrightness, reinterpret_cast<void*>(static_cast<uintptr_t>(brightness_state.duty)));
+}
+
+static void setClockText(lv_obj_t* label) {
+    const time_t now = ::time(nullptr);
+    const tm* local = localtime(&now);
+    // Before the clock is set, the year is meaningless - the same rule the statusbar uses
+    if (local != nullptr && local->tm_year >= (2025 - 1900)) {
+        lv_label_set_text_fmt(label, "%d:%02d", local->tm_hour, local->tm_min);
+    } else {
+        lv_label_set_text(label, "--:--");
+    }
+}
+
+static void setWifiStatusText(lv_obj_t* label) {
+    if (!isWifiEnabled()) {
+        lv_label_set_text(label, "Wi-Fi off");
+        return;
+    }
+    Device* device = nullptr;
+    if (device_get_first_by_type(&WIFI_TYPE, &device) != ERROR_NONE) {
+        lv_label_set_text(label, "Wi-Fi on");
+        return;
+    }
+    WifiStationState station_state = WIFI_STATION_STATE_DISCONNECTED;
+    char ssid[33] = {};
+    const bool connected =
+        wifi_get_station_state(device, &station_state) == ERROR_NONE &&
+        station_state == WIFI_STATION_STATE_CONNECTED &&
+        wifi_station_get_target_ssid(device, ssid) == ERROR_NONE;
+    device_put(device);
+    if (connected && ssid[0] != '\0') {
+        lv_label_set_text_fmt(label, "Wi-Fi: %s", ssid);
+    } else {
+        lv_label_set_text(label, "Wi-Fi on");
+    }
+}
+
+#if defined(CONFIG_TT_SYSTEM_GESTURES)
+static void onRecentsClicked(lv_event_t* /*event*/) {
+    window_manager_overlay_hide();
+    systemRecentsShow();
+}
+#endif
+
 
 // Changing the radio and device states can block, so it happens on the main task
 struct ToggleOption {
@@ -237,21 +355,41 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     lv_obj_set_gesture_bubble(parent, false);
     lv_obj_add_event_cb(parent, onBackdropGesture, LV_EVENT_GESTURE, nullptr);
 
-    // The card fits its content, up to most of the screen
+    // The panel hangs from the top edge, which is where the swipe that opens it comes from
     auto* card = lvgl_card_create(parent);
-    lv_obj_set_size(card, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_style_max_height(card, LV_PCT(90), LV_STATE_DEFAULT);
+    lv_obj_set_width(card, LV_PCT(100));
+    lv_obj_set_height(card, LV_SIZE_CONTENT);
+    lv_obj_set_style_max_height(card, LV_PCT(100), LV_STATE_DEFAULT);
+    lv_obj_align(card, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_center(card);
+    lv_obj_set_style_pad_row(card, lvgl_theme_is_compact() ? 4 : 8, LV_STATE_DEFAULT);
+
+    // The clock, with the Wi-Fi status next to it
+    auto* status_row = lv_obj_create(card);
+    lv_obj_set_size(status_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(status_row, LV_OPA_TRANSP, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(status_row, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(status_row, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_column(status_row, 8, LV_STATE_DEFAULT);
+    lv_obj_set_flex_flow(status_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(status_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scrollable(status_row, false);
+
+    auto* clock = lv_label_create(status_row);
+    lv_obj_set_style_text_font(clock, lvgl_get_text_font(FONT_SIZE_LARGE), LV_STATE_DEFAULT);
+    setClockText(clock);
+    lv_obj_set_flex_grow(clock, 1);
+
+    if (hasWifi()) {
+        auto* wifi_status = lv_label_create(status_row);
+        lv_obj_set_style_text_font(wifi_status, lvgl_get_text_font(FONT_SIZE_SMALL), LV_STATE_DEFAULT);
+        setWifiStatusText(wifi_status);
+    }
 
     auto* grid = lv_obj_create(card);
     lv_obj_remove_style_all(grid);
-    lv_obj_set_size(grid, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    // A percentage can't limit the width, as the card's width depends on the grid. The tiles wrap at the limit.
-    const int32_t max_card_width = lv_display_get_horizontal_resolution(lv_obj_get_display(parent)) * 9 / 10;
-    const int32_t card_padding = lv_obj_get_style_pad_left(card, LV_PART_MAIN) + lv_obj_get_style_pad_right(card, LV_PART_MAIN);
-    lv_obj_set_style_max_width(grid, max_card_width - card_padding, LV_STATE_DEFAULT);
+    lv_obj_set_size(grid, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(grid, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_flex_align(grid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     const int32_t gap = lvgl_theme_is_compact() ? 8 : 16;
@@ -273,6 +411,10 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     if (hasMesh()) {
         createOption(grid, &mesh_option);
     }
+#if defined(CONFIG_TT_SYSTEM_GESTURES)
+    auto* recents_tile = createTile(grid, LVGL_ICON_SHARED_APPS);
+    lv_obj_add_event_cb(recents_tile, onRecentsClicked, LV_EVENT_SHORT_CLICKED, nullptr);
+#endif
     if (supportsPowerOff()) {
         auto* power_tile = createTile(grid, LVGL_ICON_SHARED_POWER_SETTINGS_NEW);
         lv_obj_add_event_cb(power_tile, onPowerOffClicked, LV_EVENT_SHORT_CLICKED, nullptr);
@@ -280,17 +422,50 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     // The arrow keys move between the tiles. Toggles that are focused directly would be switched by them.
     lvgl_grid_navigation_add(grid);
 
-    // A keyboard or encoder can't tap outside of the card or swipe up, so it needs a button to close the menu
+    // Brightness, when the display has a backlight that can be dimmed (not just switched on and off)
+    auto* backlight = getBacklightDevice();
+    if (backlight != nullptr) {
+        const int32_t min_brightness = backlight_get_min_brightness(backlight);
+        const int32_t max_brightness = backlight_get_max_brightness(backlight);
+        if (max_brightness > min_brightness) {
+            uint8_t brightness = static_cast<uint8_t>(max_brightness);
+            backlight_get_brightness(backlight, &brightness);
+            auto* brightness_slider = lvgl_sliderbox_create(card, 0, 100, 10, brightnessToPercent(backlight, brightness));
+            lv_obj_set_width(brightness_slider, LV_PCT(100));
+            lvgl_sliderbox_add_value_changed_cb(brightness_slider, onBrightnessChanged, nullptr);
+        }
+        device_put(backlight);
+    }
+
+    // A keyboard or encoder can't tap outside of the panel or swipe up, so it needs a button to close it
     if (lvgl_indev_exists(LV_INDEV_TYPE_KEYPAD) || lvgl_indev_exists(LV_INDEV_TYPE_ENCODER)) {
         auto* close_button = createTile(card, LVGL_ICON_SHARED_CLOSE);
         lv_obj_add_event_cb(close_button, onCloseClicked, LV_EVENT_SHORT_CLICKED, nullptr);
         lv_group_focus_obj(close_button);
         lv_obj_add_state(close_button, LV_STATE_FOCUS_KEY);
     }
+
+    // Slides in from the top edge. The animation goes with the widget when it's deleted.
+    LvglThemeSettings theme_settings = {};
+    lvgl_theme_get_settings(&theme_settings);
+    if (theme_settings.animations_enabled) {
+        lv_obj_update_layout(card);
+        lv_anim_t animation;
+        lv_anim_init(&animation);
+        lv_anim_set_var(&animation, card);
+        lv_anim_set_exec_cb(&animation, [](void* object, int32_t value) {
+            lv_obj_set_style_translate_y(static_cast<lv_obj_t*>(object), value, LV_STATE_DEFAULT);
+        });
+        lv_anim_set_values(&animation, -lv_obj_get_height(card), 0);
+        lv_anim_set_duration(&animation, 180);
+        lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
+        lv_anim_start(&animation);
+    }
 }
 
 void systemMenuShow() {
-    window_manager_overlay_show(createWidgets, nullptr, nullptr);
+    brightness_state.changed = false;
+    window_manager_overlay_show(createWidgets, onPanelClosed, nullptr);
 }
 
 }
