@@ -999,10 +999,9 @@ error_t ble_hid_host_connect(Device* device, const BtAddr addr) {
     setHostActive(true);
 
     ble_addr_t ble_addr = lookupPeerAddress(ctx, addr);
-    uint8_t own_addr_type;
-    if (ble_hs_id_infer_auto(0, &own_addr_type) != 0) {
-        own_addr_type = BLE_OWN_ADDR_PUBLIC;
-    }
+    // Central role always uses the public address, so bonds with HID hosts survive identity
+    // changes.
+    const uint8_t own_addr_type = BLE_OWN_ADDR_PUBLIC;
 
     // ble_gap_connect() is rejected while discovery is active
     if (ble_gap_disc_active()) {

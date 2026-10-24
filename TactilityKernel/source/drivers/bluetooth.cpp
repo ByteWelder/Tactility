@@ -53,6 +53,10 @@ bool bluetooth_is_scanning(struct Device* device) {
     return BT_API(device)->is_scanning(device);
 }
 
+bool bluetooth_is_peripheral_active(struct Device* device) {
+    return BT_API(device)->is_peripheral_active(device);
+}
+
 // ---- Pairing ----
 
 error_t bluetooth_pair(struct Device* device, const BtAddr addr) {
@@ -69,12 +73,12 @@ error_t bluetooth_get_paired_peers(struct Device* device, struct BtPeerRecord* o
 
 // ---- Connect / disconnect ----
 
-error_t bluetooth_connect(struct Device* device, const BtAddr addr, enum BtProfileId profile) {
-    return BT_API(device)->connect(device, addr, profile);
+error_t bluetooth_host_connect(struct Device* device, const BtAddr addr) {
+    return BT_API(device)->host_connect(device, addr);
 }
 
-error_t bluetooth_disconnect(struct Device* device, const BtAddr addr, enum BtProfileId profile) {
-    return BT_API(device)->disconnect(device, addr, profile);
+error_t bluetooth_host_disconnect(struct Device* device, const BtAddr addr) {
+    return BT_API(device)->host_disconnect(device, addr);
 }
 
 // ---- Event subscription ----
@@ -134,6 +138,14 @@ error_t bluetooth_set_device_name(struct Device* device, const char* name) {
 
 error_t bluetooth_get_device_name(struct Device* device, char* buf, size_t buf_len) {
     return BT_API(device)->get_device_name(device, buf, buf_len);
+}
+
+error_t bluetooth_set_identity(struct Device* device, const char* identity) {
+    return BT_API(device)->set_identity(device, identity);
+}
+
+error_t bluetooth_get_identity(struct Device* device, char* buf, size_t buf_len) {
+    return BT_API(device)->get_identity(device, buf, buf_len);
 }
 
 // ---- Device type ----

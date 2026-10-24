@@ -13,6 +13,7 @@
 #include <host/ble_att.h>
 #include <host/ble_gap.h>
 #include <host/ble_hs.h>
+#include <host/ble_hs_id.h>
 #include <host/ble_sm.h>
 #include <host/ble_store.h>
 #include <host/ble_uuid.h>
@@ -29,6 +30,7 @@
 constexpr auto* TAG = "esp32_ble";
 #include <tactility/log.h>
 #include <tactility/memory.h>
+#include <esp_mac.h>
 #include <esp_timer.h>
 
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
@@ -40,11 +42,6 @@ extern "C" {
 
 // ble_store_config_init() is not declared in the public header in some IDF versions.
 extern "C" void ble_store_config_init(void);
-
-// Sub-module API structs (defined in their respective cpp files).
-extern const BtHidDeviceApi nimble_hid_device_api;
-extern const BtSerialApi nimble_serial_api;
-extern const BtMidiApi   nimble_midi_api;
 
 // File-static BleCtx pointer used only by NimBLE host callbacks whose signature
 // is fixed by the NimBLE API (on_sync, on_reset) and cannot carry a Device*.
@@ -110,9 +107,8 @@ void ble_publish_event(struct Device* device, struct BtEvent event) {
 }
 
 // ---- Advertising restart helper ----
-//TODO: Fix Restart name-only advertising after a rename.
 
-// Delay before on_sync() falls back to name-only advertising - see its call site.
+// Delay before on_sync() restarts advertising for an already-active profile.
 constexpr uint64_t ADV_ON_SYNC_DELAY_US = 100'000;
 
 static void adv_restart_callback(void* arg) {
@@ -131,10 +127,9 @@ static void adv_restart_callback(void* arg) {
         ble_start_advertising(device, &NUS_SVC_UUID);
     } else if (ctx->hid_active.load() && hid_conn == BLE_HS_CONN_HANDLE_NONE) {
         ble_start_advertising_hid(device, hid_appearance);
-    } else if (!ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load()) {
-        // Nothing profile-specific active - name-only keeps the radio discoverable/connectable.
-        ble_start_advertising(device, nullptr);
     }
+    // No active profile: stay silent. A profile-less advertisement would carry the last
+    // identity, so a bonded host would reconnect to a device with no app behind it.
     xSemaphoreGive(ctx->gap_mutex);
 }
 
@@ -172,6 +167,18 @@ static int gap_event_handler(struct ble_gap_event* event, void* arg) {
     switch (event->type) {
         case BLE_GAP_EVENT_CONNECT:
             if (event->connect.status == 0) {
+                ctx->conn_count.fetch_add(1);
+                // Claim inbound links for HID immediately, so a stop can also terminate a
+                // discovery-only link that has no subscription yet. Only an inbound link can be
+                // HID here, and never while SPP or MIDI own the advertisement.
+                if (ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load() &&
+                    ble_hid_get_conn_handle(ctx->hid_device_child) == BLE_HS_CONN_HANDLE_NONE) {
+                    struct ble_gap_conn_desc desc = {};
+                    if (ble_gap_conn_find(event->connect.conn_handle, &desc) == 0 &&
+                        desc.role == BLE_GAP_ROLE_SLAVE) {
+                        ble_hid_set_conn_handle(ctx->hid_device_child, event->connect.conn_handle);
+                    }
+                }
                 LOG_I(TAG, "Connected (handle=%u hid_active=%d hid_conn=%u)",
                          event->connect.conn_handle,
                          (int)ctx->hid_active.load(),
@@ -190,6 +197,7 @@ static int gap_event_handler(struct ble_gap_event* event, void* arg) {
 
         case BLE_GAP_EVENT_DISCONNECT: {
             LOG_I(TAG, "Disconnected (reason=%d)", event->disconnect.reason);
+            if (ctx->conn_count.load() > 0) ctx->conn_count.fetch_sub(1);
             uint16_t hdl = event->disconnect.conn.conn_handle;
             bool was_spp  = (ctx->spp_conn_handle.load()  == hdl);
             bool was_midi = (ctx->midi_conn_handle.load() == hdl);
@@ -426,6 +434,138 @@ static int gap_event_handler(struct ble_gap_event* event, void* arg) {
 
 // ---- NimBLE host sync / reset callbacks ----
 
+/**
+ * Install the advertising address of the active identity: the controller's public BD_ADDR
+ * with the identity hash mixed in, as a static random address. Also used when the identity
+ * changes on a running radio, before any advertising starts.
+ */
+static void apply_identity_own_addr(BleCtx* ctx) {
+    if (ctx->identity_hash == 0) {
+        ctx->own_addr_type.store(BLE_OWN_ADDR_PUBLIC);
+        return;
+    }
+
+    uint8_t base[BT_ADDR_LEN] = {};
+    if (ble_hs_id_copy_addr(BLE_ADDR_PUBLIC, base, nullptr) != 0) {
+        // Fallback for controllers that have not reported their BD_ADDR over HCI yet. On a
+        // hosted setup this is the host's MAC, which is still stable across reboots.
+        esp_read_mac(base, ESP_MAC_BT);
+    }
+
+    uint8_t addr[BT_ADDR_LEN];
+    if (!ble_identity_derive_addr(ctx->identity_hash, base, addr)) {
+        ctx->own_addr_type.store(BLE_OWN_ADDR_PUBLIC);
+        return;
+    }
+
+    int rc = ble_hs_id_set_rnd(addr);
+    if (rc != 0) {
+        // Advertising falls back to the public address, so peers share one identity.
+        ctx->own_addr_type.store(BLE_OWN_ADDR_PUBLIC);
+        LOG_E(TAG, "identity: set random address failed (rc=%d), advertising with public address", rc);
+        return;
+    }
+
+    ctx->own_addr_type.store(BLE_OWN_ADDR_RANDOM);
+    LOG_I(TAG, "identity %08lx advertising as %02x:%02x:%02x:%02x:%02x:%02x (static random)",
+             (unsigned long)ctx->identity_hash,
+             addr[5], addr[4], addr[3], addr[2], addr[1], addr[0]);
+}
+
+/**
+ * Apply the pending identity to a radio that is already on, see esp32_ble_internal.h. Runs on
+ * the caller's task, never on the NimBLE host task.
+ */
+bool ble_identity_apply_pending(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
+    if (ctx == nullptr) return false;
+
+    // radio_mutex then gap_mutex, the order dispatch_enable() and api_set_device_name() use.
+    xSemaphoreTake(ctx->radio_mutex, portMAX_DELAY);
+    if (ctx->radio_state.load() != BT_RADIO_STATE_ON) {
+        // dispatch_enable() resolves the identity from the pending values when it comes up.
+        xSemaphoreGive(ctx->radio_mutex);
+        return true;
+    }
+    const char* pending = (ctx->identity[0] != '\0') ? ctx->identity : ctx->device_name;
+    const uint32_t pending_hash = ble_identity_hash(pending);
+    if (pending_hash == ctx->identity_hash) {
+        xSemaphoreGive(ctx->radio_mutex);
+        return true;
+    }
+
+    xSemaphoreTake(ctx->gap_mutex, portMAX_DELAY);
+
+    // A background scan is not a profile, abort it so it does not hold the GAP or the identity.
+    ble_scan_abort(device);
+
+    // The bond set and the address only change while nothing is connected or active. A live
+    // link was authenticated against the old set, and an active profile owns the identity.
+    const bool idle = !ble_gap_adv_active() && !ble_gap_disc_active() && !ble_gap_conn_active() &&
+                      ctx->conn_count.load() == 0 &&
+                      ctx->name_res_conn_handle.load() == BLE_HS_CONN_HANDLE_NONE &&
+                      !ctx->spp_active.load() && !ctx->midi_active.load() && !ctx->hid_active.load() &&
+                      !ble_hid_get_host_active(device);
+    if (!idle) {
+        xSemaphoreGive(ctx->gap_mutex);
+        xSemaphoreGive(ctx->radio_mutex);
+        LOG_I(TAG, "identity: radio busy, '%s' joins the current identity '%s'",
+              pending, ctx->identity_resolved);
+        return false;
+    }
+
+    if (!ble_identity_bond_slot_activate(pending_hash)) {
+        xSemaphoreGive(ctx->gap_mutex);
+        xSemaphoreGive(ctx->radio_mutex);
+        LOG_W(TAG, "identity: could not activate the bond set of '%s'; staying on '%s'",
+              pending, ctx->identity_resolved);
+        return false;
+    }
+    // Drop the cached NVS records and load the newly active bond set.
+    ble_store_config_init();
+
+    ctx->identity_hash = pending_hash;
+    strncpy(ctx->identity_resolved, pending, BLE_IDENTITY_MAX);
+    ctx->identity_resolved[BLE_IDENTITY_MAX] = '\0';
+    // Install the identity address before any advertising starts.
+    apply_identity_own_addr(ctx);
+
+    xSemaphoreGive(ctx->gap_mutex);
+    xSemaphoreGive(ctx->radio_mutex);
+    LOG_I(TAG, "identity switched to '%s' (%08lx) on the running radio",
+          ctx->identity_resolved, (unsigned long)pending_hash);
+    return true;
+}
+
+bool ble_prepare_profile_start(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
+    // Name resolution keeps opening central connections to read peer names.
+    ble_scan_abort(device);
+
+    // A cancelled connect attempt clears asynchronously on the NimBLE host task, and an open
+    // name-read link is terminated the same way. Runs on the caller's task, never on the host
+    // task. The GATT switch and the bond swap both need no link at all.
+    const int64_t deadline = esp_timer_get_time() + 500'000;
+    uint16_t terminated_link = BLE_HS_CONN_HANDLE_NONE;
+    while (ble_gap_conn_active() || ble_gap_disc_active() ||
+           ctx->name_res_conn_handle.load() != BLE_HS_CONN_HANDLE_NONE) {
+        uint16_t name_res_link = ctx->name_res_conn_handle.load();
+        if (name_res_link != BLE_HS_CONN_HANDLE_NONE && name_res_link != terminated_link) {
+            // The link may have completed after ble_scan_abort(), end it now.
+            ble_gap_terminate(name_res_link, BLE_ERR_REM_USER_CONN_TERM);
+            terminated_link = name_res_link;
+        }
+        if (esp_timer_get_time() > deadline) {
+            LOG_W(TAG, "profile start: GAP still busy after 500 ms (disc=%d conn=%d name_res=%d)",
+                  (int)ble_gap_disc_active(), (int)ble_gap_conn_active(),
+                  (int)(ctx->name_res_conn_handle.load() != BLE_HS_CONN_HANDLE_NONE));
+            return false;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    return true;
+}
+
 static void on_sync() {
     LOG_I(TAG, "NimBLE synced (nus_tx=%u midi_io=%u hid_kb=%u hid_cs=%u hid_ms=%u hid_gp=%u)",
              nus_tx_handle, midi_io_handle,
@@ -433,6 +573,10 @@ static void on_sync() {
              hid_mouse_input_handle, hid_gamepad_input_handle);
     BleCtx* ctx = s_ctx;
     if (ctx == nullptr) return;
+
+    // Must happen before ble_hs_util_ensure_addr()/ble_hs_id_infer_auto() below: they cache
+    // which address type the host uses, and advertising additionally reads own_addr_type.
+    apply_identity_own_addr(ctx);
 
     ctx->pending_reset_count.store(0);
 
@@ -454,11 +598,12 @@ static void on_sync() {
     ble_publish_event(ctx->device, e);
 
     // Deferred, not synchronous: an app reacting to the event just published above (e.g.
-    // starting HID) races this to set hid/spp/midi_active, and immediately starting name-only
-    // advertising only to tear it down again a few ms later for a profile switch was observed to
-    // corrupt the NimBLE host's HCI event pool (crash in os_memblock_get, called from
-    // lld_adv_end_ind_handler_hack). The delay gives that app time to react first;
-    // adv_restart_callback() re-checks the active flags, so this is a no-op if one did.
+    // starting HID) races this to set hid/spp/midi_active. Starting advertising here and
+    // tearing it down again a few ms later for a profile switch was observed to corrupt the
+    // NimBLE host's HCI event pool (crash in os_memblock_get, called from
+    // lld_adv_end_ind_handler_hack). The delay gives that app time to react first.
+    // The callback only restarts advertising for profiles that are already active (it does
+    // nothing when none is), so this also recovers advertising after a controller reset.
     ble_schedule_adv_restart(ctx->device, ADV_ON_SYNC_DELAY_US);
 }
 
@@ -522,69 +667,89 @@ static void host_task(void* param) {
 
 // ---- Advertising helpers ----
 
+// Address type advertising runs with: the identity's static random address once on_sync()
+// installed it, else the controller's public address.
+static uint8_t advertising_addr_type(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
+    return (ctx != nullptr) ? ctx->own_addr_type.load() : BLE_OWN_ADDR_PUBLIC;
+}
+
+// One scan response holds a single name field: 31-byte payload minus the length and type bytes.
+constexpr uint8_t SCAN_RSP_NAME_MAX = 29;
+
+/** Longest prefix of @a name that fits in @a max_len bytes without splitting a UTF-8 character. */
+static uint8_t utf8_prefix_length(const char* name, uint8_t max_len) {
+    size_t len = strlen(name);
+    if (len <= max_len) return (uint8_t)len;
+    len = max_len;
+    // The first excluded byte must not be a continuation byte.
+    while (len > 0 && (static_cast<uint8_t>(name[len]) & 0xC0) == 0x80) {
+        --len;
+    }
+    return (uint8_t)len;
+}
+
+/**
+ * Put the complete device name in the scan response. A name too long for one response is
+ * truncated and marked as a shortened name, otherwise the device would advertise without one.
+ */
+static void set_scan_response_name(const char* name) {
+    struct ble_hs_adv_fields rsp;
+    memset(&rsp, 0, sizeof(rsp));
+    rsp.name             = (const uint8_t*)name;
+    rsp.name_len         = (uint8_t)strlen(name);
+    rsp.name_is_complete = 1;
+    int rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc == 0) return;
+
+    rsp.name_len         = utf8_prefix_length(name, SCAN_RSP_NAME_MAX);
+    rsp.name_is_complete = 0;
+    rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc != 0) {
+        LOG_W(TAG, "scan response name failed rc=%d", rc);
+    }
+}
+
 void ble_start_advertising(struct Device* device, const ble_uuid128_t* svc_uuid) {
     ble_gap_adv_stop();
 
-    // Always sync the GAP name from ctx right before building the advertising packet,
-    // so bluetooth_set_device_name() is honoured regardless of call timing.
-    BleCtx* _name_ctx = ble_get_ctx(device);
-    if (_name_ctx) ble_svc_gap_device_name_set(_name_ctx->device_name);
+    // Sync the GAP name from ctx so bluetooth_set_device_name() is honoured regardless of when
+    // it was called.
+    BleCtx* ctx = ble_get_ctx(device);
+    if (ctx) ble_svc_gap_device_name_set(ctx->device_name);
 
-    int rc;
-    if (svc_uuid != nullptr) {
-        const char* name = ble_svc_gap_device_name();
-        uint8_t name_len  = (uint8_t)strlen(name);
-        uint8_t short_len = (name_len > 8) ? 8 : name_len;
+    const char* name = ble_svc_gap_device_name();
+    uint8_t name_len = (uint8_t)strlen(name);
 
-        ble_uuid128_t uuid_copy = *svc_uuid;
-        struct ble_hs_adv_fields fields;
-        memset(&fields, 0, sizeof(fields));
-        fields.flags                = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-        fields.uuids128             = &uuid_copy;
-        fields.num_uuids128         = 1;
-        fields.uuids128_is_complete = 1;
-        fields.name                 = (const uint8_t*)name;
-        fields.name_len             = short_len;
-        fields.name_is_complete     = 0; // AD type 0x08 = Shortened Local Name
+    ble_uuid128_t uuid_copy = *svc_uuid;
+    struct ble_hs_adv_fields fields;
+    memset(&fields, 0, sizeof(fields));
+    fields.flags                = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
+    fields.uuids128             = &uuid_copy;
+    fields.num_uuids128         = 1;
+    fields.uuids128_is_complete = 1;
+    // Complete name only. A shortened name is identical for every identity sharing a prefix,
+    // the scan response below covers names that do not fit.
+    fields.name                 = (const uint8_t*)name;
+    fields.name_len             = name_len;
+    fields.name_is_complete     = 1;
 
-        rc = ble_gap_adv_set_fields(&fields);
-        if (rc != 0) {
-            LOG_W(TAG, "startAdvertising: set_fields with name failed rc=%d, retrying", rc);
-            fields.name     = nullptr;
-            fields.name_len = 0;
-            rc = ble_gap_adv_set_fields(&fields);
-            if (rc != 0) {
-                LOG_E(TAG, "startAdvertising: set_fields failed rc=%d", rc);
-                return;
-            }
-        }
-        struct ble_hs_adv_fields rsp;
-        memset(&rsp, 0, sizeof(rsp));
-        rsp.name             = (const uint8_t*)name;
-        rsp.name_len         = name_len;
-        rsp.name_is_complete = 1;
-        rc = ble_gap_adv_rsp_set_fields(&rsp);
-        if (rc != 0) {
-            LOG_W(TAG, "startAdvertising: rsp_set_fields rc=%d (non-fatal)", rc);
-        }
-        LOG_I(TAG, "startAdvertising: UUID mode (uuid[0..3]=%02x%02x%02x%02x)",
-                 svc_uuid->value[0], svc_uuid->value[1],
-                 svc_uuid->value[2], svc_uuid->value[3]);
-    } else {
-        struct ble_hs_adv_fields fields;
-        memset(&fields, 0, sizeof(fields));
-        fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-        const char* name = ble_svc_gap_device_name();
-        fields.name             = (const uint8_t*)name;
-        fields.name_len         = (uint8_t)strlen(name);
-        fields.name_is_complete = 1;
+    int rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        LOG_I(TAG, "startAdvertising: name doesn't fit the adv packet (rc=%d), using scan response", rc);
+        fields.name     = nullptr;
+        fields.name_len = 0;
         rc = ble_gap_adv_set_fields(&fields);
         if (rc != 0) {
             LOG_E(TAG, "startAdvertising: set_fields failed rc=%d", rc);
             return;
         }
-        LOG_I(TAG, "startAdvertising: name-only mode");
     }
+
+    set_scan_response_name(name);
+    LOG_I(TAG, "startAdvertising: UUID mode (uuid[0..3]=%02x%02x%02x%02x)",
+             svc_uuid->value[0], svc_uuid->value[1],
+             svc_uuid->value[2], svc_uuid->value[3]);
 
     struct ble_gap_adv_params adv_params;
     memset(&adv_params, 0, sizeof(adv_params));
@@ -593,7 +758,7 @@ void ble_start_advertising(struct Device* device, const ble_uuid128_t* svc_uuid)
     adv_params.itvl_min  = 160; // 100 ms
     adv_params.itvl_max  = 240; // 150 ms
 
-    rc = ble_gap_adv_start(BLE_OWN_ADDR_PUBLIC, nullptr, BLE_HS_FOREVER,
+    rc = ble_gap_adv_start(advertising_addr_type(device), nullptr, BLE_HS_FOREVER,
                            &adv_params, gap_event_handler, device);
     if (rc != 0 && rc != BLE_HS_EALREADY) {
         LOG_E(TAG, "startAdvertising: adv_start failed rc=%d", rc);
@@ -606,12 +771,11 @@ void ble_start_advertising_hid(struct Device* device, uint16_t appearance) {
     ble_gap_adv_stop();
 
     // Always sync the GAP name from ctx right before building the advertising packet.
-    BleCtx* _name_ctx = ble_get_ctx(device);
-    if (_name_ctx) ble_svc_gap_device_name_set(_name_ctx->device_name);
+    BleCtx* ctx = ble_get_ctx(device);
+    if (ctx) ble_svc_gap_device_name_set(ctx->device_name);
 
     const char* name  = ble_svc_gap_device_name();
     uint8_t name_len  = (uint8_t)strlen(name);
-    uint8_t short_len = (name_len > 8) ? 8 : name_len;
 
     static const ble_uuid16_t hid_uuid16 = BLE_UUID16_INIT(0x1812);
 
@@ -623,13 +787,14 @@ void ble_start_advertising_hid(struct Device* device, uint16_t appearance) {
     fields.uuids16              = &hid_uuid16;
     fields.num_uuids16          = 1;
     fields.uuids16_is_complete  = 1;
+    // Complete name only, the scan response below covers names that do not fit.
     fields.name                 = (const uint8_t*)name;
-    fields.name_len             = short_len;
-    fields.name_is_complete     = 0;
+    fields.name_len             = name_len;
+    fields.name_is_complete     = 1;
 
     int rc = ble_gap_adv_set_fields(&fields);
     if (rc != 0) {
-        LOG_W(TAG, "startAdvertisingHid: set_fields with name failed rc=%d, retrying", rc);
+        LOG_I(TAG, "startAdvertisingHid: name doesn't fit the adv packet (rc=%d), using scan response", rc);
         fields.name     = nullptr;
         fields.name_len = 0;
         rc = ble_gap_adv_set_fields(&fields);
@@ -639,15 +804,7 @@ void ble_start_advertising_hid(struct Device* device, uint16_t appearance) {
         }
     }
 
-    struct ble_hs_adv_fields rsp;
-    memset(&rsp, 0, sizeof(rsp));
-    rsp.name             = (const uint8_t*)name;
-    rsp.name_len         = name_len;
-    rsp.name_is_complete = 1;
-    rc = ble_gap_adv_rsp_set_fields(&rsp);
-    if (rc != 0) {
-        LOG_W(TAG, "startAdvertisingHid: rsp_set_fields rc=%d (non-fatal)", rc);
-    }
+    set_scan_response_name(name);
 
     struct ble_gap_adv_params adv_params;
     memset(&adv_params, 0, sizeof(adv_params));
@@ -656,7 +813,7 @@ void ble_start_advertising_hid(struct Device* device, uint16_t appearance) {
     adv_params.itvl_min  = 160;
     adv_params.itvl_max  = 240;
 
-    rc = ble_gap_adv_start(BLE_OWN_ADDR_PUBLIC, nullptr, BLE_HS_FOREVER,
+    rc = ble_gap_adv_start(advertising_addr_type(device), nullptr, BLE_HS_FOREVER,
                            &adv_params, gap_event_handler, device);
     if (rc != 0 && rc != BLE_HS_EALREADY) {
         LOG_E(TAG, "startAdvertisingHid: adv_start failed rc=%d", rc);
@@ -713,6 +870,26 @@ static void dispatch_enable(BleCtx* ctx) {
     bool scan_alloc_failed = ctx->scan_results == nullptr || ctx->scan_addrs == nullptr;
     xSemaphoreGive(ctx->scan_mutex);
 
+    // Resolve the identity and make its bond set the active one before the NimBLE host comes
+    // up: ble_store_config_init() below loads the bond records from NVS, so the swap has to be
+    // committed while the host is still down (and before it can advertise).
+    const char* identity = (ctx->identity[0] != '\0') ? ctx->identity : ctx->device_name;
+    const uint32_t identity_hash = ble_identity_hash(identity);
+    ctx->conn_count.store(0);
+    ctx->name_res_abort.store(false);
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
+    if (!scan_alloc_failed) {
+        if (ble_identity_bond_slot_activate(identity_hash)) {
+            ctx->identity_hash = identity_hash;
+            strncpy(ctx->identity_resolved, identity, BLE_IDENTITY_MAX);
+            ctx->identity_resolved[BLE_IDENTITY_MAX] = '\0';
+        } else {
+            // Keep the identity whose bonds are actually active. A profile start retries the swap.
+            LOG_W(TAG, "identity: '%s' not activated, staying on '%s'", identity,
+                  ctx->identity_resolved[0] != '\0' ? ctx->identity_resolved : "public address");
+        }
+    }
+
     int rc = scan_alloc_failed ? -1 : nimble_port_init();
     if (rc != 0) {
         if (scan_alloc_failed) {
@@ -729,8 +906,13 @@ static void dispatch_enable(BleCtx* ctx) {
         return;
     }
 
-    // npl_funcs only becomes valid after nimble_port_init() above; must (re-)init
-    // the giveup event each enable cycle, not once at device-start time.
+    // Re-init the giveup event every enable cycle, npl_funcs only exists after
+    // nimble_port_init(). nimble_port_deinit() frees the event pool that giveup_event's block
+    // came from, so the pointer in giveup_event.event is stale. npl_freertos_event_init() then
+    // memsets that stale address instead of allocating, which can corrupt the new pool's free
+    // list and crash the first event after re-enabling the radio. Clearing the pointer makes
+    // every cycle allocate a fresh block.
+    ctx->giveup_event.event = nullptr;
     ble_npl_event_init(&ctx->giveup_event, giveup_event_cb, ctx);
 
     ble_hs_cfg.sync_cb         = on_sync;
@@ -862,6 +1044,11 @@ static void dispatch_disable(BleCtx* ctx) {
     ctx->midi_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->midi_active.store(false);
     ctx->hid_active.store(false);
+    // No link survives a host restart, so linked state has to be cleared here too.
+    ctx->hid_host_active.store(false);
+    ctx->conn_count.store(0);
+    ctx->name_res_abort.store(false);
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->link_encrypted.store(false);
     ctx->pending_reset_count.store(0);
     current_hid_profile    = BleHidProfile::None;
@@ -927,15 +1114,16 @@ static error_t api_scan_start(struct Device* device) {
     }
 
     ble_scan_clear_results(device);
+    // A new scan is a new name-resolution round.
+    ctx->name_res_abort.store(false);
 
     struct ble_gap_disc_params disc_params = {};
     disc_params.passive         = 0;
     disc_params.filter_duplicates = 1;
 
-    uint8_t own_addr_type;
-    ble_hs_id_infer_auto(0, &own_addr_type);
-
-    int rc = ble_gap_disc(own_addr_type, 5000, &disc_params, ble_gap_disc_event_handler, device);
+    // Central role always scans from the public address. The identity address is the peripheral
+    // identity, using it here would invalidate bonds with peers we act as a host for.
+    int rc = ble_gap_disc(BLE_OWN_ADDR_PUBLIC, 5000, &disc_params, ble_gap_disc_event_handler, device);
     if (rc != 0 && rc != BLE_HS_EALREADY) {
         LOG_E(TAG, "ble_gap_disc failed (rc=%d)", rc);
         return ERROR_UNDEFINED;
@@ -966,6 +1154,12 @@ static bool api_is_scanning(struct Device* device) {
     return ctx != nullptr && ctx->scan_active.load();
 }
 
+static bool api_is_peripheral_active(struct Device* device) {
+    BleCtx* ctx = ble_get_ctx(device);
+    return ctx != nullptr &&
+           (ctx->hid_active.load() || ctx->spp_active.load() || ctx->midi_active.load());
+}
+
 static error_t api_pair(struct Device* /*device*/, const BtAddr /*addr*/) {
     // Pairing handled automatically by NimBLE SM during connection.
     // ENC_CHANGE fires when encryption is established (PAIR_RESULT event).
@@ -987,34 +1181,12 @@ static error_t api_get_paired_peers(struct Device* /*device*/, struct BtPeerReco
     return ERROR_NOT_SUPPORTED;
 }
 
-static error_t api_connect(struct Device* device, const BtAddr addr, enum BtProfileId profile) {
-    BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (!ctx) return ERROR_INVALID_STATE;
-    if (profile == BT_PROFILE_HID_DEVICE) {
-        return nimble_hid_device_api.start(ctx->hid_device_child, BT_HID_DEVICE_MODE_KEYBOARD);
-    } else if (profile == BT_PROFILE_SPP) {
-        return ble_spp_start_internal(ctx->serial_child);
-    } else if (profile == BT_PROFILE_MIDI) {
-        return ble_midi_start_internal(ctx->midi_child);
-    } else if (profile == BT_PROFILE_HID_HOST) {
-        return ble_hid_host_connect(device, addr);
-    }
-    return ERROR_NOT_SUPPORTED;
+static error_t api_host_connect(struct Device* device, const BtAddr addr) {
+    return ble_hid_host_connect(device, addr);
 }
 
-static error_t api_disconnect(struct Device* device, const BtAddr addr, enum BtProfileId profile) {
-    BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (!ctx) return ERROR_INVALID_STATE;
-    if (profile == BT_PROFILE_HID_DEVICE) {
-        return nimble_hid_device_api.stop(ctx->hid_device_child);
-    } else if (profile == BT_PROFILE_SPP) {
-        return nimble_serial_api.stop(ctx->serial_child);
-    } else if (profile == BT_PROFILE_MIDI) {
-        return nimble_midi_api.stop(ctx->midi_child);
-    } else if (profile == BT_PROFILE_HID_HOST) {
-        return ble_hid_host_disconnect();
-    }
-    return ERROR_NOT_SUPPORTED;
+static error_t api_host_disconnect(struct Device* /*device*/, const BtAddr /*addr*/) {
+    return ble_hid_host_disconnect();
 }
 
 static error_t api_event_subscribe(struct Device* device, BtEventSubscription* sub, TaskEventGroup* event_group) {
@@ -1075,6 +1247,13 @@ static error_t api_set_device_name(struct Device* device, const char* name) {
     strncpy(ctx->device_name, name, BLE_DEVICE_NAME_MAX);
     ctx->device_name[BLE_DEVICE_NAME_MAX] = '\0';
     if (ctx->radio_state.load() == BT_RADIO_STATE_ON) {
+        // A rename does not change the running session's address or bonds. Those follow at the
+        // next profile start if the radio is idle, or at the next radio cycle.
+        const char* pending_identity = (ctx->identity[0] != '\0') ? ctx->identity : ctx->device_name;
+        if (ctx->identity_hash != ble_identity_hash(pending_identity)) {
+            LOG_I(TAG, "Device name is now '%s'; identity '%s' applies from the next profile "
+                "start or radio cycle", ctx->device_name, ctx->identity_resolved);
+        }
         ble_svc_gap_device_name_set(ctx->device_name);
         // Restart advertising so the new name is broadcast immediately.
         // ble_schedule_adv_restart checks active profiles; no-op if nothing is advertising.
@@ -1094,6 +1273,41 @@ static error_t api_get_device_name(struct Device* device, char* buf, size_t buf_
     return ERROR_NONE;
 }
 
+static error_t api_set_identity(struct Device* device, const char* identity) {
+    BleCtx* ctx = ble_get_ctx(device);
+    if (ctx == nullptr) return ERROR_INVALID_ARGUMENT;
+    if (identity != nullptr && strlen(identity) > BLE_IDENTITY_MAX) {
+        return ERROR_INVALID_ARGUMENT;
+    }
+
+    xSemaphoreTake(ctx->radio_mutex, portMAX_DELAY);
+    // Address and bond set can only change with nothing connected. A mid-session change is
+    // pending until the next profile start or radio cycle.
+    if (identity == nullptr || identity[0] == '\0') {
+        ctx->identity[0] = '\0';
+    } else {
+        strncpy(ctx->identity, identity, BLE_IDENTITY_MAX);
+        ctx->identity[BLE_IDENTITY_MAX] = '\0';
+    }
+    xSemaphoreGive(ctx->radio_mutex);
+    return ERROR_NONE;
+}
+
+static error_t api_get_identity(struct Device* device, char* buf, size_t buf_len) {
+    BleCtx* ctx = ble_get_ctx(device);
+    if (ctx == nullptr || buf == nullptr || buf_len == 0) return ERROR_INVALID_ARGUMENT;
+    xSemaphoreTake(ctx->radio_mutex, portMAX_DELAY);
+    // While the radio is up, report the identity the running session resolved.
+    const char* identity = (ctx->radio_state.load() != BT_RADIO_STATE_OFF &&
+                            ctx->identity_resolved[0] != '\0')
+        ? ctx->identity_resolved
+        : ((ctx->identity[0] != '\0') ? ctx->identity : ctx->device_name);
+    strncpy(buf, identity, buf_len - 1);
+    buf[buf_len - 1] = '\0';
+    xSemaphoreGive(ctx->radio_mutex);
+    return ERROR_NONE;
+}
+
 // ---- BluetoothApi struct ----
 
 const BluetoothApi nimble_bluetooth_api = {
@@ -1102,15 +1316,18 @@ const BluetoothApi nimble_bluetooth_api = {
     .scan_start             = api_scan_start,
     .scan_stop              = api_scan_stop,
     .is_scanning            = api_is_scanning,
+    .is_peripheral_active   = api_is_peripheral_active,
     .pair                   = api_pair,
     .unpair                 = api_unpair,
     .get_paired_peers       = api_get_paired_peers,
-    .connect                = api_connect,
-    .disconnect             = api_disconnect,
+    .host_connect           = api_host_connect,
+    .host_disconnect        = api_host_disconnect,
     .event_subscribe        = api_event_subscribe,
     .event_unsubscribe      = api_event_unsubscribe,
     .set_device_name        = api_set_device_name,
     .get_device_name        = api_get_device_name,
+    .set_identity           = api_set_identity,
+    .get_identity           = api_get_identity,
 };
 
 // ---- Driver definitions ----
@@ -1155,6 +1372,9 @@ static error_t esp32_ble_start_device(struct Device* device) {
     ctx->midi_use_indicate.store(false);
     ctx->hid_active.store(false);
     ctx->link_encrypted.store(false);
+    ctx->conn_count.store(0);
+    ctx->name_res_abort.store(false);
+    ctx->name_res_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->pending_reset_count.store(0);
     ctx->midi_keepalive_timer = nullptr;
     ctx->adv_restart_timer    = nullptr;
@@ -1164,6 +1384,10 @@ static error_t esp32_ble_start_device(struct Device* device) {
     if (cfg_name == nullptr || cfg_name[0] == '\0') cfg_name = "Tactility";
     strncpy(ctx->device_name, cfg_name, BLE_DEVICE_NAME_MAX);
     ctx->device_name[BLE_DEVICE_NAME_MAX] = '\0';
+    // No explicit identity yet: dispatch_enable() falls back to device_name.
+    ctx->identity[0]          = '\0';
+    ctx->identity_hash        = 0;
+    ctx->own_addr_type.store(BLE_OWN_ADDR_PUBLIC);
     ctx->device               = device;
     ctx->serial_child         = nullptr;
     ctx->midi_child           = nullptr;
