@@ -145,7 +145,7 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size);
  * is buried in the window manager's stack.
  * @param[in] app_instance_id the instance to look up
  * @param[out] buffer always NULL-terminated on return (at least "" is written when
- * @a buffer_size > 0; nothing is written in that case when @a buffer_size == 0)
+ * @a buffer_size > 0; nothing is written when @a buffer_size == 0)
  * @retval ERROR_NOT_FOUND no such instance (any more), or it has no registered manifest id
  * @retval ERROR_BUFFER_OVERFLOW @a buffer_size is too small to hold the id (including the NULL
  * terminator)

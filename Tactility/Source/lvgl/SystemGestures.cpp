@@ -9,6 +9,7 @@
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/lvgl/SystemBars.h>
 #include <Tactility/lvgl/SystemRecents.h>
+#include <Tactility/lvgl/SystemWindow.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -19,7 +20,6 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
-#include <cstdint>
 #include <cstring>
 
 namespace tt::lvgl {
@@ -34,10 +34,6 @@ constexpr uint32_t HOLD_TIME_MS = 500;
 // press is down.
 constexpr uint32_t HOLD_POLL_MS = 50;
 
-// The most windows the home gesture looks through for the launcher. Bounded, so the stack isn't
-// copied to the heap from an LVGL callback.
-constexpr size_t WINDOW_SCAN_LIMIT = 16;
-
 // One press at a time: a second finger is ignored, which is what a single-touch panel reports anyway
 struct GestureState {
     lv_indev_t* indev = nullptr;
@@ -51,69 +47,68 @@ struct GestureState {
 GestureState state;
 bool attached = false;
 
-void raise_on_main_dispatcher(void* context) {
-    window_manager_raise(static_cast<WindowId>(reinterpret_cast<uintptr_t>(context)));
-}
-
-/** Defers to the main dispatcher: window_manager_raise() must not run on the LVGL task, see its warning. */
-void raiseWindow(WindowId window) {
-    dispatchOnMainDispatcher(raise_on_main_dispatcher, reinterpret_cast<void*>(static_cast<uintptr_t>(window)));
-}
-
-WindowId findLauncherWindow() {
-    WindowInfo windows[WINDOW_SCAN_LIMIT];
-    size_t count = window_manager_get_windows(windows, 0, WINDOW_SCAN_LIMIT);
-    if (count > WINDOW_SCAN_LIMIT) {
-        count = WINDOW_SCAN_LIMIT;
-    }
-
+bool isLauncher(AppInstanceId app_instance_id) {
     char app_id[APP_MANIFEST_ID_LENGTH + 1];
-    for (size_t i = 0; i < count; i++) {
-        if (app_manager_get_instance_app_id(windows[i].app_instance_id, app_id, sizeof(app_id)) != ERROR_NONE) {
-            continue;
-        }
-        if (strcmp(app_id, LAUNCHER_APP_ID) == 0) {
-            return windows[i].id;
-        }
+    if (app_manager_get_instance_app_id(app_instance_id, app_id, sizeof(app_id)) != ERROR_NONE) {
+        return false;
     }
-    return 0;
+    return strcmp(app_id, LAUNCHER_APP_ID) == 0;
+}
+
+/** @return the launcher's window, or WINDOW_ID_NONE when it isn't open */
+WindowId findLauncherWindow() {
+    WindowId found = WINDOW_ID_NONE;
+    forEachWindow([&found](const WindowInfo& window) {
+        if (!isLauncher(window.app_instance_id)) {
+            return true;
+        }
+        found = window.id;
+        return false;
+    });
+    return found;
 }
 
 /** Home: shows the launcher again, keeping the apps above it in the stack. */
 void showHome() {
     const WindowId launcher = findLauncherWindow();
-    if (launcher != 0) {
+    if (launcher != WINDOW_ID_NONE) {
         raiseWindow(launcher);
     }
 }
 
-/** Back: closes the topmost app, which brings back the window below it. No-op on the launcher. */
-void closeTopmostApp() {
-    char app_id[APP_MANIFEST_ID_LENGTH + 1];
-    if (app_manager_get_topmost_app_id(app_id, sizeof(app_id)) != ERROR_NONE) {
+/**
+ * Back: closes the app of the topmost window, which brings back the window below it.
+ * The window stack decides this, not the newest app instance: after going home, the launcher is on
+ * top while a newer app instance is buried below it. No-op on the launcher.
+ */
+void closeTopWindowApp() {
+    const WindowInfo top = getTopWindow();
+    if (top.id == WINDOW_ID_NONE || isLauncher(top.app_instance_id)) {
         return;
     }
-    if (strcmp(app_id, LAUNCHER_APP_ID) == 0) {
-        return;
-    }
-
-    AppInstanceId topmost = 0;
-    if (app_manager_get_topmost_instance_id(&topmost) == ERROR_NONE) {
-        app_event_emit_close(topmost);
-    }
+    app_event_emit_close(top.app_instance_id);
 }
 
-void stopHoldTimer() {
+void clearPress() {
     if (state.hold_timer != nullptr) {
+        // Safe in the timer's own callback too: LVGL handles a timer deleting itself
         lv_timer_delete(state.hold_timer);
         state.hold_timer = nullptr;
     }
+    state.indev = nullptr;
+    state.edge = SystemGestureEdge::None;
+    state.hold_triggered = false;
+}
+
+bool isPressStillDown() {
+    return state.indev != nullptr && lv_indev_get_state(state.indev) == LV_INDEV_STATE_PRESSED;
 }
 
 // Keeps checking a bottom-edge press: a swipe up that keeps being held opens the recents switcher
 void onHoldTimer(lv_timer_t* timer) {
-    if (state.indev == nullptr) {
-        lv_timer_pause(timer);
+    if (!isPressStillDown()) {
+        // The release never reached us, e.g. when the display was reset mid-press
+        clearPress();
         return;
     }
     if (lv_tick_elaps(state.press_tick) < HOLD_TIME_MS) {
@@ -134,13 +129,6 @@ void onHoldTimer(lv_timer_t* timer) {
     systemRecentsShow();
 }
 
-void clearPress() {
-    stopHoldTimer();
-    state.indev = nullptr;
-    state.edge = SystemGestureEdge::None;
-    state.hold_triggered = false;
-}
-
 lv_display_t* getIndevDisplay(lv_indev_t* indev) {
     lv_display_t* display = lv_indev_get_display(indev);
     return display != nullptr ? display : lv_display_get_default();
@@ -148,9 +136,12 @@ lv_display_t* getIndevDisplay(lv_indev_t* indev) {
 
 void onIndevPressed(lv_event_t* event) {
     auto* indev = static_cast<lv_indev_t*>(lv_event_get_current_target(event));
-    if (state.indev != nullptr) {
+    if (isPressStillDown()) {
+        // One press at a time: a second finger is ignored
         return;
     }
+    // A press that never reported its release must not block every press after it
+    clearPress();
     // A shown overlay (system menu, recents) has its own gestures
     if (window_manager_get_active_layer() != WINDOW_LAYER_APP) {
         return;
@@ -214,13 +205,9 @@ void onIndevReleased(lv_event_t* event) {
     } else if (edge == SystemGestureEdge::Left) {
         if (systemGestureIsSwipeRight(press.x, press.y, point.x, point.y)) {
             lv_indev_reset(indev, nullptr);
-            closeTopmostApp();
+            closeTopWindowApp();
         }
     }
-}
-
-void onIndevPressLost(lv_event_t* /*event*/) {
-    clearPress();
 }
 
 void forEachPointer(void (*action)(lv_indev_t* indev)) {
@@ -234,7 +221,6 @@ void forEachPointer(void (*action)(lv_indev_t* indev)) {
 void removePointerCallbacks(lv_indev_t* indev) {
     lv_indev_remove_event_cb_with_user_data(indev, onIndevPressed, nullptr);
     lv_indev_remove_event_cb_with_user_data(indev, onIndevReleased, nullptr);
-    lv_indev_remove_event_cb_with_user_data(indev, onIndevPressLost, nullptr);
 }
 
 // The pointer devices are removed by LVGL itself on shutdown, so detaching only has to undo the
@@ -243,7 +229,6 @@ void addPointerCallbacks(lv_indev_t* indev) {
     removePointerCallbacks(indev);
     lv_indev_add_event_cb(indev, onIndevPressed, LV_EVENT_PRESSED, nullptr);
     lv_indev_add_event_cb(indev, onIndevReleased, LV_EVENT_RELEASED, nullptr);
-    lv_indev_add_event_cb(indev, onIndevPressLost, LV_EVENT_PRESS_LOST, nullptr);
 }
 
 }

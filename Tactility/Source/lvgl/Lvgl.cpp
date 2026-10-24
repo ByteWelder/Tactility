@@ -12,6 +12,7 @@
 #include <Tactility/lvgl/SystemBars.h>
 #include <Tactility/lvgl/SystemGestures.h>
 #include <Tactility/lvgl/SystemMenu.h>
+#include <Tactility/lvgl/SystemWindow.h>
 #include <Tactility/lvgl/TrackballInit.h>
 #include <Tactility/lvgl/UsbHidInput.h>
 #include <Tactility/service/ServiceManifest.h>
@@ -61,13 +62,13 @@ namespace service {
 namespace lvgl {
 
 static void stopAppFromToolbar(lv_event_t*) {
-    // Default nav action for any toolbar that doesn't override it itself. Prefer the topmost
-    // new-model app if one is showing; fall back to the old system otherwise (this is what
-    // every not-yet-converted app's toolbar still relies on).
-    AppInstanceId topmost = 0;
-    check(app_manager_get_topmost_instance_id(&topmost) == ERROR_NONE);
-
-    app_event_emit_close(topmost);
+    // Default nav action for any toolbar that doesn't override it itself. The window stack decides
+    // which app that is: after going home, the launcher is on top while a newer app instance is
+    // buried below it, so the newest instance isn't necessarily the one being shown.
+    const WindowInfo top = getTopWindow();
+    if (top.id != WINDOW_ID_NONE) {
+        app_event_emit_close(top.app_instance_id);
+    }
 }
 
 // The on-screen keyboard widget itself, constructed during windowManagerScreenInit

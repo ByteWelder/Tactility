@@ -1,5 +1,6 @@
 #include <Tactility/lvgl/SystemMenu.h>
 
+#include <Tactility/Backlight.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/lvgl/SystemRecents.h>
 #include <Tactility/settings/DisplaySettings.h>
@@ -39,7 +40,6 @@
 #include <tactility/log.h>
 
 #include <cstdint>
-#include <cstdio>
 #include <ctime>
 
 #ifdef ESP_PLATFORM
@@ -149,38 +149,6 @@ static void setMeshEnabled(void* context) {
     }
 }
 
-/** The display's backlight, or nullptr when there's no display driver or backlight to drive. */
-static Device* getBacklightDevice() {
-    Device* display = nullptr;
-    if (device_get_first_by_type(&DISPLAY_TYPE, &display) != ERROR_NONE) {
-        return nullptr;
-    }
-    // Boards not migrated to the kernel display driver register a placeholder device with a NULL api
-    if (device_get_driver(display)->api == nullptr) {
-        device_put(display);
-        return nullptr;
-    }
-    Device* backlight = nullptr;
-    display_get_backlight(display, &backlight);
-    device_put(display);
-    return backlight;
-}
-
-// Same mapping between the backlight's device units and the shown percentage as the Display app
-static int32_t brightnessToPercent(Device* backlight, int32_t brightness) {
-    const int32_t min = backlight_get_min_brightness(backlight);
-    const int32_t range = backlight_get_max_brightness(backlight) - min;
-    return range > 0 ? ((brightness - min) * 100 + range / 2) / range : 100;
-}
-
-static int32_t percentToBrightness(Device* backlight, int32_t percent) {
-    const int32_t min = backlight_get_min_brightness(backlight);
-    const int32_t range = backlight_get_max_brightness(backlight) - min;
-    const int32_t brightness = min + (percent * range + 50) / 100;
-    // A brightness of 0 turns the backlight off, so 0% is the dimmest setting that is still on
-    return brightness < 1 ? 1 : brightness;
-}
-
 /** Persists the brightness the way the Display app does, off the LVGL task as it writes a file. */
 static void saveBrightness(void* context) {
     const auto brightness = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(context));
@@ -199,13 +167,13 @@ static BrightnessState brightness_state;
 
 static void onBrightnessChanged(lv_event_t* event) {
     auto* slider_box = lv_event_get_current_target_obj(event);
-    Device* backlight = getBacklightDevice();
-    if (backlight == nullptr) {
+    Device* backlight_device = tt::backlight::findDisplayBacklight();
+    if (backlight_device == nullptr) {
         return;
     }
-    const auto brightness = static_cast<uint8_t>(percentToBrightness(backlight, lvgl_sliderbox_get_value(slider_box)));
-    backlight_set_brightness(backlight, brightness);
-    device_put(backlight);
+    const auto brightness = static_cast<uint8_t>(tt::backlight::toBrightness(backlight_device, lvgl_sliderbox_get_value(slider_box)));
+    backlight_set_brightness(backlight_device, brightness);
+    device_put(backlight_device);
     brightness_state.duty = brightness;
     brightness_state.changed = true;
 }
@@ -423,18 +391,16 @@ static void createWidgets(lv_obj_t* parent, void* /*userData*/) {
     lvgl_grid_navigation_add(grid);
 
     // Brightness, when the display has a backlight that can be dimmed (not just switched on and off)
-    auto* backlight = getBacklightDevice();
-    if (backlight != nullptr) {
-        const int32_t min_brightness = backlight_get_min_brightness(backlight);
-        const int32_t max_brightness = backlight_get_max_brightness(backlight);
-        if (max_brightness > min_brightness) {
-            uint8_t brightness = static_cast<uint8_t>(max_brightness);
-            backlight_get_brightness(backlight, &brightness);
-            auto* brightness_slider = lvgl_sliderbox_create(card, 0, 100, 10, brightnessToPercent(backlight, brightness));
+    Device* backlight_device = tt::backlight::findDisplayBacklight();
+    if (backlight_device != nullptr) {
+        if (tt::backlight::isDimmable(backlight_device)) {
+            uint8_t brightness = 0;
+            backlight_get_brightness(backlight_device, &brightness);
+            auto* brightness_slider = lvgl_sliderbox_create(card, 0, 100, 10, tt::backlight::toPercent(backlight_device, brightness));
             lv_obj_set_width(brightness_slider, LV_PCT(100));
             lvgl_sliderbox_add_value_changed_cb(brightness_slider, onBrightnessChanged, nullptr);
         }
-        device_put(backlight);
+        device_put(backlight_device);
     }
 
     // A keyboard or encoder can't tap outside of the panel or swipe up, so it needs a button to close it

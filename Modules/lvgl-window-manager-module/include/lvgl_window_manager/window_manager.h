@@ -17,6 +17,9 @@ extern "C" {
 
 typedef uint32_t WindowId;
 
+/** A WindowId that never refers to a window: window_manager_create() returns a non-zero id. */
+#define WINDOW_ID_NONE 0
+
 enum WindowState {
     /** id is the current topmost window and has live widgets. */
     WINDOW_STATE_GRANTED,

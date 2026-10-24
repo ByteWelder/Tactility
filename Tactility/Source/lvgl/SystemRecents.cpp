@@ -6,8 +6,8 @@
 
 #if defined(CONFIG_TT_SYSTEM_GESTURES)
 
-#include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppIcon.h>
+#include <Tactility/lvgl/SystemWindow.h>
 
 #include <app/event.h>
 #include <app/manager.h>
@@ -32,9 +32,6 @@ namespace {
 
 /** How many cards the switcher shows: the most recently used apps. */
 constexpr size_t MAX_ENTRIES = 5;
-/** Entries per copy while scanning the window stack, so no stack-sized array is needed. */
-constexpr size_t SCAN_CHUNK = 8;
-
 struct RecentsEntry {
     WindowId window;
     AppInstanceId app_instance_id;
@@ -42,42 +39,24 @@ struct RecentsEntry {
     const char* icon;
 };
 
-void raise_on_main_dispatcher(void* context) {
-    window_manager_raise(static_cast<WindowId>(reinterpret_cast<uintptr_t>(context)));
-}
-
-/**
- * Defers to the main dispatcher: window_manager_raise() must not run on the LVGL task, see its
- * warning.
- */
-void raiseWindow(WindowId window) {
-    dispatchOnMainDispatcher(raise_on_main_dispatcher, reinterpret_cast<void*>(static_cast<uintptr_t>(window)));
-}
-
 /** Looks up which app owns a window, so a card action can act on it. */
 AppInstanceId findAppInstance(WindowId window) {
-    WindowInfo windows[SCAN_CHUNK];
-    const size_t total = window_manager_get_windows(nullptr, 0, 0);
-    for (size_t offset = 0; offset < total; offset += SCAN_CHUNK) {
-        const size_t count = window_manager_get_windows(windows, offset, SCAN_CHUNK);
-        for (size_t i = 0; i < count && i < SCAN_CHUNK; i++) {
-            if (windows[i].id == window) {
-                return windows[i].app_instance_id;
-            }
+    AppInstanceId found = 0;
+    forEachWindow([&found, window](const WindowInfo& candidate) {
+        if (candidate.id != window) {
+            return true;
         }
-    }
-    return 0;
-}
-
-void hideOverlay() {
-    window_manager_overlay_hide();
+        found = candidate.app_instance_id;
+        return false;
+    });
+    return found;
 }
 
 void onCardClicked(lv_event_t* event) {
     auto* card = lv_event_get_current_target_obj(event);
-    const auto window = static_cast<WindowId>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(card)));
+    const auto window = fromWindowContext(lv_obj_get_user_data(card));
     // Hide first: the app's window is rebuilt below where the (deleted) overlay was
-    hideOverlay();
+    window_manager_overlay_hide();
     raiseWindow(window);
 }
 
@@ -87,11 +66,11 @@ void onCardGesture(lv_event_t* event) {
         return;
     }
     auto* card = lv_event_get_current_target_obj(event);
-    const auto window = static_cast<WindowId>(reinterpret_cast<uintptr_t>(lv_obj_get_user_data(card)));
+    const auto window = fromWindowContext(lv_obj_get_user_data(card));
     const AppInstanceId app_instance_id = findAppInstance(window);
     // The release must not click the card
     lv_indev_wait_release(indev);
-    hideOverlay();
+    window_manager_overlay_hide();
     if (app_instance_id != 0) {
         // The app closes itself, which raises whichever window is below it
         app_event_emit_close(app_instance_id);
@@ -103,12 +82,12 @@ void onBackdropGesture(lv_event_t* /*event*/) {
     if (indev != nullptr && lv_indev_get_gesture_dir(indev) == LV_DIR_TOP) {
         // The release must not click the pressed widget
         lv_indev_wait_release(indev);
-        hideOverlay();
+        window_manager_overlay_hide();
     }
 }
 
 void onCloseClicked(lv_event_t* /*event*/) {
-    hideOverlay();
+    window_manager_overlay_hide();
 }
 
 void createCard(lv_obj_t* parent, const RecentsEntry& entry) {
@@ -118,7 +97,7 @@ void createCard(lv_obj_t* parent, const RecentsEntry& entry) {
     lv_obj_set_flex_align(card, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(card, lvgl_theme_is_compact() ? 4 : 8, LV_STATE_DEFAULT);
     lv_obj_set_scrollable(card, false);
-    lv_obj_set_user_data(card, reinterpret_cast<void*>(static_cast<uintptr_t>(entry.window)));
+    lv_obj_set_user_data(card, toWindowContext(entry.window));
     lv_obj_add_event_cb(card, onCardClicked, LV_EVENT_SHORT_CLICKED, nullptr);
     // Swiping up closes this card's app
     lv_obj_set_gesture_bubble(card, false);
