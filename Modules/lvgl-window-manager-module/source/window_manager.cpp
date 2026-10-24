@@ -563,6 +563,82 @@ WindowState window_manager_get_state(WindowId id) {
     return is_top ? WINDOW_STATE_GRANTED : WINDOW_STATE_REVOKED;
 }
 
+size_t window_manager_get_windows(WindowInfo* out, size_t offset, size_t capacity) {
+    auto& s = state();
+    mutex_lock(&s.mutex);
+    const size_t count = s.windows.size();
+    if (out != nullptr) {
+        for (size_t i = 0; i < capacity && offset + i < count; i++) {
+            out[i] = WindowInfo { s.windows[offset + i].id, s.windows[offset + i].app_instance_id };
+        }
+    }
+    mutex_unlock(&s.mutex);
+    return count;
+}
+
+error_t window_manager_raise(WindowId id) {
+    auto& s = state();
+
+    // Same serialization as create()/remove(), see lifecycle_mutex's comment. Do not call this
+    // from an LVGL event callback - see this function's warning in the header.
+    mutex_lock(&s.lifecycle_mutex);
+
+    mutex_lock(&s.mutex);
+    if (!s.started) {
+        mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
+        return ERROR_INVALID_STATE;
+    }
+    auto iterator = std::find_if(s.windows.begin(), s.windows.end(),
+        [id](const WindowRecord& window) { return window.id == id; });
+    if (iterator == s.windows.end()) {
+        mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
+        return ERROR_NOT_FOUND;
+    }
+    if (iterator + 1 == s.windows.end()) {
+        // Already topmost: its widgets are live and there's nothing to rebuild.
+        mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
+        return ERROR_NONE;
+    }
+
+    // The current topmost window is about to lose its widgets. Claim its waiter and capture what
+    // its destroy_widgets needs, exactly like create() does when it supersedes it.
+    WindowWaitSignal* waiter = claim_waiter_locked(s.windows.back());
+    WindowDestroyWidgetsFn old_destroy_widgets = s.windows.back().destroy_widgets;
+    void* old_user_data = s.windows.back().user_data;
+    lv_obj_t* old_widget = s.top_widget;
+    s.top_widget = nullptr;
+
+    // A buried window never has a waiting signal (it's only ever set while topmost).
+    const WindowRecord record = *iterator;
+    s.windows.erase(iterator);
+    s.windows.push_back(record);
+    lv_obj_t* content = s.content_root_widget;
+    mutex_unlock(&s.mutex);
+
+    give_and_release(waiter);
+
+    delete_widget(old_widget, old_destroy_widgets, old_user_data);
+    lv_obj_t* new_widget = build_window_widget(content, record.create_widgets, record.user_data);
+
+    mutex_lock(&s.mutex);
+    bool still_topmost = !s.windows.empty() && s.windows.back().id == id;
+    if (still_topmost) {
+        s.top_widget = new_widget;
+        new_widget = nullptr; // consumed
+    }
+    mutex_unlock(&s.mutex);
+
+    // Another window became topmost while this one was building (e.g. a concurrent create()).
+    // The raised record stays in the stack; its widgets are rebuilt whenever it surfaces again.
+    delete_widget(new_widget, record.destroy_widgets, record.user_data);
+
+    mutex_unlock(&s.lifecycle_mutex);
+    return ERROR_NONE;
+}
+
 WindowState window_manager_await_state_change(WindowId id, TickType_t timeout) {
     auto& s = state();
 

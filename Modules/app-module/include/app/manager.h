@@ -141,6 +141,19 @@ error_t app_manager_get_topmost_instance_id(AppInstanceId* out_app_instance_id);
 error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size);
 
 /**
+ * Resolves any instance's manifest id string, not just the topmost one - e.g. for a window that
+ * is buried in the window manager's stack.
+ * @param[in] app_instance_id the instance to look up
+ * @param[out] buffer always NULL-terminated on return (at least "" is written when
+ * @a buffer_size > 0; nothing is written in that case when @a buffer_size == 0)
+ * @retval ERROR_NOT_FOUND no such instance (any more), or it has no registered manifest id
+ * @retval ERROR_BUFFER_OVERFLOW @a buffer_size is too small to hold the id (including the NULL
+ * terminator)
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_get_instance_app_id(AppInstanceId app_instance_id, char* buffer, size_t buffer_size);
+
+/**
  * Registers @a path as a directory to scan for app manifests - each direct subdirectory of
  * @a path is expected to hold a manifest.properties (see app/package_manifest.h), matching the
  * layout app_install() creates ({install dir}/{package id}/manifest.properties), though this is not
