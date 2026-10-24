@@ -8,6 +8,7 @@
 #include <tactility/error.h>
 #include <tactility/freertos/freertos.h>
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -15,6 +16,9 @@ extern "C" {
 #endif
 
 typedef uint32_t WindowId;
+
+/** A WindowId that never refers to a window: window_manager_create() returns a non-zero id. */
+#define WINDOW_ID_NONE 0
 
 enum WindowState {
     /** id is the current topmost window and has live widgets. */
@@ -132,6 +136,39 @@ void window_manager_remove(WindowId id);
 
 /** @return the current state of @a id; WINDOW_STATE_REVOKED if @a id is buried or doesn't exist. */
 enum WindowState window_manager_get_state(WindowId id);
+
+/** One entry of the window stack, see window_manager_get_windows(). */
+struct WindowInfo {
+    WindowId id;
+    AppInstanceId app_instance_id;
+};
+
+/**
+ * Copies the window stack, bottom-most first (the topmost window is the last entry).
+ * Only touches the module's own state (no LVGL calls), so it's safe to call from LVGL event
+ * callbacks.
+ * @param[out] out receives the entries; may be NULL to only get the count
+ * @param[in] offset the index of the first entry to copy (0 is the bottom-most window)
+ * @param[in] capacity the number of entries @a out can hold
+ * @return the number of windows in the stack (which may exceed offset + capacity)
+ */
+size_t window_manager_get_windows(struct WindowInfo* out, size_t offset, size_t capacity);
+
+/**
+ * Moves a window to the top of the stack and builds its widgets, deleting the widgets of
+ * whichever window was topmost. The raised app keeps running: its widgets are rebuilt through
+ * the @a create_widgets callback it registered, so the app's own state (in its Context) survives.
+ * This is what "home" (raise the launcher) and the recents switcher (raise another app) use.
+ * @warning Takes the window manager's lifecycle mutex, which is held while app windows are
+ * built. Do NOT call this from an LVGL event callback: a concurrent
+ * window_manager_create()/remove() holding that mutex may be waiting for the LVGL lock, which
+ * the callback holds. Defer it with tt::dispatchOnMainDispatcher() instead (see
+ * SystemGestures.cpp).
+ * @retval ERROR_NONE the window was raised, or already is topmost
+ * @retval ERROR_INVALID_STATE window_manager_start() hasn't been called
+ * @retval ERROR_NOT_FOUND no window with this id exists
+ */
+error_t window_manager_raise(WindowId id);
 
 /**
  * Blocks the calling task until @a id's state changes away from WINDOW_STATE_GRANTED, or

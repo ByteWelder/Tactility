@@ -1,3 +1,4 @@
+#include <Tactility/app/AppIcon.h>
 #include <Tactility/app/launcher/Favourites.h>
 #include <Tactility/app/launcher/LauncherMode.h>
 
@@ -33,31 +34,6 @@ void saveFavourites(void* context) {
         LOG_E(TAG, "Failed to save favourites");
     }
     delete job;
-}
-
-struct IconEntry {
-    const char* id;
-    const char* icon;
-};
-
-constexpr IconEntry ICONS[] = {
-    {"tactility.apphub",            LVGL_ICON_SHARED_DOWNLOAD},
-    {"tactility.camera",            LVGL_ICON_SHARED_CAMERA},
-    {"tactility.chat",              LVGL_ICON_SHARED_FORUM},
-    {"tactility.files",             LVGL_ICON_SHARED_FOLDER},
-    {"tactility.i2cscanner",        LVGL_ICON_SHARED_CABLE},
-    {"tactility.meshchannels",      LVGL_ICON_SHARED_FORUM},
-    {"tactility.meshcontacts",      LVGL_ICON_SHARED_FORUM},
-    {"tactility.notes",             LVGL_ICON_SHARED_EDIT_NOTE},
-    {"tactility.systeminfo",        LVGL_ICON_SHARED_DEVICES},
-    {"tactility.terminal",          LVGL_ICON_SHARED_TERMINAL},
-};
-
-const char* appIcon(const ::AppManifest* manifest) {
-    for (const auto& entry : ICONS) {
-        if (!strcmp(manifest->id, entry.id)) return entry.icon;
-    }
-    return LVGL_ICON_SHARED_DEPLOYED_CODE;
 }
 
 bool isShown(const ::AppManifest& manifest) {
@@ -104,7 +80,7 @@ std::vector<TileGridItem> collectItems() {
     std::vector<TileGridItem> items;
     items.reserve(collected.size());
     for (const auto& manifest : collected) {
-        items.push_back({ manifest.id, manifest.name, appIcon(&manifest), Favourites::contains(favouriteIds, manifest.id) });
+        items.push_back({ manifest.id, manifest.name, tt::app::getAppIcon(manifest), Favourites::contains(favouriteIds, manifest.id) });
     }
     ::std::ranges::sort(items, [](const TileGridItem& a, const TileGridItem& b) {
         if (a.highlighted != b.highlighted) {

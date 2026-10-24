@@ -1,0 +1,140 @@
+/* tactility-mobile v2 — 240x320 mockups. Every value maps 1:1 to an LVGL style. */
+
+@font-face { font-family: "Inter"; src: url("fonts/inter-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Inter"; src: url("fonts/inter-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: block; }
+
+:root {
+  --bg: #0E1116;
+  --surface: #1A1F27;
+  --surface-2: #242A33;
+  --line: #242A33;
+  --line-soft: #1F2530;
+  --text: #E8ECF1;
+  --text-2: #9AA4B2;
+  --text-3: #8A94A3;
+  --accent: #4C8DFF;
+  --accent-text: #9CC0FF;
+  --accent-soft: #1A2B45;
+  --accent-line: #2B4C7E;
+  --on-accent: #0B1118;
+  --r-card: 12px;
+  --r-ctl: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #07090C;
+  color: var(--text);
+  font: 500 15px/20px "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- board (contact sheet) ---------- */
+.board { display: flex; gap: 24px; padding: 32px; width: max-content; }
+.board figure { display: flex; flex-direction: column; gap: 10px; }
+.board figcaption { font: 500 13px/16px "Inter"; color: var(--text-2); }
+.board figcaption b { color: var(--accent-text); font-weight: 500; margin-right: 6px; }
+
+/* ---------- screen ---------- */
+.scr { position: relative; width: 240px; height: 320px; overflow: hidden; background: var(--bg); }
+.abs { position: absolute; }
+
+/* type scale: 12 caption (400) · 13 secondary · 14 dense control · 15 body · 22 title · 48 clock */
+.t12 { font: 400 12px/14px "Inter"; }
+.t13 { font: 500 13px/16px "Inter"; }
+.t14 { font: 500 14px/16px "Inter"; }
+.t15 { font: 500 15px/20px "Inter"; }
+.t22 { font: 500 22px/26px "Inter"; letter-spacing: -0.2px; }
+.t48 { font: 500 48px/48px "Inter"; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.c2 { color: var(--text-2); }
+.c3 { color: var(--text-3); }
+.ca { color: var(--accent-text); }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* icons: stroke always lands on 2 px (2.25 px at 32) */
+.i { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.i16 { width: 16px; height: 16px; stroke-width: 3; }        /* 3 units * 16/24 = 2 px */
+.i32 { width: 32px; height: 32px; stroke-width: 1.6875; }   /* 1.6875 * 32/24 = 2.25 px */
+
+/* ---------- status bar 0..24 ---------- */
+.sb { position: absolute; left: 0; top: 0; width: 240px; height: 24px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+
+/* ---------- toolbar 24..68 ---------- */
+.tb { position: absolute; left: 0; top: 24px; width: 240px; height: 44px; display: flex; align-items: center; padding-right: 4px; }
+.tb .ttl { flex: 1; min-width: 0; }
+.hit { width: 44px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; }
+
+/* ---------- list rows ---------- */
+.card { background: var(--surface); border-radius: var(--r-card); overflow: hidden; }
+.row { position: relative; height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 12px; }
+.row + .row::before { content: ""; position: absolute; left: 48px; right: 0; top: 0; height: 1px; background: var(--line); }
+.row .lbl { flex: 1; min-width: 0; }
+.row .i { color: var(--text-2); }
+.row .chev { color: var(--text-3); margin-left: -4px; }
+
+/* ---------- gesture bar 36x4 (signature: shown wherever an edge swipe acts) ---------- */
+.gbar { position: absolute; left: 102px; width: 36px; height: 4px; border-radius: 2px; background: var(--text-2); }
+
+/* ---------- 01 home ---------- */
+.home-date { right: 12px; top: 38px; text-align: right; }
+.grid { left: 0; top: 86px; width: 240px; display: grid; grid-template-columns: repeat(4, 60px); row-gap: 8px; }
+.app { height: 64px; display: flex; flex-direction: column; align-items: center; }
+.tile { width: 44px; height: 44px; border-radius: var(--r-card); background: var(--surface); display: flex; align-items: center; justify-content: center; }
+.app .t12 { margin-top: 4px; max-width: 52px; line-height: 16px; color: var(--text); }
+.dock { left: 8px; top: 244px; width: 224px; height: 56px; border-radius: var(--r-card); background: var(--surface); }
+.dockrow { left: 0; top: 244px; width: 240px; height: 56px; display: grid; grid-template-columns: repeat(4, 60px); }   /* same columns as the grid */
+.dockrow > span { position: relative; display: flex; align-items: center; justify-content: center; }
+.dot { position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: var(--accent); }
+
+/* ---------- 02 lock ---------- */
+.lock { background: linear-gradient(180deg, #0E1116 0%, #0E1116 45%, #1A2B45 100%); }
+
+/* ---------- 03 quick panel ---------- */
+.dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.6); }
+.qp { left: 0; top: 0; width: 240px; height: 230px; background: var(--surface); border-radius: 0 0 var(--r-card) var(--r-card); border-bottom: 1px solid var(--line); }
+.sl { left: 12px; width: 216px; height: 40px; display: flex; align-items: center; gap: 8px; }
+.sl .i { color: var(--text-2); }
+.track { position: relative; flex: 1; height: 6px; border-radius: 3px; background: var(--surface-2); }
+.fill { position: absolute; left: 0; top: 0; height: 6px; border-radius: 3px; background: var(--accent); }
+.thumb { position: absolute; top: -7px; width: 20px; height: 20px; margin-left: -10px; border-radius: 10px; background: var(--text); }
+.sl .val { width: 32px; text-align: right; }
+.qt { position: absolute; top: 136px; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qt .pad68 { width: 68px; height: 52px; border-radius: var(--r-ctl); background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-2); }
+.qt.on .pad68 { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- 04 recents ---------- */
+.rc { left: 16px; width: 208px; height: 44px; border-radius: var(--r-card); background: var(--surface); display: flex; align-items: center; gap: 12px; padding-left: 12px; }
+.rc .lbl { flex: 1; min-width: 0; }
+.rc .x { width: 40px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; color: var(--text-2); }
+.rc.cur::before { content: ""; position: absolute; left: 4px; top: 12px; width: 3px; height: 20px; border-radius: 2px; background: var(--accent); }
+
+/* ---------- 06 wi-fi ---------- */
+.sw { width: 36px; height: 20px; border-radius: 10px; background: var(--accent); position: relative; }
+.sw::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 8px; background: var(--text); }
+.net { left: 12px; top: 76px; width: 216px; height: 56px; border-radius: var(--r-card); background: var(--accent-soft); border: 1px solid var(--accent-line); display: flex; align-items: center; gap: 12px; padding: 0 8px 0 12px; }
+
+/* ---------- 07 files ---------- */
+.flist { left: 0; top: 96px; width: 240px; }
+.flist .row { padding: 0 12px 0 16px; }
+.flist .row::before, .flist .row + .row::before { content: ""; position: absolute; left: 52px; right: 0; top: auto; bottom: 0; height: 1px; background: var(--line-soft); }
+.flist .row:last-child::before { display: none; }   /* footer line already separates */
+.foot { left: 0; top: 288px; width: 240px; height: 32px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: center; }
+
+/* ---------- 08 dialog ---------- */
+.dlg { left: 12px; top: 144px;   /* bottom-anchored, 12 px margin: thumb reach, network card stays visible above */ width: 216px; padding: 16px; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); }
+.btns { display: flex; gap: 8px; margin-top: 16px; }
+.btn { flex: 1; height: 40px; border-radius: var(--r-ctl); display: flex; align-items: center; justify-content: center; }
+.btn.sec { background: var(--surface-2); }
+.btn.pri { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- 09 keyboard ---------- */
+.field { left: 12px; top: 76px; width: 160px; height: 40px; border-radius: var(--r-ctl); background: var(--surface); border: 1px solid var(--accent); display: flex; align-items: center; padding-left: 12px; }
+.caret { width: 2px; height: 18px; background: var(--accent); margin-left: 2px; }
+.join { left: 180px; top: 76px; width: 48px; height: 40px; }
+.kb { left: 0; top: 152px; width: 240px; height: 168px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 1px; padding-top: 4px; }
+.kr { display: flex; gap: 1px; height: 40px; }
+.k { flex: 1 1 0; min-width: 0; border-radius: var(--r-ctl); background: var(--surface-2); display: flex; align-items: center; justify-content: center; font: 500 14px/16px "Inter"; }
+.k.m { background: var(--surface); color: var(--text-2); }
+.k.go { background: var(--accent); color: var(--on-accent); }
+.pad { flex: 0.5 1 0; }

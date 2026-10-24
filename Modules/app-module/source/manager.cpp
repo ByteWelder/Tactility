@@ -282,6 +282,29 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size) {
     return ERROR_NONE;
 }
 
+error_t app_manager_get_instance_app_id(AppInstanceId app_instance_id, char* buffer, size_t buffer_size) {
+    if (buffer_size == 0) {
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    buffer[0] = '\0';
+
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.instances.find(app_instance_id);
+    if (iterator == ledger.instances.end() || iterator->second.manifestId.empty()) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_NOT_FOUND;
+    }
+    const std::string& manifest_id = iterator->second.manifestId;
+    if (manifest_id.size() >= buffer_size) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    memcpy(buffer, manifest_id.c_str(), manifest_id.size() + 1);
+    mutex_unlock(&ledger.mutex);
+    return ERROR_NONE;
+}
+
 } // extern "C"
 
 namespace {

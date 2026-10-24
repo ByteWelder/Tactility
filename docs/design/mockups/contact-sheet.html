@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1116">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tactility mobile — contact sheet</title>
+<style>
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-latin-400-normal.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-latin-500-normal.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: block;
+  }
+  * { box-sizing: border-box; }
+  html { background: #07090c; }
+  body {
+    margin: 0;
+    background: #07090c;
+    color: #e8ecf1;
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { width: 854px; margin: 0 auto; padding: 40px; }
+  .eyebrow {
+    margin: 0 0 6px;
+    font-size: 12px;
+    line-height: 14px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #9aa4b2;
+  }
+  .head-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #1a1f27;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .meta { margin: 0; font-size: 13px; line-height: 16px; font-weight: 500; color: #8a94a3; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 242px);
+    gap: 24px;
+    margin-top: 24px;
+  }
+  figure { margin: 0; }
+  .frame { width: 242px; height: 322px; padding: 1px; background: #1f2530; }
+  img { display: block; width: 240px; height: 320px; }
+  figcaption {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding-top: 8px;
+    font-size: 12px;
+    line-height: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9aa4b2;
+  }
+  .num { color: #4c8dff; }
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    align-items: center;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid #1a1f27;
+    font-size: 12px;
+    line-height: 14px;
+    color: #8a94a3;
+  }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <p class="eyebrow">Tactility mobile</p>
+    <div class="head-row">
+      <h1>Redesign</h1>
+      <p class="meta">240 × 320 · 9 screens · 1x</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <figure>
+      <div class="frame"><img src="../png/1x/lock.png" width="240" height="320" alt="Lock screen"></div>
+      <figcaption><span class="num">01</span><span>Lock</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/home.png" width="240" height="320" alt="Home screen"></div>
+      <figcaption><span class="num">02</span><span>Home</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/quick-panel.png" width="240" height="320" alt="Quick panel"></div>
+      <figcaption><span class="num">03</span><span>Quick panel</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/recents.png" width="240" height="320" alt="Recents switcher"></div>
+      <figcaption><span class="num">04</span><span>Recents</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/settings.png" width="240" height="320" alt="Settings"></div>
+      <figcaption><span class="num">05</span><span>Settings</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/wifi.png" width="240" height="320" alt="Wi-Fi list"></div>
+      <figcaption><span class="num">06</span><span>Wi-Fi</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/app.png" width="240" height="320" alt="Files app"></div>
+      <figcaption><span class="num">07</span><span>App</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/keyboard.png" width="240" height="320" alt="On-screen keyboard"></div>
+      <figcaption><span class="num">08</span><span>Keyboard</span></figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="../png/1x/dialog.png" width="240" height="320" alt="Forget network dialog"></div>
+      <figcaption><span class="num">09</span><span>Dialog</span></figcaption>
+    </figure>
+  </div>
+
+  <footer>
+    <span><span class="swatch" style="background:#0e1116"></span>#0E1116</span>
+    <span><span class="swatch" style="background:#1a1f27"></span>#1A1F27</span>
+    <span><span class="swatch" style="background:#4c8dff"></span>#4C8DFF</span>
+    <span>Inter · 400 / 500</span>
+    <span>12 / 13 / 14 / 15 / 20 / 22 / 48</span>
+    <span>12 px cards · 8 px controls</span>
+  </footer>
+</div>
+</body>
+</html>

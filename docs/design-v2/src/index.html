@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tactility-mobile v2 — mockups</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Icon set: 24 grid, integer coordinates, 1 colour, 2 px stroke, round caps. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="settings" viewBox="0 0 24 24"><path d="M4 6h3M11 6h9M4 12h9M17 12h3M4 18h1M9 18h11"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
+  <symbol id="bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="4"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1" fill="currentColor"/><path d="M9 13v2M15 13v2"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24"><path d="M3 9.5a13 13 0 0 1 18 0M6.5 13a8 8 0 0 1 11 0M10 16.5a3 3 0 0 1 4 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></symbol>
+  <!-- signal strength: filled bar = signal, outlined bar = missing (still one colour) -->
+  <symbol id="sig3" viewBox="0 0 24 24"><rect x="2" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1" fill="currentColor"/><rect x="18" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
+  <symbol id="sig2" viewBox="0 0 24 24"><rect x="2" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1" fill="currentColor"/><rect x="18" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="sig1" viewBox="0 0 24 24"><rect x="2" y="14" width="4" height="6" rx="1" fill="currentColor"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="wifis" viewBox="0 0 24 24"><path d="M4 10a12 12 0 0 1 16 0M8 14.5a6 6 0 0 1 8 0"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="hub" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="2"/><rect x="14" y="4" width="6" height="6" rx="2"/><rect x="4" y="14" width="6" height="6" rx="2"/><path d="M17 14v6M14 17h6"/></symbol>
+  <symbol id="notes" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10l3 2-3 2M13 15h4"/></symbol>
+  <symbol id="camera" viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></symbol>
+  <symbol id="close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></symbol>
+  <symbol id="vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol>
+  <symbol id="bt" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></symbol>
+  <symbol id="recents" viewBox="0 0 24 24"><rect x="4" y="8" width="12" height="12" rx="2"/><path d="M8 4h10a2 2 0 0 1 2 2v10"/></symbol>
+  <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="shift" viewBox="0 0 24 24"><path d="M12 4l8 8h-4v7H8v-7H4z"/></symbol>
+  <symbol id="del" viewBox="0 0 24 24"><path d="M8 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-6-7z"/><path d="M12 9l6 6M18 9l-6 6"/></symbol>
+  <symbol id="display" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="power" viewBox="0 0 24 24"><path d="M12 3v8M6.5 6.5a8 8 0 1 0 11 0"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+</svg>
+
+<main class="board">
+
+<!-- ======================= 01 HOME ======================= -->
+<figure><div class="scr" id="s-home">
+  <div class="sb"><span class="t13">09:41</span><svg class="i i16"><use href="#wifis"/></svg></div>
+  <div class="abs t48" style="left:12px;top:28px">09:41</div>
+  <div class="abs home-date"><div class="t15">Friday</div><div class="t13 c2">24 October</div></div>
+  <div class="abs grid">
+    <div class="app"><span class="tile"><svg class="i"><use href="#settings"/></svg></span><span class="t12 ell">Settings</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#bot"/></svg></span><span class="t12 ell">Grok Bot</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#wifi"/></svg></span><span class="t12 ell">Wi-Fi</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#folder"/></svg></span><span class="t12 ell">Files</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#hub"/></svg></span><span class="t12 ell">Hub</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#notes"/></svg></span><span class="t12 ell">Notes</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#terminal"/></svg></span><span class="t12 ell">Terminal</span></div>
+    <div class="app"><span class="tile"><svg class="i"><use href="#camera"/></svg></span><span class="t12 ell">Camera</span></div>
+  </div>
+  <div class="abs dock"></div>
+  <div class="abs dockrow">
+    <span><svg class="i"><use href="#bot"/></svg><i class="dot"></i></span>
+    <span><svg class="i"><use href="#folder"/></svg><i class="dot"></i></span>
+    <span><svg class="i"><use href="#camera"/></svg></span>
+    <span><svg class="i"><use href="#settings"/></svg></span>
+  </div>
+</div><figcaption><b>01</b>Home</figcaption></figure>
+
+<!-- ======================= 02 LOCK ======================= -->
+<figure><div class="scr lock" id="s-lock">
+  <div class="sb" style="justify-content:flex-end"><svg class="i i16 c2"><use href="#wifis"/></svg></div>
+  <div class="abs t48" style="left:0;width:240px;top:100px;text-align:center">09:41</div>
+  <div class="abs t15 c2" style="left:0;width:240px;top:154px;text-align:center">Friday, 24 October</div>
+  <div class="abs t12 c2" style="left:0;width:240px;top:276px;text-align:center">Swipe up to unlock</div>
+  <div class="gbar" style="top:302px"></div>
+</div><figcaption><b>02</b>Lock</figcaption></figure>
+
+<!-- ======================= 03 QUICK PANEL (over Files) ======================= -->
+<figure><div class="scr" id="s-quick">
+  <div class="clone" data-of="s-files"></div>
+  <div class="dim"></div>
+  <div class="abs qp">
+    <div class="abs t22" style="left:12px;top:12px">09:41</div>
+    <div class="abs t13 c2" style="right:12px;top:20px">Fri, 24 Oct</div>
+    <div class="abs sl" style="top:48px"><svg class="i"><use href="#sun"/></svg><span class="track"><span class="fill" style="width:70%"></span><span class="thumb" style="left:70%"></span></span><span class="t13 c2 val">70%</span></div>
+    <div class="abs sl" style="top:88px"><svg class="i"><use href="#vol"/></svg><span class="track"><span class="fill" style="width:40%"></span><span class="thumb" style="left:40%"></span></span><span class="t13 c2 val">40%</span></div>
+    <div class="qt on" style="left:12px"><span class="pad68"><svg class="i"><use href="#wifi"/></svg></span><span class="t14">Wi-Fi</span></div>
+    <div class="qt" style="left:86px"><span class="pad68"><svg class="i"><use href="#bt"/></svg></span><span class="t14">Bluetooth</span></div>
+    <div class="qt" style="left:160px"><span class="pad68"><svg class="i"><use href="#recents"/></svg></span><span class="t14">Recents</span></div>
+    <div class="gbar" style="top:218px"></div>
+  </div>
+</div><figcaption><b>03</b>Quick panel</figcaption></figure>
+
+<!-- ======================= 04 RECENTS ======================= -->
+<figure><div class="scr" id="s-recents">
+  <div class="abs" style="left:16px;top:28px;width:208px;height:40px;display:flex;align-items:baseline;justify-content:space-between">
+    <span class="t22" style="line-height:40px">Recents</span><span class="t12 c2">Swipe up to close</span>
+  </div>
+  <div class="abs rc cur" style="top:76px"><svg class="i"><use href="#folder"/></svg><span class="t15 lbl ell">Files</span><span class="x"><svg class="i i16"><use href="#close"/></svg></span></div>
+  <div class="abs rc" style="top:124px"><svg class="i c2"><use href="#bot"/></svg><span class="t15 lbl ell">Grok Bot</span><span class="x"><svg class="i i16"><use href="#close"/></svg></span></div>
+  <div class="abs rc" style="top:172px"><svg class="i c2"><use href="#wifi"/></svg><span class="t15 lbl ell">Wi-Fi</span><span class="x"><svg class="i i16"><use href="#close"/></svg></span></div>
+  <div class="abs rc" style="top:220px"><svg class="i c2"><use href="#notes"/></svg><span class="t15 lbl ell">Notes</span><span class="x"><svg class="i i16"><use href="#close"/></svg></span></div>
+  <div class="abs rc" style="top:268px"><svg class="i c2"><use href="#terminal"/></svg><span class="t15 lbl ell">Terminal</span><span class="x"><svg class="i i16"><use href="#close"/></svg></span></div>
+</div><figcaption><b>04</b>Recents</figcaption></figure>
+
+<!-- ======================= 05 SETTINGS ======================= -->
+<figure><div class="scr" id="s-settings">
+  <div class="sb"><span class="t13">09:41</span><svg class="i i16"><use href="#wifis"/></svg></div>
+  <div class="tb"><span class="hit"><svg class="i"><use href="#back"/></svg></span><span class="t22 ttl">Settings</span></div>
+  <div class="abs card" style="left:12px;top:76px;width:216px">
+    <div class="row"><svg class="i"><use href="#display"/></svg><span class="t15 lbl">Display</span><span class="t13 c3">70%</span><svg class="i i16 chev"><use href="#chev"/></svg></div>
+    <div class="row"><svg class="i"><use href="#vol"/></svg><span class="t15 lbl">Sound</span><span class="t13 c3">40%</span><svg class="i i16 chev"><use href="#chev"/></svg></div>
+    <div class="row"><svg class="i"><use href="#wifi"/></svg><span class="t15 lbl">Wi-Fi</span><span class="t13 c3">HomeNet</span><svg class="i i16 chev"><use href="#chev"/></svg></div>
+    <div class="row"><svg class="i"><use href="#bt"/></svg><span class="t15 lbl">Bluetooth</span><span class="t13 c3">Off</span><svg class="i i16 chev"><use href="#chev"/></svg></div>
+    <div class="row"><svg class="i"><use href="#power"/></svg><span class="t15 lbl">Power</span><span class="t13 c3">5 min</span><svg class="i i16 chev"><use href="#chev"/></svg></div>
+  </div>
+</div><figcaption><b>05</b>Settings</figcaption></figure>
+
+<!-- ======================= 06 WI-FI ======================= -->
+<figure><div class="scr" id="s-wifi">
+  <div class="sb"><span class="t13">09:41</span><svg class="i i16"><use href="#wifis"/></svg></div>
+  <div class="tb"><span class="hit"><svg class="i"><use href="#back"/></svg></span><span class="t22 ttl">Wi-Fi</span><span class="hit"><span class="sw"></span></span></div>
+  <div class="abs net">
+    <svg class="i ca"><use href="#wifi"/></svg>
+    <div style="flex:1;min-width:0"><div class="t15 ell">HomeNet</div><div class="t13 ca">Connected</div></div>
+    <svg class="i i16 ca"><use href="#chev"/></svg>
+  </div>
+  <div class="abs t12 c2" style="left:16px;top:144px">Available networks</div>
+  <div class="abs card" style="left:12px;top:162px;width:216px">
+    <div class="row"><svg class="i"><use href="#sig3"/></svg><span class="t15 lbl ell">Cafe_5G</span><svg class="i i16 c3"><use href="#lock"/></svg></div>
+    <div class="row"><svg class="i"><use href="#sig2"/></svg><span class="t15 lbl ell">Office</span><svg class="i i16 c3"><use href="#lock"/></svg></div>
+    <div class="row"><svg class="i"><use href="#sig1"/></svg><span class="t15 lbl ell">Guest</span></div>
+  </div>
+</div><figcaption><b>06</b>Wi-Fi</figcaption></figure>
+
+<!-- ======================= 07 FILES ======================= -->
+<figure><div class="scr" id="s-files">
+  <div class="sb"><span class="t13">09:41</span><svg class="i i16"><use href="#wifis"/></svg></div>
+  <div class="tb"><span class="hit"><svg class="i"><use href="#back"/></svg></span><span class="t22 ttl">Files</span><span class="hit"><svg class="i"><use href="#more"/></svg></span></div>
+  <div class="abs t13 c2" style="left:16px;top:76px">/sdcard/projects</div>
+  <div class="abs flist">
+    <div class="row"><svg class="i"><use href="#folder"/></svg><span class="t15 lbl ell">firmware</span><span class="t13 c3">12 items</span></div>
+    <div class="row"><svg class="i"><use href="#folder"/></svg><span class="t15 lbl ell">logs</span><span class="t13 c3">3 items</span></div>
+    <div class="row"><svg class="i"><use href="#file"/></svg><span class="t15 lbl ell">config.json</span><span class="t13 c3">2 KB</span></div>
+    <div class="row"><svg class="i"><use href="#file"/></svg><span class="t15 lbl ell">boot.log</span><span class="t13 c3">18 KB</span></div>
+  </div>
+  <div class="abs foot t12 c2">6 items · 2 folders</div>
+</div><figcaption><b>07</b>App (Files)</figcaption></figure>
+
+<!-- ======================= 08 DIALOG (over Wi-Fi) ======================= -->
+<figure><div class="scr" id="s-dialog">
+  <div class="clone" data-of="s-wifi"></div>
+  <div class="dim"></div>
+  <div class="abs dlg">
+    <div class="t22">Forget network?</div>
+    <div class="t15 c2" style="margin-top:8px">You'll need the password to join HomeNet again.</div>
+    <div class="btns"><span class="btn sec t15">Cancel</span><span class="btn pri t15">Forget</span></div>
+  </div>
+</div><figcaption><b>08</b>Dialog</figcaption></figure>
+
+<!-- ======================= 09 KEYBOARD ======================= -->
+<figure><div class="scr" id="s-keyboard">
+  <div class="sb"><span class="t13">09:41</span><svg class="i i16"><use href="#wifis"/></svg></div>
+  <div class="tb"><span class="hit"><svg class="i"><use href="#back"/></svg></span><span class="t22 ttl ell">Cafe_5G</span></div>
+  <div class="abs field"><span class="t15" style="letter-spacing:2px">••••••</span><span class="caret"></span><span style="flex:1"></span><span class="hit" style="width:40px;height:40px"><svg class="i c2"><use href="#eye"/></svg></span></div>
+  <div class="abs btn pri t15 join">Join</div>
+  <div class="abs t12 c2" style="left:16px;top:124px">WPA2 · case-sensitive</div>
+  <div class="abs kb">
+    <div class="kr"><span class="k">q</span><span class="k">w</span><span class="k">e</span><span class="k">r</span><span class="k">t</span><span class="k">y</span><span class="k">u</span><span class="k">i</span><span class="k">o</span><span class="k">p</span></div>
+    <div class="kr"><span class="pad"></span><span class="k">a</span><span class="k">s</span><span class="k">d</span><span class="k">f</span><span class="k">g</span><span class="k">h</span><span class="k">j</span><span class="k">k</span><span class="k">l</span><span class="pad"></span></div>
+    <div class="kr"><span class="k m" style="flex-grow:1.5"><svg class="i"><use href="#shift"/></svg></span><span class="k">z</span><span class="k">x</span><span class="k">c</span><span class="k">v</span><span class="k">b</span><span class="k">n</span><span class="k">m</span><span class="k m" style="flex-grow:1.5"><svg class="i"><use href="#del"/></svg></span></div>
+    <div class="kr"><span class="k m" style="flex-grow:2">123</span><span class="k" style="flex-grow:5.5;color:var(--text-2)">space</span><span class="k go" style="flex-grow:2.5">Go</span></div>
+  </div>
+</div><figcaption><b>09</b>Keyboard</figcaption></figure>
+
+</main>
+
+<script>
+  // Overlays sit on top of a live copy of the app behind them.
+  for (const c of document.querySelectorAll('.clone')) {
+    const src = document.getElementById(c.dataset.of).cloneNode(true);
+    src.removeAttribute('id');
+    src.style.position = 'absolute'; src.style.inset = '0';
+    c.replaceWith(src);
+  }
+</script>
+</body>
+</html>
