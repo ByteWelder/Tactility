@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1116">
+<title>Tactility mobile — redesign mockups</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" width="0" height="0">
+  <defs>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
+      <path d="M9 5v4M16 10v4M7 15v4"/>
+    </symbol>
+    <symbol id="i-bot" viewBox="0 0 24 24">
+      <rect x="5" y="8.5" width="14" height="11" rx="3.5"/>
+      <path d="M12 8.5v-3M9.5 3.8h5"/>
+      <circle cx="12" cy="4.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="9.5" cy="13" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="14.5" cy="13" r="1.1" fill="currentColor" stroke="none"/>
+      <path d="M9.5 16c.7.7 4.3.7 5 0"/>
+      <path d="M3.5 12.5h1.5M19 12.5h1.5"/>
+    </symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24">
+      <path d="M2.8 8.8c5.1-4.8 13.3-4.8 18.4 0"/>
+      <path d="M6.2 12.4c3.2-3 8.4-3 11.6 0"/>
+      <path d="M9.6 15.9c1.3-1.2 3.5-1.2 4.8 0"/>
+      <circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/>
+    </symbol>
+    <symbol id="i-package" viewBox="0 0 24 24">
+      <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/>
+      <path d="M4 7.5 12 12l8-4.5M12 12v9"/>
+    </symbol>
+    <symbol id="i-note" viewBox="0 0 24 24">
+      <path d="M6 3.5h8l4 4v13H6z"/>
+      <path d="M14 3.5v4h4M9 12h6M9 15.5h6M9 19h3"/>
+    </symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+      <path d="M7 10l3 2-3 2M12.5 14H17"/>
+    </symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24">
+      <path d="M4 8.5h3.2L9 6h6l1.8 2.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"/>
+      <circle cx="12" cy="13.5" r="3.2"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/>
+    </symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24">
+      <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/>
+      <path d="M15 9a4.5 4.5 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11"/>
+    </symbol>
+    <symbol id="i-bluetooth" viewBox="0 0 24 24">
+      <path d="M7 7l10 10-5 4V3l5 4L7 17"/>
+    </symbol>
+    <symbol id="i-recents" viewBox="0 0 24 24">
+      <rect x="8.5" y="3.5" width="11" height="14" rx="2"/>
+      <rect x="4.5" y="6.5" width="11" height="14" rx="2"/>
+      <path d="M7.5 11h5M7.5 14.5h5"/>
+    </symbol>
+    <symbol id="i-back" viewBox="0 0 24 24">
+      <path d="M14.5 5.5 8 12l6.5 6.5"/>
+    </symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24">
+      <path d="M9.5 5.5 16 12l-6.5 6.5"/>
+    </symbol>
+    <symbol id="i-up" viewBox="0 0 24 24">
+      <path d="M5.5 14.5 12 8l6.5 6.5"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="M7 7l10 10M17 7 7 17"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/>
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>
+      <circle cx="12" cy="15.2" r="1.1" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <circle cx="12" cy="5.5" r="1.3" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="18.5" r="1.3" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24">
+      <path d="M4.5 11a8 8 0 0 1 13.7-4.7"/>
+      <path d="M20 4v5h-5"/>
+      <path d="M19.5 13a8 8 0 0 1-13.7 4.7"/>
+      <path d="M4 20v-5h5"/>
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12z"/>
+      <circle cx="12" cy="12" r="2.5"/>
+    </symbol>
+    <symbol id="i-backspace" viewBox="0 0 24 24">
+      <path d="M9 5.5h10.5A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5H9L3.5 12z"/>
+      <path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>
+    </symbol>
+    <symbol id="i-shift" viewBox="0 0 24 24">
+      <path d="M12 3.5 20 11h-4.5v9h-7v-9H4z"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.5 11 12 4l8.5 7v8.5a1 1 0 0 1-1 1h-4.5v-6h-6v6H4.5a1 1 0 0 1-1-1z"/>
+    </symbol>
+    <symbol id="i-display" viewBox="0 0 24 24">
+      <rect x="3" y="4.5" width="18" height="12" rx="1.5"/>
+      <path d="M9 20h6M12 16.5V20"/>
+    </symbol>
+    <symbol id="i-power" viewBox="0 0 24 24">
+      <path d="M12 3v8"/>
+      <path d="M7 6.5a7.5 7.5 0 1 0 10 0"/>
+    </symbol>
+    <symbol id="i-signal-3" viewBox="0 0 24 24">
+      <rect x="4" y="13" width="3.5" height="7" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="10.2" y="9" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="16.4" y="5" width="3.5" height="15" rx="1" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-signal-2" viewBox="0 0 24 24">
+      <rect x="4" y="13" width="3.5" height="7" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="10.2" y="9" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="16.4" y="5" width="3.5" height="15" rx="1" fill="currentColor" stroke="none" opacity=".3"/>
+    </symbol>
+    <symbol id="i-signal-1" viewBox="0 0 24 24">
+      <rect x="4" y="13" width="3.5" height="7" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="10.2" y="9" width="3.5" height="11" rx="1" fill="currentColor" stroke="none" opacity=".3"/>
+      <rect x="16.4" y="5" width="3.5" height="15" rx="1" fill="currentColor" stroke="none" opacity=".3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Tactility mobile</p>
+      <h1>Redesign</h1>
+    </div>
+    <p class="meta">240 × 320 · dark · Inter · 9 screens</p>
+  </header>
+
+  <div class="screens">
+
+    <!-- 01 LOCK -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="lock">
+          <div class="screen-inner screen-lock">
+            <div class="lock-top">
+              <span class="wordmark">TACTILITY</span>
+            </div>
+            <svg class="icon lock-wifi"><use href="#i-wifi"/></svg>
+            <div class="lock-clock">09<span class="colon">:</span>41</div>
+            <div class="lock-date">Friday, 24 October</div>
+            <div class="lock-hint">
+              <span class="hint-bar"></span>
+              <span class="hint-label">Swipe up or tap</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">01</span><span>Lock</span></figcaption>
+    </figure>
+
+    <!-- 02 HOME -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="home">
+          <div class="screen-inner">
+            <div class="statusbar">
+              <span class="time">09:41</span>
+              <span class="spacer"></span>
+              <svg class="icon"><use href="#i-wifi"/></svg>
+            </div>
+
+            <div class="home-clock">
+              <div class="big">09<span class="colon">:</span>41</div>
+              <div class="date">Friday, 24 October</div>
+            </div>
+
+            <div class="app-grid">
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-settings"/></svg></span><span class="label">Settings</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-bot"/></svg></span><span class="label">Grok Bot</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-wifi"/></svg></span><span class="label">Wi-Fi</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-folder"/></svg></span><span class="label">Files</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-package"/></svg></span><span class="label">Hub</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-note"/></svg></span><span class="label">Notes</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-terminal"/></svg></span><span class="label">Terminal</span></div>
+              <div class="app"><span class="tile"><svg class="icon icon--32"><use href="#i-camera"/></svg></span><span class="label">Camera</span></div>
+            </div>
+
+            <div class="dock">
+              <div class="dock-item running">
+                <svg class="icon icon--32"><use href="#i-bot"/></svg>
+                <span class="dot"></span>
+              </div>
+              <div class="dock-item">
+                <svg class="icon icon--32"><use href="#i-note"/></svg>
+                <span class="dot"></span>
+              </div>
+              <div class="dock-item running">
+                <svg class="icon icon--32"><use href="#i-folder"/></svg>
+                <span class="dot"></span>
+              </div>
+              <div class="dock-item">
+                <svg class="icon icon--32"><use href="#i-camera"/></svg>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">02</span><span>Home</span></figcaption>
+    </figure>
+
+    <!-- 03 QUICK PANEL -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="quick-panel">
+          <div class="overlay-base" data-clone="home"></div>
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="sheet-head">
+              <span class="sheet-time">09:41</span>
+              <span class="sheet-date">Fri 24 Oct</span>
+            </div>
+            <div class="qrow">
+              <svg class="icon"><use href="#i-sun"/></svg>
+              <span class="slider"><span class="fill" style="width:70%"></span><span class="knob" style="left:70%"></span></span>
+            </div>
+            <div class="qrow">
+              <svg class="icon"><use href="#i-volume"/></svg>
+              <span class="slider"><span class="fill" style="width:42%"></span><span class="knob" style="left:42%"></span></span>
+            </div>
+            <div class="qtiles">
+              <div class="qtile qtile--on">
+                <svg class="icon"><use href="#i-wifi"/></svg>
+                <span class="qtile-label">Wi-Fi</span>
+                <span class="qtile-sub">HomeNet</span>
+              </div>
+              <div class="qtile">
+                <svg class="icon"><use href="#i-bluetooth"/></svg>
+                <span class="qtile-label">Bluetooth</span>
+                <span class="qtile-sub">Off</span>
+              </div>
+              <div class="qtile">
+                <svg class="icon"><use href="#i-recents"/></svg>
+                <span class="qtile-label">Recents</span>
+                <span class="qtile-sub">3 apps</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">03</span><span>Quick panel</span></figcaption>
+    </figure>
+
+    <!-- 04 RECENTS -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="recents">
+          <div class="screen-inner recents-screen">
+            <div class="recents-head">
+              <span class="recents-title">Recents</span>
+              <span class="recents-hint">Swipe up to close</span>
+            </div>
+            <div class="recent-list">
+              <div class="recent-card current">
+                <svg class="icon icon--32"><use href="#i-folder"/></svg>
+                <span class="recent-name">Files</span>
+                <span class="close-hit"><svg class="icon icon--18"><use href="#i-close"/></svg></span>
+              </div>
+              <div class="recent-card">
+                <svg class="icon icon--32"><use href="#i-bot"/></svg>
+                <span class="recent-name">Grok Bot</span>
+                <span class="close-hit"><svg class="icon icon--18"><use href="#i-close"/></svg></span>
+              </div>
+              <div class="recent-card">
+                <svg class="icon icon--32"><use href="#i-wifi"/></svg>
+                <span class="recent-name">Wi-Fi</span>
+                <span class="close-hit"><svg class="icon icon--18"><use href="#i-close"/></svg></span>
+              </div>
+              <div class="recent-card">
+                <svg class="icon icon--32"><use href="#i-note"/></svg>
+                <span class="recent-name">Notes</span>
+                <span class="close-hit"><svg class="icon icon--18"><use href="#i-close"/></svg></span>
+              </div>
+              <div class="recent-card">
+                <svg class="icon icon--32"><use href="#i-home"/></svg>
+                <span class="recent-name">Home</span>
+                <span class="close-hit"><svg class="icon icon--18"><use href="#i-close"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">04</span><span>Recents</span></figcaption>
+    </figure>
+
+    <!-- 05 SETTINGS -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="settings">
+          <div class="screen-inner">
+            <div class="statusbar">
+              <span class="time">09:41</span>
+              <span class="spacer"></span>
+              <svg class="icon"><use href="#i-wifi"/></svg>
+            </div>
+            <div class="toolbar">
+              <span class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></span>
+              <span class="title">Settings</span>
+            </div>
+
+            <div class="list settings-list">
+              <div class="row">
+                <svg class="icon"><use href="#i-display"/></svg>
+                <span class="label">Display</span>
+                <span class="value">Dark</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-volume"/></svg>
+                <span class="label">Sound</span>
+                <span class="value">60%</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-wifi"/></svg>
+                <span class="label">Wi-Fi</span>
+                <span class="value">HomeNet</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-bluetooth"/></svg>
+                <span class="label">Bluetooth</span>
+                <span class="value">Off</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-power"/></svg>
+                <span class="label">Power</span>
+                <span class="value">5 min</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">05</span><span>Settings</span></figcaption>
+    </figure>
+
+    <!-- 06 WI-FI -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="wifi">
+          <div class="screen-inner">
+            <div class="statusbar">
+              <span class="time">09:41</span>
+              <span class="spacer"></span>
+              <svg class="icon"><use href="#i-wifi"/></svg>
+            </div>
+            <div class="toolbar">
+              <span class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></span>
+              <span class="title">Wi-Fi</span>
+              <span class="spacer"></span>
+              <span class="icon-btn icon-btn--flush"><svg class="icon"><use href="#i-refresh"/></svg></span>
+              <span class="switch-hit"><span class="switch"></span></span>
+            </div>
+
+            <div class="net-current">
+              <svg class="icon"><use href="#i-wifi"/></svg>
+              <div class="net-current-text">
+                <span class="name">HomeNet</span>
+                <span class="state">Connected</span>
+              </div>
+              <span class="spacer"></span>
+              <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+            </div>
+
+            <div class="section-label">Available</div>
+            <div class="list net-list">
+              <div class="row row--net">
+                <svg class="icon icon--16 sig"><use href="#i-signal-3"/></svg>
+                <span class="label">Rowan</span>
+                <svg class="icon icon--16 lock"><use href="#i-lock"/></svg>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row row--net">
+                <svg class="icon icon--16 sig"><use href="#i-signal-2"/></svg>
+                <span class="label">TP-Link_4A2C</span>
+                <svg class="icon icon--16 lock"><use href="#i-lock"/></svg>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row row--net">
+                <svg class="icon icon--16 sig"><use href="#i-signal-1"/></svg>
+                <span class="label">Guest</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">06</span><span>Wi-Fi</span></figcaption>
+    </figure>
+
+    <!-- 07 APP -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="app">
+          <div class="screen-inner">
+            <div class="statusbar">
+              <span class="time">09:41</span>
+              <span class="spacer"></span>
+              <svg class="icon"><use href="#i-wifi"/></svg>
+            </div>
+            <div class="toolbar">
+              <span class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></span>
+              <span class="title">Files</span>
+              <span class="spacer"></span>
+              <span class="icon-btn icon-btn--right"><svg class="icon"><use href="#i-more"/></svg></span>
+            </div>
+
+            <div class="path-label">Internal storage</div>
+            <div class="list file-list">
+              <div class="row">
+                <svg class="icon"><use href="#i-folder"/></svg>
+                <span class="label">Documents</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-folder"/></svg>
+                <span class="label">Music</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-folder"/></svg>
+                <span class="label">Pictures</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+              <div class="row">
+                <svg class="icon"><use href="#i-note"/></svg>
+                <span class="label">notes.txt</span>
+                <span class="value">2.1 KB</span>
+                <svg class="icon icon--16 chev"><use href="#i-chevron"/></svg>
+              </div>
+            </div>
+            <div class="list-footer">4 items · 12.4 GB free</div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">07</span><span>App</span></figcaption>
+    </figure>
+
+    <!-- 08 KEYBOARD -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="keyboard">
+          <div class="screen-inner">
+            <div class="statusbar">
+              <span class="time">09:41</span>
+              <span class="spacer"></span>
+              <svg class="icon"><use href="#i-wifi"/></svg>
+            </div>
+            <div class="toolbar">
+              <span class="icon-btn"><svg class="icon"><use href="#i-back"/></svg></span>
+              <span class="title">Rowan</span>
+              <span class="spacer"></span>
+              <span class="action">Join</span>
+            </div>
+
+            <div class="field-label">Password</div>
+            <div class="field">
+              <span class="dots">••••••••</span>
+              <span class="spacer"></span>
+              <span class="eye-hit"><svg class="icon icon--18 eye"><use href="#i-eye"/></svg></span>
+            </div>
+            <div class="field-hint">WPA2 Personal</div>
+
+            <div class="keyboard">
+              <div class="krow">
+                <span class="key">q</span><span class="key">w</span><span class="key">e</span><span class="key">r</span><span class="key">t</span><span class="key">y</span><span class="key">u</span><span class="key">i</span><span class="key">o</span><span class="key">p</span>
+              </div>
+              <div class="krow">
+                <span class="key">a</span><span class="key">s</span><span class="key">d</span><span class="key">f</span><span class="key">g</span><span class="key">h</span><span class="key">j</span><span class="key">k</span><span class="key">l</span>
+              </div>
+              <div class="krow">
+                <span class="key key--mod"><svg class="icon"><use href="#i-shift"/></svg></span>
+                <span class="key">z</span><span class="key">x</span><span class="key">c</span><span class="key">v</span><span class="key">b</span><span class="key">n</span><span class="key">m</span>
+                <span class="key key--mod"><svg class="icon"><use href="#i-backspace"/></svg></span>
+              </div>
+              <div class="krow">
+                <span class="key key--mod key--num">123</span>
+                <span class="key key--space">space</span>
+                <span class="key key--go">Go</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">08</span><span>Keyboard</span></figcaption>
+    </figure>
+
+    <!-- 09 DIALOG -->
+    <figure class="shot">
+      <div class="frame">
+        <div class="phone" id="dialog">
+          <div class="overlay-base" data-clone="wifi"></div>
+          <div class="dim"></div>
+          <div class="dialog">
+            <div class="dialog-title">Forget network?</div>
+            <div class="dialog-body">This will disconnect from HomeNet. You can reconnect later.</div>
+            <div class="dialog-actions">
+              <span class="btn btn--secondary">Cancel</span>
+              <span class="btn btn--primary">Forget</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><span class="num">09</span><span>Dialog</span></figcaption>
+    </figure>
+
+  </div>
+
+  <footer class="page-foot">
+    <span>Solid / 2-stop backgrounds</span>
+    <span>One accent · 12 px cards · 8 px controls</span>
+    <span>Icons 24 / 32 · 2 px stroke</span>
+  </footer>
+</div>
+
+<script>
+  for (const target of document.querySelectorAll('[data-clone]')) {
+    const source = document.querySelector('#' + target.dataset.clone + ' .screen-inner');
+    if (source) target.appendChild(source.cloneNode(true));
+  }
+  Promise.all([
+    document.fonts.ready,
+    new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  ]).then(() => { window.__ready = true; });
+</script>
+</body>
+</html>
