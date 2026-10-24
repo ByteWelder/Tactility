@@ -620,8 +620,11 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(module_resolve_symbol),
     DEFINE_MODULE_SYMBOL(module_resolve_symbol_global),
     DEFINE_MODULE_SYMBOL(module_resolve_symbol_global_get),
+    DEFINE_MODULE_SYMBOL(module_resolve_symbol_global_get_code),
     DEFINE_MODULE_SYMBOL(module_get),
     DEFINE_MODULE_SYMBOL(module_put),
+    DEFINE_MODULE_SYMBOL(module_get_code),
+    DEFINE_MODULE_SYMBOL(module_put_code),
     // bundle
     DEFINE_MODULE_SYMBOL(bundle_alloc),
     DEFINE_MODULE_SYMBOL(bundle_clone),
