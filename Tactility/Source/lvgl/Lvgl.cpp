@@ -10,6 +10,7 @@
 #include <generated_assets.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/lvgl/SystemBars.h>
+#include <Tactility/lvgl/SystemGestures.h>
 #include <Tactility/lvgl/SystemMenu.h>
 #include <Tactility/lvgl/TrackballInit.h>
 #include <Tactility/lvgl/UsbHidInput.h>
@@ -119,6 +120,9 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     // Places the statusbar on top, or in a strip on the side
     systemBarsAttach(vertical_container, statusbar, app_container);
 
+    // Edge swipes: home and recents from the bottom edge, back from the left edge
+    systemGesturesAttach();
+
     return app_container;
 }
 
@@ -211,6 +215,7 @@ static void onLvglStopped() {
 
     lvgl_lock();
     systemBarsDetach();
+    systemGesturesDetach();
     lvgl_unlock();
 
     if (softwareKeyboard.object != nullptr) {
