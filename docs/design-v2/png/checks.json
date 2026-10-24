@@ -1,0 +1,152 @@
+{
+  "gridLabels": [
+    {
+      "text": "Settings",
+      "w": 46,
+      "shown": 46.25,
+      "l": 38.875,
+      "r": 85.125,
+      "truncated": false,
+      "gapRight": 12.2
+    },
+    {
+      "text": "Grok Bot",
+      "w": 49,
+      "shown": 49.40625,
+      "l": 97.296875,
+      "r": 146.703125,
+      "truncated": false,
+      "gapRight": 20.2
+    },
+    {
+      "text": "Wi-Fi",
+      "w": 30,
+      "shown": 30.25,
+      "l": 166.875,
+      "r": 197.125,
+      "truncated": false,
+      "gapRight": 31.8
+    },
+    {
+      "text": "Files",
+      "w": 26,
+      "shown": 26.234375,
+      "l": 228.875,
+      "r": 255.109375,
+      "truncated": false,
+      "gapRight": null
+    },
+    {
+      "text": "Hub",
+      "w": 23,
+      "shown": 23.375,
+      "l": 50.3125,
+      "r": 73.6875,
+      "truncated": false,
+      "gapRight": 31.6
+    },
+    {
+      "text": "Notes",
+      "w": 33,
+      "shown": 33.375,
+      "l": 105.3125,
+      "r": 138.6875,
+      "truncated": false,
+      "gapRight": 19
+    },
+    {
+      "text": "Terminal",
+      "w": 49,
+      "shown": 48.671875,
+      "l": 157.65625,
+      "r": 206.328125,
+      "truncated": false,
+      "gapRight": 13.5
+    },
+    {
+      "text": "Camera",
+      "w": 44,
+      "shown": 44.28125,
+      "l": 219.859375,
+      "r": 264.140625,
+      "truncated": false,
+      "gapRight": null
+    }
+  ],
+  "grid": {
+    "x": 0,
+    "y": 86,
+    "w": 240,
+    "h": 136
+  },
+  "dock": {
+    "x": 8,
+    "y": 244,
+    "w": 224,
+    "h": 56
+  },
+  "recentsX": {
+    "x": 184,
+    "y": 76,
+    "w": 40,
+    "h": 44
+  },
+  "recentsList": {
+    "x": 16,
+    "y": 76,
+    "w": 208,
+    "h": 44
+  },
+  "key": {
+    "x": 0,
+    "y": 157,
+    "w": 23.1,
+    "h": 40
+  },
+  "keyboard": {
+    "x": 0,
+    "y": 152,
+    "w": 240,
+    "h": 168
+  },
+  "dialogBtn": {
+    "x": 29,
+    "y": 251,
+    "w": 87,
+    "h": 40
+  },
+  "dialog": {
+    "x": 12,
+    "y": 144,
+    "w": 216,
+    "h": 164
+  },
+  "qtile": {
+    "x": 12,
+    "y": 136,
+    "w": 68,
+    "h": 74
+  },
+  "slider": {
+    "x": 12,
+    "y": 48,
+    "w": 216,
+    "h": 40
+  },
+  "thumb": {
+    "x": 134.8,
+    "y": 58,
+    "w": 20,
+    "h": 20
+  },
+  "overflow": [],
+  "dialogTitleH": 26,
+  "fonts": {
+    "Regular 12 ASCII": 4087,
+    "Medium 13 ASCII": 4586,
+    "Medium 14 ASCII": 5077,
+    "Medium 15 ASCII": 5464,
+    "Medium 22 ASCII": 9527,
+    "Medium 48 \"0123456789:\"": 5473
+  }
+}
