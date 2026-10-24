@@ -89,6 +89,7 @@ entry compile out.
 
 ## Verdict
 
-Both axes green after the fixes above. Build for `es3c28p` passes; the gesture geometry unit test
-passes when compiled and run standalone (the repository's doctest target could not be built in this
-environment - see the retro).
+Both axes green after the fixes above. Build for `es3c28p` passes. The committed gesture geometry
+test was compiled and run directly with doctest in this environment (3 test cases, 20 assertions, all
+passing); the repository's full `build-tests` target could not run locally because of missing Python
+packages - see the retro.

@@ -146,7 +146,8 @@ ambiguity.
 - [x] Edge strip boundaries and the bottom-corner precedence are covered.
 - [x] Threshold boundaries (40 px counts, 39 does not) are covered for both directions.
 - [x] Equal-axis diagonals and the wrong direction are rejected.
-- [x] The tests sit with the existing system-bars layout tests, in the same suite.
+- [x] The tests sit with the existing system-bars layout tests, in the same suite, and pass
+      when that translation unit is compiled and run with doctest (20 assertions).
 
 ## 09: Footprint measured against the starting commit, and the work published
 

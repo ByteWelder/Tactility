@@ -14,8 +14,9 @@ in two ways before it ever reaches a test:
 - mbedtls' `generate_driver_wrappers.py` needs `jsonschema`, which is not in the system python.
 
 Effect: the only automated guardrail for this kind of change (pure-logic tests in the Tactility suite)
-is unreachable locally. The gesture geometry test was therefore verified by compiling the header and
-running the same assertions standalone.
+is unreachable locally. The committed gesture test was therefore verified by compiling that single
+translation unit with doctest directly (20 assertions, passing), not through the project's test
+target.
 
 Suggested fix: document (and script) the local test prerequisites - a `requirements-dev.txt` plus a
 `tt.py test` command that creates a venv and points `python` at it. The current CI already proves the
