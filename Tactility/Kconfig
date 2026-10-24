@@ -92,6 +92,14 @@ menu "Tactility App"
         bool "Set true when a touch screen calibration is required before the device is usable"
         default n
         depends on TT_TOUCH_CALIBRATION_SUPPORTED
+    config TT_SYSTEM_GESTURES
+        bool "System gestures for touch screens"
+        default y
+        help
+            Edge swipes: up from the bottom edge goes home (hold it for the recents switcher), and
+            right from the left edge closes the topmost app. Devices without a pointer input device
+            ignore this at runtime, so keypad/encoder-only devices are unaffected. Disable it to
+            leave the code out of the firmware entirely.
     config TT_DISPLAY_IDLE_TICK_MS
         int "Display idle tick interval (ms)"
         default 50
